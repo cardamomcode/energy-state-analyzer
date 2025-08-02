@@ -89,36 +89,49 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 function createDecorations() {
+    // Pastel eye-friendly colors
+    const pastelRed = '#ff9999';    // Soft red for high energy
+    const pastelYellow = '#ffdd88'; // Soft yellow for medium energy  
+    const pastelGreen = '#99dd99';  // Soft green for low energy
+
     highEnergyDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 0, 0, 0.3)',
-        after: {
-            contentText: ' ⚡ High Energy',
-            color: 'rgba(255, 0, 0, 0.8)',
-            fontStyle: 'italic'
-        }
+        // Subtle background highlight that's still hoverable
+        backgroundColor: 'rgba(255, 153, 153, 0.1)',
+        borderRadius: '2px',
+        // Pastel red lightning for high energy
+        gutterIconPath: createLightningIcon(pastelRed),
+        gutterIconSize: 'contain'
     });
 
     mediumEnergyDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 165, 0, 0.1)',
-        border: '1px solid rgba(255, 165, 0, 0.3)',
-        after: {
-            contentText: ' ⚠️ Medium Energy',
-            color: 'rgba(255, 165, 0, 0.8)',
-            fontStyle: 'italic'
-        }
+        backgroundColor: 'rgba(255, 221, 136, 0.1)', 
+        borderRadius: '2px',
+        // Pastel yellow lightning for medium energy
+        gutterIconPath: createLightningIcon(pastelYellow),
+        gutterIconSize: 'contain'
     });
 
     lowEnergyDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 255, 0, 0.1)',
-        border: '1px solid rgba(255, 255, 0, 0.3)',
-        after: {
-            contentText: ' 💡 Attention',
-            color: 'rgba(255, 255, 0, 0.8)',
-            fontStyle: 'italic'
-        }
+        backgroundColor: 'rgba(153, 221, 153, 0.1)',
+        borderRadius: '2px',
+        // Pastel green lightning for low energy
+        gutterIconPath: createLightningIcon(pastelGreen),
+        gutterIconSize: 'contain'
     });
 }
+
+// Create lightning bolt icon for energy violations
+
+function createLightningIcon(color: string): vscode.Uri {
+    const svg = `
+    <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="7" fill="${color}" opacity="0.95"/>
+        <path d="M6 3 L10 8 L8.5 8 L10.5 13 L6.5 8 L8 8 Z" fill="white" stroke="white" stroke-width="0.3"/>
+    </svg>`;
+    const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    return vscode.Uri.parse(dataUri);
+}
+
 
 function analyzeActiveEditor() {
     const editor = vscode.window.activeTextEditor;
