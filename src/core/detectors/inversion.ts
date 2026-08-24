@@ -23,8 +23,14 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
         if (!body) return;
 
         // Look for patterns that could benefit from inversion
+        //
+        // decision: filters on isNamed, not just a non-comment/non-blank text check - grammars
+        // with an explicit block wrapper (e.g. TS's statement_block) include the literal '{'/'}'
+        // tokens in .children, and those pass a text?.trim() check same as a real statement would.
+        // Without this, `statements[0]` on such grammars is always the '{' token, never the
+        // function's actual first statement, so Pattern 1 below can never match.
         const statements = body.children.filter((child: any) =>
-            child.type !== nodeTypes.comment && child.text?.trim()
+            child.isNamed && child.type !== nodeTypes.comment && child.text?.trim()
         );
 
         // Pattern 1: Single large if-statement dominating the function

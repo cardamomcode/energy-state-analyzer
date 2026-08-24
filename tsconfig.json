@@ -16,5 +16,8 @@
 		"ignoreDeprecations": "6.0",
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true
-	}
+	},
+	"exclude": [
+		"src/test/fixtures"
+	]
 }
