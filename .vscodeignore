@@ -20,3 +20,4 @@ energy-state.md
 RELEASING.md
 Justfile
 AGENT_DECISION_COMMENTS.md
+.npmignore
