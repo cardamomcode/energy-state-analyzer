@@ -2,37 +2,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
+import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
+import { analyzeFunctionComplexity } from './cyclomatic';
+import { analyzeCognitiveComplexity } from './cognitive';
+
 let parser: any;
 let pythonLanguage: any;
 
 // Create diagnostics collection at module level
 let diagnosticsCollection: vscode.DiagnosticCollection;
-
-// Constants to avoid magic strings
-const SEVERITY = {
-    LOW: 'low' as const,
-    MEDIUM: 'medium' as const,
-    HIGH: 'high' as const
-};
-
-const VIOLATION_TYPE = {
-    NESTING: 'nesting' as const,
-    COMPLEXITY: 'complexity' as const,
-    NAMING: 'naming' as const,
-    COHERENCE: 'coherence' as const,
-    MAGIC: 'magic' as const,
-    PARAMETERS: 'parameters' as const,
-    INVERSION: 'inversion' as const
-};
-
-// Energy violation types
-interface EnergyViolation {
-    line: number;
-    column: number;
-    type: 'nesting' | 'complexity' | 'naming' | 'coherence' | 'magic' | 'parameters' | 'inversion';
-    severity: 'low' | 'medium' | 'high';
-    message: string;
-}
 
 // Decoration types for different energy states
 let highEnergyDecoration: vscode.TextEditorDecorationType;
@@ -183,11 +161,12 @@ function analyzeDocument(document: vscode.TextDocument): EnergyViolation[] {
         const tree = parser.parse(sourceCode);
         violations.push(...analyzeNesting(tree, document));
         violations.push(...analyzeFunctionComplexity(tree, document));
+        violations.push(...analyzeCognitiveComplexity(tree, document));
         violations.push(...analyzeFileCoherence(tree, document));
         violations.push(...analyzeMagicValues(tree, document));
         violations.push(...analyzeParameterCount(tree, document));
         violations.push(...analyzeInversionOpportunities(tree, document));
-        
+
         // Extract type information (for analysis/future features)
         const typeInfo = extractTypeInformation(tree, document);
         console.log('🔍 Found types:', typeInfo);
@@ -226,55 +205,6 @@ function analyzeNesting(tree: any, document: vscode.TextDocument): EnergyViolati
     return violations;
 }
 
-function analyzeFunctionComplexity(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-
-    function traverse(node: any) {
-        if (node.type === 'function_definition') {
-            const complexity = calculateCyclomaticComplexity(node);
-            if (complexity > 10) {
-                const position = document.positionAt(node.startIndex);
-                violations.push({
-                    line: position.line,
-                    column: position.character,
-                    type: VIOLATION_TYPE.COMPLEXITY,
-                    severity: complexity > 15 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-                    message: `High cyclomatic complexity: ${complexity}. Consider breaking down this function.`
-                });
-            }
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    traverse(tree.rootNode);
-    return violations;
-}
-
-function calculateCyclomaticComplexity(functionNode: any): number {
-    let complexity = 1; // Base complexity
-
-    function countDecisionPoints(node: any) {
-        const decisionNodes = [
-            'if_statement', 'elif_clause', 'while_statement', 'for_statement',
-            'except_clause', 'and', 'or', 'conditional_expression'
-        ];
-
-        if (decisionNodes.includes(node.type)) {
-            complexity++;
-        }
-
-        for (const child of node.children) {
-            countDecisionPoints(child);
-        }
-    }
-
-    countDecisionPoints(functionNode);
-    return complexity;
-}
-
 function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation[]) {
     const highEnergyRanges: vscode.DecorationOptions[] = [];
     const mediumEnergyRanges: vscode.DecorationOptions[] = [];
@@ -288,7 +218,7 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
         if (violation.type === VIOLATION_TYPE.COHERENCE) {
             // Highlight entire first line for file-level issues
             range = new vscode.Range(violation.line, 0, violation.line, line.text.length);
-        } else if (violation.type === VIOLATION_TYPE.NESTING || violation.type === VIOLATION_TYPE.COMPLEXITY) {
+        } else if (violation.type === VIOLATION_TYPE.NESTING || violation.type === VIOLATION_TYPE.COMPLEXITY || violation.type === VIOLATION_TYPE.COGNITIVE) {
             // Highlight from function start to end of line
             const functionStart = line.text.search(/\S/); // Find first non-whitespace
             range = new vscode.Range(violation.line, functionStart, violation.line, line.text.length);
@@ -360,6 +290,7 @@ function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyVi
                 diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
                 break;
             case VIOLATION_TYPE.COMPLEXITY:
+            case VIOLATION_TYPE.COGNITIVE:
                 diagnostic.tags = [vscode.DiagnosticTag.Deprecated]; // Using as a visual cue
                 break;
         }
@@ -740,7 +671,7 @@ function extractTypeInformation(tree: any, document: vscode.TextDocument): TypeI
 function extractFunctionTypeInfo(node: any, document: vscode.TextDocument): FunctionTypeInfo {
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const parametersNode = node.children.find((child: any) => child.type === 'parameters');
-    
+
     // Find return type (after -> token)
     let returnType: string | null = null;
     const arrowIndex = node.children.findIndex((child: any) => child.text === '->');
@@ -781,7 +712,7 @@ function extractFunctionTypeInfo(node: any, document: vscode.TextDocument): Func
 function extractParameterTypeInfo(node: any): ParameterTypeInfo {
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const typeNode = node.children.find((child: any) => child.type === 'type');
-    
+
     return {
         name: nameNode?.text || 'unknown',
         type: typeNode ? extractTypeString(typeNode) : null,
@@ -793,7 +724,7 @@ function extractDefaultParameterTypeInfo(node: any): ParameterTypeInfo {
     // Default parameters might have type annotations too
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const typeNode = node.children.find((child: any) => child.type === 'type');
-    
+
     return {
         name: nameNode?.text || 'unknown',
         type: typeNode ? extractTypeString(typeNode) : null,
@@ -805,7 +736,7 @@ function extractVariableTypeInfo(node: any, document: vscode.TextDocument): Vari
     // Look for assignments with type annotations: x: int = 5
     const identifierNode = node.children.find((child: any) => child.type === 'identifier');
     const typeNode = node.children.find((child: any) => child.type === 'type');
-    
+
     if (identifierNode && typeNode) {
         const position = document.positionAt(node.startIndex);
         return {
@@ -814,17 +745,17 @@ function extractVariableTypeInfo(node: any, document: vscode.TextDocument): Vari
             line: position.line
         };
     }
-    
+
     return null;
 }
 
 function extractClassTypeInfo(node: any, document: vscode.TextDocument): ClassTypeInfo {
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const argumentListNode = node.children.find((child: any) => child.type === 'argument_list');
-    
+
     const baseClasses: string[] = [];
     let isTypedDict = false;
-    
+
     if (argumentListNode) {
         for (const child of argumentListNode.children) {
             if (child.type === 'identifier') {
@@ -881,7 +812,7 @@ function extractImportInfo(node: any, document: vscode.TextDocument): ImportInfo
         // from module import item1, item2
         const fromIndex = node.children.findIndex((child: any) => child.text === 'from');
         const importIndex = node.children.findIndex((child: any) => child.text === 'import');
-        
+
         if (fromIndex !== -1 && importIndex !== -1) {
             // Get module name (between 'from' and 'import')
             for (let i = fromIndex + 1; i < importIndex; i++) {
@@ -891,7 +822,7 @@ function extractImportInfo(node: any, document: vscode.TextDocument): ImportInfo
                     break;
                 }
             }
-            
+
             // Get imported items (after 'import')
             for (let i = importIndex + 1; i < node.children.length; i++) {
                 const child = node.children[i];
@@ -920,14 +851,14 @@ function extractTypeString(typeNode: any): string {
             }
         }
     }
-    
+
     return typeNode.text || 'unknown';
 }
 
 function extractGenericTypeString(genericTypeNode: any): string {
     const baseType = genericTypeNode.children.find((child: any) => child.type === 'identifier');
     const typeParameterNode = genericTypeNode.children.find((child: any) => child.type === 'type_parameter');
-    
+
     if (baseType && typeParameterNode) {
         const params: string[] = [];
         for (const child of typeParameterNode.children) {
@@ -937,7 +868,7 @@ function extractGenericTypeString(genericTypeNode: any): string {
         }
         return `${baseType.text}[${params.join(', ')}]`;
     }
-    
+
     return genericTypeNode.text || 'unknown';
 }
 

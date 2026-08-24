@@ -3,7 +3,8 @@
   "permissions": {
     "allow": [
       "Bash(ls:*)",
-      "Bash(npm run compile:*)"
+      "Bash(npm run compile:*)",
+      "Bash(npm run *)"
     ],
     "deny": []
   }

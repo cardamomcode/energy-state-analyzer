@@ -4,6 +4,10 @@
   "description": "Visualize code energy states in real-time",
   "version": "0.0.1",
   "publisher": "energy-analyzer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dbrattli/energy-state-analyzer.git"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },

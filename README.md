@@ -1,71 +1,42 @@
-# energy-state-analyzer README
+# Energy State Analyzer
 
-This is the README for your extension "energy-state-analyzer". After writing up a brief description, we recommend including the following sections.
+Visualizes "energy states" in Python code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Real-time analysis** of the active Python file, re-run on every edit and on editor focus change.
+- **Cyclomatic complexity** — flags functions with too many independent execution paths (`if`/`for`/`while`/`except`/boolean operators/ternaries all count equally, regardless of nesting).
+- **Cognitive complexity** — flags functions that are hard to *read*, weighting each decision point by how deeply it's nested and not penalizing early-return guard clauses.
+- **Excessive nesting** — flags `if`/`for`/`while`/`with` blocks nested more than 3 levels deep.
+- **File coherence** — flags files with too many functions or imports (a sign of "utils/helpers sprawl").
+- **Magic values** — flags suspicious numeric/string literals used outside of a constant definition.
+- **Parameter explosion** — flags functions with more than 5 parameters.
+- **Inversion opportunities** — flags large dominant `if` blocks and nested validation chains that could be rewritten as guard clauses with early returns.
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+Violations are shown three ways:
+- A colored background + gutter lightning-bolt icon on the affected lines (red = high severity, yellow = medium, green = low).
+- A hover tooltip explaining the specific violation.
+- An entry in the Problems panel, sourced as "Energy State Analyzer".
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+No configuration needed. The extension activates automatically when you open a `.py` file; it bundles its own Python grammar for parsing (via `web-tree-sitter`), so no external tools are required.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+This extension does not currently contribute any user-configurable settings — thresholds for each detector (e.g. cyclomatic complexity > 10, cognitive complexity > 15, nesting depth > 3) are fixed in code.
 
-For example:
+## Commands
 
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+- **Energy State Analyzer: Analyze Energy State** (`energy-state-analyzer.analyze`) — manually re-run analysis on the active editor.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- Detection thresholds are not yet configurable per-project.
+- Analysis only covers Python; other languages are not yet supported.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial version: cyclomatic complexity, cognitive complexity, nesting depth, file coherence, magic values, parameter count, and inversion-opportunity detectors, with gutter/hover/Problems-panel reporting for Python files.
