@@ -18,6 +18,9 @@
     "onLanguage:python"
   ],
   "main": "./dist/extension.js",
+  "bin": {
+    "energy-state-cli": "./dist/cli.js"
+  },
   "contributes": {
     "commands": [
       {
@@ -64,7 +67,8 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "analyze": "node dist/cli.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

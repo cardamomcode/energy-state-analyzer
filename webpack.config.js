@@ -66,4 +66,39 @@ const extensionConfig = {
     })
   ],
 };
-module.exports = [ extensionConfig ];
+
+/** @type WebpackConfig */
+const cliConfig = {
+  target: 'node',
+  mode: 'none',
+
+  entry: './src/cli.ts', // headless entry point, no vscode dependency
+
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'cli.js',
+    libraryTarget: 'commonjs2'
+  },
+  experiments: {
+    asyncWebAssembly: true
+  },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'ts-loader'
+          }
+        ]
+      }
+    ]
+  },
+  devtool: 'nosources-source-map'
+};
+
+module.exports = [ extensionConfig, cliConfig ];

@@ -1,19 +1,15 @@
-import * as vscode from 'vscode';
-import { ComplexityHotspot, EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
-
-const DECISION_NODE_TYPES = [
-    'if_statement', 'elif_clause', 'while_statement', 'for_statement',
-    'except_clause', 'and', 'or', 'conditional_expression'
-];
+import { ComplexityHotspot, EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
+import { PositionLookup } from '../position';
+import { LanguageAdapter } from '../language';
 
 // Cyclomatic complexity: counts independent paths through a function.
 // Every decision point (if/loop/except/boolean operator/ternary) adds 1,
 // regardless of how deeply it is nested.
-export function calculateCyclomaticComplexity(functionNode: any): number {
+export function calculateCyclomaticComplexity(functionNode: any, language: LanguageAdapter): number {
     let complexity = 1; // Base complexity
 
     function countDecisionPoints(node: any) {
-        if (DECISION_NODE_TYPES.includes(node.type)) {
+        if (language.decisionNodeTypes.includes(node.type)) {
             complexity++;
         }
 
@@ -29,13 +25,13 @@ export function calculateCyclomaticComplexity(functionNode: any): number {
 // Locates every decision point in a function and weights it by nesting
 // depth, so callers can render a per-line heatmap showing where the
 // complexity actually piles up (the metric itself stays flat/unweighted).
-export function findCyclomaticHotspots(functionNode: any, document: vscode.TextDocument): ComplexityHotspot[] {
+export function findCyclomaticHotspots(functionNode: any, positions: PositionLookup, language: LanguageAdapter): ComplexityHotspot[] {
     const hotspots: ComplexityHotspot[] = [];
 
     function walk(node: any, depth: number) {
         let nextDepth = depth;
-        if (DECISION_NODE_TYPES.includes(node.type)) {
-            const line = document.positionAt(node.startIndex).line;
+        if (language.decisionNodeTypes.includes(node.type)) {
+            const line = positions.toPosition(node.startIndex).line;
             hotspots.push({ line, weight: 1 + depth });
             nextDepth = depth + 1;
         }
@@ -61,23 +57,24 @@ export const DEFAULT_CYCLOMATIC_THRESHOLDS: CyclomaticThresholds = {
 
 export function analyzeFunctionComplexity(
     tree: any,
-    document: vscode.TextDocument,
+    positions: PositionLookup,
+    language: LanguageAdapter,
     thresholds: CyclomaticThresholds = DEFAULT_CYCLOMATIC_THRESHOLDS
 ): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (node.type === 'function_definition') {
-            const complexity = calculateCyclomaticComplexity(node);
+        if (node.type === language.nodeTypes.functionDefinition) {
+            const complexity = calculateCyclomaticComplexity(node, language);
             if (complexity > thresholds.mediumThreshold) {
-                const position = document.positionAt(node.startIndex);
+                const position = positions.toPosition(node.startIndex);
                 violations.push({
                     line: position.line,
-                    column: position.character,
+                    column: position.column,
                     type: VIOLATION_TYPE.COMPLEXITY,
                     severity: complexity > thresholds.highThreshold ? SEVERITY.HIGH : SEVERITY.MEDIUM,
                     message: `High cyclomatic complexity: ${complexity}. Consider breaking down this function.`,
-                    hotspots: findCyclomaticHotspots(node, document)
+                    hotspots: findCyclomaticHotspots(node, positions, language)
                 });
             }
         }

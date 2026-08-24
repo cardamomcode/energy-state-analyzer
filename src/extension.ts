@@ -3,8 +3,10 @@ import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
-import { analyzeFunctionComplexity, CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './cyclomatic';
-import { analyzeCognitiveComplexity, CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './cognitive';
+import { analyzeSource } from './core/analyze';
+import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
+import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
+import { PYTHON } from './languages/python';
 
 let parser: any;
 let pythonLanguage: any;
@@ -38,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
         console.log('🔧 Parser created');
 
         // Load Python grammar
-        const grammarPath = path.join(context.extensionPath, 'grammars', 'tree-sitter-python.wasm');
+        const grammarPath = path.join(context.extensionPath, PYTHON.grammarPath);
         console.log('📁 Grammar path:', grammarPath);
         pythonLanguage = await Language.load(grammarPath);
         console.log('✅ Python grammar loaded successfully');
@@ -191,55 +193,24 @@ function getCognitiveThresholds(): CognitiveThresholds {
 }
 
 function analyzeDocument(document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
     const sourceCode = document.getText();
 
     try {
         const tree = parser.parse(sourceCode);
-        violations.push(...analyzeNesting(tree, document));
-        violations.push(...analyzeFunctionComplexity(tree, document, getCyclomaticThresholds()));
-        violations.push(...analyzeCognitiveComplexity(tree, document, getCognitiveThresholds()));
-        violations.push(...analyzeFileCoherence(tree, document));
-        violations.push(...analyzeMagicValues(tree, document));
-        violations.push(...analyzeParameterCount(tree, document));
-        violations.push(...analyzeInversionOpportunities(tree, document));
+        const violations = analyzeSource(sourceCode, tree, PYTHON, document.fileName, {
+            cyclomatic: getCyclomaticThresholds(),
+            cognitive: getCognitiveThresholds()
+        });
 
         // Extract type information (for analysis/future features)
         const typeInfo = extractTypeInformation(tree, document);
         console.log('🔍 Found types:', typeInfo);
+
+        return violations;
     } catch (error) {
         console.error('Error analyzing document:', error);
+        return [];
     }
-
-    return violations;
-}
-
-function analyzeNesting(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-
-    function traverse(node: any, depth: number = 0) {
-        // Check for excessive nesting in control structures
-        if (['if_statement', 'for_statement', 'while_statement', 'with_statement'].includes(node.type)) {
-            if (depth > 3) {
-                const position = document.positionAt(node.startIndex);
-                violations.push({
-                    line: position.line,
-                    column: position.character,
-                    type: VIOLATION_TYPE.NESTING,
-                    severity: depth > 5 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-                    message: `Excessive nesting depth: ${depth}. Consider extracting.`
-                });
-            }
-            depth++;
-        }
-
-        for (const child of node.children) {
-            traverse(child, depth);
-        }
-    }
-
-    traverse(tree.rootNode);
-    return violations;
 }
 
 function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation[]) {
@@ -383,301 +354,6 @@ function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyVi
 
     // Update the Problems panel
     diagnosticsCollection.set(document.uri, diagnostics);
-}
-
-// The "Utils/Helpers Sprawl" detector - detects files losing coherence
-function analyzeFileCoherence(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-    const functions: any[] = [];
-    const imports: string[] = [];
-
-    // Collect all function definitions and imports
-    function traverse(node: any) {
-        if (node.type === 'function_definition') {
-            functions.push(node);
-        } else if (node.type === 'import_statement' || node.type === 'import_from_statement') {
-            imports.push(node.text || '');
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    traverse(tree.rootNode);
-
-    // Flag files with too many unrelated functions (utils/helpers sprawl)
-    if (functions.length > 8) {
-        const fileName = document.fileName.split('/').pop() || '';
-        const isUtilsFile = fileName.includes('util') || fileName.includes('helper') || fileName.includes('common');
-
-        if (isUtilsFile || functions.length > 12) {
-            violations.push({
-                line: 0,
-                column: 0,
-                type: VIOLATION_TYPE.COHERENCE,
-                severity: functions.length > 15 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-                message: `File coherence warning: ${functions.length} functions in one file. Consider splitting by domain.`
-            });
-        }
-    }
-
-    // Flag excessive imports (another sign of incoherence)
-    if (imports.length > 10) {
-        violations.push({
-            line: 0,
-            column: 0,
-            type: VIOLATION_TYPE.COHERENCE,
-            severity: imports.length > 15 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-            message: `Import sprawl: ${imports.length} imports suggest this file does too much.`
-        });
-    }
-
-    return violations;
-}
-
-// The "Magic Numbers/Strings" detector
-function analyzeMagicValues(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-
-    function traverse(node: any) {
-        // Flag suspicious numeric literals
-        if (node.type === 'integer' || node.type === 'float') {
-            const value = parseInt(node.text) || parseFloat(node.text);
-            const isSignificant = value > 1 && value !== 100 && value !== 1000; // Allow common values
-
-            if (isSignificant && !isInConstantContext(node)) {
-                const position = document.positionAt(node.startIndex);
-                violations.push({
-                    line: position.line,
-                    column: position.character,
-                    type: VIOLATION_TYPE.MAGIC,
-                    severity: SEVERITY.LOW,
-                    message: `Magic number: ${node.text}. Consider extracting to a named constant.`
-                });
-            }
-        }
-
-        // Flag suspicious string literals (potential config/messages)
-        if (node.type === 'string' && node.text.length > 15 && !isDocstring(node)) {
-            const content = node.text.slice(1, -1); // Remove quotes
-            const looksLikeMessage = content.includes(' ') && (content.includes('error') || content.includes('invalid') || content.includes('not found'));
-
-            if (looksLikeMessage) {
-                const position = document.positionAt(node.startIndex);
-                violations.push({
-                    line: position.line,
-                    column: position.character,
-                    type: VIOLATION_TYPE.MAGIC,
-                    severity: SEVERITY.LOW,
-                    message: `Magic string: Consider extracting error messages to constants.`
-                });
-            }
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    function isDocstring(node: any): boolean {
-        // A standalone string statement is documentation, not a value, whether it's a
-        // module/function/class docstring or a PEP 257-style attribute docstring
-        // following a field (e.g. `code: int` then `"""..."""`).
-        return node.parent?.type === 'expression_statement';
-    }
-
-    function isInConstantContext(node: any): boolean {
-        // Simple heuristic: check if parent is an assignment at module level
-        let parent = node.parent;
-        while (parent) {
-            if (parent.type === 'assignment' && parent.parent?.type === 'module') {
-                return true;
-            }
-            parent = parent.parent;
-        }
-        return false;
-    }
-
-    traverse(tree.rootNode);
-    return violations;
-}
-
-// The "Parameter Explosion" detector
-function analyzeParameterCount(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-
-    function traverse(node: any) {
-        if (node.type === 'function_definition') {
-            const params = node.children.find((child: any) => child.type === 'parameters');
-            if (params) {
-                const paramCount = params.children.filter((child: any) =>
-                    child.type === 'identifier' || child.type === 'default_parameter'
-                ).length;
-
-                if (paramCount > 5) {
-                    const position = document.positionAt(node.startIndex);
-                    violations.push({
-                        line: position.line,
-                        column: position.character,
-                        type: VIOLATION_TYPE.PARAMETERS,
-                        severity: paramCount > 8 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-                        message: `Parameter explosion: ${paramCount} parameters. Consider using objects or builder pattern.`
-                    });
-                }
-            }
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    traverse(tree.rootNode);
-    return violations;
-}
-
-// The "Inversion Opportunity" detector - finds patterns that could benefit from early returns
-function analyzeInversionOpportunities(tree: any, document: vscode.TextDocument): EnergyViolation[] {
-    const violations: EnergyViolation[] = [];
-
-    function traverse(node: any) {
-        if (node.type === 'function_definition') {
-            analyzeFunction(node);
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    function analyzeFunction(functionNode: any) {
-        // Find the function body
-        const body = functionNode.children.find((child: any) => child.type === 'block');
-        if (!body) return;
-
-        // Look for patterns that could benefit from inversion
-        const statements = body.children.filter((child: any) =>
-            child.type !== 'comment' && child.text?.trim()
-        );
-
-        // Pattern 1: Single large if-statement dominating the function
-        console.log('🔍 Pattern 1 Analysis - statements count:', statements.length);
-        if (statements.length >= 1) { // Lowered threshold to catch more cases
-            const firstStatement = statements[0];
-            console.log('🔍 First statement type:', firstStatement.type);
-            if (firstStatement.type === 'if_statement') {
-                const ifBody = firstStatement.children.find((child: any) => child.type === 'block');
-                console.log('🔍 If body found:', !!ifBody, 'children count:', ifBody?.children.length);
-                if (ifBody && ifBody.children.length > 2) { // Lowered threshold
-                    // Check if this if-statement contains most of the function logic
-                    const totalLines = functionNode.endIndex - functionNode.startIndex;
-                    const ifLines = ifBody.endIndex - ifBody.startIndex;
-                    const ratio = ifLines / totalLines;
-
-                    console.log('🔍 Size analysis - ifLines:', ifLines, 'totalLines:', totalLines, 'ratio:', ratio);
-
-                    if (ratio > 0.5) { // Lowered threshold from 0.7 to 0.5
-                        const position = document.positionAt(firstStatement.startIndex);
-                        console.log('🔍 DETECTED inversion opportunity at line:', position.line);
-                        violations.push({
-                            line: position.line,
-                            column: position.character,
-                            type: VIOLATION_TYPE.INVERSION,
-                            severity: SEVERITY.MEDIUM,
-                            message: 'Consider inverting this condition and using early return for cleaner flow.'
-                        });
-                    }
-                }
-            }
-        }
-
-        // Pattern 2: Nested validation checks that could be guard clauses
-        analyzeNestedValidation(functionNode, body);
-
-        // Pattern 3: Multiple nested if-statements that could be flattened
-        analyzeNestedIfs(functionNode, body);
-    }
-
-    function analyzeNestedValidation(functionNode: any, body: any) {
-        // Look for patterns like: if (valid) { if (moreValid) { if (evenMoreValid) { ... } } }
-        let currentNode = body;
-        let nestingLevel = 0;
-        const validationChecks: any[] = [];
-
-        while (currentNode && nestingLevel < 4) {
-            const statements = currentNode.children?.filter((child: any) =>
-                child.type === 'if_statement' || child.type === 'for_statement' || child.type === 'while_statement'
-            ) || [];
-
-            if (statements.length === 1 && statements[0].type === 'if_statement') {
-                const ifStatement = statements[0];
-                validationChecks.push(ifStatement);
-
-                // Check if this looks like a validation (no else clause, simple condition)
-                const hasElse = ifStatement.children.some((child: any) => child.type === 'else_clause');
-                if (!hasElse) {
-                    const ifBody = ifStatement.children.find((child: any) => child.type === 'block');
-                    currentNode = ifBody;
-                    nestingLevel++;
-                } else {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-
-        // If we found 2+ validation checks, suggest guard clauses
-        if (validationChecks.length >= 2) {
-            const firstCheck = validationChecks[0];
-            const position = document.positionAt(firstCheck.startIndex);
-            violations.push({
-                line: position.line,
-                column: position.character,
-                type: VIOLATION_TYPE.INVERSION,
-                severity: SEVERITY.MEDIUM,
-                message: `Found ${validationChecks.length} nested validation checks. Consider using guard clauses with early returns.`
-            });
-        }
-    }
-
-    function analyzeNestedIfs(functionNode: any, body: any) {
-        // Count deeply nested if statements that could be flattened
-        let maxNesting = 0;
-        let nestedIfLocation: any = null;
-
-        function countNesting(node: any, currentDepth: number = 0) {
-            if (node.type === 'if_statement') {
-                if (currentDepth > maxNesting) {
-                    maxNesting = currentDepth;
-                    nestedIfLocation = node;
-                }
-                currentDepth++;
-            }
-
-            for (const child of node.children || []) {
-                countNesting(child, currentDepth);
-            }
-        }
-
-        countNesting(body);
-
-        // Flag functions with 3+ levels of if nesting
-        if (maxNesting >= 3 && nestedIfLocation) {
-            const position = document.positionAt(nestedIfLocation.startIndex);
-            violations.push({
-                line: position.line,
-                column: position.character,
-                type: VIOLATION_TYPE.INVERSION,
-                severity: SEVERITY.MEDIUM,
-                message: `Deep if-nesting (${maxNesting} levels). Consider inverting conditions or extracting functions.`
-            });
-        }
-    }
-
-    traverse(tree.rootNode);
-    return violations;
 }
 
 // Type information extraction from AST
