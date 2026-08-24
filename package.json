@@ -3,7 +3,7 @@
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
   "version": "0.1.0",
-  "publisher": "energy-analyzer",
+  "publisher": "cardamom-code",
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
