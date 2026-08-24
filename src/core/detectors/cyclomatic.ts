@@ -9,7 +9,7 @@ export function calculateCyclomaticComplexity(functionNode: any, language: Langu
     let complexity = 1; // Base complexity
 
     function countDecisionPoints(node: any) {
-        if (language.decisionNodeTypes.includes(node.type)) {
+        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
             complexity++;
         }
 
@@ -30,7 +30,7 @@ export function findCyclomaticHotspots(functionNode: any, positions: PositionLoo
 
     function walk(node: any, depth: number) {
         let nextDepth = depth;
-        if (language.decisionNodeTypes.includes(node.type)) {
+        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
             const line = positions.toPosition(node.startIndex).line;
             hotspots.push({ line, weight: 1 + depth });
             nextDepth = depth + 1;
@@ -64,7 +64,7 @@ export function analyzeFunctionComplexity(
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (node.type === language.nodeTypes.functionDefinition) {
+        if (language.functionDefinitionTypes.includes(node.type)) {
             const complexity = calculateCyclomaticComplexity(node, language);
             if (complexity > thresholds.mediumThreshold) {
                 const position = positions.toPosition(node.startIndex);

@@ -8,11 +8,13 @@ import { LanguageAdapter } from '../language';
 // not just how many paths it has.
 //
 // Simplifications vs. the full SonarSource spec (acceptable for a first pass):
-// - Python's `else` on `for`/`while` loops is treated the same as `if`/`else`
-//   (a flat +1), even though it isn't really a decision point.
+// - `for`/`while` `else` clauses (where a grammar has them) are scored like
+//   `if`/`else`, even though they aren't really a decision point.
 // - Boolean operator chain merging ("a and b and c" = one increment) only
 //   checks the immediate parent's operator, not the full chain direction.
 // - Recursive calls to the enclosing function are not specially detected.
+// - match/switch-like constructs and try/except are scored once as a whole,
+//   not per-case — see each LanguageAdapter for exact node-type mapping.
 export function calculateCognitiveComplexity(
     functionNode: any,
     language: LanguageAdapter,
@@ -26,87 +28,59 @@ export function calculateCognitiveComplexity(
         onContribution?.(node, amount);
     }
 
-    function getBooleanOperator(node: any): string | null {
-        const opToken = node.children?.find((c: any) => c.type === nodeTypes.booleanAnd || c.type === nodeTypes.booleanOr);
-        return opToken ? opToken.type : null;
-    }
-
-    function walk(node: any, nesting: number) {
-        switch (node.type) {
-            case nodeTypes.ifStatement: {
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            case nodeTypes.elifClause: {
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            case nodeTypes.elseClause: {
-                add(node, 1); // flat: no extra nesting increment for the else itself
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            case nodeTypes.forStatement:
-            case nodeTypes.whileStatement: {
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            case nodeTypes.exceptClause: {
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            case nodeTypes.conditionalExpression: { // ternary: "a if cond else b"
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, nesting + 1);
-                }
-                return;
-            }
-            case nodeTypes.booleanOperator: { // and / or
-                const operator = getBooleanOperator(node);
-                const parentOperator = node.parent?.type === nodeTypes.booleanOperator ? getBooleanOperator(node.parent) : null;
-                const isChainContinuation = parentOperator !== null && parentOperator === operator;
-                if (!isChainContinuation) {
-                    add(node, 1);
-                }
-                for (const child of node.children) {
-                    walk(child, nesting);
-                }
-                return;
-            }
-            case nodeTypes.lambda:
-            case nodeTypes.functionDefinition: { // nested function/lambda adds structural nesting
-                add(node, 1 + nesting);
-                for (const child of node.children) {
-                    walk(child, child.type === nodeTypes.block ? nesting + 1 : nesting);
-                }
-                return;
-            }
-            default: {
-                for (const child of node.children || []) {
-                    walk(child, nesting);
-                }
-            }
+    function walkNested(node: any, nesting: number) {
+        for (const child of node.children) {
+            walk(child, language.entersNestedScope(child) ? nesting + 1 : nesting);
         }
     }
 
-    const body = functionNode.children.find((child: any) => child.type === nodeTypes.block);
-    if (body) {
-        walk(body, 0);
+    function walk(node: any, nesting: number) {
+        const booleanOperator = language.getBooleanOperator(node);
+        if (booleanOperator) {
+            const parentOperator = language.getBooleanOperator(node.parent);
+            if (parentOperator !== booleanOperator) {
+                add(node, 1);
+            }
+            for (const child of node.children) {
+                walk(child, nesting);
+            }
+            return;
+        }
+
+        if (language.cognitiveNestedDecisionTypes.includes(node.type)) {
+            add(node, 1 + nesting);
+            walkNested(node, nesting);
+            return;
+        }
+
+        if (node.type === nodeTypes.elseClause) {
+            add(node, 1); // flat: no extra nesting increment for the else itself
+            walkNested(node, nesting);
+            return;
+        }
+
+        if (node.type === nodeTypes.conditionalExpression) { // ternary: "a if cond else b"
+            add(node, 1 + nesting);
+            for (const child of node.children) {
+                walk(child, nesting + 1);
+            }
+            return;
+        }
+
+        if (language.functionDefinitionTypes.includes(node.type) || node.type === nodeTypes.lambda) {
+            // nested function/lambda adds structural nesting
+            add(node, 1 + nesting);
+            walkNested(node, nesting);
+            return;
+        }
+
+        for (const child of node.children || []) {
+            walk(child, nesting);
+        }
+    }
+
+    for (const child of functionNode.children) {
+        walk(child, 0);
     }
 
     return score;
@@ -142,7 +116,7 @@ export function analyzeCognitiveComplexity(
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (node.type === language.nodeTypes.functionDefinition) {
+        if (language.functionDefinitionTypes.includes(node.type)) {
             const complexity = calculateCognitiveComplexity(node, language);
             if (complexity > thresholds.mediumThreshold) {
                 const position = positions.toPosition(node.startIndex);

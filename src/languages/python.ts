@@ -4,23 +4,13 @@ export const PYTHON: LanguageAdapter = {
     id: 'python',
     grammarPath: 'grammars/tree-sitter-python.wasm',
     nodeTypes: {
-        functionDefinition: 'function_definition',
-        classDefinition: 'class_definition',
         block: 'block',
         parameters: 'parameters',
-        identifier: 'identifier',
-        defaultParameter: 'default_parameter',
         ifStatement: 'if_statement',
-        elifClause: 'elif_clause',
         elseClause: 'else_clause',
         forStatement: 'for_statement',
         whileStatement: 'while_statement',
-        withStatement: 'with_statement',
-        exceptClause: 'except_clause',
         conditionalExpression: 'conditional_expression',
-        booleanOperator: 'boolean_operator',
-        booleanAnd: 'and',
-        booleanOr: 'or',
         lambda: 'lambda',
         importStatement: 'import_statement',
         importFromStatement: 'import_from_statement',
@@ -32,9 +22,24 @@ export const PYTHON: LanguageAdapter = {
         floatLiteral: 'float',
         stringLiteral: 'string'
     },
+    functionDefinitionTypes: ['function_definition'],
+    parameterChildTypes: ['identifier', 'default_parameter'],
     decisionNodeTypes: [
         'if_statement', 'elif_clause', 'while_statement', 'for_statement',
-        'except_clause', 'and', 'or', 'conditional_expression'
+        'except_clause', 'conditional_expression'
     ],
-    nestingControlTypes: ['if_statement', 'for_statement', 'while_statement', 'with_statement']
+    cognitiveNestedDecisionTypes: [
+        'if_statement', 'elif_clause', 'for_statement', 'while_statement', 'except_clause'
+    ],
+    nestingControlTypes: ['if_statement', 'for_statement', 'while_statement', 'with_statement'],
+    getBooleanOperator(node: any): 'and' | 'or' | null {
+        if (!node || node.type !== 'boolean_operator') {
+            return null;
+        }
+        const opToken = node.children?.find((c: any) => c.type === 'and' || c.type === 'or');
+        return opToken ? (opToken.type as 'and' | 'or') : null;
+    },
+    entersNestedScope(node: any): boolean {
+        return node?.type === 'block';
+    }
 };

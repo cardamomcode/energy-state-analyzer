@@ -7,11 +7,11 @@ import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
 import { analyzeSource } from './core/analyze';
-import { PYTHON } from './languages/python';
+import { resolveLanguageForFile } from './languages';
 import { EnergyViolation, SEVERITY } from './types';
 
 function printUsage(): void {
-    console.error('Usage: energy-state-cli <file.py> [--medium-cyclomatic N] [--high-cyclomatic N] [--medium-cognitive N] [--high-cognitive N]');
+    console.error('Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [--medium-cyclomatic N] [--high-cyclomatic N] [--medium-cognitive N] [--high-cognitive N]');
 }
 
 function parseArgs(argv: string[]) {
@@ -42,16 +42,23 @@ async function main(): Promise<void> {
         process.exit(2);
     }
 
+    const adapter = resolveLanguageForFile(filePath);
+    if (!adapter) {
+        console.error(`Unsupported file type: ${filePath}`);
+        printUsage();
+        process.exit(2);
+    }
+
     const sourceCode = fs.readFileSync(filePath, 'utf8');
 
     await Parser.init();
     const parser = new Parser();
-    const grammarPath = path.join(__dirname, '..', PYTHON.grammarPath);
-    const language = await Language.load(grammarPath);
-    parser.setLanguage(language);
+    const grammarPath = path.join(__dirname, '..', adapter.grammarPath);
+    const grammar = await Language.load(grammarPath);
+    parser.setLanguage(grammar);
 
     const tree = parser.parse(sourceCode);
-    const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, PYTHON, filePath, {
+    const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, adapter, filePath, {
         cyclomatic: cyclomatic.mediumThreshold !== undefined || cyclomatic.highThreshold !== undefined
             ? { mediumThreshold: cyclomatic.mediumThreshold ?? 10, highThreshold: cyclomatic.highThreshold ?? 15 }
             : undefined,

@@ -4,12 +4,19 @@ const { Parser, Language } = require('web-tree-sitter');
 
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
 import { analyzeSource } from './core/analyze';
+import { LanguageAdapter } from './core/language';
 import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
+import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
-let parser: any;
-let pythonLanguage: any;
+interface LoadedLanguage {
+    adapter: LanguageAdapter;
+    parser: any;
+}
+
+// One tree-sitter Parser per supported language, keyed by vscode languageId.
+let loadedLanguages: Map<string, LoadedLanguage>;
 
 // Create diagnostics collection at module level
 let diagnosticsCollection: vscode.DiagnosticCollection;
@@ -35,18 +42,17 @@ export async function activate(context: vscode.ExtensionContext) {
         await Parser.init();
         console.log('✅ Parser initialized');
 
-        // Create parser
-        parser = new Parser();
-        console.log('🔧 Parser created');
-
-        // Load Python grammar
-        const grammarPath = path.join(context.extensionPath, PYTHON.grammarPath);
-        console.log('📁 Grammar path:', grammarPath);
-        pythonLanguage = await Language.load(grammarPath);
-        console.log('✅ Python grammar loaded successfully');
-
-        parser.setLanguage(pythonLanguage);
-        console.log('🔧 Parser configured with Python language');
+        // Load every supported language's grammar up front.
+        loadedLanguages = new Map();
+        for (const adapter of Object.values(LANGUAGES)) {
+            const grammarPath = path.join(context.extensionPath, adapter.grammarPath);
+            console.log(`📁 Loading ${adapter.id} grammar:`, grammarPath);
+            const grammar = await Language.load(grammarPath);
+            const languageParser = new Parser();
+            languageParser.setLanguage(grammar);
+            loadedLanguages.set(adapter.id, { adapter, parser: languageParser });
+            console.log(`✅ ${adapter.id} grammar loaded successfully`);
+        }
 
         // Create decoration types
         createDecorations();
@@ -79,7 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Clear diagnostics when document is closed
         vscode.workspace.onDidCloseTextDocument(document => {
-            if (document.languageId === 'python') {
+            if (loadedLanguages.has(document.languageId)) {
                 diagnosticsCollection.delete(document.uri);
             }
         });
@@ -88,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
         analyzeActiveEditor();
 
         console.log('✅ Energy State Analyzer activated successfully!');
-        vscode.window.showInformationMessage('Energy State Analyzer: Ready! Open a Python file to see energy analysis.');
+        vscode.window.showInformationMessage('Energy State Analyzer: Ready! Open a Python, F#, or TypeScript file to see energy analysis.');
 
     } catch (error) {
         console.error('Failed to activate Energy State Analyzer:', error);
@@ -160,15 +166,16 @@ function analyzeActiveEditor() {
         return;
     }
 
-    if (!editor.document.fileName.endsWith('.py')) {
-        console.log('⚠️ Not a Python file:', editor.document.fileName);
-        // Clear diagnostics for non-Python files
+    const loaded = loadedLanguages.get(editor.document.languageId);
+    if (!loaded) {
+        console.log('⚠️ Unsupported language:', editor.document.languageId);
+        // Clear diagnostics for unsupported languages
         diagnosticsCollection.clear();
         return;
     }
 
-    console.log('📄 Analyzing Python file:', editor.document.fileName);
-    const violations = analyzeDocument(editor.document);
+    console.log(`📄 Analyzing ${loaded.adapter.id} file:`, editor.document.fileName);
+    const violations = analyzeDocument(editor.document, loaded);
     console.log('🔍 Found', violations.length, 'energy violations');
 
     // Apply both visual decorations AND problems panel
@@ -192,19 +199,21 @@ function getCognitiveThresholds(): CognitiveThresholds {
     };
 }
 
-function analyzeDocument(document: vscode.TextDocument): EnergyViolation[] {
+function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage): EnergyViolation[] {
     const sourceCode = document.getText();
 
     try {
-        const tree = parser.parse(sourceCode);
-        const violations = analyzeSource(sourceCode, tree, PYTHON, document.fileName, {
+        const tree = loaded.parser.parse(sourceCode);
+        const violations = analyzeSource(sourceCode, tree, loaded.adapter, document.fileName, {
             cyclomatic: getCyclomaticThresholds(),
             cognitive: getCognitiveThresholds()
         });
 
-        // Extract type information (for analysis/future features)
-        const typeInfo = extractTypeInformation(tree, document);
-        console.log('🔍 Found types:', typeInfo);
+        // Extract type information (Python-only scaffolding, for future features)
+        if (loaded.adapter.id === PYTHON.id) {
+            const typeInfo = extractTypeInformation(tree, document);
+            console.log('🔍 Found types:', typeInfo);
+        }
 
         return violations;
     } catch (error) {

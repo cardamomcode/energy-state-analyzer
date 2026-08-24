@@ -8,7 +8,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
     const { nodeTypes } = language;
 
     function traverse(node: any) {
-        if (node.type === nodeTypes.functionDefinition) {
+        if (language.functionDefinitionTypes.includes(node.type)) {
             analyzeFunction(node);
         }
 

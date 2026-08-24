@@ -1,8 +1,8 @@
 {
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
-  "description": "Visualize code energy states in real-time",
-  "version": "0.0.3",
+  "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
+  "version": "0.0.4",
   "publisher": "energy-analyzer",
   "repository": {
     "type": "git",
@@ -15,7 +15,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:python"
+    "onLanguage:python",
+    "onLanguage:fsharp",
+    "onLanguage:typescript"
   ],
   "main": "./dist/extension.js",
   "bin": {

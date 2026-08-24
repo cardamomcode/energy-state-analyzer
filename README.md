@@ -1,10 +1,10 @@
 # Energy State Analyzer
 
-Visualizes "energy states" in Python code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
+Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
 ## Features
 
-- **Real-time analysis** of the active Python file, re-run on every edit and on editor focus change.
+- **Real-time analysis** of the active Python, F#, or TypeScript file, re-run on every edit and on editor focus change.
 - **Cyclomatic complexity** — flags functions with too many independent execution paths (`if`/`for`/`while`/`except`/boolean operators/ternaries all count equally, regardless of nesting).
 - **Cognitive complexity** — flags functions that are hard to *read*, weighting each decision point by how deeply it's nested and not penalizing early-return guard clauses.
 - **Excessive nesting** — flags `if`/`for`/`while`/`with` blocks nested more than 3 levels deep.
@@ -48,7 +48,7 @@ The same detectors also run headlessly, without VS Code — useful for CI or for
 
 ```bash
 npm run compile
-node dist/cli.js path/to/file.py
+node dist/cli.js path/to/file.py   # or .fs / .fsx / .ts
 ```
 
 It prints violations as JSON and exits `1` if any medium/high-severity violation was found (`0` otherwise), so it can gate a loop:
@@ -61,7 +61,7 @@ node dist/cli.js path/to/file.py \
 
 ## Requirements
 
-The extension activates automatically when you open a `.py` file; it bundles its own Python grammar for parsing (via `web-tree-sitter`), so no external tools are required.
+The extension activates automatically when you open a Python, F#, or TypeScript file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no external tools are required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)) — VS Code otherwise treats `.fs` files as plain text.
 
 ## Extension Settings
 
@@ -78,9 +78,12 @@ Changes take effect immediately on the active editor.
 
 ## Architecture
 
-Detector logic lives in `src/core/` and is language-agnostic — each detector takes a parsed tree-sitter tree plus a `LanguageAdapter` describing that grammar's node type names, instead of hardcoding Python's. `src/languages/python.ts` is the one adapter that exists today. `src/extension.ts` (VS Code glue) and `src/cli.ts` (headless entry point) both call into the same `analyzeSource` core function, so adding a new language means writing a new adapter, not duplicating detectors.
+Detector logic lives in `src/core/` and is language-agnostic — each detector takes a parsed tree-sitter tree plus a `LanguageAdapter` describing that grammar's node type names, instead of hardcoding Python's. `src/languages/{python,fsharp,typescript}.ts` are the three adapters that exist today, registered in `src/languages/index.ts`. `src/extension.ts` (VS Code glue) and `src/cli.ts` (headless entry point) both call into the same `analyzeSource` core function, so adding a new language means writing a new adapter, not duplicating detectors.
+
+Python and TypeScript map closely onto the detectors' original Python-shaped model (both have real block/body nodes and a distinct `else`). F#'s grammar doesn't: there's no block wrapper, `else`/`elif` aren't their own node types, and `&&`/`||` are just another infix operator rather than a distinct node type. `src/languages/fsharp.ts` documents the resulting simplifications inline — mainly that F#'s "constant context" check for magic values is looser than Python's (any `let`-bound literal is treated as already named, not just module-level ones), and the guard-clause/inversion-opportunity detector doesn't fire for F# at all (it depends on a block node F#'s grammar doesn't have).
 
 ## Known Issues
 
 - Nesting depth, file coherence, magic value, and parameter count thresholds are not yet configurable — only cyclomatic and cognitive complexity are.
-- Analysis only covers Python; other languages aren't wired up yet, though the core detectors are language-agnostic (see Architecture).
+- The inversion-opportunities detector only fires for Python and TypeScript; F#'s grammar has no block-boundary node to anchor that heuristic on (see Architecture).
+- TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`) — only named `function` declarations and class methods are.
