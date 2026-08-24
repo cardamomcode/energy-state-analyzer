@@ -31,9 +31,9 @@ function collectChainBranches(ifNode: any, language: LanguageAdapter): any[] {
     let current = ifNode;
     while (true) {
         const elseClause = current.children?.find((c: any) => c.type === language.nodeTypes.elseClause);
-        if (!elseClause) break;
+        if (!elseClause) { break; }
         const nestedIf = elseClause.children?.find((c: any) => c.type === language.nodeTypes.ifStatement);
-        if (!nestedIf) break;
+        if (!nestedIf) { break; }
         branches.push(nestedIf);
         current = nestedIf;
     }

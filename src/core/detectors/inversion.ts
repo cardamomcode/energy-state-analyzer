@@ -20,7 +20,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
     function analyzeFunction(functionNode: any) {
         // Find the function body
         const body = functionNode.children.find((child: any) => child.type === nodeTypes.block);
-        if (!body) return;
+        if (!body) { return; }
 
         // Look for patterns that could benefit from inversion
         //
