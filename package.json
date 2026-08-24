@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "publisher": "energy-analyzer",
   "icon": "images/icon.png",
   "repository": {
@@ -94,6 +94,11 @@
           "default": 5,
           "minimum": 1,
           "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
+        },
+        "energyStateAnalyzer.magicValues.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag magic numbers and message-shaped string literals."
         },
         "energyStateAnalyzer.matchOpportunity.minBranches": {
           "type": "number",

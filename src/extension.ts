@@ -10,6 +10,7 @@ import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/dete
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
 import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
 import { MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './core/detectors/matchOpportunity';
+import { MagicValuesOptions, DEFAULT_MAGIC_VALUES_OPTIONS } from './core/detectors/magicValues';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -260,6 +261,13 @@ function getMatchOpportunityThresholds(): MatchOpportunityThresholds {
     };
 }
 
+function getMagicValuesOptions(): MagicValuesOptions {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicValues');
+    return {
+        enabled: config.get('enabled', DEFAULT_MAGIC_VALUES_OPTIONS.enabled)
+    };
+}
+
 function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage): EnergyViolation[] {
     const sourceCode = document.getText();
 
@@ -270,7 +278,8 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
             cyclomatic: getCyclomaticThresholds(),
             cognitive: getCognitiveThresholds(),
             coherence: getCoherenceThresholds(),
-            matchOpportunity: getMatchOpportunityThresholds()
+            matchOpportunity: getMatchOpportunityThresholds(),
+            magicValues: getMagicValuesOptions()
         });
 
         // decision: extracts type information for Python only and only logs it — scaffolding for future features, not yet wired into any violation, so it deliberately does not affect the returned violations
@@ -377,54 +386,81 @@ function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolat
     });
 }
 
+function toDiagnosticSeverity(severity: string): vscode.DiagnosticSeverity {
+    switch (severity) {
+        case SEVERITY.HIGH:
+            return vscode.DiagnosticSeverity.Error;
+        case SEVERITY.MEDIUM:
+            return vscode.DiagnosticSeverity.Warning;
+        default:
+            return vscode.DiagnosticSeverity.Information;
+    }
+}
+
+function tagsForViolationType(type: string): vscode.DiagnosticTag[] {
+    switch (type) {
+        case VIOLATION_TYPE.NESTING:
+            // decision: reuses DiagnosticTag.Unnecessary (fade/gray-out) for nesting violations — the closest built-in cue for "this structure could be flattened away"
+            return [vscode.DiagnosticTag.Unnecessary];
+        case VIOLATION_TYPE.COMPLEXITY:
+        case VIOLATION_TYPE.COGNITIVE:
+            // decision: reuses DiagnosticTag.Deprecated (strikethrough) as a visual cue for complexity violations — VS Code has no "high effort" tag, and Deprecated's strikethrough is the closest built-in signal for "this needs rework"
+            return [vscode.DiagnosticTag.Deprecated];
+        default:
+            return [];
+    }
+}
+
+// decision: groups violations by line before building diagnostics, rather than emitting one
+// Diagnostic per violation — VS Code's inline "after-line" problem text shows only a single
+// diagnostic's message per line (picked by its own severity/position heuristic), silently
+// dropping the rest even though the hover popup correctly lists every diagnostic on that line.
+// Merging same-line violations into one Diagnostic with a combined message means the inline
+// text can no longer hide a violation the hover would otherwise reveal.
 function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyViolation[]) {
-    const diagnostics: vscode.Diagnostic[] = violations.map(violation => {
+    const byLine = new Map<number, EnergyViolation[]>();
+    for (const violation of violations) {
+        const group = byLine.get(violation.line);
+        if (group) {
+            group.push(violation);
+        } else {
+            byLine.set(violation.line, [violation]);
+        }
+    }
+
+    const diagnostics: vscode.Diagnostic[] = [];
+    for (const group of byLine.values()) {
+        // Sort so the highest-severity, then earliest-column violation leads the combined message
+        const bySeverityThenColumn = [...group].sort((a, b) =>
+            toDiagnosticSeverity(a.severity) - toDiagnosticSeverity(b.severity) || a.column - b.column
+        );
+        const lead = bySeverityThenColumn[0];
+
         // decision: uses a fixed 10-column-wide range for every diagnostic regardless of violation type — the Problems panel only needs a clickable location, unlike applyDecorations' editor highlight which must visually match the flagged construct
         const range = new vscode.Range(
-            violation.line, violation.column,
-            violation.line, violation.column + 10
+            lead.line, lead.column,
+            lead.line, lead.column + 10
         );
 
-        // Map energy severity to VSCode diagnostic severity
-        let severity: vscode.DiagnosticSeverity;
-        switch (violation.severity) {
-            case SEVERITY.HIGH:
-                severity = vscode.DiagnosticSeverity.Error;
-                break;
-            case SEVERITY.MEDIUM:
-                severity = vscode.DiagnosticSeverity.Warning;
-                break;
-            case SEVERITY.LOW:
-                severity = vscode.DiagnosticSeverity.Information;
-                break;
-        }
+        const message = bySeverityThenColumn.length === 1
+            ? lead.message
+            : bySeverityThenColumn.map(v => v.message).join(' | ');
 
-        // Create diagnostic
         const diagnostic = new vscode.Diagnostic(
             range,
-            violation.message,
-            severity
+            message,
+            toDiagnosticSeverity(lead.severity)
         );
 
-        // Add metadata
         diagnostic.source = 'Energy State Analyzer';
-        diagnostic.code = `energy-${violation.type}`;
-
-        // Add tags for better categorization
-        switch (violation.type) {
-            case VIOLATION_TYPE.NESTING:
-                // decision: reuses DiagnosticTag.Unnecessary (fade/gray-out) for nesting violations — the closest built-in cue for "this structure could be flattened away"
-                diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
-                break;
-            case VIOLATION_TYPE.COMPLEXITY:
-            case VIOLATION_TYPE.COGNITIVE:
-                // decision: reuses DiagnosticTag.Deprecated (strikethrough) as a visual cue for complexity violations — VS Code has no "high effort" tag, and Deprecated's strikethrough is the closest built-in signal for "this needs rework"
-                diagnostic.tags = [vscode.DiagnosticTag.Deprecated];
-                break;
+        diagnostic.code = bySeverityThenColumn.map(v => `energy-${v.type}`).join(',');
+        const tags = bySeverityThenColumn.flatMap(v => tagsForViolationType(v.type));
+        if (tags.length > 0) {
+            diagnostic.tags = tags;
         }
 
-        return diagnostic;
-    });
+        diagnostics.push(diagnostic);
+    }
 
     // Update the Problems panel
     diagnosticsCollection.set(document.uri, diagnostics);

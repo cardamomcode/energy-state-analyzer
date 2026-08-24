@@ -2,9 +2,23 @@ import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { PositionLookup } from '../position';
 import { LanguageAdapter } from '../language';
 
+export interface MagicValuesOptions {
+    enabled: boolean;
+}
+
+export const DEFAULT_MAGIC_VALUES_OPTIONS: MagicValuesOptions = { enabled: true };
+
 // The "Magic Numbers/Strings" detector
-export function analyzeMagicValues(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzeMagicValues(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter,
+    options: MagicValuesOptions = DEFAULT_MAGIC_VALUES_OPTIONS
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
+    if (!options.enabled) {
+        return violations;
+    }
     const { nodeTypes } = language;
 
     function isDocstring(node: any): boolean {
@@ -17,6 +31,14 @@ export function analyzeMagicValues(tree: any, positions: PositionLookup, languag
         let parent = node.parent;
         while (parent) {
             if (parent.type === nodeTypes.assignment) {
+                // decision: F# has no separate node type for "function definition" vs "plain
+                // value binding" (both are function_or_value_defn), so a literal deep inside a
+                // function's body would otherwise match this ancestor and be wrongly treated as
+                // the function's own "named constant" value. Once the nearest assignment-shaped
+                // ancestor is actually a function, the literal is computed logic, not a binding.
+                if (language.isFunctionDefinition(parent)) {
+                    return false;
+                }
                 const grandparent = parent.parent;
                 if (grandparent?.type === nodeTypes.module) {
                     return true;

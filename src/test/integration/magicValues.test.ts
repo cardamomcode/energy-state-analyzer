@@ -10,7 +10,8 @@ import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } f
 suite('Integration: magic values (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/magicValues.py'],
-        ['TypeScript', TYPESCRIPT, 'typescript/magicValues.ts']
+        ['TypeScript', TYPESCRIPT, 'typescript/magicValues.ts'],
+        ['F#', FSHARP, 'fsharp/magicValues.fs']
     ] as const) {
         test(`${label}: common/named values stay clean, bare literals and message strings are flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);
@@ -22,7 +23,7 @@ suite('Integration: magic values (real code examples)', () => {
             const strings = findFunctionRange(sourceCode, 'flaggedMagicString');
 
             assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
-                '0, 1, 100 and a named module-level constant should not be flagged');
+                '0, 1, 100 and a named constant binding should not be flagged');
 
             const numberHits = violationsIn(violations, numbers).filter(v => v.type === VIOLATION_TYPE.MAGIC);
             assert.ok(numberHits.length > 0, 'expected magic-number violations for 50 and 15.75');
@@ -32,20 +33,12 @@ suite('Integration: magic values (real code examples)', () => {
         });
     }
 
-    // decision: documents a known adapter limitation (see fsharp.ts) rather than
-    // asserting the "expected" behavior - F#'s function_or_value_defn -> declaration_expression
-    // shape makes every literal inside a top-level `let` binding look like it's in
-    // module-level constant context, so isInConstantContext exempts it. This locks in
-    // that current behavior as a regression test; if the adapter is ever taught to tell
-    // "let NAME = <literal>" apart from "let NAME = <expression containing a literal>",
-    // this test should start failing and can be flipped to expect a violation.
-    test('F#: magic numbers inside a let-bound function are not detected (documented limitation)', async () => {
-        const { sourceCode, tree } = await parseFixture(FSHARP, 'fsharp/magicValues.fs');
-        const violations = analyzeSource(sourceCode, tree, FSHARP, 'magicValues.fs');
-        assertValidPositions(violations, sourceCode);
-
-        const magicHits = violations.filter(v => v.type === VIOLATION_TYPE.MAGIC);
-        assert.strictEqual(magicHits.length, 0,
-            'expected no magic-value violations, even though 50.0 and 15.75 are unnamed literals');
+    test('magicValues.enabled: false suppresses all magic-value violations', async () => {
+        const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicValues.py');
+        const violations = analyzeSource(sourceCode, tree, PYTHON, 'magicValues.py', {
+            magicValues: { enabled: false }
+        });
+        assert.strictEqual(violations.filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'disabling the detector should leave no magic-value violations');
     });
 });

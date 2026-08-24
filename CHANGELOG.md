@@ -4,6 +4,11 @@ All notable changes to the "energy-state-analyzer" extension will be documented 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.10]
+
+- Fixed the F# magic-value detector: any literal inside a `let`-bound function body was being treated as a named constant, because F#'s grammar gives function definitions and plain value bindings the same node type. Only the direct value of a plain (non-function) `let` binding is now exempted.
+- Added `energyStateAnalyzer.magicValues.enabled` (default `true`) to toggle the magic-value detector on/off.
+
 ## [0.0.8]
 
 - Extended the primitive obsession detector to F# and TypeScript (previously Python only): consecutive same-typed primitive parameters and variables compared against 3+ distinct string literals are now flagged in all three languages. Python retains an additional `in (a, b, c)` membership-check variant that F#/TypeScript have no direct grammar equivalent for.

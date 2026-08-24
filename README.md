@@ -89,6 +89,7 @@ Detector thresholds are configurable under **Settings → Energy State Analyzer*
 - `energyStateAnalyzer.coherence.largeFunctionLines` — line count above which a function counts as "large" (default `20`).
 - `energyStateAnalyzer.coherence.maxLargeFunctions` — number of large functions a file can contain before it's flagged (default `5`).
 - `energyStateAnalyzer.matchOpportunity.minBranches` — number of branches an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity (default `3`).
+- `energyStateAnalyzer.magicValues.enabled` — whether to flag magic numbers and message-shaped string literals (default `true`).
 
 Changes take effect immediately on the active editor.
 
@@ -100,11 +101,11 @@ Changes take effect immediately on the active editor.
 
 Detector logic lives in `src/core/` and is language-agnostic — each detector takes a parsed tree-sitter tree plus a `LanguageAdapter` describing that grammar's node type names, instead of hardcoding Python's. `src/languages/{python,fsharp,typescript}.ts` are the three adapters that exist today, registered in `src/languages/index.ts`. `src/extension.ts` (VS Code glue) and `src/cli.ts` (headless entry point) both call into the same `analyzeSource` core function, so adding a new language means writing a new adapter, not duplicating detectors.
 
-Python and TypeScript map closely onto the detectors' original Python-shaped model (both have real block/body nodes and a distinct `else`). F#'s grammar doesn't: there's no block wrapper, `else`/`elif` aren't their own node types, and `&&`/`||` are just another infix operator rather than a distinct node type. `src/languages/fsharp.ts` documents the resulting simplifications inline — mainly that F#'s "constant context" check for magic values is looser than Python's (any `let`-bound literal is treated as already named, not just module-level ones), and the guard-clause/inversion-opportunity detector doesn't fire for F# at all (it depends on a block node F#'s grammar doesn't have).
+Python and TypeScript map closely onto the detectors' original Python-shaped model (both have real block/body nodes and a distinct `else`). F#'s grammar doesn't: there's no block wrapper, `else`/`elif` aren't their own node types, and `&&`/`||` are just another infix operator rather than a distinct node type. `src/languages/fsharp.ts` documents the resulting simplifications inline — mainly that F#'s "constant context" check for magic values is looser than Python's (any `let`-bound literal is treated as already named, not just module-level ones, but only when that `let` binds a plain value rather than a function), and the guard-clause/inversion-opportunity detector doesn't fire for F# at all (it depends on a block node F#'s grammar doesn't have).
 
 ## Known Issues
 
-- Nesting depth, magic value, and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, and the large-function coherence check are.
+- Nesting depth and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, the large-function coherence check, the match-opportunity branch count, and the magic-value detector's on/off switch are.
 - The inversion-opportunities detector only fires for Python and TypeScript; F#'s grammar has no block-boundary node to anchor that heuristic on (see Architecture).
 - TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`) — only named `function` declarations and class methods are.
 - The primitive-obsession detector's `in (a, b, c)`-style membership check only runs on Python; F#'s grammar has no direct equivalent, and TypeScript's idiom (`[...].includes(x)`) is a call expression rather than a comparison node.
