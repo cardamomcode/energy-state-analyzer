@@ -9,6 +9,7 @@ import { NestingThresholds, DEFAULT_NESTING_THRESHOLDS } from './core/detectors/
 import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
 import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
+import { MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './core/detectors/matchOpportunity';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -252,6 +253,13 @@ function getCoherenceThresholds(): CoherenceThresholds {
     };
 }
 
+function getMatchOpportunityThresholds(): MatchOpportunityThresholds {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.matchOpportunity');
+    return {
+        minBranches: config.get('minBranches', DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS.minBranches)
+    };
+}
+
 function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage): EnergyViolation[] {
     const sourceCode = document.getText();
 
@@ -261,7 +269,8 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
             nesting: getNestingThresholds(),
             cyclomatic: getCyclomaticThresholds(),
             cognitive: getCognitiveThresholds(),
-            coherence: getCoherenceThresholds()
+            coherence: getCoherenceThresholds(),
+            matchOpportunity: getMatchOpportunityThresholds()
         });
 
         // decision: extracts type information for Python only and only logs it — scaffolding for future features, not yet wired into any violation, so it deliberately does not affect the returned violations

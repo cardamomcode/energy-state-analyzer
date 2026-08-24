@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "energy-analyzer",
   "icon": "images/icon.png",
   "repository": {
@@ -94,6 +94,12 @@
           "default": 5,
           "minimum": 1,
           "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
+        },
+        "energyStateAnalyzer.matchOpportunity.minBranches": {
+          "type": "number",
+          "default": 3,
+          "minimum": 2,
+          "description": "Number of branches (if + elif/else-if) an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity."
         },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",

@@ -109,5 +109,8 @@ export const FSHARP: LanguageAdapter = {
     // (e.g. an elif chain) still accumulate via getEqualityComparisons.
     getMembershipComparisons(): Array<{ left: any; values: string[] }> {
         return [];
+    },
+    getElseIfBranches(node: any): any[] {
+        return node?.children?.filter((c: any) => c.type === 'elif_expression') ?? [];
     }
 };

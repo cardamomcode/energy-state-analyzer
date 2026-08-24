@@ -9,12 +9,14 @@ import { analyzeMagicValues } from './detectors/magicValues';
 import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
 import { analyzePrimitiveObsession } from './detectors/primitiveObsession';
+import { analyzeMatchOpportunities, MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './detectors/matchOpportunity';
 
 export interface AnalyzeThresholds {
     nesting?: NestingThresholds;
     cyclomatic?: CyclomaticThresholds;
     cognitive?: CognitiveThresholds;
     coherence?: CoherenceThresholds;
+    matchOpportunity?: MatchOpportunityThresholds;
 }
 
 // Language-agnostic entry point: runs every detector over an already-parsed
@@ -40,6 +42,7 @@ export function analyzeSource(
     violations.push(...analyzeParameterCount(tree, positions, language));
     violations.push(...analyzeInversionOpportunities(tree, positions, language));
     violations.push(...analyzePrimitiveObsession(tree, positions, language));
+    violations.push(...analyzeMatchOpportunities(tree, positions, language, thresholds.matchOpportunity ?? DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS));
 
     return violations;
 }

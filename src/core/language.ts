@@ -96,4 +96,12 @@ export interface LanguageAdapter {
     // comparison node; F# has no such construct) — those languages still get
     // the cross-comparison accumulation via getEqualityComparisons alone.
     getMembershipComparisons(node: any): Array<{ left: any; values: string[] }>;
+    // Given an if-statement/if-expression node, returns the elif-like nodes
+    // chained directly onto it (Python's `elif_clause`, F#'s `elif_expression`,
+    // both attached as flat siblings of the top if-node itself) — empty for
+    // grammars with no flat elif node (TypeScript, where `else if` instead
+    // parses as an `if_statement` nested one level inside `else_clause`, and
+    // the match-opportunity detector walks that nesting itself using
+    // nodeTypes.elseClause/ifStatement rather than this hook).
+    getElseIfBranches(node: any): any[];
 }

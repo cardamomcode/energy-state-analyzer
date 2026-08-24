@@ -96,5 +96,10 @@ export const TYPESCRIPT: LanguageAdapter = {
     // getEqualityComparisons.
     getMembershipComparisons(): Array<{ left: any; values: string[] }> {
         return [];
+    },
+    // `else if` has no flat elif node in this grammar — it's a nested if_statement one
+    // level inside else_clause, which the match-opportunity detector walks itself.
+    getElseIfBranches(): any[] {
+        return [];
     }
 };

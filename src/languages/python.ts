@@ -114,5 +114,8 @@ export const PYTHON: LanguageAdapter = {
             }
         }
         return results;
+    },
+    getElseIfBranches(node: any): any[] {
+        return node?.children?.filter((c: any) => c.type === 'elif_clause') ?? [];
     }
 };

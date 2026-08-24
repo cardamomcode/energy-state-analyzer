@@ -9,6 +9,7 @@ const { Parser, Language } = require('web-tree-sitter');
 
 import { analyzeFileCoherence, DEFAULT_COHERENCE_THRESHOLDS } from '../core/detectors/coherence';
 import { analyzePrimitiveObsession } from '../core/detectors/primitiveObsession';
+import { analyzeMatchOpportunities, MatchOpportunityThresholds } from '../core/detectors/matchOpportunity';
 import { createPositionLookup } from '../core/position';
 import { LanguageAdapter } from '../core/language';
 import { PYTHON } from '../languages/python';
@@ -134,5 +135,54 @@ suite('analyzePrimitiveObsession', () => {
 		const violations = await violationsFor(FSHARP, `let classify (status: string) =\n    if status = "open" then 1\n    elif status = "closed" then 2\n    elif status = "pending" then 3\n    else 0\n`);
 		const stringly = violations.find(v => v.message.includes('Stringly-typed'));
 		assert.ok(stringly, 'expected a stringly-typed-control-flow violation');
+	});
+});
+
+suite('analyzeMatchOpportunities', () => {
+	async function parse(language: LanguageAdapter, sourceCode: string) {
+		await Parser.init();
+		const parser = new Parser();
+		const grammarPath = path.join(__dirname, '..', '..', language.grammarPath);
+		const grammar = await Language.load(grammarPath);
+		parser.setLanguage(grammar);
+		return parser.parse(sourceCode);
+	}
+
+	async function violationsFor(language: LanguageAdapter, sourceCode: string, thresholds?: MatchOpportunityThresholds) {
+		const tree = await parse(language, sourceCode);
+		const positions = createPositionLookup(sourceCode);
+		return analyzeMatchOpportunities(tree, positions, language, thresholds);
+	}
+
+	test('Python: flags a 3-way if/elif chain branching on the same variable', async () => {
+		const violations = await violationsFor(PYTHON, `def classify(status):\n    if status == "open":\n        return 1\n    elif status == "closed":\n        return 2\n    elif status == "pending":\n        return 3\n    else:\n        return 0\n`);
+		const match = violations.find(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
+		assert.ok(match, 'expected a match-opportunity violation');
+	});
+
+	test('Python: does not flag branches keyed on different variables', async () => {
+		const violations = await violationsFor(PYTHON, `def f(a, b):\n    if a == "x":\n        return 1\n    elif b == "y":\n        return 2\n    else:\n        return 0\n`);
+		assert.strictEqual(violations.length, 0, 'expected no match-opportunity violation for unrelated branch conditions');
+	});
+
+	test('Python: respects a configured minBranches threshold', async () => {
+		const source = `def classify(status):\n    if status == "open":\n        return 1\n    elif status == "closed":\n        return 2\n    else:\n        return 0\n`;
+		const withDefault = await violationsFor(PYTHON, source);
+		assert.strictEqual(withDefault.length, 0, 'expected a 2-way chain to be below the default minBranches of 3');
+
+		const withLoweredThreshold = await violationsFor(PYTHON, source, { minBranches: 2 });
+		assert.strictEqual(withLoweredThreshold.length, 1, 'expected a 2-way chain to be flagged once minBranches is lowered to 2');
+	});
+
+	test('TypeScript: flags a nested else-if chain branching on the same variable', async () => {
+		const violations = await violationsFor(TYPESCRIPT, `function classify(status) {\n  if (status === "open") { return 1; }\n  else if (status === "closed") { return 2; }\n  else if (status === "pending") { return 3; }\n  return 0;\n}\n`);
+		const match = violations.find(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
+		assert.ok(match, 'expected a match-opportunity violation');
+	});
+
+	test('F#: flags an if/elif chain branching on the same variable', async () => {
+		const violations = await violationsFor(FSHARP, `let classify status =\n    if status = "open" then 1\n    elif status = "closed" then 2\n    elif status = "pending" then 3\n    else 0\n`);
+		const match = violations.find(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
+		assert.ok(match, 'expected a match-opportunity violation');
 	});
 });
