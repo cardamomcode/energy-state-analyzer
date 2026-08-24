@@ -8,7 +8,7 @@ Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts
 - **Cyclomatic complexity** — flags functions with too many independent execution paths (`if`/`for`/`while`/`except`/boolean operators/ternaries all count equally, regardless of nesting).
 - **Cognitive complexity** — flags functions that are hard to *read*, weighting each decision point by how deeply it's nested and not penalizing early-return guard clauses.
 - **Excessive nesting** — flags `if`/`for`/`while`/`with` blocks nested more than 3 levels deep.
-- **File coherence** — flags files with too many functions or imports (a sign of "utils/helpers sprawl").
+- **File coherence** — flags files with too many functions or imports (a sign of "utils/helpers sprawl"), and separately flags files with too many large functions (regardless of total function count, so languages like F# with many small functions per module aren't penalized).
 - **Magic values** — flags suspicious numeric/string literals used outside of a constant definition.
 - **Parameter explosion** — flags functions with more than 5 parameters.
 - **Inversion opportunities** — flags large dominant `if` blocks and nested validation chains that could be rewritten as guard clauses with early returns.
@@ -69,6 +69,8 @@ Detector thresholds are configurable under **Settings → Energy State Analyzer*
 
 - `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` / `.highThreshold`
 - `energyStateAnalyzer.cognitiveComplexity.mediumThreshold` / `.highThreshold`
+- `energyStateAnalyzer.coherence.largeFunctionLines` — line count above which a function counts as "large" (default `20`).
+- `energyStateAnalyzer.coherence.maxLargeFunctions` — number of large functions a file can contain before it's flagged (default `5`).
 
 Changes take effect immediately on the active editor.
 
@@ -84,6 +86,6 @@ Python and TypeScript map closely onto the detectors' original Python-shaped mod
 
 ## Known Issues
 
-- Nesting depth, file coherence, magic value, and parameter count thresholds are not yet configurable — only cyclomatic and cognitive complexity are.
+- Nesting depth, magic value, and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, and the large-function coherence check are.
 - The inversion-opportunities detector only fires for Python and TypeScript; F#'s grammar has no block-boundary node to anchor that heuristic on (see Architecture).
 - TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`) — only named `function` declarations and class methods are.
