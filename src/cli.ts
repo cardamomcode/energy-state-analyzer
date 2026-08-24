@@ -9,11 +9,12 @@ import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
 import { analyzeSource } from './core/analyze';
+import { DEFAULT_NESTING_THRESHOLDS } from './core/detectors/nesting';
 import { resolveLanguageForFile } from './languages';
 import { EnergyViolation, SEVERITY } from './types';
 
 function printUsage(): void {
-    console.error('Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [--medium-cyclomatic N] [--high-cyclomatic N] [--medium-cognitive N] [--high-cognitive N]');
+    console.error('Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [--medium-nesting N] [--high-nesting N] [--medium-cyclomatic N] [--high-cyclomatic N] [--medium-cognitive N] [--high-cognitive N]');
 }
 
 function parseArgs(argv: string[]) {
@@ -25,6 +26,10 @@ function parseArgs(argv: string[]) {
 
     return {
         filePath,
+        nesting: {
+            mediumThreshold: flag('medium-nesting'),
+            highThreshold: flag('high-nesting')
+        },
         cyclomatic: {
             mediumThreshold: flag('medium-cyclomatic'),
             highThreshold: flag('high-cyclomatic')
@@ -37,7 +42,7 @@ function parseArgs(argv: string[]) {
 }
 
 async function main(): Promise<void> {
-    const { filePath, cyclomatic, cognitive } = parseArgs(process.argv.slice(2));
+    const { filePath, nesting, cyclomatic, cognitive } = parseArgs(process.argv.slice(2));
 
     if (!filePath) {
         printUsage();
@@ -61,6 +66,12 @@ async function main(): Promise<void> {
 
     const tree = parser.parse(sourceCode);
     const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, adapter, filePath, {
+        nesting: nesting.mediumThreshold !== undefined || nesting.highThreshold !== undefined
+            ? {
+                mediumThreshold: nesting.mediumThreshold ?? DEFAULT_NESTING_THRESHOLDS.mediumThreshold,
+                highThreshold: nesting.highThreshold ?? DEFAULT_NESTING_THRESHOLDS.highThreshold
+            }
+            : undefined,
         cyclomatic: cyclomatic.mediumThreshold !== undefined || cyclomatic.highThreshold !== undefined
             ? { mediumThreshold: cyclomatic.mediumThreshold ?? 10, highThreshold: cyclomatic.highThreshold ?? 15 }
             : undefined,

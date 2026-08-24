@@ -9,7 +9,7 @@ export function calculateCyclomaticComplexity(functionNode: any, language: Langu
     let complexity = 1; // Base complexity
 
     function countDecisionPoints(node: any, isRoot: boolean) {
-        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
+        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null || language.isTryElseClause(node)) {
             complexity++;
         }
 
@@ -35,7 +35,7 @@ export function findCyclomaticHotspots(functionNode: any, positions: PositionLoo
 
     function walk(node: any, depth: number, isRoot: boolean) {
         let nextDepth = depth;
-        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
+        if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null || language.isTryElseClause(node)) {
             const line = positions.toPosition(node.startIndex).line;
             hotspots.push({ line, weight: 1 + depth });
             nextDepth = depth + 1;

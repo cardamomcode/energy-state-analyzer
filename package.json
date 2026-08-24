@@ -33,6 +33,18 @@
     "configuration": {
       "title": "Energy State Analyzer",
       "properties": {
+        "energyStateAnalyzer.nesting.mediumThreshold": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "description": "Nesting depth above which control-flow blocks (if/for/while/with) are flagged as medium energy."
+        },
+        "energyStateAnalyzer.nesting.highThreshold": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "description": "Nesting depth above which control-flow blocks are flagged as high energy instead of medium."
+        },
         "energyStateAnalyzer.cyclomaticComplexity.mediumThreshold": {
           "type": "number",
           "default": 10,

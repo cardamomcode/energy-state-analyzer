@@ -5,6 +5,7 @@ const { Parser, Language } = require('web-tree-sitter');
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
 import { analyzeSource } from './core/analyze';
 import { LanguageAdapter } from './core/language';
+import { NestingThresholds, DEFAULT_NESTING_THRESHOLDS } from './core/detectors/nesting';
 import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
 import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
@@ -180,6 +181,14 @@ function analyzeActiveEditor() {
     updateProblemsPanel(editor.document, violations);
 }
 
+function getNestingThresholds(): NestingThresholds {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.nesting');
+    return {
+        mediumThreshold: config.get('mediumThreshold', DEFAULT_NESTING_THRESHOLDS.mediumThreshold),
+        highThreshold: config.get('highThreshold', DEFAULT_NESTING_THRESHOLDS.highThreshold)
+    };
+}
+
 function getCyclomaticThresholds(): CyclomaticThresholds {
     const config = vscode.workspace.getConfiguration('energyStateAnalyzer.cyclomaticComplexity');
     return {
@@ -210,6 +219,7 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
     try {
         const tree = loaded.parser.parse(sourceCode);
         const violations = analyzeSource(sourceCode, tree, loaded.adapter, document.fileName, {
+            nesting: getNestingThresholds(),
             cyclomatic: getCyclomaticThresholds(),
             cognitive: getCognitiveThresholds(),
             coherence: getCoherenceThresholds()

@@ -54,5 +54,9 @@ export const TYPESCRIPT: LanguageAdapter = {
     },
     entersNestedScope(node: any): boolean {
         return node?.type === 'statement_block';
+    },
+    // JS/TS try/catch has no else-branch construct.
+    isTryElseClause(): boolean {
+        return false;
     }
 };

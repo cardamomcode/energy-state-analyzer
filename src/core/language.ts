@@ -60,4 +60,9 @@ export interface LanguageAdapter {
     // (Python, TypeScript) only nest on that child; F# has no such wrapper,
     // so every child of a decision node is nested content.
     entersNestedScope(node: any): boolean;
+    // Whether this node is specifically a try-statement's `else` clause, as
+    // opposed to if/for/while's `else` (several grammars reuse one else-clause
+    // node type for all of them). Only a try's else is a cyclomatic decision
+    // point; always false for grammars with no try-else construct.
+    isTryElseClause(node: any): boolean;
 }

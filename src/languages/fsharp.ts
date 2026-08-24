@@ -65,5 +65,9 @@ export const FSHARP: LanguageAdapter = {
     // No block wrapper exists, so every child of a decision point is nested content.
     entersNestedScope(): boolean {
         return true;
+    },
+    // F#'s try_expression has no else-branch construct.
+    isTryElseClause(): boolean {
+        return false;
     }
 };
