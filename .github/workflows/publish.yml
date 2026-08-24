@@ -1,4 +1,4 @@
-name: Publish to VS Code Marketplace
+name: Publish
 
 on:
   push:
@@ -49,6 +49,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: npm ci
@@ -57,6 +58,11 @@ jobs:
         run: npx vsce publish --pat "$VSCE_PAT"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag and create GitHub release
         run: |

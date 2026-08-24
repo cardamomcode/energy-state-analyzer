@@ -12,6 +12,11 @@
   "engines": {
     "vscode": "^1.74.0"
   },
+  "files": [
+    "dist/cli.js",
+    "dist/cli.js.map",
+    "grammars/"
+  ],
   "categories": [
     "Other",
     "Linters",
