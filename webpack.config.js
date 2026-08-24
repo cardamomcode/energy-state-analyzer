@@ -60,8 +60,8 @@ const extensionConfig = {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, 'node_modules/web-tree-sitter/tree-sitter.wasm'),
-          to: path.resolve(__dirname, 'dist/tree-sitter.wasm')
+          from: path.resolve(__dirname, 'node_modules/web-tree-sitter/web-tree-sitter.wasm'),
+          to: path.resolve(__dirname, 'dist/web-tree-sitter.wasm')
         }
       ]
     })
