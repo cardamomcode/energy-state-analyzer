@@ -143,13 +143,15 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "node ./out/test/runTest.js",
+    "test": "vscode-test",
     "analyze": "node dist/cli.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "16.x",
     "@types/vscode": "^1.74.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.2.1",
     "copy-webpack-plugin": "^13.0.0",
     "eslint": "^8.28.0",
