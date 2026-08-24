@@ -94,6 +94,28 @@
           "default": 5,
           "minimum": 1,
           "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
+        },
+        "energyStateAnalyzer.colors.highEnergy": {
+          "type": "string",
+          "default": "#fb8500",
+          "description": "Color for high-energy violations (background tint, gutter icon, and complexity heatmap). Defaults to a deep amber so it reads as 'hot' rather than duplicating the red used for compiler/lint errors."
+        },
+        "energyStateAnalyzer.colors.mediumEnergy": {
+          "type": "string",
+          "default": "#ffb703",
+          "description": "Color for medium-energy violations (background tint and gutter icon)."
+        },
+        "energyStateAnalyzer.colors.lowEnergy": {
+          "type": "string",
+          "default": "#99dd99",
+          "description": "Color for low-energy violations (background tint and gutter icon)."
+        },
+        "energyStateAnalyzer.colors.backgroundOpacity": {
+          "type": "number",
+          "default": 0.1,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Opacity of the background tint applied behind flagged lines."
         }
       }
     }

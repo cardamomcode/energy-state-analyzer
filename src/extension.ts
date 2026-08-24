@@ -78,6 +78,10 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         });
         vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('energyStateAnalyzer.colors')) {
+                disposeDecorations();
+                createDecorations();
+            }
             if (event.affectsConfiguration('energyStateAnalyzer')) {
                 analyzeActiveEditor();
             }
@@ -102,44 +106,79 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 }
 
+interface EnergyColors {
+    highEnergy: string;
+    mediumEnergy: string;
+    lowEnergy: string;
+    backgroundOpacity: number;
+}
+
+const DEFAULT_ENERGY_COLORS: EnergyColors = {
+    highEnergy: '#fb8500',
+    mediumEnergy: '#ffb703',
+    lowEnergy: '#99dd99',
+    backgroundOpacity: 0.1
+};
+
+function getEnergyColors(): EnergyColors {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.colors');
+    return {
+        highEnergy: config.get('highEnergy', DEFAULT_ENERGY_COLORS.highEnergy),
+        mediumEnergy: config.get('mediumEnergy', DEFAULT_ENERGY_COLORS.mediumEnergy),
+        lowEnergy: config.get('lowEnergy', DEFAULT_ENERGY_COLORS.lowEnergy),
+        backgroundOpacity: config.get('backgroundOpacity', DEFAULT_ENERGY_COLORS.backgroundOpacity)
+    };
+}
+
+// decision: parses user-supplied hex strings defensively and falls back to the built-in default on malformed input, since a bad `energyStateAnalyzer.colors.*` setting must not crash decoration setup
+function hexToRgba(hex: string, alpha: number, fallback: string): string {
+    const match = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+    const digits = match ? match[1] : fallback.replace('#', '');
+    const r = parseInt(digits.substring(0, 2), 16);
+    const g = parseInt(digits.substring(2, 4), 16);
+    const b = parseInt(digits.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function createDecorations() {
-    // Pastel eye-friendly colors
-    const pastelRed = '#ff9999';    // Soft red for high energy
-    const pastelYellow = '#ffdd88'; // Soft yellow for medium energy
-    const pastelGreen = '#99dd99';  // Soft green for low energy
+    const colors = getEnergyColors();
 
     highEnergyDecoration = vscode.window.createTextEditorDecorationType({
         // Subtle background highlight that's still hoverable
-        backgroundColor: 'rgba(255, 153, 153, 0.1)',
+        backgroundColor: hexToRgba(colors.highEnergy, colors.backgroundOpacity, DEFAULT_ENERGY_COLORS.highEnergy),
         borderRadius: '2px',
-        // Pastel red lightning for high energy
-        gutterIconPath: createLightningIcon(pastelRed),
+        gutterIconPath: createLightningIcon(colors.highEnergy),
         gutterIconSize: 'contain'
     });
 
     mediumEnergyDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(255, 221, 136, 0.1)',
+        backgroundColor: hexToRgba(colors.mediumEnergy, colors.backgroundOpacity, DEFAULT_ENERGY_COLORS.mediumEnergy),
         borderRadius: '2px',
-        // Pastel yellow lightning for medium energy
-        gutterIconPath: createLightningIcon(pastelYellow),
+        gutterIconPath: createLightningIcon(colors.mediumEnergy),
         gutterIconSize: 'contain'
     });
 
     lowEnergyDecoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: 'rgba(153, 221, 153, 0.1)',
+        backgroundColor: hexToRgba(colors.lowEnergy, colors.backgroundOpacity, DEFAULT_ENERGY_COLORS.lowEnergy),
         borderRadius: '2px',
-        // Pastel green lightning for low energy
-        gutterIconPath: createLightningIcon(pastelGreen),
+        gutterIconPath: createLightningIcon(colors.lowEnergy),
         gutterIconSize: 'contain'
     });
 
     // decision: complexity heat bands carry no gutter icon — the function-level violation decoration already owns the gutter icon for that line range, so these bands only paint background intensity
-    complexityHeatDecorations = [
-        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 90, 90, 0.10)' }),
-        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 70, 70, 0.18)' }),
-        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 50, 50, 0.28)' }),
-        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 30, 30, 0.42)' })
-    ];
+    // decision: heat bands derive from the same highEnergy color as the gutter icon (four increasing alpha steps) instead of a separate setting, so the heatmap and the violation it belongs to always match
+    complexityHeatDecorations = [0.10, 0.18, 0.28, 0.42].map(alpha =>
+        vscode.window.createTextEditorDecorationType({
+            backgroundColor: hexToRgba(colors.highEnergy, alpha, DEFAULT_ENERGY_COLORS.highEnergy)
+        })
+    );
+}
+
+function disposeDecorations() {
+    highEnergyDecoration?.dispose();
+    mediumEnergyDecoration?.dispose();
+    lowEnergyDecoration?.dispose();
+    complexityHeatDecorations?.forEach(decoration => decoration.dispose());
 }
 
 // Create lightning bolt icon for energy violations
