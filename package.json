@@ -56,6 +56,18 @@
           "default": 25,
           "minimum": 1,
           "description": "Cognitive complexity above which a function is flagged as high energy instead of medium."
+        },
+        "energyStateAnalyzer.coherence.largeFunctionLines": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "description": "Line count above which a function counts as 'large' for file coherence purposes."
+        },
+        "energyStateAnalyzer.coherence.maxLargeFunctions": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
         }
       }
     }

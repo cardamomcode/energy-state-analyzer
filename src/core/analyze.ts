@@ -4,7 +4,7 @@ import { LanguageAdapter } from './language';
 import { analyzeNesting } from './detectors/nesting';
 import { analyzeFunctionComplexity, CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './detectors/cyclomatic';
 import { analyzeCognitiveComplexity, CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './detectors/cognitive';
-import { analyzeFileCoherence } from './detectors/coherence';
+import { analyzeFileCoherence, CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './detectors/coherence';
 import { analyzeMagicValues } from './detectors/magicValues';
 import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
@@ -12,6 +12,7 @@ import { analyzeInversionOpportunities } from './detectors/inversion';
 export interface AnalyzeThresholds {
     cyclomatic?: CyclomaticThresholds;
     cognitive?: CognitiveThresholds;
+    coherence?: CoherenceThresholds;
 }
 
 // Language-agnostic entry point: runs every detector over an already-parsed
@@ -30,7 +31,7 @@ export function analyzeSource(
     violations.push(...analyzeNesting(tree, positions, language));
     violations.push(...analyzeFunctionComplexity(tree, positions, language, thresholds.cyclomatic ?? DEFAULT_CYCLOMATIC_THRESHOLDS));
     violations.push(...analyzeCognitiveComplexity(tree, positions, language, thresholds.cognitive ?? DEFAULT_COGNITIVE_THRESHOLDS));
-    violations.push(...analyzeFileCoherence(tree, fileName, language));
+    violations.push(...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS));
     violations.push(...analyzeMagicValues(tree, positions, language));
     violations.push(...analyzeParameterCount(tree, positions, language));
     violations.push(...analyzeInversionOpportunities(tree, positions, language));

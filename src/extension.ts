@@ -7,6 +7,7 @@ import { analyzeSource } from './core/analyze';
 import { LanguageAdapter } from './core/language';
 import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
+import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -199,6 +200,14 @@ function getCognitiveThresholds(): CognitiveThresholds {
     };
 }
 
+function getCoherenceThresholds(): CoherenceThresholds {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.coherence');
+    return {
+        largeFunctionLines: config.get('largeFunctionLines', DEFAULT_COHERENCE_THRESHOLDS.largeFunctionLines),
+        maxLargeFunctions: config.get('maxLargeFunctions', DEFAULT_COHERENCE_THRESHOLDS.maxLargeFunctions)
+    };
+}
+
 function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage): EnergyViolation[] {
     const sourceCode = document.getText();
 
@@ -206,7 +215,8 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
         const tree = loaded.parser.parse(sourceCode);
         const violations = analyzeSource(sourceCode, tree, loaded.adapter, document.fileName, {
             cyclomatic: getCyclomaticThresholds(),
-            cognitive: getCognitiveThresholds()
+            cognitive: getCognitiveThresholds(),
+            coherence: getCoherenceThresholds()
         });
 
         // Extract type information (Python-only scaffolding, for future features)
