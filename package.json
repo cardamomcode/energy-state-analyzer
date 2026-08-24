@@ -4,6 +4,7 @@
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
   "version": "0.1.0",
   "publisher": "cardamom-code",
+  "license": "MIT",
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
