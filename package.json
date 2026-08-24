@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "publisher": "energy-analyzer",
   "repository": {
     "type": "git",
@@ -24,7 +24,36 @@
         "command": "energy-state-analyzer.analyze",
         "title": "Analyze Energy State"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Energy State Analyzer",
+      "properties": {
+        "energyStateAnalyzer.cyclomaticComplexity.mediumThreshold": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "description": "Cyclomatic complexity above which a function is flagged as medium energy."
+        },
+        "energyStateAnalyzer.cyclomaticComplexity.highThreshold": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "Cyclomatic complexity above which a function is flagged as high energy instead of medium."
+        },
+        "energyStateAnalyzer.cognitiveComplexity.mediumThreshold": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "Cognitive complexity above which a function is flagged as medium energy."
+        },
+        "energyStateAnalyzer.cognitiveComplexity.highThreshold": {
+          "type": "number",
+          "default": 25,
+          "minimum": 1,
+          "description": "Cognitive complexity above which a function is flagged as high energy instead of medium."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

@@ -18,13 +18,20 @@ Violations are shown three ways:
 - A hover tooltip explaining the specific violation.
 - An entry in the Problems panel, sourced as "Energy State Analyzer".
 
+For functions flagged as too complex (cyclomatic or cognitive), a progressive red heatmap is also painted across the function body: each contributing line (an `if`, `for`, `and`, etc.) is shaded from light to dark red based on how much it drives up that function's complexity relative to its own worst line — so you can see exactly which branches to break apart first, instead of just knowing the function as a whole is complex.
+
 ## Requirements
 
-No configuration needed. The extension activates automatically when you open a `.py` file; it bundles its own Python grammar for parsing (via `web-tree-sitter`), so no external tools are required.
+The extension activates automatically when you open a `.py` file; it bundles its own Python grammar for parsing (via `web-tree-sitter`), so no external tools are required.
 
 ## Extension Settings
 
-This extension does not currently contribute any user-configurable settings — thresholds for each detector (e.g. cyclomatic complexity > 10, cognitive complexity > 15, nesting depth > 3) are fixed in code.
+Detector thresholds are configurable under **Settings → Energy State Analyzer**:
+
+- `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` / `.highThreshold`
+- `energyStateAnalyzer.cognitiveComplexity.mediumThreshold` / `.highThreshold`
+
+Changes take effect immediately on the active editor.
 
 ## Commands
 
@@ -32,11 +39,5 @@ This extension does not currently contribute any user-configurable settings — 
 
 ## Known Issues
 
-- Detection thresholds are not yet configurable per-project.
+- Nesting depth, file coherence, magic value, and parameter count thresholds are not yet configurable — only cyclomatic and cognitive complexity are.
 - Analysis only covers Python; other languages are not yet supported.
-
-## Release Notes
-
-### 0.0.1
-
-Initial version: cyclomatic complexity, cognitive complexity, nesting depth, file coherence, magic values, parameter count, and inversion-opportunity detectors, with gutter/hover/Problems-panel reporting for Python files.

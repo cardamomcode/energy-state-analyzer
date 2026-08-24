@@ -17,10 +17,21 @@ export const VIOLATION_TYPE = {
     INVERSION: 'inversion' as const
 };
 
+// A single contributor line inside a flagged function, weighted by how much
+// it drives up the complexity score (nesting depth for cognitive, decision
+// density for cyclomatic). Used to paint a progressive heatmap across the
+// function body instead of a single flat highlight, so the worst lines stand
+// out visually.
+export interface ComplexityHotspot {
+    line: number;
+    weight: number;
+}
+
 export interface EnergyViolation {
     line: number;
     column: number;
     type: 'nesting' | 'complexity' | 'cognitive' | 'naming' | 'coherence' | 'magic' | 'parameters' | 'inversion';
     severity: 'low' | 'medium' | 'high';
     message: string;
+    hotspots?: ComplexityHotspot[];
 }

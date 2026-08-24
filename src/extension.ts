@@ -3,8 +3,8 @@ import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
-import { analyzeFunctionComplexity } from './cyclomatic';
-import { analyzeCognitiveComplexity } from './cognitive';
+import { analyzeFunctionComplexity, CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './cyclomatic';
+import { analyzeCognitiveComplexity, CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './cognitive';
 
 let parser: any;
 let pythonLanguage: any;
@@ -16,6 +16,12 @@ let diagnosticsCollection: vscode.DiagnosticCollection;
 let highEnergyDecoration: vscode.TextEditorDecorationType;
 let mediumEnergyDecoration: vscode.TextEditorDecorationType;
 let lowEnergyDecoration: vscode.TextEditorDecorationType;
+
+// Progressive heat decorations for complexity hotspot lines, from mildest to
+// most severe. Intensity is computed per-violation (relative to the worst
+// line in that function), so the darkest red always marks the line driving
+// the complexity the most.
+let complexityHeatDecorations: vscode.TextEditorDecorationType[];
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🚀 Activating Energy State Analyzer...');
@@ -60,6 +66,11 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeActiveTextEditor(analyzeActiveEditor);
         vscode.workspace.onDidChangeTextDocument(event => {
             if (event.document === vscode.window.activeTextEditor?.document) {
+                analyzeActiveEditor();
+            }
+        });
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('energyStateAnalyzer')) {
                 analyzeActiveEditor();
             }
         });
@@ -113,6 +124,16 @@ function createDecorations() {
         gutterIconPath: createLightningIcon(pastelGreen),
         gutterIconSize: 'contain'
     });
+
+    // Progressive red heat bands for complexity hotspot lines, mildest to
+    // most severe. No gutter icon here — the function-level violation above
+    // already owns the gutter icon; these bands just paint where within it.
+    complexityHeatDecorations = [
+        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 90, 90, 0.10)' }),
+        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 70, 70, 0.18)' }),
+        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 50, 50, 0.28)' }),
+        vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 30, 30, 0.42)' })
+    ];
 }
 
 // Create lightning bolt icon for energy violations
@@ -153,6 +174,22 @@ function analyzeActiveEditor() {
     updateProblemsPanel(editor.document, violations);
 }
 
+function getCyclomaticThresholds(): CyclomaticThresholds {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.cyclomaticComplexity');
+    return {
+        mediumThreshold: config.get('mediumThreshold', DEFAULT_CYCLOMATIC_THRESHOLDS.mediumThreshold),
+        highThreshold: config.get('highThreshold', DEFAULT_CYCLOMATIC_THRESHOLDS.highThreshold)
+    };
+}
+
+function getCognitiveThresholds(): CognitiveThresholds {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.cognitiveComplexity');
+    return {
+        mediumThreshold: config.get('mediumThreshold', DEFAULT_COGNITIVE_THRESHOLDS.mediumThreshold),
+        highThreshold: config.get('highThreshold', DEFAULT_COGNITIVE_THRESHOLDS.highThreshold)
+    };
+}
+
 function analyzeDocument(document: vscode.TextDocument): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
     const sourceCode = document.getText();
@@ -160,8 +197,8 @@ function analyzeDocument(document: vscode.TextDocument): EnergyViolation[] {
     try {
         const tree = parser.parse(sourceCode);
         violations.push(...analyzeNesting(tree, document));
-        violations.push(...analyzeFunctionComplexity(tree, document));
-        violations.push(...analyzeCognitiveComplexity(tree, document));
+        violations.push(...analyzeFunctionComplexity(tree, document, getCyclomaticThresholds()));
+        violations.push(...analyzeCognitiveComplexity(tree, document, getCognitiveThresholds()));
         violations.push(...analyzeFileCoherence(tree, document));
         violations.push(...analyzeMagicValues(tree, document));
         violations.push(...analyzeParameterCount(tree, document));
@@ -249,6 +286,52 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
     editor.setDecorations(highEnergyDecoration, highEnergyRanges);
     editor.setDecorations(mediumEnergyDecoration, mediumEnergyRanges);
     editor.setDecorations(lowEnergyDecoration, lowEnergyRanges);
+
+    applyComplexityHeat(editor, violations);
+}
+
+// Paints a progressive red heatmap over the lines that actually drive a
+// flagged function's complexity, so instead of just knowing "this function
+// is complex" you can see exactly which branches to break apart first.
+// Intensity is normalized per-violation: the single worst line in a function
+// is always the darkest band, regardless of how that function compares to
+// others in the file.
+function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolation[]) {
+    const heatByLine = new Map<number, number>();
+
+    for (const violation of violations) {
+        if (!violation.hotspots || violation.hotspots.length === 0) {
+            continue;
+        }
+
+        const maxWeight = Math.max(...violation.hotspots.map(hotspot => hotspot.weight));
+        if (maxWeight <= 0) {
+            continue;
+        }
+
+        for (const hotspot of violation.hotspots) {
+            const intensity = hotspot.weight / maxWeight;
+            heatByLine.set(hotspot.line, Math.max(heatByLine.get(hotspot.line) ?? 0, intensity));
+        }
+    }
+
+    const bandRanges: vscode.Range[][] = complexityHeatDecorations.map(() => []);
+
+    for (const [line, intensity] of heatByLine) {
+        if (line < 0 || line >= editor.document.lineCount) {
+            continue;
+        }
+        const bandIndex = Math.min(
+            complexityHeatDecorations.length - 1,
+            Math.floor(intensity * complexityHeatDecorations.length)
+        );
+        const lineText = editor.document.lineAt(line).text;
+        bandRanges[bandIndex].push(new vscode.Range(line, 0, line, lineText.length));
+    }
+
+    complexityHeatDecorations.forEach((decoration, index) => {
+        editor.setDecorations(decoration, bandRanges[index]);
+    });
 }
 
 function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyViolation[]) {

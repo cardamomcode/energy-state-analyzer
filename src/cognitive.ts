@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
+import { ComplexityHotspot, EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
 
 // Cognitive complexity (SonarSource): unlike cyclomatic complexity, every
 // decision point is weighted by how deeply it is nested, and early-return
@@ -12,8 +12,13 @@ import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
 // - Boolean operator chain merging ("a and b and c" = one increment) only
 //   checks the immediate parent's operator, not the full chain direction.
 // - Recursive calls to the enclosing function are not specially detected.
-export function calculateCognitiveComplexity(functionNode: any): number {
+export function calculateCognitiveComplexity(functionNode: any, onContribution?: (node: any, amount: number) => void): number {
     let score = 0;
+
+    function add(node: any, amount: number) {
+        score += amount;
+        onContribution?.(node, amount);
+    }
 
     function getBooleanOperator(node: any): string | null {
         const opToken = node.children?.find((c: any) => c.type === 'and' || c.type === 'or');
@@ -23,7 +28,7 @@ export function calculateCognitiveComplexity(functionNode: any): number {
     function walk(node: any, nesting: number) {
         switch (node.type) {
             case 'if_statement': {
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     if (child.type === 'block') {
                         walk(child, nesting + 1);
@@ -34,14 +39,14 @@ export function calculateCognitiveComplexity(functionNode: any): number {
                 return;
             }
             case 'elif_clause': {
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     walk(child, child.type === 'block' ? nesting + 1 : nesting);
                 }
                 return;
             }
             case 'else_clause': {
-                score += 1; // flat: no extra nesting increment for the else itself
+                add(node, 1); // flat: no extra nesting increment for the else itself
                 for (const child of node.children) {
                     walk(child, child.type === 'block' ? nesting + 1 : nesting);
                 }
@@ -49,21 +54,21 @@ export function calculateCognitiveComplexity(functionNode: any): number {
             }
             case 'for_statement':
             case 'while_statement': {
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     walk(child, child.type === 'block' ? nesting + 1 : nesting);
                 }
                 return;
             }
             case 'except_clause': {
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     walk(child, child.type === 'block' ? nesting + 1 : nesting);
                 }
                 return;
             }
             case 'conditional_expression': { // ternary: "a if cond else b"
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     walk(child, nesting + 1);
                 }
@@ -74,7 +79,7 @@ export function calculateCognitiveComplexity(functionNode: any): number {
                 const parentOperator = node.parent?.type === 'boolean_operator' ? getBooleanOperator(node.parent) : null;
                 const isChainContinuation = parentOperator !== null && parentOperator === operator;
                 if (!isChainContinuation) {
-                    score += 1;
+                    add(node, 1);
                 }
                 for (const child of node.children) {
                     walk(child, nesting);
@@ -83,7 +88,7 @@ export function calculateCognitiveComplexity(functionNode: any): number {
             }
             case 'lambda':
             case 'function_definition': { // nested function/lambda adds structural nesting
-                score += 1 + nesting;
+                add(node, 1 + nesting);
                 for (const child of node.children) {
                     walk(child, child.type === 'block' ? nesting + 1 : nesting);
                 }
@@ -105,20 +110,46 @@ export function calculateCognitiveComplexity(functionNode: any): number {
     return score;
 }
 
-export function analyzeCognitiveComplexity(tree: any, document: vscode.TextDocument): EnergyViolation[] {
+// Re-runs the same walk used for scoring, but records where each point of
+// score comes from so callers can render a per-line heatmap across the
+// function body instead of a single flat highlight.
+export function findCognitiveHotspots(functionNode: any, document: vscode.TextDocument): ComplexityHotspot[] {
+    const hotspots: ComplexityHotspot[] = [];
+    calculateCognitiveComplexity(functionNode, (node, amount) => {
+        hotspots.push({ line: document.positionAt(node.startIndex).line, weight: amount });
+    });
+    return hotspots;
+}
+
+export interface CognitiveThresholds {
+    mediumThreshold: number;
+    highThreshold: number;
+}
+
+export const DEFAULT_COGNITIVE_THRESHOLDS: CognitiveThresholds = {
+    mediumThreshold: 15,
+    highThreshold: 25
+};
+
+export function analyzeCognitiveComplexity(
+    tree: any,
+    document: vscode.TextDocument,
+    thresholds: CognitiveThresholds = DEFAULT_COGNITIVE_THRESHOLDS
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
         if (node.type === 'function_definition') {
             const complexity = calculateCognitiveComplexity(node);
-            if (complexity > 15) {
+            if (complexity > thresholds.mediumThreshold) {
                 const position = document.positionAt(node.startIndex);
                 violations.push({
                     line: position.line,
                     column: position.character,
                     type: VIOLATION_TYPE.COGNITIVE,
-                    severity: complexity > 25 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-                    message: `High cognitive complexity: ${complexity}. This function is hard to read; consider flattening nesting or extracting functions.`
+                    severity: complexity > thresholds.highThreshold ? SEVERITY.HIGH : SEVERITY.MEDIUM,
+                    message: `High cognitive complexity: ${complexity}. This function is hard to read; consider flattening nesting or extracting functions.`,
+                    hotspots: findCognitiveHotspots(node, document)
                 });
             }
         }
