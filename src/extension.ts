@@ -457,33 +457,8 @@ function extractFunctionTypeInfo(node: any, document: vscode.TextDocument): Func
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const parametersNode = node.children.find((child: any) => child.type === 'parameters');
 
-    // Find return type (after -> token)
-    let returnType: string | null = null;
-    const arrowIndex = node.children.findIndex((child: any) => child.text === '->');
-    if (arrowIndex !== -1 && arrowIndex + 1 < node.children.length) {
-        const returnTypeNode = node.children[arrowIndex + 1];
-        if (returnTypeNode.type === 'type') {
-            returnType = extractTypeString(returnTypeNode);
-        }
-    }
-
-    const parameters: ParameterTypeInfo[] = [];
-    if (parametersNode) {
-        for (const child of parametersNode.children) {
-            if (child.type === 'typed_parameter') {
-                parameters.push(extractParameterTypeInfo(child));
-            } else if (child.type === 'default_parameter') {
-                parameters.push(extractDefaultParameterTypeInfo(child));
-            } else if (child.type === 'identifier') {
-                // Untyped parameter
-                parameters.push({
-                    name: child.text,
-                    type: null,
-                    hasDefault: false
-                });
-            }
-        }
-    }
+    const returnType = extractReturnTypeAnnotation(node.children);
+    const parameters = parametersNode ? extractParameters(parametersNode) : [];
 
     const position = document.positionAt(node.startIndex);
     return {
@@ -492,6 +467,31 @@ function extractFunctionTypeInfo(node: any, document: vscode.TextDocument): Func
         parameters,
         returnType
     };
+}
+
+function extractReturnTypeAnnotation(children: any[]): string | null {
+    const arrowIndex = children.findIndex((child: any) => child.text === '->');
+    if (arrowIndex === -1 || arrowIndex + 1 >= children.length) {
+        return null;
+    }
+
+    const returnTypeNode = children[arrowIndex + 1];
+    return returnTypeNode.type === 'type' ? extractTypeString(returnTypeNode) : null;
+}
+
+function extractParameters(parametersNode: any): ParameterTypeInfo[] {
+    const parameters: ParameterTypeInfo[] = [];
+    for (const child of parametersNode.children) {
+        if (child.type === 'typed_parameter') {
+            parameters.push(extractParameterTypeInfo(child));
+        } else if (child.type === 'default_parameter') {
+            parameters.push(extractDefaultParameterTypeInfo(child));
+        } else if (child.type === 'identifier') {
+            // Untyped parameter
+            parameters.push({ name: child.text, type: null, hasDefault: false });
+        }
+    }
+    return parameters;
 }
 
 function extractParameterTypeInfo(node: any): ParameterTypeInfo {
@@ -538,37 +538,11 @@ function extractClassTypeInfo(node: any, document: vscode.TextDocument): ClassTy
     const nameNode = node.children.find((child: any) => child.type === 'identifier');
     const argumentListNode = node.children.find((child: any) => child.type === 'argument_list');
 
-    const baseClasses: string[] = [];
-    let isTypedDict = false;
+    const baseClasses = extractBaseClasses(argumentListNode);
+    const isTypedDict = baseClasses.includes('TypedDict');
 
-    if (argumentListNode) {
-        for (const child of argumentListNode.children) {
-            if (child.type === 'identifier') {
-                const baseName = child.text;
-                baseClasses.push(baseName);
-                if (baseName === 'TypedDict') {
-                    isTypedDict = true;
-                }
-            }
-        }
-    }
-
-    // Extract fields for TypedDict classes
-    const fields: VariableTypeInfo[] = [];
     const blockNode = node.children.find((child: any) => child.type === 'block');
-    if (blockNode && isTypedDict) {
-        for (const child of blockNode.children) {
-            if (child.type === 'expression_statement') {
-                const assignment = child.children.find((grandchild: any) => grandchild.type === 'assignment');
-                if (assignment) {
-                    const fieldInfo = extractVariableTypeInfo(assignment, document);
-                    if (fieldInfo) {
-                        fields.push(fieldInfo);
-                    }
-                }
-            }
-        }
-    }
+    const fields = isTypedDict ? extractTypedDictFields(blockNode, document) : [];
 
     const position = document.positionAt(node.startIndex);
     return {
@@ -580,61 +554,107 @@ function extractClassTypeInfo(node: any, document: vscode.TextDocument): ClassTy
     };
 }
 
-function extractImportInfo(node: any, document: vscode.TextDocument): ImportInfo {
-    const position = document.positionAt(node.startIndex);
-    const items: string[] = [];
-    let module = '';
-
-    if (node.type === 'import_statement') {
-        // import module1, module2
-        for (const child of node.children) {
-            if (child.type === 'dotted_name' || child.type === 'identifier') {
-                items.push(child.text);
-            }
-        }
-        module = items[0] || '';
-    } else if (node.type === 'import_from_statement') {
-        // from module import item1, item2
-        const fromIndex = node.children.findIndex((child: any) => child.text === 'from');
-        const importIndex = node.children.findIndex((child: any) => child.text === 'import');
-
-        if (fromIndex !== -1 && importIndex !== -1) {
-            // Get module name (between 'from' and 'import')
-            for (let i = fromIndex + 1; i < importIndex; i++) {
-                const child = node.children[i];
-                if (child.type === 'dotted_name' || child.type === 'identifier') {
-                    module = child.text;
-                    break;
-                }
-            }
-
-            // Get imported items (after 'import')
-            for (let i = importIndex + 1; i < node.children.length; i++) {
-                const child = node.children[i];
-                if (child.type === 'identifier') {
-                    items.push(child.text);
-                }
-            }
-        }
+function extractBaseClasses(argumentListNode: any): string[] {
+    if (!argumentListNode) {
+        return [];
     }
 
-    return {
-        module,
-        items,
-        line: position.line
-    };
+    return argumentListNode.children
+        .filter((child: any) => child.type === 'identifier')
+        .map((child: any) => child.text);
+}
+
+function extractTypedDictFields(blockNode: any, document: vscode.TextDocument): VariableTypeInfo[] {
+    if (!blockNode) {
+        return [];
+    }
+
+    const fields: VariableTypeInfo[] = [];
+    for (const child of blockNode.children) {
+        if (child.type !== 'expression_statement') {
+            continue;
+        }
+        const assignment = child.children.find((grandchild: any) => grandchild.type === 'assignment');
+        if (!assignment) {
+            continue;
+        }
+        const fieldInfo = extractVariableTypeInfo(assignment, document);
+        if (fieldInfo) {
+            fields.push(fieldInfo);
+        }
+    }
+    return fields;
+}
+
+function extractImportInfo(node: any, document: vscode.TextDocument): ImportInfo {
+    const line = document.positionAt(node.startIndex).line;
+
+    if (node.type === 'import_statement') {
+        return extractPlainImportInfo(node, line);
+    }
+    if (node.type === 'import_from_statement') {
+        return extractFromImportInfo(node, line);
+    }
+
+    return { module: '', items: [], line };
+}
+
+function extractPlainImportInfo(node: any, line: number): ImportInfo {
+    // import module1, module2
+    const items = node.children
+        .filter((child: any) => child.type === 'dotted_name' || child.type === 'identifier')
+        .map((child: any) => child.text);
+
+    return { module: items[0] || '', items, line };
+}
+
+function extractFromImportInfo(node: any, line: number): ImportInfo {
+    // from module import item1, item2
+    const fromIndex = node.children.findIndex((child: any) => child.text === 'from');
+    const importIndex = node.children.findIndex((child: any) => child.text === 'import');
+
+    if (fromIndex === -1 || importIndex === -1) {
+        return { module: '', items: [], line };
+    }
+
+    const module = findImportModuleName(node.children, fromIndex, importIndex);
+    const items = collectImportedItems(node.children, importIndex);
+
+    return { module, items, line };
+}
+
+function findImportModuleName(children: any[], fromIndex: number, importIndex: number): string {
+    for (let i = fromIndex + 1; i < importIndex; i++) {
+        const child = children[i];
+        if (child.type === 'dotted_name' || child.type === 'identifier') {
+            return child.text;
+        }
+    }
+    return '';
+}
+
+function collectImportedItems(children: any[], importIndex: number): string[] {
+    const items: string[] = [];
+    for (let i = importIndex + 1; i < children.length; i++) {
+        const child = children[i];
+        if (child.type === 'identifier') {
+            items.push(child.text);
+        }
+    }
+    return items;
 }
 
 function extractTypeString(typeNode: any): string {
-    if (typeNode.type === 'type') {
-        if (typeNode.children.length === 1) {
-            const child = typeNode.children[0];
-            if (child.type === 'identifier') {
-                return child.text;
-            } else if (child.type === 'generic_type') {
-                return extractGenericTypeString(child);
-            }
-        }
+    if (typeNode.type !== 'type' || typeNode.children.length !== 1) {
+        return typeNode.text || 'unknown';
+    }
+
+    const child = typeNode.children[0];
+    if (child.type === 'generic_type') {
+        return extractGenericTypeString(child);
+    }
+    if (child.type === 'identifier') {
+        return child.text;
     }
 
     return typeNode.text || 'unknown';
