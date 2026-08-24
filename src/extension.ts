@@ -459,7 +459,7 @@ function analyzeMagicValues(tree: any, document: vscode.TextDocument): EnergyVio
         }
 
         // Flag suspicious string literals (potential config/messages)
-        if (node.type === 'string' && node.text.length > 15) {
+        if (node.type === 'string' && node.text.length > 15 && !isDocstring(node)) {
             const content = node.text.slice(1, -1); // Remove quotes
             const looksLikeMessage = content.includes(' ') && (content.includes('error') || content.includes('invalid') || content.includes('not found'));
 
@@ -478,6 +478,13 @@ function analyzeMagicValues(tree: any, document: vscode.TextDocument): EnergyVio
         for (const child of node.children) {
             traverse(child);
         }
+    }
+
+    function isDocstring(node: any): boolean {
+        // A standalone string statement is documentation, not a value, whether it's a
+        // module/function/class docstring or a PEP 257-style attribute docstring
+        // following a field (e.g. `code: int` then `"""..."""`).
+        return node.parent?.type === 'expression_statement';
     }
 
     function isInConstantContext(node: any): boolean {
