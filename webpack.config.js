@@ -3,6 +3,7 @@
 'use strict';
 
 const path = require('path');
+const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 
 //@ts-check
@@ -98,6 +99,13 @@ const cliConfig = {
       }
     ]
   },
+  plugins: [
+    // ADC: webpack/ts-loader strips the source shebang, and dist/cli.js is
+    // the npm "bin" entry run directly by a shell (not via `node dist/cli.js`),
+    // so it must start with one or `npx`/global installs fail with a shell
+    // syntax error instead of running as JS.
+    new webpack.BannerPlugin({ banner: '#!/usr/bin/env node', raw: true, entryOnly: true })
+  ],
   devtool: 'nosources-source-map'
 };
 
