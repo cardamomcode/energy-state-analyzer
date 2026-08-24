@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "publisher": "energy-analyzer",
   "icon": "images/icon.png",
   "repository": {
@@ -147,6 +147,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "16.x",
     "@types/vscode": "^1.74.0",
+    "@vscode/vsce": "^3.2.1",
     "copy-webpack-plugin": "^13.0.0",
     "eslint": "^8.28.0",
     "ts-loader": "^9.4.1",

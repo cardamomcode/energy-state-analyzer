@@ -52,6 +52,14 @@ Follow the existing pattern: write an `analyze<Thing>(tree, document): EnergyVio
 - `web-tree-sitter`'s own `tree-sitter.wasm` is copied into `dist/` via `CopyWebpackPlugin` (webpack.config.js); the Python grammar WASM in `grammars/` ships separately and is loaded at runtime by path, not bundled.
 - `tsconfig.json` targets ES2022/commonjs with `strict: true`.
 
+## Releasing
+
+Release automation runs through EasyBuild.ShipIt (see `RELEASING.md`). Use
+Conventional Commit subjects (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, etc.)
+for commits and PR titles — CI enforces this on PR titles, and ShipIt uses
+them to generate `CHANGELOG.md` and open release PRs. Do not hand-edit
+generated changelog entries or bump `package.json`'s version manually.
+
 ## Agent Decision Comments
 
 This repository uses Agent Decision Comments.

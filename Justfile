@@ -25,14 +25,17 @@ test:
     npm test
 
 # Production build + package into a .vsix via vsce
-package:
+pack:
     npm run package
     npx @vscode/vsce package
 
-# Publish the extension to the VS Code Marketplace
-publish:
-    npm run package
-    npx @vscode/vsce publish
+# Install .NET tools (ShipIt)
+setup:
+    dotnet tool restore
+
+# Preview the release PR ShipIt would open/update for commits since the last release
+shipit *args:
+    dotnet shipit --allow-branch main --skip-invalid-commit {{args}}
 
 # Remove build artifacts
 clean:
