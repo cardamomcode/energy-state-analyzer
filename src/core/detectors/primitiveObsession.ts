@@ -31,7 +31,7 @@ function findParameterCollisions(paramsNode: any, positions: PositionLookup, lan
                 column: position.column,
                 type: VIOLATION_TYPE.PRIMITIVE_OBSESSION,
                 severity: SEVERITY.MEDIUM,
-                message: `Primitive obsession: consecutive parameters '${a.name}: ${a.type}' and '${b.name}: ${b.type}' share the same primitive type — a caller can swap them and nothing will complain. Consider distinct types (NewType, dataclass) so the type checker catches it.`
+                message: `Primitive obsession: consecutive parameters '${a.name}: ${a.type}' and '${b.name}: ${b.type}' share the same primitive type — a caller can swap them and nothing will complain. Consider ${language.distinctTypeAdvice} so the type checker catches it.`
             });
         }
     }
