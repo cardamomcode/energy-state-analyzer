@@ -81,6 +81,11 @@ export interface LanguageAdapter {
     // float/bool/bytes, TS's string/number/boolean, F#'s string/int/float/
     // bool).
     primitiveTypeNames: Set<string>;
+    // What to suggest in place of a naked primitive to fix a swap-risk
+    // violation, phrased in this language's own idiom (Python: NewType/
+    // dataclass, TypeScript: a branded/nominal type, F#: a single-case
+    // union type).
+    distinctTypeAdvice: string;
     // Given a node, returns every direct equality comparison (==, ===, F#'s
     // single =) it represents as {left, right} operand pairs — empty if the
     // node isn't an equality comparison. A list rather than a single pair

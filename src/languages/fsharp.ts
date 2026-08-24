@@ -85,6 +85,7 @@ export const FSHARP: LanguageAdapter = {
         return { name: patternNode.text, type: typeNode.text };
     },
     primitiveTypeNames: new Set(['string', 'int', 'float', 'bool']),
+    distinctTypeAdvice: 'a single-case union type',
     getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
         if (node?.type !== 'infix_expression') {
             return [];
