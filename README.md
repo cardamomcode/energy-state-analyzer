@@ -18,7 +18,7 @@ Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts
 
 Violations are shown three ways:
 
-- A colored background + gutter lightning-bolt icon on the affected lines (red = high severity, yellow = medium, green = low).
+- A colored background + gutter lightning-bolt icon on the affected lines (orange = high severity, gold = medium, green = low; colors are configurable, see Extension Settings).
 - A hover tooltip explaining the specific violation.
 - An entry in the Problems panel, sourced as "Energy State Analyzer".
 
@@ -91,6 +91,8 @@ Detector thresholds are configurable under **Settings → Energy State Analyzer*
 - `energyStateAnalyzer.coherence.maxLargeFunctions` — number of large functions a file can contain before it's flagged (default `5`).
 - `energyStateAnalyzer.matchOpportunity.minBranches` — number of branches an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity (default `3`).
 - `energyStateAnalyzer.magicValues.enabled` — whether to flag magic numbers and message-shaped string literals (default `true`).
+- `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` — hex colors for the high/medium/low severity background tint and gutter icon (defaults `#fb8500` orange, `#ffb703` gold, `#99dd99` green).
+- `energyStateAnalyzer.colors.backgroundOpacity` — opacity of the severity background tint (default `0.1`).
 
 Changes take effect immediately on the active editor.
 
