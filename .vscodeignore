@@ -15,3 +15,8 @@ vsc-extension-quickstart.md
 .claude/**
 CLAUDE.md
 energy-state.md
+.config/**
+.github/**
+RELEASING.md
+Justfile
+AGENT_DECISION_COMMENTS.md
