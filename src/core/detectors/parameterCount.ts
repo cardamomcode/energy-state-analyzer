@@ -2,11 +2,7 @@ import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { PositionLookup } from '../position';
 import { LanguageAdapter } from '../language';
 
-// Finds the first descendant of the given type, checking each level in full
-// before descending to the next. This finds a function's own parameters
-// node even when it's nested a level below the function node itself (e.g.
-// F#'s argument_patterns sits inside function_declaration_left), while
-// still stopping before it can reach a nested function's parameters.
+// decision: does a level-by-level (breadth-first) search rather than a depth-first one — finds a function's own parameters node even when nested a level below the function node itself (e.g. F#'s argument_patterns sits inside function_declaration_left), while still stopping before it can reach a nested function's parameters
 function findParametersNode(node: any, parametersType: string): any {
     for (const child of node.children) {
         if (child.type === parametersType) {
@@ -34,6 +30,7 @@ export function analyzeParameterCount(tree: any, positions: PositionLookup, lang
                     language.parameterChildTypes.includes(child.type)
                 ).length;
 
+                // decision: flags past 5 parameters (medium) and 8 (high) — beyond ~5, callers typically can no longer recall argument order/meaning without checking the signature
                 if (paramCount > 5) {
                     const position = positions.toPosition(node.startIndex);
                     violations.push({

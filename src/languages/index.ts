@@ -3,9 +3,7 @@ import { PYTHON } from './python';
 import { FSHARP } from './fsharp';
 import { TYPESCRIPT } from './typescript';
 
-// Keyed by vscode languageId, which is also what we use to pick an adapter
-// for a given file (see resolveLanguageForFile for the CLI's file-extension
-// equivalent).
+// decision: keys LANGUAGES by vscode languageId rather than file extension — the extension host already resolves languageId, and resolveLanguageForFile below provides the file-extension equivalent for the CLI
 export const LANGUAGES: Record<string, LanguageAdapter> = {
     python: PYTHON,
     fsharp: FSHARP,

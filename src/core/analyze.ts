@@ -16,8 +16,10 @@ export interface AnalyzeThresholds {
 }
 
 // Language-agnostic entry point: runs every detector over an already-parsed
-// tree-sitter tree. Used by both the VS Code extension (per keystroke) and
-// the headless CLI (per file), so it must not depend on vscode.
+// tree-sitter tree.
+//
+// decision: runs all detectors unconditionally rather than letting callers opt into a subset — keeps the extension and the CLI (cli.ts) guaranteed to see the same violation set
+// invariant: this module and everything it calls must not import vscode — used by both the VS Code extension (per keystroke) and the headless CLI (per file)
 export function analyzeSource(
     sourceText: string,
     tree: any,

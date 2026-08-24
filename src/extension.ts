@@ -27,10 +27,7 @@ let highEnergyDecoration: vscode.TextEditorDecorationType;
 let mediumEnergyDecoration: vscode.TextEditorDecorationType;
 let lowEnergyDecoration: vscode.TextEditorDecorationType;
 
-// Progressive heat decorations for complexity hotspot lines, from mildest to
-// most severe. Intensity is computed per-violation (relative to the worst
-// line in that function), so the darkest red always marks the line driving
-// the complexity the most.
+// decision: normalizes heatmap intensity per-violation (relative to the worst line in that function), not globally across the file — the darkest red always marks the line driving that function's complexity the most, regardless of how the function compares to others in the file
 let complexityHeatDecorations: vscode.TextEditorDecorationType[];
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -73,6 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Register event listeners
         vscode.window.onDidChangeActiveTextEditor(analyzeActiveEditor);
+        // tradeoff: re-parses and re-runs every detector on every keystroke rather than debouncing — keeps decorations and Problems-panel entries always in sync with the visible buffer, at the cost of re-analysis work the user never sees skipped
         vscode.workspace.onDidChangeTextDocument(event => {
             if (event.document === vscode.window.activeTextEditor?.document) {
                 analyzeActiveEditor();
@@ -134,9 +132,7 @@ function createDecorations() {
         gutterIconSize: 'contain'
     });
 
-    // Progressive red heat bands for complexity hotspot lines, mildest to
-    // most severe. No gutter icon here — the function-level violation above
-    // already owns the gutter icon; these bands just paint where within it.
+    // decision: complexity heat bands carry no gutter icon — the function-level violation decoration already owns the gutter icon for that line range, so these bands only paint background intensity
     complexityHeatDecorations = [
         vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 90, 90, 0.10)' }),
         vscode.window.createTextEditorDecorationType({ backgroundColor: 'rgba(255, 70, 70, 0.18)' }),
@@ -219,7 +215,7 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
             coherence: getCoherenceThresholds()
         });
 
-        // Extract type information (Python-only scaffolding, for future features)
+        // decision: extracts type information for Python only and only logs it — scaffolding for future features, not yet wired into any violation, so it deliberately does not affect the returned violations
         if (loaded.adapter.id === PYTHON.id) {
             const typeInfo = extractTypeInformation(tree, document);
             console.log('🔍 Found types:', typeInfo);
@@ -238,7 +234,7 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
     const lowEnergyRanges: vscode.DecorationOptions[] = [];
 
     for (const violation of violations) {
-        // Create better highlight ranges based on violation type
+        // decision: picks the decoration range by violation type rather than storing a range on EnergyViolation itself — coherence issues span the whole first line, nesting/complexity/cognitive issues span from the construct's start to end of line, and everything else highlights a fixed-width span at the violation's column
         let range: vscode.Range;
         const line = editor.document.lineAt(violation.line);
 
@@ -283,9 +279,8 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
 // Paints a progressive red heatmap over the lines that actually drive a
 // flagged function's complexity, so instead of just knowing "this function
 // is complex" you can see exactly which branches to break apart first.
-// Intensity is normalized per-violation: the single worst line in a function
-// is always the darkest band, regardless of how that function compares to
-// others in the file.
+//
+// invariant: heat intensity is normalized per-violation — the single worst line in a function is always the darkest band, regardless of how that function compares to others in the file
 function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolation[]) {
     const heatByLine = new Map<number, number>();
 
@@ -326,7 +321,7 @@ function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolat
 
 function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyViolation[]) {
     const diagnostics: vscode.Diagnostic[] = violations.map(violation => {
-        // Create range for the violation
+        // decision: uses a fixed 10-column-wide range for every diagnostic regardless of violation type — the Problems panel only needs a clickable location, unlike applyDecorations' editor highlight which must visually match the flagged construct
         const range = new vscode.Range(
             violation.line, violation.column,
             violation.line, violation.column + 10
@@ -360,11 +355,13 @@ function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyVi
         // Add tags for better categorization
         switch (violation.type) {
             case VIOLATION_TYPE.NESTING:
+                // decision: reuses DiagnosticTag.Unnecessary (fade/gray-out) for nesting violations — the closest built-in cue for "this structure could be flattened away"
                 diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
                 break;
             case VIOLATION_TYPE.COMPLEXITY:
             case VIOLATION_TYPE.COGNITIVE:
-                diagnostic.tags = [vscode.DiagnosticTag.Deprecated]; // Using as a visual cue
+                // decision: reuses DiagnosticTag.Deprecated (strikethrough) as a visual cue for complexity violations — VS Code has no "high effort" tag, and Deprecated's strikethrough is the closest built-in signal for "this needs rework"
+                diagnostic.tags = [vscode.DiagnosticTag.Deprecated];
                 break;
         }
 

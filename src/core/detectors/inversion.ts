@@ -38,6 +38,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
                     const ifLines = ifBody.endIndex - ifBody.startIndex;
                     const ratio = ifLines / totalLines;
 
+                    // decision: flags only when the if-body spans more than half the function — below that, the if is a fragment rather than the function's dominant structure
                     if (ratio > 0.5) {
                         const position = positions.toPosition(firstStatement.startIndex);
                         violations.push({
@@ -61,6 +62,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
 
     function analyzeNestedValidation(body: any) {
         // Look for patterns like: if (valid) { if (moreValid) { if (evenMoreValid) { ... } } }
+        // decision: caps the validation-chain walk at 4 levels — deep chains beyond that are already caught by analyzeNestedIfs, so this loop only needs to bound its own work
         let currentNode = body;
         let nestingLevel = 0;
         const validationChecks: any[] = [];
@@ -88,7 +90,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
             }
         }
 
-        // If we found 2+ validation checks, suggest guard clauses
+        // decision: suggests guard clauses starting at 2 chained validation checks — a single nested if is normal control flow, not yet a pattern worth restructuring
         if (validationChecks.length >= 2) {
             const firstCheck = validationChecks[0];
             const position = positions.toPosition(firstCheck.startIndex);
@@ -123,7 +125,7 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
 
         countNesting(body);
 
-        // Flag functions with 3+ levels of if nesting
+        // decision: flags if-nesting at 3+ levels here, one level below analyzeNesting's depth>3 threshold — this detector targets flattenable if-chains specifically, so it can fire earlier than the general nesting detector
         if (maxNesting >= 3 && nestedIfLocation) {
             const position = positions.toPosition(nestedIfLocation.startIndex);
             violations.push({

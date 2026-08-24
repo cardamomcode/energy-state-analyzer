@@ -13,9 +13,7 @@ export function calculateCyclomaticComplexity(functionNode: any, language: Langu
             complexity++;
         }
 
-        // A nested named function/method is scored as its own separate
-        // violation by analyzeFunctionComplexity's traversal, so don't walk
-        // into its body here — that would double-count everything inside it.
+        // invariant: a nested named function/method's decision points are never counted toward the enclosing function's complexity — it is scored as its own separate violation by analyzeFunctionComplexity's traversal
         if (!isRoot && language.isFunctionDefinition(node)) {
             return;
         }
@@ -43,8 +41,7 @@ export function findCyclomaticHotspots(functionNode: any, positions: PositionLoo
             nextDepth = depth + 1;
         }
 
-        // Mirror calculateCyclomaticComplexity: don't descend into a nested
-        // named function/method, it's hotspotted separately as its own violation.
+        // invariant: mirrors calculateCyclomaticComplexity's traversal exactly — a nested named function/method is hotspotted separately as its own violation, never folded into this one
         if (!isRoot && language.isFunctionDefinition(node)) {
             return;
         }

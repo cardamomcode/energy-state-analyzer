@@ -2,9 +2,7 @@ import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { LanguageAdapter } from '../language';
 
 export interface CoherenceThresholds {
-    // Languages like F# idiomatically have many small functions per module,
-    // so raw function count alone isn't a useful sprawl signal there. What
-    // matters is functions large enough to carry real complexity.
+    // decision: gates file-coherence sprawl detection on large-function count, not raw function count — languages like F# idiomatically have many small functions per module, so what matters is functions large enough to carry real complexity
     largeFunctionLines: number;
     // Number of large functions (per largeFunctionLines) a file can contain
     // before it's flagged.
@@ -49,6 +47,7 @@ export function analyzeFileCoherence(
     const largeFunctions = functions.filter(fn => lineCount(fn) > thresholds.largeFunctionLines);
 
     // Flag files with too many unrelated functions (utils/helpers sprawl)
+    // decision: lowers the flagging threshold from 12 to 8 functions when the filename itself signals a grab-bag module (util/helper/common) — the name is treated as a proxy for "already known to lack a single responsibility"
     if (functions.length > 8) {
         const baseName = fileName.split('/').pop() || '';
         const isUtilsFile = baseName.includes('util') || baseName.includes('helper') || baseName.includes('common');

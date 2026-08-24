@@ -1,12 +1,8 @@
 // Everything detectors need to know about a specific tree-sitter grammar.
-// Adding support for a new language means writing one of these, not touching
-// the detectors themselves.
 //
-// Fields are `string | null` where a grammar has no real equivalent (e.g. F#
-// has no block-boundary node, TypeScript's ternary isn't reused for plain
-// if/else) — a `null` field simply never matches any real node.type, so
-// detectors degrade to "this check never fires" rather than needing extra
-// guards at every call site.
+// decision: centralizes per-grammar node-type mapping in one adapter interface — adding a language means writing one LanguageAdapter, not touching every detector
+// decision: uses `string | null` fields instead of optional fields for grammar gaps (e.g. F#'s missing block node, TypeScript's ternary not reused for if/else)
+// invariant: a null field never matches any real node.type, so detectors degrade to "this check never fires" instead of needing a guard at every call site
 
 export interface LanguageNodeTypes {
     block: string | null;
@@ -38,11 +34,9 @@ export interface LanguageAdapter {
     grammarPath: string;
     nodeTypes: LanguageNodeTypes;
     // Whether this node represents "a function" for complexity/param-count/
-    // coherence purposes. A predicate rather than a plain node-type set
-    // because some grammars can't tell "function" apart from other things by
-    // type alone — e.g. F#'s function_or_value_defn also covers plain
-    // `let x = 5` (and monadic `let!`) bindings, distinguished only by which
-    // kind of child they have.
+    // coherence purposes.
+    //
+    // decision: uses a predicate instead of a plain node-type set — some grammars can't tell "function" apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain `let x = 5` and monadic `let!` bindings, distinguished only by which kind of child they have)
     isFunctionDefinition(node: any): boolean;
     // Node types that count as "one parameter" among a parameters node's children.
     parameterChildTypes: string[];

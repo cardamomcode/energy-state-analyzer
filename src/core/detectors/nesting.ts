@@ -7,6 +7,7 @@ export function analyzeNesting(tree: any, positions: PositionLookup, language: L
 
     function traverse(node: any, depth: number = 0) {
         if (language.nestingControlTypes.includes(node.type)) {
+            // decision: flags nesting past depth 3 (medium) and depth 5 (high) — three levels of if/for/while/with is the point where tracking active conditions starts to strain working memory
             if (depth > 3) {
                 const position = positions.toPosition(node.startIndex);
                 violations.push({

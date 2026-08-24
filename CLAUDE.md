@@ -51,3 +51,13 @@ Follow the existing pattern: write an `analyze<Thing>(tree, document): EnergyVio
 - Webpack bundles `src/extension.ts` → `dist/extension.js` (CommonJS, `vscode` module treated as external).
 - `web-tree-sitter`'s own `tree-sitter.wasm` is copied into `dist/` via `CopyWebpackPlugin` (webpack.config.js); the Python grammar WASM in `grammars/` ships separately and is loaded at runtime by path, not bundled.
 - `tsconfig.json` targets ES2022/commonjs with `strict: true`.
+
+## Agent Decision Comments
+
+This repository uses Agent Decision Comments.
+See `AGENT_DECISION_COMMENTS.md` for the locally adopted convention.
+Upstream releases: https://github.com/dbrattli/adc/releases
+
+Before modifying code, read the ADCs already governing it.
+Treat them as active constraints and justify any change explicitly.
+Add ADCs for non-obvious rationale introduced by your change.

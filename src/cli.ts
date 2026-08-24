@@ -2,6 +2,8 @@
 // Headless entry point: run the same detectors the extension uses, without
 // vscode, so an external process (e.g. an AI coding agent) can gate on
 // complexity without opening an editor.
+//
+// decision: exits 1 when any medium-or-high violation is found, not just high — CI/agent gating wants a single boolean signal, and severity is already visible in the emitted JSON for anyone who wants to discriminate further
 import * as fs from 'fs';
 import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');

@@ -1,5 +1,7 @@
 // Offset-to-line/column conversion that doesn't depend on vscode.TextDocument,
 // so detectors can run both inside the extension and in a headless CLI.
+//
+// decision: binary-searches precomputed line-start offsets instead of using vscode.TextDocument.positionAt — keeps detectors host-independent (see cli.ts)
 
 export interface Position {
     line: number;

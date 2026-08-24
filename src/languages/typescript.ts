@@ -4,18 +4,9 @@ import { LanguageAdapter } from '../core/language';
 // block/body nodes, a distinct else_clause, and and/or (&&/||) each get
 // their own node type as the operator-token child of a binary_expression.
 //
-// Arrow functions (`(x) => x + 1`) are treated as `lambda`, matching
-// Python's `lambda` — they add structural nesting in cognitive complexity
-// but aren't analyzed by parameter-count/complexity/coherence themselves
-// (same limitation Python already has for its own lambdas). Only named
-// `function_declaration`s and class `method_definition`s count as "a
-// function" for those detectors.
+// decision: treats arrow functions (`(x) => x + 1`) as `lambda`, matching Python's `lambda` — they add structural nesting in cognitive complexity but aren't analyzed by parameter-count/complexity/coherence themselves (same limitation Python already has for its own lambdas); only named `function_declaration`s and class `method_definition`s count as "a function" for those detectors
 //
-// TypeScript's `else if` parses as `else_clause` wrapping a nested
-// `if_statement`, unlike Python's flat elif sibling — so an else-if branch
-// here scores the else_clause's flat +1 *and* the nested if's `1 + nesting`,
-// slightly higher than Python's elif. Acceptable simplification rather than
-// unwrapping single-if else-clauses specially.
+// tradeoff: accepts a slightly higher cognitive-complexity score for `else if` chains (else_clause's flat +1 plus the nested if's `1 + nesting`) instead of unwrapping single-if else-clauses specially — TypeScript's `else if` parses as `else_clause` wrapping a nested `if_statement`, unlike Python's flat elif sibling
 export const TYPESCRIPT: LanguageAdapter = {
     id: 'typescript',
     grammarPath: 'grammars/tree-sitter-typescript.wasm',

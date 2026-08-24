@@ -7,14 +7,11 @@ import { LanguageAdapter } from '../language';
 // guard clauses are not penalized. This tracks how hard code is to *read*,
 // not just how many paths it has.
 //
-// Simplifications vs. the full SonarSource spec (acceptable for a first pass):
-// - `for`/`while` `else` clauses (where a grammar has them) are scored like
-//   `if`/`else`, even though they aren't really a decision point.
-// - Boolean operator chain merging ("a and b and c" = one increment) only
-//   checks the immediate parent's operator, not the full chain direction.
-// - Recursive calls to the enclosing function are not specially detected.
-// - match/switch-like constructs and try/except are scored once as a whole,
-//   not per-case — see each LanguageAdapter for exact node-type mapping.
+// decision: implements a simplified subset of the SonarSource spec rather than the full algorithm, acceptable for a first pass:
+// assumption: `for`/`while` `else` clauses (where a grammar has them) are scored like `if`/`else`, even though they aren't really a decision point
+// assumption: boolean operator chain merging ("a and b and c" = one increment) only checks the immediate parent's operator, not the full chain direction
+// assumption: recursive calls to the enclosing function are not specially detected
+// assumption: match/switch-like constructs and try/except are scored once as a whole, not per-case — see each LanguageAdapter for exact node-type mapping
 export function calculateCognitiveComplexity(
     functionNode: any,
     language: LanguageAdapter,
@@ -68,17 +65,13 @@ export function calculateCognitiveComplexity(
         }
 
         if (language.isFunctionDefinition(node)) {
-            // A nested named function/method is scored as its own separate
-            // violation by analyzeCognitiveComplexity's traversal, so only the
-            // structural nesting increment counts here — walking into its body
-            // too would double-count everything inside it.
+            // invariant: only the structural nesting increment for a nested named function/method counts here — its body is scored as its own separate violation by analyzeCognitiveComplexity's traversal, never folded into the enclosing function's score
             add(node, 1 + nesting);
             return;
         }
 
         if (node.type === nodeTypes.lambda) {
-            // Lambdas aren't analyzed as their own function (see LanguageAdapter
-            // docs), so their body's complexity belongs to the enclosing function.
+            // decision: attributes a lambda's body complexity to the enclosing function instead of scoring it separately, since lambdas aren't analyzed as their own function (see LanguageAdapter docs)
             add(node, 1 + nesting);
             walkNested(node, nesting);
             return;

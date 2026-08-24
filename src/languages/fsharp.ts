@@ -8,26 +8,10 @@ import { LanguageAdapter } from '../core/language';
 // aren't their own node type: they're an `infix_expression` whose `infix_op`
 // child's text happens to be "&&" or "||", same shape as `+`/`-`/etc.
 //
-// `function_or_value_defn` covers both real functions (with parameters, via
-// a `function_declaration_left` child) and plain `let`/`let!` bindings (via
-// `value_declaration_left`) — there's no separate node type for "this let
-// binding has no parameters". isFunctionDefinition below checks for the
-// function_declaration_left child specifically: without that check, every
-// nested `let`/`let!` inside a function body (extremely common in idiomatic
-// F#, e.g. inside a MailboxProcessor `actor { let! msg = ... }`) would be
-// misidentified as its own nested closure, inflating the enclosing
-// function's cognitive complexity by "1 + nesting" per binding and pushing
-// everything after it one nesting level too deep.
+// decision: checks for a function_declaration_left child in isFunctionDefinition rather than matching function_or_value_defn alone — that node type also covers plain `let`/`let!` bindings (via value_declaration_left), and without the check every nested `let`/`let!` inside a function body (e.g. inside a MailboxProcessor `actor { let! msg = ... }`) would be misidentified as its own nested closure
+// invariant: a nested let/let! binding never inflates the enclosing function's cognitive complexity or nesting depth — only bindings with a function_declaration_left child count as a function
 //
-// The magic-value "constant context" check (assignment/module below) is
-// looser here than for Python: every `let` binding, top-level or nested
-// inside a function body, has the identical function_or_value_defn ->
-// declaration_expression shape, so there's no cheap way to tell "named at
-// module scope" apart from "named locally". Any literal that's the direct
-// value of a `let` binding is treated as already-named and not flagged —
-// broader than Python's module-only rule, but still aligned with the
-// detector's intent (a `let NAME = ...` binding IS F#'s idiomatic way to
-// name a constant, wherever it appears).
+// assumption: any literal that is the direct value of a `let` binding (top-level or nested) is already named and not flagged as a magic value — broader than Python's module-only rule, since function_or_value_defn -> declaration_expression looks identical at every scope, but still aligned with the detector's intent that `let NAME = ...` IS F#'s idiomatic way to name a constant
 export const FSHARP: LanguageAdapter = {
     id: 'fsharp',
     grammarPath: 'grammars/tree-sitter-fsharp.wasm',

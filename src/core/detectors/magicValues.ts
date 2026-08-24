@@ -8,16 +8,12 @@ export function analyzeMagicValues(tree: any, positions: PositionLookup, languag
     const { nodeTypes } = language;
 
     function isDocstring(node: any): boolean {
-        // A standalone string statement is documentation, not a value, whether it's a
-        // module/function/class docstring or a PEP 257-style attribute docstring
-        // following a field (e.g. `code: int` then `"""..."""`).
+        // decision: treats any standalone string statement as documentation, not a value — covers module/function/class docstrings and PEP 257-style attribute docstrings following a field (e.g. `code: int` then `"""..."""`)
         return node.parent?.type === nodeTypes.expressionStatement;
     }
 
     function isInConstantContext(node: any): boolean {
-        // Simple heuristic: check if parent is an assignment at module level,
-        // optionally wrapped in an `export` statement (e.g. TS/JS
-        // `export const x = ...`), which sits between the assignment and module.
+        // decision: uses a heuristic (assignment at module level, optionally wrapped in `export`) rather than resolving actual scope — cheap to check per-node and sufficient because idiomatic module-level constants are the common case this is meant to exempt
         let parent = node.parent;
         while (parent) {
             if (parent.type === nodeTypes.assignment) {
@@ -39,6 +35,7 @@ export function analyzeMagicValues(tree: any, positions: PositionLookup, languag
         // Flag suspicious numeric literals
         if (node.type === nodeTypes.integerLiteral || node.type === nodeTypes.floatLiteral) {
             const value = parseInt(node.text) || parseFloat(node.text);
+            // decision: exempts 0, 1, 100, and 1000 from magic-number flagging — these appear constantly as loop bounds, percentages, and unit conversions without carrying hidden meaning worth naming
             const isSignificant = value > 1 && value !== 100 && value !== 1000; // Allow common values
 
             if (isSignificant && !isInConstantContext(node)) {
@@ -56,6 +53,7 @@ export function analyzeMagicValues(tree: any, positions: PositionLookup, languag
         // Flag suspicious string literals (potential config/messages)
         if (node.type === nodeTypes.stringLiteral && node.text.length > 15 && !isDocstring(node)) {
             const content = node.text.slice(1, -1); // Remove quotes
+            // assumption: a string containing a space plus one of "error"/"invalid"/"not found" is a user-facing message worth extracting — narrow on purpose to avoid flagging arbitrary prose strings
             const looksLikeMessage = content.includes(' ') && (content.includes('error') || content.includes('invalid') || content.includes('not found'));
 
             if (looksLikeMessage) {
