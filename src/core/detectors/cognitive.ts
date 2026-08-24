@@ -67,8 +67,18 @@ export function calculateCognitiveComplexity(
             return;
         }
 
-        if (language.isFunctionDefinition(node) || node.type === nodeTypes.lambda) {
-            // nested function/lambda adds structural nesting
+        if (language.isFunctionDefinition(node)) {
+            // A nested named function/method is scored as its own separate
+            // violation by analyzeCognitiveComplexity's traversal, so only the
+            // structural nesting increment counts here — walking into its body
+            // too would double-count everything inside it.
+            add(node, 1 + nesting);
+            return;
+        }
+
+        if (node.type === nodeTypes.lambda) {
+            // Lambdas aren't analyzed as their own function (see LanguageAdapter
+            // docs), so their body's complexity belongs to the enclosing function.
             add(node, 1 + nesting);
             walkNested(node, nesting);
             return;

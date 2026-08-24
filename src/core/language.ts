@@ -22,6 +22,10 @@ export interface LanguageNodeTypes {
     expressionStatement: string | null;
     assignment: string | null;
     module: string | null;
+    // Wraps a top-level assignment when it's explicitly exported (e.g. TS/JS
+    // `export const x = ...`), sitting between the assignment and the module
+    // root. Null for grammars with no such wrapper (Python, F#).
+    exportStatement: string | null;
     comment: string | null;
     integerLiteral: string | null;
     floatLiteral: string | null;

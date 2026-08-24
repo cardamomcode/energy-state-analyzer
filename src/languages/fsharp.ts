@@ -45,6 +45,7 @@ export const FSHARP: LanguageAdapter = {
         expressionStatement: null, // F# has no string-literal docstring convention
         assignment: 'function_or_value_defn',
         module: 'declaration_expression',
+        exportStatement: null,
         comment: 'line_comment',
         integerLiteral: 'int',
         floatLiteral: 'float',

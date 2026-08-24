@@ -33,6 +33,7 @@ export const TYPESCRIPT: LanguageAdapter = {
         expressionStatement: null, // TS/JS has no string-literal docstring convention
         assignment: 'lexical_declaration',
         module: 'program',
+        exportStatement: 'export_statement',
         comment: 'comment',
         integerLiteral: 'number', // TS doesn't distinguish int/float, both are "number"
         floatLiteral: null,

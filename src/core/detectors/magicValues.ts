@@ -15,11 +15,20 @@ export function analyzeMagicValues(tree: any, positions: PositionLookup, languag
     }
 
     function isInConstantContext(node: any): boolean {
-        // Simple heuristic: check if parent is an assignment at module level
+        // Simple heuristic: check if parent is an assignment at module level,
+        // optionally wrapped in an `export` statement (e.g. TS/JS
+        // `export const x = ...`), which sits between the assignment and module.
         let parent = node.parent;
         while (parent) {
-            if (parent.type === nodeTypes.assignment && parent.parent?.type === nodeTypes.module) {
-                return true;
+            if (parent.type === nodeTypes.assignment) {
+                const grandparent = parent.parent;
+                if (grandparent?.type === nodeTypes.module) {
+                    return true;
+                }
+                if (nodeTypes.exportStatement && grandparent?.type === nodeTypes.exportStatement
+                    && grandparent.parent?.type === nodeTypes.module) {
+                    return true;
+                }
             }
             parent = parent.parent;
         }

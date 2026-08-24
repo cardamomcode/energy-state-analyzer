@@ -17,6 +17,7 @@ export const PYTHON: LanguageAdapter = {
         expressionStatement: 'expression_statement',
         assignment: 'assignment',
         module: 'module',
+        exportStatement: null,
         comment: 'comment',
         integerLiteral: 'integer',
         floatLiteral: 'float',
