@@ -62,20 +62,28 @@ This project's implementation is a simplified first pass on the SonarSource spec
 
 ## Command-Line Usage
 
-The same detectors also run headlessly, without VS Code — useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean:
+The same detectors also run headlessly, without VS Code — useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean. Published to npm, so no clone or install step is required:
 
 ```bash
-npm run compile
-node dist/cli.js path/to/file.py   # or .fs / .fsx / .ts
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts
 ```
 
-It prints violations as JSON and exits `1` if any medium/high-severity violation was found (`0` otherwise), so it can gate a loop:
+Or install it as a project/global dependency and call it directly:
 
 ```bash
-node dist/cli.js path/to/file.py \
+npm install --save-dev energy-state-analyzer
+npx energy-state-analyzer path/to/file.py
+```
+
+It prints violations as JSON to stdout and exits `1` if any medium/high-severity violation was found (`0` otherwise), so it can gate a loop:
+
+```bash
+npx energy-state-analyzer path/to/file.py \
   --medium-cyclomatic 8 --high-cyclomatic 12 \
   --medium-cognitive 12 --high-cognitive 20
 ```
+
+All threshold flags are optional: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`.
 
 ## Requirements
 
@@ -99,12 +107,6 @@ Changes take effect immediately on the active editor.
 ## Commands
 
 - **Energy State Analyzer: Analyze Energy State** (`energy-state-analyzer.analyze`) — manually re-run analysis on the active editor.
-
-## Architecture
-
-Detector logic lives in `src/core/` and is language-agnostic — each detector takes a parsed tree-sitter tree plus a `LanguageAdapter` describing that grammar's node type names, instead of hardcoding Python's. `src/languages/{python,fsharp,typescript}.ts` are the three adapters that exist today, registered in `src/languages/index.ts`. `src/extension.ts` (VS Code glue) and `src/cli.ts` (headless entry point) both call into the same `analyzeSource` core function, so adding a new language means writing a new adapter, not duplicating detectors.
-
-Python and TypeScript map closely onto the detectors' original Python-shaped model (both have real block/body nodes and a distinct `else`). F#'s grammar doesn't: there's no block wrapper, `else`/`elif` aren't their own node types, and `&&`/`||` are just another infix operator rather than a distinct node type. `src/languages/fsharp.ts` documents the resulting simplifications inline — mainly that F#'s "constant context" check for magic values is looser than Python's (any `let`-bound literal is treated as already named, not just module-level ones, but only when that `let` binds a plain value rather than a function), and the guard-clause/inversion-opportunity detector doesn't fire for F# at all (it depends on a block node F#'s grammar doesn't have).
 
 ## Known Issues
 

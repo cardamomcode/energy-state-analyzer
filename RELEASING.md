@@ -39,7 +39,14 @@ env var with repo access).
 
 - `VSCE_PAT` repository secret (a Marketplace "Manage" PAT — see the publisher
   setup steps in this repo's history/README).
-- `NPM_TOKEN` repository secret (an npm "Automation" access token, so 2FA isn't
-  required in CI — generate at npmjs.com → profile → Access Tokens).
+- npm publishing uses [Trusted Publishing](https://docs.npmjs.com/trusted-publishers)
+  (OIDC) instead of a long-lived token — no `NPM_TOKEN` secret needed. Since the
+  package doesn't exist on npm yet, the very first publish has to be done manually
+  once (`npm publish` from a machine logged into the target npm account), then
+  configure a trusted publisher at npmjs.com → Packages → energy-state-analyzer →
+  Settings → Trusted publishing: org/user `cardamomcode`, repo
+  `energy-state-analyzer`, workflow filename `publish.yml`, allowed action
+  `npm publish`. After that, CI publishes with no credentials at all — the
+  `release` job's `id-token: write` permission handles the OIDC exchange.
 - `GITHUB_TOKEN` (provided automatically in Actions) or `gh` CLI authenticated
   locally (for ShipIt to open/update the release PR).
