@@ -13,7 +13,20 @@
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Linters",
+    "Visualization"
+  ],
+  "keywords": [
+    "python",
+    "fsharp",
+    "typescript",
+    "code quality",
+    "cyclomatic complexity",
+    "cognitive complexity",
+    "static analysis",
+    "code smells",
+    "refactoring"
   ],
   "activationEvents": [
     "onLanguage:python",
