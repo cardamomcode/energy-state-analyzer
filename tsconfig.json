@@ -13,6 +13,7 @@
 		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 		"moduleResolution": "node",
+		"ignoreDeprecations": "6.0",
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true
 	}
