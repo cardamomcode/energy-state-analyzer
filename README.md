@@ -14,6 +14,7 @@ Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts
 - **Inversion opportunities** — flags large dominant `if` blocks and nested validation chains that could be rewritten as guard clauses with early returns.
 - **Primitive obsession** — flags consecutive same-typed primitive parameters (e.g. `lat: float, lon: float`) that callers can silently swap, and variables compared against 3+ distinct string literals (a de facto enum encoded as strings). Runs on Python, F#, and TypeScript; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, since F# and TypeScript have no direct equivalent construct.
 - **Match opportunities** — flags an `if`/`elif`/`elif` chain (or TypeScript's nested `else if`) of 3 or more branches that all compare the same single variable to a literal, suggesting a `match`/`switch` statement instead. Runs on Python, F#, and TypeScript.
+- **Logical operator as control flow** — flags a bare `condition && doSomething()` (or `condition || fallback()`) statement, an `if` hidden behind a boolean operator instead of written as one. Runs on Python and TypeScript; not on F#, which has no such statement-level idiom in its grammar.
 
 Violations are shown three ways:
 

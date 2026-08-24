@@ -21,7 +21,7 @@ export const TYPESCRIPT: LanguageAdapter = {
         lambda: 'arrow_function',
         importStatement: 'import_statement',
         importFromStatement: null, // import_statement already covers every import form
-        expressionStatement: null, // TS/JS has no string-literal docstring convention
+        expressionStatement: 'expression_statement',
         assignment: 'lexical_declaration',
         module: 'program',
         exportStatement: 'export_statement',

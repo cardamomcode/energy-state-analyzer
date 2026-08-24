@@ -10,6 +10,7 @@ import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
 import { analyzePrimitiveObsession } from './detectors/primitiveObsession';
 import { analyzeMatchOpportunities, MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './detectors/matchOpportunity';
+import { analyzeLogicalControlFlow } from './detectors/logicalControlFlow';
 
 export interface AnalyzeThresholds {
     nesting?: NestingThresholds;
@@ -48,6 +49,7 @@ export function analyzeSource(
     violations.push(...analyzeInversionOpportunities(tree, positions, language));
     violations.push(...analyzePrimitiveObsession(tree, positions, language));
     violations.push(...analyzeMatchOpportunities(tree, positions, language, thresholds.matchOpportunity ?? DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS));
+    violations.push(...analyzeLogicalControlFlow(tree, positions, language));
 
     return violations;
 }
