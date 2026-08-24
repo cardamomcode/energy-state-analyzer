@@ -3,7 +3,8 @@ import { PositionLookup } from '../position';
 import { LanguageAdapter } from '../language';
 
 // decision: does a level-by-level (breadth-first) search rather than a depth-first one — finds a function's own parameters node even when nested a level below the function node itself (e.g. F#'s argument_patterns sits inside function_declaration_left), while still stopping before it can reach a nested function's parameters
-function findParametersNode(node: any, parametersType: string): any {
+// shared with primitiveObsession.ts's parameter-swap-risk check — same structural problem, same fix
+export function findParametersNode(node: any, parametersType: string): any {
     for (const child of node.children) {
         if (child.type === parametersType) {
             return child;

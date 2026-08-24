@@ -12,7 +12,7 @@ Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts
 - **Magic values** — flags suspicious numeric/string literals used outside of a constant definition.
 - **Parameter explosion** — flags functions with more than 5 parameters.
 - **Inversion opportunities** — flags large dominant `if` blocks and nested validation chains that could be rewritten as guard clauses with early returns.
-- **Primitive obsession** (Python only) — flags consecutive same-typed primitive parameters (e.g. `lat: float, lon: float`) that callers can silently swap, and variables compared against 3+ distinct string literals (a de facto enum encoded as strings).
+- **Primitive obsession** — flags consecutive same-typed primitive parameters (e.g. `lat: float, lon: float`) that callers can silently swap, and variables compared against 3+ distinct string literals (a de facto enum encoded as strings). Runs on Python, F#, and TypeScript; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, since F# and TypeScript have no direct equivalent construct.
 
 Violations are shown three ways:
 
@@ -90,4 +90,4 @@ Python and TypeScript map closely onto the detectors' original Python-shaped mod
 - Nesting depth, magic value, and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, and the large-function coherence check are.
 - The inversion-opportunities detector only fires for Python and TypeScript; F#'s grammar has no block-boundary node to anchor that heuristic on (see Architecture).
 - TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`) — only named `function` declarations and class methods are.
-- The primitive-obsession detector only runs on Python; it relies on grammar-specific node types (`typed_parameter`, `comparison_operator`) that the F# and TypeScript adapters don't expose yet.
+- The primitive-obsession detector's `in (a, b, c)`-style membership check only runs on Python; F#'s grammar has no direct equivalent, and TypeScript's idiom (`[...].includes(x)`) is a call expression rather than a comparison node.

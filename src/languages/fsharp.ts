@@ -69,5 +69,45 @@ export const FSHARP: LanguageAdapter = {
     // F#'s try_expression has no else-branch construct.
     isTryElseClause(): boolean {
         return false;
+    },
+    // long_identifier_or_op's own .text is already the bare (possibly dotted) name, so
+    // it's used as-is rather than unwrapped down to a leaf identifier.
+    variableReferenceNodeTypes: ['long_identifier_or_op'],
+    extractTypedParameter(node: any): { name: string; type: string } | null {
+        if (node?.type !== 'typed_pattern') {
+            return null;
+        }
+        const patternNode = node.children.find((c: any) => c.type === 'identifier_pattern');
+        const typeNode = node.children.find((c: any) => c.type === 'simple_type');
+        if (!patternNode || !typeNode) {
+            return null;
+        }
+        return { name: patternNode.text, type: typeNode.text };
+    },
+    primitiveTypeNames: new Set(['string', 'int', 'float', 'bool']),
+    getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
+        if (node?.type !== 'infix_expression') {
+            return [];
+        }
+        const opToken = node.children.find((c: any) => c.type === 'infix_op');
+        if (!opToken || opToken.text !== '=') {
+            return [];
+        }
+        const operands = node.children.filter((c: any) => c.type !== 'infix_op');
+        if (operands.length !== 2) {
+            return [];
+        }
+        const [left, rawRight] = operands;
+        // Literals are wrapped in a `const` node; unwrap so callers can compare
+        // .type against nodeTypes.stringLiteral directly, same as Python/TS.
+        const right = (rawRight.type === 'const' && rawRight.children?.length === 1)
+            ? rawRight.children[0]
+            : rawRight;
+        return [{ left, right }];
+    },
+    // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks
+    // (e.g. an elif chain) still accumulate via getEqualityComparisons.
+    getMembershipComparisons(): Array<{ left: any; values: string[] }> {
+        return [];
     }
 };

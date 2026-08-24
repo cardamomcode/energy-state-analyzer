@@ -65,4 +65,35 @@ export interface LanguageAdapter {
     // node type for all of them). Only a try's else is a cyclomatic decision
     // point; always false for grammars with no try-else construct.
     isTryElseClause(node: any): boolean;
+    // Node types that count as "a reference to a plain variable" for the
+    // primitive-obsession detector's stringly-typed-control-flow check
+    // (Python: identifier/attribute, TS: identifier/member_expression, F#:
+    // long_identifier_or_op — whose .text is already the bare name, so no
+    // unwrapping down to a leaf identifier is needed).
+    variableReferenceNodeTypes: string[];
+    // Given a candidate parameter node (one of parameterChildTypes), returns
+    // its name and declared type text if it carries an explicit type
+    // annotation, else null (untyped/inferred parameters return null).
+    // Drives the primitive-obsession detector's parameter-swap-risk check.
+    extractTypedParameter(node: any): { name: string; type: string } | null;
+    // Unqualified primitive type names this language's swap-risk check
+    // treats as interchangeable-and-therefore-risky (Python's str/int/
+    // float/bool/bytes, TS's string/number/boolean, F#'s string/int/float/
+    // bool).
+    primitiveTypeNames: Set<string>;
+    // Given a node, returns every direct equality comparison (==, ===, F#'s
+    // single =) it represents as {left, right} operand pairs — empty if the
+    // node isn't an equality comparison. A list rather than a single pair
+    // because Python's chained `a == b == c` parses as one comparison_operator
+    // holding two comparisons. Literal operands are already unwrapped down to
+    // the language's real literal node (e.g. F#'s `const` wrapper stripped)
+    // so callers can compare `.type` against nodeTypes.stringLiteral directly.
+    getEqualityComparisons(node: any): Array<{ left: any; right: any }>;
+    // Given a node, returns every 'variable in (literal, literal, ...)'-style
+    // membership check it directly represents (Python's `in` over a tuple/
+    // list/set literal) as {left, values} pairs. Empty for languages with no
+    // direct equivalent (TS's `.includes()` is a call expression, not a
+    // comparison node; F# has no such construct) — those languages still get
+    // the cross-comparison accumulation via getEqualityComparisons alone.
+    getMembershipComparisons(node: any): Array<{ left: any; values: string[] }>;
 }

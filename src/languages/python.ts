@@ -52,5 +52,67 @@ export const PYTHON: LanguageAdapter = {
     // try's else with those.
     isTryElseClause(node: any): boolean {
         return node?.type === 'else_clause' && node?.parent?.type === 'try_statement';
+    },
+    variableReferenceNodeTypes: ['identifier', 'attribute'],
+    extractTypedParameter(node: any): { name: string; type: string } | null {
+        if (node?.type !== 'typed_parameter' && node?.type !== 'typed_default_parameter') {
+            return null;
+        }
+        const nameNode = node.children.find((c: any) => c.type === 'identifier');
+        const typeNode = node.children.find((c: any) => c.type === 'type');
+        if (!nameNode || !typeNode) {
+            return null;
+        }
+        return { name: nameNode.text, type: typeNode.text };
+    },
+    primitiveTypeNames: new Set(['str', 'int', 'float', 'bool', 'bytes']),
+    getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
+        if (node?.type !== 'comparison_operator') {
+            return [];
+        }
+        const results: Array<{ left: any; right: any }> = [];
+        const children = node.children;
+        for (let i = 1; i < children.length - 1; i++) {
+            if (children[i].type === '==') {
+                results.push({ left: children[i - 1], right: children[i + 1] });
+            }
+        }
+        return results;
+    },
+    // decision: only Python gets this — TS's equivalent is a `.includes()` call expression
+    // (not a comparison node) and F# has no direct construct; both still accumulate distinct
+    // literals across separate equality comparisons via getEqualityComparisons.
+    getMembershipComparisons(node: any): Array<{ left: any; values: string[] }> {
+        if (node?.type !== 'comparison_operator') {
+            return [];
+        }
+        const results: Array<{ left: any; values: string[] }> = [];
+        const children = node.children;
+        for (let i = 1; i < children.length - 1; i++) {
+            if (children[i].type !== 'in') {
+                continue;
+            }
+            const left = children[i - 1];
+            const right = children[i + 1];
+            if (right.type !== 'tuple' && right.type !== 'list' && right.type !== 'set') {
+                continue;
+            }
+            const values: string[] = [];
+            let allStrings = true;
+            for (const child of right.children) {
+                if (!child.isNamed) {
+                    continue;
+                }
+                if (child.type !== 'string') {
+                    allStrings = false;
+                    break;
+                }
+                values.push(child.text.slice(1, -1));
+            }
+            if (allStrings && values.length > 0) {
+                results.push({ left, values });
+            }
+        }
+        return results;
     }
 };

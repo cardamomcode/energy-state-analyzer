@@ -58,5 +58,43 @@ export const TYPESCRIPT: LanguageAdapter = {
     // JS/TS try/catch has no else-branch construct.
     isTryElseClause(): boolean {
         return false;
+    },
+    variableReferenceNodeTypes: ['identifier', 'member_expression'],
+    extractTypedParameter(node: any): { name: string; type: string } | null {
+        if (node?.type !== 'required_parameter' && node?.type !== 'optional_parameter') {
+            return null;
+        }
+        const nameNode = node.children.find((c: any) => c.type === 'identifier');
+        const typeAnnotation = node.children.find((c: any) => c.type === 'type_annotation');
+        if (!nameNode || !typeAnnotation) {
+            return null;
+        }
+        // type_annotation's children are [':', <the actual type node>]
+        const typeNode = typeAnnotation.children.find((c: any) => c.type !== ':');
+        if (!typeNode) {
+            return null;
+        }
+        return { name: nameNode.text, type: typeNode.text };
+    },
+    primitiveTypeNames: new Set(['string', 'number', 'boolean']),
+    getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
+        if (node?.type !== 'binary_expression') {
+            return [];
+        }
+        const opToken = node.children.find((c: any) => c.type === '===' || c.type === '==');
+        if (!opToken) {
+            return [];
+        }
+        const operands = node.children.filter((c: any) => c !== opToken);
+        if (operands.length !== 2) {
+            return [];
+        }
+        return [{ left: operands[0], right: operands[1] }];
+    },
+    // TS's set-membership idiom is `[...].includes(x)`, a call_expression rather than a
+    // comparison node — not modeled here; repeated equality checks still accumulate via
+    // getEqualityComparisons.
+    getMembershipComparisons(): Array<{ left: any; values: string[] }> {
+        return [];
     }
 };
