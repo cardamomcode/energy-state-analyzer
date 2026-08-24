@@ -8,6 +8,7 @@ import { analyzeFileCoherence, CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS
 import { analyzeMagicValues } from './detectors/magicValues';
 import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
+import { analyzePrimitiveObsession } from './detectors/primitiveObsession';
 
 export interface AnalyzeThresholds {
     nesting?: NestingThresholds;
@@ -38,6 +39,7 @@ export function analyzeSource(
     violations.push(...analyzeMagicValues(tree, positions, language));
     violations.push(...analyzeParameterCount(tree, positions, language));
     violations.push(...analyzeInversionOpportunities(tree, positions, language));
+    violations.push(...analyzePrimitiveObsession(tree, positions, language));
 
     return violations;
 }

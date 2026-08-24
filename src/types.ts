@@ -14,7 +14,8 @@ export const VIOLATION_TYPE = {
     COHERENCE: 'coherence' as const,
     MAGIC: 'magic' as const,
     PARAMETERS: 'parameters' as const,
-    INVERSION: 'inversion' as const
+    INVERSION: 'inversion' as const,
+    PRIMITIVE_OBSESSION: 'primitive-obsession' as const
 };
 
 // decision: reports per-line weighted hotspots (nesting depth for cognitive, decision density for cyclomatic) alongside the flat complexity score — lets callers paint a progressive heatmap across the function body instead of a single flat highlight, so the worst lines stand out visually
@@ -26,7 +27,7 @@ export interface ComplexityHotspot {
 export interface EnergyViolation {
     line: number;
     column: number;
-    type: 'nesting' | 'complexity' | 'cognitive' | 'naming' | 'coherence' | 'magic' | 'parameters' | 'inversion';
+    type: 'nesting' | 'complexity' | 'cognitive' | 'naming' | 'coherence' | 'magic' | 'parameters' | 'inversion' | 'primitive-obsession';
     severity: 'low' | 'medium' | 'high';
     message: string;
     hotspots?: ComplexityHotspot[];
