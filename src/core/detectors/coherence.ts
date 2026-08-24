@@ -9,7 +9,7 @@ export function analyzeFileCoherence(tree: any, fileName: string, language: Lang
     const { nodeTypes } = language;
 
     function traverse(node: any) {
-        if (language.functionDefinitionTypes.includes(node.type)) {
+        if (language.isFunctionDefinition(node)) {
             functions.push(node);
         } else if (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement) {
             imports.push(node.text || '');

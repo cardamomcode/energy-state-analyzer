@@ -33,10 +33,13 @@ export interface LanguageAdapter {
     // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
     grammarPath: string;
     nodeTypes: LanguageNodeTypes;
-    // Node types that represent "a function" for complexity/param-count/coherence
-    // purposes. An array because some grammars split this across several node
-    // types (e.g. TypeScript's function_declaration vs method_definition).
-    functionDefinitionTypes: string[];
+    // Whether this node represents "a function" for complexity/param-count/
+    // coherence purposes. A predicate rather than a plain node-type set
+    // because some grammars can't tell "function" apart from other things by
+    // type alone — e.g. F#'s function_or_value_defn also covers plain
+    // `let x = 5` (and monadic `let!`) bindings, distinguished only by which
+    // kind of child they have.
+    isFunctionDefinition(node: any): boolean;
     // Node types that count as "one parameter" among a parameters node's children.
     parameterChildTypes: string[];
     // Node types that count as a decision point for cyclomatic complexity,

@@ -22,7 +22,9 @@ export const PYTHON: LanguageAdapter = {
         floatLiteral: 'float',
         stringLiteral: 'string'
     },
-    functionDefinitionTypes: ['function_definition'],
+    isFunctionDefinition(node: any): boolean {
+        return node?.type === 'function_definition';
+    },
     parameterChildTypes: ['identifier', 'default_parameter'],
     decisionNodeTypes: [
         'if_statement', 'elif_clause', 'while_statement', 'for_statement',

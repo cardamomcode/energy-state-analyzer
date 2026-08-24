@@ -9,11 +9,15 @@ import { LanguageAdapter } from '../core/language';
 // child's text happens to be "&&" or "||", same shape as `+`/`-`/etc.
 //
 // `function_or_value_defn` covers both real functions (with parameters, via
-// a `function_declaration_left` child) and plain `let x = 5` bindings (via
+// a `function_declaration_left` child) and plain `let`/`let!` bindings (via
 // `value_declaration_left`) — there's no separate node type for "this let
-// binding has no parameters". Plain bindings just have no parameters node
-// to find and a trivial body, so they safely fall below every threshold
-// instead of being misidentified as functions with violations.
+// binding has no parameters". isFunctionDefinition below checks for the
+// function_declaration_left child specifically: without that check, every
+// nested `let`/`let!` inside a function body (extremely common in idiomatic
+// F#, e.g. inside a MailboxProcessor `actor { let! msg = ... }`) would be
+// misidentified as its own nested closure, inflating the enclosing
+// function's cognitive complexity by "1 + nesting" per binding and pushing
+// everything after it one nesting level too deep.
 //
 // The magic-value "constant context" check (assignment/module below) is
 // looser here than for Python: every `let` binding, top-level or nested
@@ -46,7 +50,10 @@ export const FSHARP: LanguageAdapter = {
         floatLiteral: 'float',
         stringLiteral: 'string'
     },
-    functionDefinitionTypes: ['function_or_value_defn'],
+    isFunctionDefinition(node: any): boolean {
+        return node?.type === 'function_or_value_defn'
+            && node.children?.some((child: any) => child.type === 'function_declaration_left');
+    },
     parameterChildTypes: ['long_identifier', 'typed_pattern'],
     decisionNodeTypes: [
         'if_expression', 'elif_expression', 'for_expression', 'while_expression',

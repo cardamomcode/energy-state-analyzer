@@ -67,7 +67,7 @@ export function calculateCognitiveComplexity(
             return;
         }
 
-        if (language.functionDefinitionTypes.includes(node.type) || node.type === nodeTypes.lambda) {
+        if (language.isFunctionDefinition(node) || node.type === nodeTypes.lambda) {
             // nested function/lambda adds structural nesting
             add(node, 1 + nesting);
             walkNested(node, nesting);
@@ -116,7 +116,7 @@ export function analyzeCognitiveComplexity(
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (language.functionDefinitionTypes.includes(node.type)) {
+        if (language.isFunctionDefinition(node)) {
             const complexity = calculateCognitiveComplexity(node, language);
             if (complexity > thresholds.mediumThreshold) {
                 const position = positions.toPosition(node.startIndex);

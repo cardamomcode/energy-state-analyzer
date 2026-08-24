@@ -64,7 +64,7 @@ export function analyzeFunctionComplexity(
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (language.functionDefinitionTypes.includes(node.type)) {
+        if (language.isFunctionDefinition(node)) {
             const complexity = calculateCyclomaticComplexity(node, language);
             if (complexity > thresholds.mediumThreshold) {
                 const position = positions.toPosition(node.startIndex);

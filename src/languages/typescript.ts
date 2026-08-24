@@ -38,7 +38,9 @@ export const TYPESCRIPT: LanguageAdapter = {
         floatLiteral: null,
         stringLiteral: 'string'
     },
-    functionDefinitionTypes: ['function_declaration', 'method_definition'],
+    isFunctionDefinition(node: any): boolean {
+        return node?.type === 'function_declaration' || node?.type === 'method_definition';
+    },
     parameterChildTypes: ['required_parameter', 'optional_parameter'],
     decisionNodeTypes: [
         'if_statement', 'for_statement', 'for_in_statement', 'while_statement',

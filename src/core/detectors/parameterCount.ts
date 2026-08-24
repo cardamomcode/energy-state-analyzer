@@ -27,7 +27,7 @@ export function analyzeParameterCount(tree: any, positions: PositionLookup, lang
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {
-        if (language.functionDefinitionTypes.includes(node.type)) {
+        if (language.isFunctionDefinition(node)) {
             const params = findParametersNode(node, language.nodeTypes.parameters);
             if (params) {
                 const paramCount = params.children.filter((child: any) =>
