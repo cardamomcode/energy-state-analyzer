@@ -22,6 +22,21 @@ Violations are shown three ways:
 
 For functions flagged as too complex (cyclomatic or cognitive), a progressive red heatmap is also painted across the function body: each contributing line (an `if`, `for`, `and`, etc.) is shaded from light to dark red based on how much it drives up that function's complexity relative to its own worst line — so you can see exactly which branches to break apart first, instead of just knowing the function as a whole is complex.
 
+## Energy and Entropy
+
+The name is a deliberate analogy to thermodynamics, not just a metaphor for "bad code."
+
+In physics, energy constrains which microstates a system can occupy, and entropy counts how many of those microstates are compatible with what we observe: `S(E) = k_B ln Ω(E)`. Adding energy usually increases entropy, because there are more ways to distribute it, but *how* it's distributed matters just as much as how much there is. A hot object next to a cold one has lower entropy than the same total energy spread evenly across both, which is why heat spontaneously flows from hot to cold: the system moves toward the macrostate with more compatible microstates.
+
+Code behaves the same way. A function's "energy" here is its cyclomatic/cognitive complexity, nesting depth, parameter count, and so on: the raw amount of decision-making and structure packed into it. Its "entropy" is the number of ways a reader can misunderstand it, the number of code paths a change can silently break, and the number of mental states a maintainer has to hold at once to reason about it correctly. Just as in physics, higher energy tends to raise entropy: a function with more branches and deeper nesting generally has more ways to go wrong. But it's not purely amount, *how* that complexity is arranged matters too:
+
+- A long function with 20 sequential, flat `if`s is high cyclomatic complexity but comparatively low entropy: each branch is independent and easy to reason about in isolation (the "evenly spread" case).
+- The same 20 decision points nested five deep inside each other is high *cognitive* complexity: the reader must hold all five levels in mind simultaneously, which is a much higher-entropy (harder to predict, easier to break) arrangement of the same energy.
+
+This is why the extension tracks cyclomatic and cognitive complexity as separate metrics rather than one score: they capture the *energy* and its *arrangement* respectively. Guard clauses, extracted functions, and early returns don't necessarily remove energy from a codebase; they redistribute it into a lower-entropy arrangement, the code equivalent of letting a hot and cold object equilibrate: same total energy, fewer surprising configurations, easier to hold a correct mental model of.
+
+Entropy here also depends on the observer, not just the code. A function's energy is fixed by what's written, but its entropy, the number of arrangements consistent with what someone currently knows, can grow over time even if the code never changes: the original author forgets the reasoning, or a new developer inherits the file with no context. This detector only measures the static, code-side half of that (the energy and its arrangement); the knowledge-decay half is a reason to keep energy low in the first place, since low-entropy code is cheaper to relearn from scratch.
+
 ## Cyclomatic Complexity
 
 Counts the number of independent paths through a function. Starting from a base of **1**, every decision point adds **+1**, regardless of how deeply it's nested:
