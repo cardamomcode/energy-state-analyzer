@@ -8,17 +8,24 @@ import { LanguageAdapter } from '../language';
 export function calculateCyclomaticComplexity(functionNode: any, language: LanguageAdapter): number {
     let complexity = 1; // Base complexity
 
-    function countDecisionPoints(node: any) {
+    function countDecisionPoints(node: any, isRoot: boolean) {
         if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
             complexity++;
         }
 
+        // A nested named function/method is scored as its own separate
+        // violation by analyzeFunctionComplexity's traversal, so don't walk
+        // into its body here — that would double-count everything inside it.
+        if (!isRoot && language.isFunctionDefinition(node)) {
+            return;
+        }
+
         for (const child of node.children) {
-            countDecisionPoints(child);
+            countDecisionPoints(child, false);
         }
     }
 
-    countDecisionPoints(functionNode);
+    countDecisionPoints(functionNode, true);
     return complexity;
 }
 
@@ -28,7 +35,7 @@ export function calculateCyclomaticComplexity(functionNode: any, language: Langu
 export function findCyclomaticHotspots(functionNode: any, positions: PositionLookup, language: LanguageAdapter): ComplexityHotspot[] {
     const hotspots: ComplexityHotspot[] = [];
 
-    function walk(node: any, depth: number) {
+    function walk(node: any, depth: number, isRoot: boolean) {
         let nextDepth = depth;
         if (language.decisionNodeTypes.includes(node.type) || language.getBooleanOperator(node) !== null) {
             const line = positions.toPosition(node.startIndex).line;
@@ -36,12 +43,18 @@ export function findCyclomaticHotspots(functionNode: any, positions: PositionLoo
             nextDepth = depth + 1;
         }
 
+        // Mirror calculateCyclomaticComplexity: don't descend into a nested
+        // named function/method, it's hotspotted separately as its own violation.
+        if (!isRoot && language.isFunctionDefinition(node)) {
+            return;
+        }
+
         for (const child of node.children) {
-            walk(child, nextDepth);
+            walk(child, nextDepth, false);
         }
     }
 
-    walk(functionNode, 0);
+    walk(functionNode, 0, true);
     return hotspots;
 }
 
