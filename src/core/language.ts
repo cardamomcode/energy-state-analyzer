@@ -115,18 +115,6 @@ export interface LanguageAdapter {
     // point and the magic-number detector's index exemption. Empty for
     // grammars with no direct subscript node (F#, which indexes via `.[i]`).
     subscriptNodeTypes: string[];
-    // Node types for a direct function/constructor call (Python's `call`,
-    // TS's `call_expression`/`new_expression`) whose arguments the
-    // magic-string detector inspects for the logging/exception exemption.
-    callNodeTypes: string[];
-    // Node types for a call's argument list (Python's `argument_list`, TS's
-    // `arguments`) — a literal's parent matching one of these, whose parent
-    // in turn matches callNodeTypes, means the literal is a call argument.
-    callArgumentListTypes: string[];
-    // Given a call node (one of callNodeTypes), returns a text rendering of
-    // its callee (e.g. 'print', 'console.log', 'ValueError', 'Error') for
-    // matching against the logging/exception-constructor exemption pattern.
-    getCallCalleeText(callNode: any): string;
     // Whether this string literal node itself carries interpolation (an
     // f-string's `interpolation` child in Python) or is otherwise involved in
     // %-style / .format() string formatting — either is itself evidence the

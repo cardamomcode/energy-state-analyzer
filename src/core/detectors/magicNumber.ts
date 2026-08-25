@@ -45,7 +45,13 @@ export function analyzeMagicNumbers(
                 }
                 const grandparent = parent.parent;
                 if (grandparent?.type === nodeTypes.module) {
-                    return true;
+                    // decision: F#'s `declaration_expression` node type is reused both for the
+                    // true module root and for wrapping a nested `let` binding's continuation
+                    // inside a function body (there's no separate node type for "this let is
+                    // the function's actual last expression" vs "this let is module-level") — so
+                    // matching nodeTypes.module here isn't enough on its own; this also has to
+                    // rule out an enclosing function definition somewhere further up
+                    return !hasEnclosingFunction(parent);
                 }
                 if (nodeTypes.exportStatement && grandparent?.type === nodeTypes.exportStatement
                     && grandparent.parent?.type === nodeTypes.module) {
@@ -53,6 +59,17 @@ export function analyzeMagicNumbers(
                 }
             }
             parent = parent.parent;
+        }
+        return false;
+    }
+
+    function hasEnclosingFunction(assignmentNode: any): boolean {
+        let ancestor = assignmentNode.parent;
+        while (ancestor) {
+            if (language.isFunctionDefinition(ancestor)) {
+                return true;
+            }
+            ancestor = ancestor.parent;
         }
         return false;
     }
@@ -72,7 +89,10 @@ export function analyzeMagicNumbers(
 
     function traverse(node: any) {
         if (node.type === nodeTypes.integerLiteral || node.type === nodeTypes.floatLiteral) {
-            const rawValue = node.type === nodeTypes.integerLiteral ? parseInt(node.text, 10) : parseFloat(node.text);
+            // decision: always parseFloat, even for integerLiteral nodes — TS has no separate
+            // floatLiteral node type (both map to nodeTypes.integerLiteral), so parseInt would
+            // silently truncate a literal like `1.08` down to `1` and match the allowlist
+            const rawValue = parseFloat(node.text);
             // decision: skips non-numeric text outright rather than falling through to the
             // allowlist/exemption checks — F#'s float grammar nests a `float`-typed fragment
             // node (digits/'.'/digits) inside its own `float`-typed literal, and TS's

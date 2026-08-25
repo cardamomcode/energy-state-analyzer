@@ -16,3 +16,9 @@ def flaggedMagicNumbers(price):
 def exemptIndexAndDefault(arr, weight=42):
     first = arr[0]
     return first + weight
+
+
+def cleanNegativeValue(flag):
+    if flag:
+        return -1
+    return 1

@@ -20,22 +20,39 @@ suite('Integration: magic numbers (real code examples)', () => {
 
             const clean = findFunctionRange(sourceCode, 'cleanCommonValues');
             const numbers = findFunctionRange(sourceCode, 'flaggedMagicNumbers');
+            const negative = findFunctionRange(sourceCode, 'cleanNegativeValue');
 
             assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
                 '0 and 1 are on the default allowlist and a named constant binding should not be flagged');
 
+            assert.strictEqual(violationsIn(violations, negative).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+                '-1 is on the default allowlist and should not be flagged regardless of how the grammar represents the sign');
+
+            // decision: pins the exact count, not just ">0" — regression guard for a bug where
+            // F#'s recursive float grammar (each digit-group fragment is itself typed `float`)
+            // and TS's `number`-typed `predefined_type` keyword both caused the same literal to
+            // be visited, and flagged, more than once
             const numberHits = violationsIn(violations, numbers).filter(v => v.type === VIOLATION_TYPE.MAGIC);
-            assert.ok(numberHits.length > 0, 'expected magic-number violations for 50 and 15.75/1.08');
+            assert.strictEqual(numberHits.length, 3, 'expected exactly one violation each for 1.08, 50, and 15.75');
         });
     }
 
-    test('array index and default parameter value are exempt', async () => {
-        const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');
-        const violations = analyzeSource(sourceCode, tree, PYTHON, 'magicNumber.py');
-        const exempt = findFunctionRange(sourceCode, 'exemptIndexAndDefault');
-        assert.strictEqual(violationsIn(violations, exempt).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
-            'arr[0] and a default parameter value of 42 should not be flagged');
-    });
+    for (const [label, language] of [
+        ['Python', PYTHON],
+        ['TypeScript', TYPESCRIPT]
+    ] as const) {
+        test(`${label}: array index and default parameter value are exempt`, async () => {
+            const fixture = language === PYTHON ? 'python/magicNumber.py' : 'typescript/magicNumber.ts';
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            const exempt = findFunctionRange(sourceCode, 'exemptIndexAndDefault');
+            assert.strictEqual(violationsIn(violations, exempt).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+                'arr[0] and a default parameter value of 42 should not be flagged');
+        });
+    }
+    // decision: F# has no dedicated subscript node and its parameter grammar carries no
+    // default-value concept the adapter models — this is a documented gap (see README), not
+    // tested here since there's no exempt case for F# to assert against.
 
     test('magicNumber.enabled: false suppresses all magic-number violations', async () => {
         const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');

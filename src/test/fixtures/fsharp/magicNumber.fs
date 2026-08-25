@@ -10,3 +10,6 @@ let flaggedMagicNumbers (price: float) =
         total + 15.75
     else
         total
+
+let cleanNegativeValue (flag: bool) =
+    if flag then -1 else 1

@@ -13,3 +13,7 @@ function flaggedMagicString(status: string): number {
     }
     return 0;
 }
+
+function flaggedDictKey(config: Record<string, number>, other: Record<string, number>): number {
+    return config["retries"] + other["retries"];
+}

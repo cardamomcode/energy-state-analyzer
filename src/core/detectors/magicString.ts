@@ -17,11 +17,6 @@ export const DEFAULT_MAGIC_STRING_OPTIONS: MagicStringOptions = {
     allowlist: ['', 'utf-8', '__main__']
 };
 
-// decision: a call whose callee text matches this is treated as "this string is a
-// human-facing message, not an enum-like token" — narrow on purpose (see magicValues.ts's
-// prior heuristic, which this replaces) to avoid exempting every call in the file
-const LOGGING_OR_EXCEPTION_CALLEE = /print|log|logger|logging|exception|error|panic|warn|assert/i;
-
 // The "Magic String" detector: unlike numbers, strings get a narrow scope — only literals
 // standing at a decision point (compared, checked for membership, or used as a dict/object
 // key) are candidates, since that's where an unnamed string actually risks a silent typo. Any
@@ -71,18 +66,6 @@ export function analyzeMagicStrings(
         return !!node.parent && language.subscriptNodeTypes.includes(node.parent.type);
     }
 
-    function isLoggingOrExceptionArgument(node: any): boolean {
-        const argList = node.parent;
-        if (!argList || !language.callArgumentListTypes.includes(argList.type)) {
-            return false;
-        }
-        const callNode = argList.parent;
-        if (!callNode || !language.callNodeTypes.includes(callNode.type)) {
-            return false;
-        }
-        return LOGGING_OR_EXCEPTION_CALLEE.test(language.getCallCalleeText(callNode));
-    }
-
     function isDecisionPoint(node: any, content: string): boolean {
         return isEqualityComparisonOperand(node) || isMembershipOperand(node, content) || isKeyOrIndexPosition(node);
     }
@@ -90,7 +73,6 @@ export function analyzeMagicStrings(
     function isExempt(node: any, content: string): boolean {
         return isDocstring(node)
             || language.isFormattedOrInterpolatedString(node)
-            || isLoggingOrExceptionArgument(node)
             || options.allowlist.includes(content)
             || content.length <= 1;
     }

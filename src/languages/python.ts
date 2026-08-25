@@ -120,12 +120,6 @@ export const PYTHON: LanguageAdapter = {
         return node?.children?.filter((c: any) => c.type === 'elif_clause') ?? [];
     },
     subscriptNodeTypes: ['subscript'],
-    callNodeTypes: ['call'],
-    callArgumentListTypes: ['argument_list'],
-    getCallCalleeText(callNode: any): string {
-        const callee = callNode?.children?.find((c: any) => c.type !== 'argument_list');
-        return callee?.text ?? '';
-    },
     isFormattedOrInterpolatedString(node: any): boolean {
         if (node?.children?.some((c: any) => c.type === 'interpolation')) {
             // f-string

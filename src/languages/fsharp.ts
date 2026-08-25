@@ -114,15 +114,9 @@ export const FSHARP: LanguageAdapter = {
     getElseIfBranches(node: any): any[] {
         return node?.children?.filter((c: any) => c.type === 'elif_expression') ?? [];
     },
-    // F# indexes via `.[i]` rather than a dedicated subscript node, and this grammar has no
-    // single stable call-expression node type to key the logging/exception exemption off of —
-    // both are left unmodeled rather than guessed at with a fragile node-type match.
+    // F# indexes via `.[i]` rather than a dedicated subscript node — left unmodeled rather
+    // than guessed at with a fragile node-type match.
     subscriptNodeTypes: [],
-    callNodeTypes: [],
-    callArgumentListTypes: [],
-    getCallCalleeText(): string {
-        return '';
-    },
     // F# also has interpolated ($"...") strings, but they aren't distinguished from plain
     // strings here — a known gap, same tradeoff as leaving callNodeTypes unmodeled above.
     isFormattedOrInterpolatedString(): boolean {

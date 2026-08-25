@@ -104,12 +104,6 @@ export const TYPESCRIPT: LanguageAdapter = {
         return [];
     },
     subscriptNodeTypes: ['subscript_expression'],
-    callNodeTypes: ['call_expression', 'new_expression'],
-    callArgumentListTypes: ['arguments'],
-    getCallCalleeText(callNode: any): string {
-        const callee = callNode?.children?.find((c: any) => c.type === 'identifier' || c.type === 'member_expression');
-        return callee?.text ?? '';
-    },
     // TS has no node type where an interpolated/formatted string still shares
     // stringLiteral's node type — template literals parse as `template_string`,
     // which the traversal never visits as a string literal in the first place.

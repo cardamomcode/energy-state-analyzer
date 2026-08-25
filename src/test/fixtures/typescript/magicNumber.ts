@@ -17,3 +17,10 @@ function exemptIndexAndDefault(arr: number[], weight: number = 42): number {
     const first = arr[0];
     return first + weight;
 }
+
+function cleanNegativeValue(flag: boolean): number {
+    if (flag) {
+        return -1;
+    }
+    return 1;
+}
