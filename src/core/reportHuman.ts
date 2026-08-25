@@ -127,7 +127,8 @@ const CATEGORY_LABEL: Record<string, string> = {
     [VIOLATION_TYPE.PRIMITIVE_OBSESSION]: 'Primitive obsession',
     [VIOLATION_TYPE.MATCH_OPPORTUNITY]: 'Match opportunities',
     [VIOLATION_TYPE.LOGICAL_CONTROL_FLOW]: 'Logical operator as control flow',
-    [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'Opaque boolean literals'
+    [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'Opaque boolean literals',
+    [VIOLATION_TYPE.SUPPRESSION]: 'Suppression directives'
 };
 
 // decision: only the non-complexity categories get a static blurb — cyclomatic/cognitive
@@ -146,7 +147,8 @@ const CATEGORY_BLURB: Record<string, string> = {
     [VIOLATION_TYPE.MATCH_OPPORTUNITY]:
         'an if/elif chain on one variable that would read more clearly as a match/switch',
     [VIOLATION_TYPE.LOGICAL_CONTROL_FLOW]: '&&/|| used to hide an if statement',
-    [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'a bare true/false at a call site that only makes sense by reading the callee'
+    [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'a bare true/false at a call site that only makes sense by reading the callee',
+    [VIOLATION_TYPE.SUPPRESSION]: 'an esa-ignore comment that names an unknown violation type, or no longer matches any violation'
 };
 
 const COMPLEXITY_VALUE_PATTERN = /complexity: (\d+)/i;
