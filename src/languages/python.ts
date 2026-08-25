@@ -118,5 +118,33 @@ export const PYTHON: LanguageAdapter = {
     },
     getElseIfBranches(node: any): any[] {
         return node?.children?.filter((c: any) => c.type === 'elif_clause') ?? [];
+    },
+    subscriptNodeTypes: ['subscript'],
+    isFormattedOrInterpolatedString(node: any): boolean {
+        if (node?.children?.some((c: any) => c.type === 'interpolation')) {
+            // f-string
+            return true;
+        }
+        // decision: compares node identity by `.id`, not `===` — web-tree-sitter mints a fresh
+        // JS wrapper object on every `.children`/`.parent` access, so two accessors that reach
+        // the same underlying tree node are not reference-equal even though `.id` matches
+        const parent = node?.parent;
+        if (parent?.type === 'binary_operator' && parent.children?.[0]?.id === node.id
+            && parent.children?.some((c: any) => c.type === '%')) {
+            // "%s" % value
+            return true;
+        }
+        if (parent?.type === 'attribute' && parent.children?.[0]?.id === node.id) {
+            const methodName = parent.children?.find((c: any) => c.type === 'identifier');
+            if (methodName?.text === 'format' && parent.parent?.type === 'call') {
+                return true;
+            }
+        }
+        return false;
+    },
+    isDefaultParameterValue(node: any): boolean {
+        const parent = node?.parent;
+        return (parent?.type === 'default_parameter' || parent?.type === 'typed_default_parameter')
+            && parent.children?.[parent.children.length - 1]?.id === node.id;
     }
 };

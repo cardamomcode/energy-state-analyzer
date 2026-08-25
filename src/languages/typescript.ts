@@ -102,5 +102,26 @@ export const TYPESCRIPT: LanguageAdapter = {
     // level inside else_clause, which the match-opportunity detector walks itself.
     getElseIfBranches(): any[] {
         return [];
+    },
+    subscriptNodeTypes: ['subscript_expression'],
+    // TS has no node type where an interpolated/formatted string still shares
+    // stringLiteral's node type — template literals parse as `template_string`,
+    // which the traversal never visits as a string literal in the first place.
+    isFormattedOrInterpolatedString(): boolean {
+        return false;
+    },
+    isDefaultParameterValue(node: any): boolean {
+        // decision: compares node identity by `.id`, not `===` — see the matching comment in
+        // python.ts's isFormattedOrInterpolatedString for why
+        // decision: a parameter with a default value (`x: number = 1`) still parses as
+        // `required_parameter`, not `optional_parameter` (that node type is reserved for `x?:
+        // number`) — so this checks for the `=` child rather than trusting the parameter's own
+        // node type to signal "has a default"
+        const parent = node?.parent;
+        if (parent?.type !== 'required_parameter' && parent?.type !== 'optional_parameter') {
+            return false;
+        }
+        return parent.children?.some((c: any) => c.type === '=')
+            && parent.children?.[parent.children.length - 1]?.id === node.id;
     }
 };

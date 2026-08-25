@@ -97,10 +97,33 @@
           "minimum": 1,
           "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
         },
-        "energyStateAnalyzer.magicValues.enabled": {
+        "energyStateAnalyzer.magicNumber.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to flag magic numbers and message-shaped string literals."
+          "description": "Whether to flag magic numbers."
+        },
+        "energyStateAnalyzer.magicNumber.allowlist": {
+          "type": "array",
+          "items": { "type": "number" },
+          "default": [0, 1, -1, 2],
+          "description": "Numeric literals that are never flagged as magic numbers, regardless of context."
+        },
+        "energyStateAnalyzer.magicString.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag magic strings (string literals compared, checked for membership, or used as a dict/object key)."
+        },
+        "energyStateAnalyzer.magicString.minDuplicates": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "description": "Number of times the same string literal must recur at a decision point before it's flagged as a magic string."
+        },
+        "energyStateAnalyzer.magicString.allowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["", "utf-8", "__main__"],
+          "description": "String literals that are never flagged as magic strings, regardless of context."
         },
         "energyStateAnalyzer.matchOpportunity.minBranches": {
           "type": "number",

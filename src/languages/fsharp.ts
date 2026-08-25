@@ -113,5 +113,16 @@ export const FSHARP: LanguageAdapter = {
     },
     getElseIfBranches(node: any): any[] {
         return node?.children?.filter((c: any) => c.type === 'elif_expression') ?? [];
+    },
+    // F# indexes via `.[i]` rather than a dedicated subscript node — left unmodeled rather
+    // than guessed at with a fragile node-type match.
+    subscriptNodeTypes: [],
+    // F# also has interpolated ($"...") strings, but they aren't distinguished from plain
+    // strings here — a known gap, same tradeoff as leaving callNodeTypes unmodeled above.
+    isFormattedOrInterpolatedString(): boolean {
+        return false;
+    },
+    isDefaultParameterValue(): boolean {
+        return false;
     }
 };

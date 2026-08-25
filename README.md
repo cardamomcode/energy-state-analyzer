@@ -9,7 +9,8 @@ Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts
 - **Cognitive complexity** — flags functions that are hard to *read*, weighting each decision point by how deeply it's nested and not penalizing early-return guard clauses.
 - **Excessive nesting** — flags `if`/`for`/`while`/`with` blocks nested more than 3 levels deep.
 - **File coherence** — flags files with too many functions or imports (a sign of "utils/helpers sprawl"), and separately flags files with too many large functions (regardless of total function count, so languages like F# with many small functions per module aren't penalized).
-- **Magic values** — flags suspicious numeric/string literals used outside of a constant definition.
+- **Magic numbers** — flags numeric literals used outside of a named binding, an index/key position, or a default parameter value. Numbers get no free pass for "looking like prose" the way strings do, so this stays broad; an `energyStateAnalyzer.magicNumber.allowlist` setting (default `[0, 1, -1, 2]`) exempts the values that recur constantly without carrying hidden meaning.
+- **Magic strings** — flags a string literal only where an unnamed one actually risks a silent typo: compared with `==`/`===`, checked for membership (Python's `x in (...)`), or used as a dict/object key. A message being logged, thrown, or returned isn't a decision point, so it's left alone entirely — as is any f-string/template-literal/`.format()`/`%`-formatted string, since a placeholder is itself evidence the string isn't a stand-in for an enum value. To cut single-use false positives further, a qualifying literal is only flagged once it recurs at a decision point at least `energyStateAnalyzer.magicString.minDuplicates` times (default `2`) across the file.
 - **Parameter explosion** — flags functions with more than 5 parameters.
 - **Inversion opportunities** — flags large dominant `if` blocks and nested validation chains that could be rewritten as guard clauses with early returns.
 - **Primitive obsession** — flags consecutive same-typed primitive parameters (e.g. `lat: float, lon: float`) that callers can silently swap, and variables compared against 3+ distinct string literals (a de facto enum encoded as strings). Runs on Python, F#, and TypeScript; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, since F# and TypeScript have no direct equivalent construct.
@@ -98,7 +99,11 @@ Detector thresholds are configurable under **Settings → Energy State Analyzer*
 - `energyStateAnalyzer.coherence.largeFunctionLines` — line count above which a function counts as "large" (default `20`).
 - `energyStateAnalyzer.coherence.maxLargeFunctions` — number of large functions a file can contain before it's flagged (default `5`).
 - `energyStateAnalyzer.matchOpportunity.minBranches` — number of branches an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity (default `3`).
-- `energyStateAnalyzer.magicValues.enabled` — whether to flag magic numbers and message-shaped string literals (default `true`).
+- `energyStateAnalyzer.magicNumber.enabled` — whether to flag magic numbers (default `true`).
+- `energyStateAnalyzer.magicNumber.allowlist` — numeric literals that are never flagged, regardless of context (default `[0, 1, -1, 2]`).
+- `energyStateAnalyzer.magicString.enabled` — whether to flag magic strings (default `true`).
+- `energyStateAnalyzer.magicString.minDuplicates` — number of times the same string literal must recur at a decision point before it's flagged (default `2`).
+- `energyStateAnalyzer.magicString.allowlist` — string literals that are never flagged, regardless of context (default `["", "utf-8", "__main__"]`).
 - `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` — hex colors for the high/medium/low severity background tint and gutter icon (defaults `#fb8500` orange, `#ffb703` gold, `#99dd99` green).
 - `energyStateAnalyzer.colors.backgroundOpacity` — opacity of the severity background tint (default `0.1`).
 
@@ -110,7 +115,9 @@ Changes take effect immediately on the active editor.
 
 ## Known Issues
 
-- Nesting depth and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, the large-function coherence check, the match-opportunity branch count, and the magic-value detector's on/off switch are.
+- Nesting depth and parameter count thresholds are not yet configurable — only cyclomatic complexity, cognitive complexity, the large-function coherence check, the match-opportunity branch count, and the magic-number/magic-string detectors are.
+- The magic-string detector's decision-point scan (equality/membership/dict-key) and its formatted-string exemption are fully implemented for Python and partially for TypeScript (no `.includes()` membership support yet) and F# (no dict/subscript node, no interpolated-string exemption) — see the `LanguageAdapter` fields in `src/core/language.ts` for exactly what's modeled per language.
+- The magic-string detector doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point — only equality, membership, and dict/index-key positions count.
 - The inversion-opportunities detector only fires for Python and TypeScript; F#'s grammar has no block-boundary node to anchor that heuristic on (see Architecture).
 - TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`) — only named `function` declarations and class methods are.
 - The primitive-obsession detector's `in (a, b, c)`-style membership check only runs on Python; F#'s grammar has no direct equivalent, and TypeScript's idiom (`[...].includes(x)`) is a call expression rather than a comparison node.
