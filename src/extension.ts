@@ -10,7 +10,8 @@ import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/dete
 import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
 import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
 import { MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './core/detectors/matchOpportunity';
-import { MagicValuesOptions, DEFAULT_MAGIC_VALUES_OPTIONS } from './core/detectors/magicValues';
+import { MagicNumberOptions, DEFAULT_MAGIC_NUMBER_OPTIONS } from './core/detectors/magicNumber';
+import { MagicStringOptions, DEFAULT_MAGIC_STRING_OPTIONS } from './core/detectors/magicString';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -261,10 +262,20 @@ function getMatchOpportunityThresholds(): MatchOpportunityThresholds {
     };
 }
 
-function getMagicValuesOptions(): MagicValuesOptions {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicValues');
+function getMagicNumberOptions(): MagicNumberOptions {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicNumber');
     return {
-        enabled: config.get('enabled', DEFAULT_MAGIC_VALUES_OPTIONS.enabled)
+        enabled: config.get('enabled', DEFAULT_MAGIC_NUMBER_OPTIONS.enabled),
+        allowlist: config.get('allowlist', DEFAULT_MAGIC_NUMBER_OPTIONS.allowlist)
+    };
+}
+
+function getMagicStringOptions(): MagicStringOptions {
+    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicString');
+    return {
+        enabled: config.get('enabled', DEFAULT_MAGIC_STRING_OPTIONS.enabled),
+        minDuplicates: config.get('minDuplicates', DEFAULT_MAGIC_STRING_OPTIONS.minDuplicates),
+        allowlist: config.get('allowlist', DEFAULT_MAGIC_STRING_OPTIONS.allowlist)
     };
 }
 
@@ -279,7 +290,8 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
             cognitive: getCognitiveThresholds(),
             coherence: getCoherenceThresholds(),
             matchOpportunity: getMatchOpportunityThresholds(),
-            magicValues: getMagicValuesOptions()
+            magicNumber: getMagicNumberOptions(),
+            magicString: getMagicStringOptions()
         });
 
         // decision: extracts type information for Python only and only logs it — scaffolding for future features, not yet wired into any violation, so it deliberately does not affect the returned violations

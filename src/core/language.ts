@@ -109,4 +109,35 @@ export interface LanguageAdapter {
     // the match-opportunity detector walks that nesting itself using
     // nodeTypes.elseClause/ifStatement rather than this hook).
     getElseIfBranches(node: any): any[];
+    // Node types where a literal sits in a collection index/key position, e.g.
+    // Python/TS `d["key"]` or `arr[0]` (`subscript`/`subscript_expression`).
+    // Drives the magic-string detector's "dict/object key lookup" decision
+    // point and the magic-number detector's index exemption. Empty for
+    // grammars with no direct subscript node (F#, which indexes via `.[i]`).
+    subscriptNodeTypes: string[];
+    // Node types for a direct function/constructor call (Python's `call`,
+    // TS's `call_expression`/`new_expression`) whose arguments the
+    // magic-string detector inspects for the logging/exception exemption.
+    callNodeTypes: string[];
+    // Node types for a call's argument list (Python's `argument_list`, TS's
+    // `arguments`) — a literal's parent matching one of these, whose parent
+    // in turn matches callNodeTypes, means the literal is a call argument.
+    callArgumentListTypes: string[];
+    // Given a call node (one of callNodeTypes), returns a text rendering of
+    // its callee (e.g. 'print', 'console.log', 'ValueError', 'Error') for
+    // matching against the logging/exception-constructor exemption pattern.
+    getCallCalleeText(callNode: any): string;
+    // Whether this string literal node itself carries interpolation (an
+    // f-string's `interpolation` child in Python) or is otherwise involved in
+    // %-style / .format() string formatting — either is itself evidence the
+    // string isn't a bare magic value. Always false for grammars where an
+    // interpolated string never shares stringLiteral's node type (TS template
+    // literals parse as `template_string`, not `string`, so they're already
+    // skipped by the traversal itself).
+    isFormattedOrInterpolatedString(node: any): boolean;
+    // Whether this node is the default-value operand of an optional
+    // parameter (Python's `default_parameter`/`typed_default_parameter`, TS's
+    // `optional_parameter`) — exempts default parameter values from
+    // magic-number flagging.
+    isDefaultParameterValue(node: any): boolean;
 }

@@ -5,7 +5,8 @@ import { analyzeNesting, NestingThresholds, DEFAULT_NESTING_THRESHOLDS } from '.
 import { analyzeFunctionComplexity, CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './detectors/cyclomatic';
 import { analyzeCognitiveComplexity, CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './detectors/cognitive';
 import { analyzeFileCoherence, CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './detectors/coherence';
-import { analyzeMagicValues, MagicValuesOptions, DEFAULT_MAGIC_VALUES_OPTIONS } from './detectors/magicValues';
+import { analyzeMagicNumbers, MagicNumberOptions, DEFAULT_MAGIC_NUMBER_OPTIONS } from './detectors/magicNumber';
+import { analyzeMagicStrings, MagicStringOptions, DEFAULT_MAGIC_STRING_OPTIONS } from './detectors/magicString';
 import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
 import { analyzePrimitiveObsession } from './detectors/primitiveObsession';
@@ -18,14 +19,15 @@ export interface AnalyzeThresholds {
     cognitive?: CognitiveThresholds;
     coherence?: CoherenceThresholds;
     matchOpportunity?: MatchOpportunityThresholds;
-    magicValues?: MagicValuesOptions;
+    magicNumber?: MagicNumberOptions;
+    magicString?: MagicStringOptions;
 }
 
 // Language-agnostic entry point: runs every detector over an already-parsed
 // tree-sitter tree.
 //
 // decision: runs every detector unconditionally except where a detector exposes its own
-// enabled flag (currently only magicValues) — a caller-selected subset would let the
+// enabled flag (currently magicNumber/magicString) — a caller-selected subset would let the
 // extension and the CLI (cli.ts) drift on which violations exist for the same file, but a
 // per-detector on/off default that both entry points inherit identically does not
 // reintroduce that drift
@@ -44,7 +46,8 @@ export function analyzeSource(
     violations.push(...analyzeFunctionComplexity(tree, positions, language, thresholds.cyclomatic ?? DEFAULT_CYCLOMATIC_THRESHOLDS));
     violations.push(...analyzeCognitiveComplexity(tree, positions, language, thresholds.cognitive ?? DEFAULT_COGNITIVE_THRESHOLDS));
     violations.push(...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS));
-    violations.push(...analyzeMagicValues(tree, positions, language, thresholds.magicValues ?? DEFAULT_MAGIC_VALUES_OPTIONS));
+    violations.push(...analyzeMagicNumbers(tree, positions, language, thresholds.magicNumber ?? DEFAULT_MAGIC_NUMBER_OPTIONS));
+    violations.push(...analyzeMagicStrings(tree, positions, language, thresholds.magicString ?? DEFAULT_MAGIC_STRING_OPTIONS));
     violations.push(...analyzeParameterCount(tree, positions, language));
     violations.push(...analyzeInversionOpportunities(tree, positions, language));
     violations.push(...analyzePrimitiveObsession(tree, positions, language));
