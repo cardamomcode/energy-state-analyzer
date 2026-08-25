@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: opaque boolean literal (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/opaqueBoolean.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/opaqueBoolean.ts'],
-        ['F#', FSHARP, 'fsharp/opaqueBoolean.fs']
+        ['F#', FSHARP, 'fsharp/opaqueBoolean.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/opaqueBoolean.kt']
     ] as const) {
         test(`${label}: a bare boolean passed positionally is flagged; a labeled or non-call boolean is not`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

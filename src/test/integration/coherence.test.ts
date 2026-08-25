@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, assertValidPositions } from './testUtils';
 
@@ -15,7 +16,8 @@ suite('Integration: file coherence (real code examples)', () => {
     for (const [label, language, ext] of [
         ['Python', PYTHON, 'py'],
         ['TypeScript', TYPESCRIPT, 'ts'],
-        ['F#', FSHARP, 'fs']
+        ['F#', FSHARP, 'fs'],
+        ['Kotlin', KOTLIN, 'kt']
     ] as const) {
         test(`${label}: too many large functions is flagged`, async () => {
             const fixture = `${language.id}/coherence/manyLargeFunctions.${ext}`;

@@ -153,4 +153,12 @@ export interface LanguageAdapter {
     // detector: a labeled boolean's grammar path to its call never matches this
     // predicate's direct-parent check, so no separate "is labeled" hook is needed.
     isPositionalCallArgument(node: any): boolean;
+    // Whether this assignment/declaration node (a candidate ancestor already matched via
+    // nodeTypes.assignment) is explicitly marked by the language itself as a compile-time
+    // constant (Kotlin's `const val`), as opposed to merely sitting at module scope. This is a
+    // stronger, scope-independent signal — it exempts magic-number flagging even nested inside
+    // a class/companion object/object declaration, where the module-scope heuristic below can't
+    // reach. Always false for languages with no such marker (Python, TS, F#), which still rely
+    // on the module-scope heuristic alone.
+    isExplicitConstant(node: any): boolean;
 }

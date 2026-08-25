@@ -133,5 +133,10 @@ export const TYPESCRIPT: LanguageAdapter = {
     // `object`, so a labeled boolean's parent is never `arguments` directly.
     isPositionalCallArgument(node: any): boolean {
         return node?.parent?.type === 'arguments' && node.parent.parent?.type === 'call_expression';
+    },
+    // TS's `const` is block-scoping, not a compile-time-constant marker (unlike Kotlin's
+    // `const val`) — module-scope lexical_declaration is the only signal here.
+    isExplicitConstant(): boolean {
+        return false;
     }
 };

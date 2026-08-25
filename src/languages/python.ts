@@ -155,5 +155,10 @@ export const PYTHON: LanguageAdapter = {
     // node, so a labeled boolean's parent is never `argument_list` directly.
     isPositionalCallArgument(node: any): boolean {
         return node?.parent?.type === 'argument_list' && node.parent.parent?.type === 'call';
+    },
+    // Python has no dedicated compile-time-constant marker — module-scope assignment is the
+    // only signal (see isInConstantContext in magicNumber.ts).
+    isExplicitConstant(): boolean {
+        return false;
     }
 };

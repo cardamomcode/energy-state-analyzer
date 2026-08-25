@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: primitive obsession (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/primitiveObsession.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/primitiveObsession.ts'],
-        ['F#', FSHARP, 'fsharp/primitiveObsession.fs']
+        ['F#', FSHARP, 'fsharp/primitiveObsession.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/primitiveObsession.kt']
     ] as const) {
         test(`${label}: distinct parameter types stay clean; same-type params and stringly-typed control flow are flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

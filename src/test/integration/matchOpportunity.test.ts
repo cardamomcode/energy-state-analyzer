@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: match opportunities (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/matchOpportunity.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/matchOpportunity.ts'],
-        ['F#', FSHARP, 'fsharp/matchOpportunity.fs']
+        ['F#', FSHARP, 'fsharp/matchOpportunity.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/matchOpportunity.kt']
     ] as const) {
         test(`${label}: an if/elif chain on unrelated variables stays clean; a 3-way chain on one variable is flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

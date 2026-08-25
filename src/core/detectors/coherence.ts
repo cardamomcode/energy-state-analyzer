@@ -61,7 +61,12 @@ function collectFunctionsAndImports(tree: any, language: LanguageAdapter): { fun
     function traverse(node: any) {
         if (language.isFunctionDefinition(node)) {
             functions.push(node);
-        } else if (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement) {
+        } else if (node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)) {
+            // decision: requires isNamed, not just a type match — Kotlin's import rule is
+            // literally named `import`, which collides with the anonymous `import` keyword
+            // token that is itself a child of every import node (node.type for an anonymous
+            // node is its literal text). Without this guard, every Kotlin import is counted
+            // twice: once for the named node, once for its own leading keyword token.
             imports.push(node.text || '');
         }
 

@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: magic strings (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/magicString.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/magicString.ts'],
-        ['F#', FSHARP, 'fsharp/magicString.fs']
+        ['F#', FSHARP, 'fsharp/magicString.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/magicString.kt']
     ] as const) {
         test(`${label}: messages/interpolated/single-use strings stay clean, repeated comparisons are flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);
@@ -42,7 +44,8 @@ suite('Integration: magic strings (real code examples)', () => {
 
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/magicString.py'],
-        ['TypeScript', TYPESCRIPT, 'typescript/magicString.ts']
+        ['TypeScript', TYPESCRIPT, 'typescript/magicString.ts'],
+        ['Kotlin', KOTLIN, 'kotlin/magicString.kt']
     ] as const) {
         test(`${label}: a dict/object key repeated across variables is flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);
@@ -61,6 +64,16 @@ suite('Integration: magic strings (real code examples)', () => {
         const interpolatedKey = findFunctionRange(sourceCode, 'cleanInterpolatedKey');
         assert.strictEqual(violationsIn(violations, interpolatedKey).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
             'an f-string used as config[f"{key}_value"] should stay exempt even with minDuplicates lowered to 1');
+    });
+
+    test('Kotlin: a string template used as a dict key is exempt (interpolation is itself evidence it is not a magic value)', async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/magicString.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'magicString.kt', {
+            magicString: { enabled: true, minDuplicates: 1, allowlist: [] }
+        });
+        const interpolatedKey = findFunctionRange(sourceCode, 'cleanInterpolatedKey');
+        assert.strictEqual(violationsIn(violations, interpolatedKey).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'a string template used as config["${key}_value"] should stay exempt even with minDuplicates lowered to 1');
     });
 
     test('magicString.enabled: false suppresses all magic-string violations', async () => {

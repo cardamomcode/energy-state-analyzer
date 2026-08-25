@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE, SEVERITY } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: parameter count (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/parameterCount.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/parameterCount.ts'],
-        ['F#', FSHARP, 'fsharp/parameterCount.fs']
+        ['F#', FSHARP, 'fsharp/parameterCount.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/parameterCount.kt']
     ] as const) {
         test(`${label}: 2 params stays clean, 6 params is medium, 9 params is high`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

@@ -156,5 +156,10 @@ export const FSHARP: LanguageAdapter = {
             return parent.children?.[0]?.id !== node.id;
         }
         return parent?.type === 'tuple_expression' && parent.parent?.type === 'application_expression';
+    },
+    // F# has no compile-time-constant marker distinct from an ordinary `let` binding —
+    // module-scope binding is the only signal here.
+    isExplicitConstant(): boolean {
+        return false;
     }
 };

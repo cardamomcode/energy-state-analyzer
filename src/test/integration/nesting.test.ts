@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE, SEVERITY } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -15,7 +16,8 @@ suite('Integration: nesting (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/nesting.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/nesting.ts'],
-        ['F#', FSHARP, 'fsharp/nesting.fs']
+        ['F#', FSHARP, 'fsharp/nesting.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/nesting.kt']
     ] as const) {
         test(`${label}: shallow nesting stays clean, deep nesting is flagged medium, severe nesting is flagged high`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

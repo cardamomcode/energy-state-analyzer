@@ -17,7 +17,15 @@ interface LoadedLanguage {
 }
 
 // One tree-sitter Parser per supported language, keyed by vscode languageId.
+// decision: populated lazily (see getOrLoadLanguage) rather than up front for every
+// registered language — grammars range from Python's 448KB to F#'s 12MB, and loading
+// all of them at activation makes every window pay that cost even for a single-language
+// project
 let loadedLanguages: Map<string, LoadedLanguage>;
+// Dedupes concurrent loads of the same not-yet-loaded language — onDidChangeTextDocument
+// can fire again before the first getOrLoadLanguage call for that language resolves.
+let inFlightLoads: Map<string, Promise<LoadedLanguage>>;
+let extensionPath: string;
 
 // Create diagnostics collection at module level
 let diagnosticsCollection: vscode.DiagnosticCollection;
@@ -40,17 +48,9 @@ export async function activate(context: vscode.ExtensionContext) {
         await Parser.init();
         console.log('✅ Parser initialized');
 
-        // Load every supported language's grammar up front.
         loadedLanguages = new Map();
-        for (const adapter of Object.values(LANGUAGES)) {
-            const grammarPath = path.join(context.extensionPath, adapter.grammarPath);
-            console.log(`📁 Loading ${adapter.id} grammar:`, grammarPath);
-            const grammar = await Language.load(grammarPath);
-            const languageParser = new Parser();
-            languageParser.setLanguage(grammar);
-            loadedLanguages.set(adapter.id, { adapter, parser: languageParser });
-            console.log(`✅ ${adapter.id} grammar loaded successfully`);
-        }
+        inFlightLoads = new Map();
+        extensionPath = context.extensionPath;
 
         // Create decoration types
         createDecorations();
@@ -64,16 +64,16 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register command
         const disposable = vscode.commands.registerCommand('energy-state-analyzer.analyze', () => {
             vscode.window.showInformationMessage('Energy State Analyzer: Manual analysis triggered!');
-            analyzeActiveEditor();
+            void analyzeActiveEditor();
         });
         context.subscriptions.push(disposable);
 
         // Register event listeners
-        vscode.window.onDidChangeActiveTextEditor(analyzeActiveEditor);
+        vscode.window.onDidChangeActiveTextEditor(() => void analyzeActiveEditor());
         // tradeoff: re-parses and re-runs every detector on every keystroke rather than debouncing — keeps decorations and Problems-panel entries always in sync with the visible buffer, at the cost of re-analysis work the user never sees skipped
         vscode.workspace.onDidChangeTextDocument(event => {
             if (event.document === vscode.window.activeTextEditor?.document) {
-                analyzeActiveEditor();
+                void analyzeActiveEditor();
             }
         });
         vscode.workspace.onDidChangeConfiguration(event => {
@@ -82,22 +82,22 @@ export async function activate(context: vscode.ExtensionContext) {
                 createDecorations();
             }
             if (event.affectsConfiguration('energyStateAnalyzer')) {
-                analyzeActiveEditor();
+                void analyzeActiveEditor();
             }
         });
 
         // Clear diagnostics when document is closed
         vscode.workspace.onDidCloseTextDocument(document => {
-            if (loadedLanguages.has(document.languageId)) {
+            if (document.languageId in LANGUAGES) {
                 diagnosticsCollection.delete(document.uri);
             }
         });
 
         // Analyze current editor if open
-        analyzeActiveEditor();
+        void analyzeActiveEditor();
 
         console.log('✅ Energy State Analyzer activated successfully!');
-        vscode.window.showInformationMessage('Energy State Analyzer: Ready! Open a Python, F#, or TypeScript file to see energy analysis.');
+        vscode.window.showInformationMessage('Energy State Analyzer: Ready! Open a Python, F#, TypeScript, or Kotlin file to see energy analysis.');
 
     } catch (error) {
         console.error('Failed to activate Energy State Analyzer:', error);
@@ -181,7 +181,40 @@ function createLightningIcon(color: string): vscode.Uri {
 }
 
 
-function analyzeActiveEditor() {
+// Loads and caches a language's grammar on first use, keyed by vscode languageId.
+// decision: caches the in-flight load promise too, not just the settled result — without
+// this, a second analyzeActiveEditor call for the same not-yet-loaded language (e.g. from
+// a rapid-fire onDidChangeTextDocument) would kick off its own redundant Language.load
+async function getOrLoadLanguage(languageId: string): Promise<LoadedLanguage | undefined> {
+    const cached = loadedLanguages.get(languageId);
+    if (cached) {
+        return cached;
+    }
+
+    const adapter = LANGUAGES[languageId];
+    if (!adapter) {
+        return undefined;
+    }
+
+    let pending = inFlightLoads.get(languageId);
+    if (!pending) {
+        pending = (async () => {
+            const grammarPath = path.join(extensionPath, adapter.grammarPath);
+            console.log(`📁 Loading ${adapter.id} grammar:`, grammarPath);
+            const grammar = await Language.load(grammarPath);
+            const languageParser = new Parser();
+            languageParser.setLanguage(grammar);
+            const loaded: LoadedLanguage = { adapter, parser: languageParser };
+            loadedLanguages.set(adapter.id, loaded);
+            console.log(`✅ ${adapter.id} grammar loaded successfully`);
+            return loaded;
+        })();
+        inFlightLoads.set(languageId, pending);
+    }
+    return pending;
+}
+
+async function analyzeActiveEditor() {
     const editor = vscode.window.activeTextEditor;
     console.log('🔍 Analyzing active editor...');
 
@@ -190,11 +223,17 @@ function analyzeActiveEditor() {
         return;
     }
 
-    const loaded = loadedLanguages.get(editor.document.languageId);
+    const loaded = await getOrLoadLanguage(editor.document.languageId);
     if (!loaded) {
         console.log('⚠️ Unsupported language:', editor.document.languageId);
         // Clear diagnostics for unsupported languages
         diagnosticsCollection.clear();
+        return;
+    }
+
+    // decision: re-reads the active editor after the await above instead of trusting the
+    // `editor` captured before it — the user may have switched tabs while the grammar loaded
+    if (vscode.window.activeTextEditor?.document !== editor.document) {
         return;
     }
 
