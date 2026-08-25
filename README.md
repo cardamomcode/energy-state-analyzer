@@ -62,6 +62,21 @@ Modeled on [SonarSource's metric](https://www.sonarsource.com/resources/cognitiv
 
 This project's implementation is a simplified first pass on the SonarSource spec: `for`/`while` `else` clauses are scored like `if`/`else`, boolean-chain merging only looks at the immediate parent operator, and recursive calls aren't specially detected.
 
+### Interpreting the Scores
+
+A raw number like "34" doesn't mean much on its own. For cyclomatic complexity, McCabe's original 1976 paper proposed risk bands that are still the closest thing to an industry consensus (echoed by SonarQube, ESLint's `complexity` rule, and NIST guidance):
+
+| Score | Risk | Roughly |
+| --- | --- | --- |
+| 1–10 | Low | Simple, easy to test exhaustively |
+| 11–20 | Moderate | Getting harder to cover with tests |
+| 21–50 | High | Complex, testing all paths is impractical |
+| 50+ | Very high | Effectively untestable |
+
+Cognitive complexity has no equivalent formal consensus, since it's a newer, vendor-originated metric, but SonarSource's own convention (and this extension's defaults) treat **15** as the point where a function is hard enough to hold in your head that it's worth splitting up, with scores past 25 or so being seriously hard to follow regardless of how testable the underlying paths are.
+
+The two scores can diverge on the same function: a flat function with many independent branches can have high cyclomatic complexity but modest cognitive complexity (easy to read, hard to test exhaustively), while deeply nested code can be the reverse. See [Energy and Entropy](#energy-and-entropy) above for why this extension tracks them separately rather than collapsing them into one score.
+
 ## Command-Line Usage
 
 The same detectors also run headlessly, without VS Code — useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean. Published to npm, so no clone or install step is required:
