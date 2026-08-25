@@ -172,6 +172,12 @@ export type RiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
 // (3.9/6.9/8.9/10.0) as the corresponding output scores purely as a convenient 0-10 curve
 // shape — no CVSS terminology is surfaced to the reader — then linearly interpolates between
 // anchors and caps at complexity 100+ = 10.0
+// decision: the anchor scores are deliberately 0.1 below classifyScore's cutoffs (3.9 not 4.0,
+// 6.9 not 7.0, 8.9 not 9.0), not rounded to whole numbers — a complexity of exactly 10/20/50 is
+// the top of its documented band (10 = top of Low, per README), so its score must land just
+// under the next band's cutoff to classify correctly. Rounding these to 4.0/7.0/9.0 would push
+// complexity exactly 10/20/50 into the next band up, silently relabeling the documented
+// breakpoints themselves.
 const COMPLEXITY_CURVE: { value: number; score: number }[] = [
     { value: 0, score: 0.0 },
     { value: 10, score: 3.9 },
