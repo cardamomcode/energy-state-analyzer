@@ -147,5 +147,13 @@ export const PYTHON: LanguageAdapter = {
         const parent = node?.parent;
         return (parent?.type === 'default_parameter' || parent?.type === 'typed_default_parameter')
             && parent.children?.[parent.children.length - 1]?.id === node.id;
+    },
+    isBooleanLiteral(node: any): boolean {
+        return node?.type === 'true' || node?.type === 'false';
+    },
+    // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument`
+    // node, so a labeled boolean's parent is never `argument_list` directly.
+    isPositionalCallArgument(node: any): boolean {
+        return node?.parent?.type === 'argument_list' && node.parent.parent?.type === 'call';
     }
 };

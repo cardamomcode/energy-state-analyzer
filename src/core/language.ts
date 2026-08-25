@@ -138,4 +138,19 @@ export interface LanguageAdapter {
     // `optional_parameter`) — exempts default parameter values from
     // magic-number flagging.
     isDefaultParameterValue(node: any): boolean;
+    // Whether this node is a boolean literal (Python's `true`/`false`, TS's `true`/
+    // `false`, F#'s `const` node wrapping a `bool` child). Drives the
+    // opaque-boolean-literal detector; deliberately narrower than the rule's own
+    // stated scope, which also floats flag-like bare `0`/`1` as a future option —
+    // left out here to avoid false positives on ordinary numeric arguments.
+    isBooleanLiteral(node: any): boolean;
+    // Given a node for which isBooleanLiteral is true, whether it sits as a direct,
+    // unlabeled positional argument in a call — i.e. not a keyword argument
+    // (Python's `retries=True`), not a field of an object-literal argument (TS's
+    // `{ retries: true }`), not F#'s named-argument syntax (`retries = true`), and
+    // not simply unrelated to any call at all (e.g. `let ok = true`). Each language
+    // encodes "labeled" differently, so the check lives here rather than in the
+    // detector: a labeled boolean's grammar path to its call never matches this
+    // predicate's direct-parent check, so no separate "is labeled" hook is needed.
+    isPositionalCallArgument(node: any): boolean;
 }

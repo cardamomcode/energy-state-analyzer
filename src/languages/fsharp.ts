@@ -127,5 +127,34 @@ export const FSHARP: LanguageAdapter = {
     },
     isDefaultParameterValue(): boolean {
         return false;
+    },
+    // A bool literal parses as a `const` node wrapping a `bool` child (its .text is
+    // already "true"/"false", same as Python/TS's dedicated literal node types).
+    isBooleanLiteral(node: any): boolean {
+        return node?.type === 'const' && node.children?.length === 1 && node.children[0]?.type === 'bool';
+    },
+    // F# has no dedicated call-expression or argument-list node — curried application
+    // (`f true`) and paren-tuple application (`f(true, x)`) both parse as
+    // application_expression, and named-argument syntax (`retries = true`) reuses the
+    // same infix_expression node the primitive-obsession detector treats as equality
+    // elsewhere in this grammar. Three shapes count as "positional":
+    //   1. curried: `application_expression(callee, true)` — the literal is the
+    //      argument (not callee) child of an application_expression directly.
+    //   2. paren, single arg: `f(true)` — same shape as (1), the parens contribute no
+    //      extra node.
+    //   3. paren, multiple args: `f(true, x)` — the literal is a direct element of a
+    //      `tuple_expression` that is itself an application_expression's argument.
+    // A named argument's literal sits one level deeper, inside `infix_expression`
+    // (case 1/2's `application_expression` child, or case 3's `tuple_expression`
+    // element) — never a direct child of either, so it never matches below without a
+    // separate "is labeled" check.
+    isPositionalCallArgument(node: any): boolean {
+        const parent = node?.parent;
+        if (parent?.type === 'application_expression') {
+            // Guard against the literal being the callee itself — never true in
+            // practice (a bool can't be applied to arguments), kept for safety.
+            return parent.children?.[0]?.id !== node.id;
+        }
+        return parent?.type === 'tuple_expression' && parent.parent?.type === 'application_expression';
     }
 };
