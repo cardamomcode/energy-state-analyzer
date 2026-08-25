@@ -22,7 +22,7 @@ Violations are shown three ways:
 - A hover tooltip explaining the specific violation.
 - An entry in the Problems panel, sourced as "Energy State Analyzer".
 
-For functions flagged as too complex (cyclomatic or cognitive), a progressive red heatmap is also painted across the function body: each contributing line (an `if`, `for`, `and`, etc.) is shaded from light to dark red based on how much it drives up that function's complexity relative to its own worst line — so you can see exactly which branches to break apart first, instead of just knowing the function as a whole is complex.
+For functions flagged as too complex (cyclomatic or cognitive), a progressive heatmap in the configured high-energy color (orange by default) is also painted across the function body: each contributing line (an `if`, `for`, `and`, etc.) is shaded from light to dark based on how much it drives up that function's complexity relative to its own worst line — so you can see exactly which branches to break apart first, instead of just knowing the function as a whole is complex.
 
 ## Energy and Entropy
 
