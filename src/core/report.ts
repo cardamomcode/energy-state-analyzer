@@ -148,13 +148,15 @@ export function renderDiffMarkdown(entries: DiffEntry[], baseRef: string): strin
 
 // --- Human-readable report -------------------------------------------------
 //
-// decision: risk is reported on the CVSS (Common Vulnerability Scoring System) qualitative
-// scale (None/Low/Medium/High/Critical) rather than a bespoke label set — it's a scale
-// developers already carry an intuition for from CVEs, so "High" or "Critical" here means
-// roughly what it means in a vulnerability report, not a scale a reader has to learn fresh.
-// decision: the underlying 0.0-10.0 CVSS-equivalent score is a piecewise-linear mapping of
+// decision: risk is reported on a None/Low/Medium/High/Critical qualitative scale rather than
+// a bespoke label set of our own — it mirrors the levels the existing SEVERITY constants already
+// use, just extended to five tiers, so a reader doesn't have to learn a new vocabulary. Earlier
+// this scale was explicitly framed as CVSS (the vulnerability-scoring standard); that framing was
+// dropped because it made readers think "why is my code getting a CVE score", which is the
+// opposite of a scale they should already be able to reason about.
+// decision: the underlying 0.0-10.0 complexity score is a piecewise-linear mapping of
 // the raw complexity number, anchored at README's existing McCabe breakpoints (10/20/50) —
-// see complexityToCvssScore below — so the CVSS label is a re-expression of the same,
+// see complexityToScore below — so the label is a re-expression of the same,
 // already-documented complexity bands rather than a second, independently-calibrated scale.
 // decision: a file's/report's headline risk is the MAXIMUM complexity value found, not an
 // average — averaging a file's function complexities would let one severely complex function
@@ -165,11 +167,12 @@ export function renderDiffMarkdown(entries: DiffEntry[], baseRef: string): strin
 
 export type RiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
 
-// decision: anchors (value, cvssScore) pairs at the exact breakpoints README already
-// documents for cyclomatic complexity (10/20/50), reusing the official CVSS v3.1 qualitative
-// boundaries (3.9/6.9/8.9/10.0) as the corresponding output scores, then linearly interpolates
-// between anchors and caps at complexity 100+ = 10.0 (CVSS has no score above 10.0)
-const CVSS_CURVE: { value: number; score: number }[] = [
+// decision: anchors (value, score) pairs at the exact breakpoints README already documents
+// for cyclomatic complexity (10/20/50), reusing CVSS v3.1's qualitative boundaries
+// (3.9/6.9/8.9/10.0) as the corresponding output scores purely as a convenient 0-10 curve
+// shape — no CVSS terminology is surfaced to the reader — then linearly interpolates between
+// anchors and caps at complexity 100+ = 10.0
+const COMPLEXITY_CURVE: { value: number; score: number }[] = [
     { value: 0, score: 0.0 },
     { value: 10, score: 3.9 },
     { value: 20, score: 6.9 },
@@ -177,16 +180,16 @@ const CVSS_CURVE: { value: number; score: number }[] = [
     { value: 100, score: 10.0 }
 ];
 
-export function complexityToCvssScore(value: number): number {
+export function complexityToScore(value: number): number {
     if (value <= 0) {
         return 0;
     }
     if (value >= 100) {
         return 10.0;
     }
-    for (let i = 1; i < CVSS_CURVE.length; i++) {
-        const prev = CVSS_CURVE[i - 1];
-        const next = CVSS_CURVE[i];
+    for (let i = 1; i < COMPLEXITY_CURVE.length; i++) {
+        const prev = COMPLEXITY_CURVE[i - 1];
+        const next = COMPLEXITY_CURVE[i];
         if (value <= next.value) {
             const ratio = (value - prev.value) / (next.value - prev.value);
             return Math.round((prev.score + ratio * (next.score - prev.score)) * 10) / 10;
@@ -195,9 +198,10 @@ export function complexityToCvssScore(value: number): number {
     return 10.0;
 }
 
-// decision: boundaries match the official CVSS v3.1 qualitative severity rating scale exactly
-// (None 0.0, Low 0.1-3.9, Medium 4.0-6.9, High 7.0-8.9, Critical 9.0-10.0)
-export function classifyCvssScore(score: number): RiskLevel {
+// decision: boundaries reuse CVSS v3.1's qualitative rating cutoffs as a scale shape
+// (None 0.0, Low 0.1-3.9, Medium 4.0-6.9, High 7.0-8.9, Critical 9.0-10.0) without labeling
+// the scale itself as CVSS anywhere the reader sees it
+export function classifyScore(score: number): RiskLevel {
     if (score <= 0) {
         return 'none';
     }
@@ -214,7 +218,7 @@ export function classifyCvssScore(score: number): RiskLevel {
 }
 
 export function classifyComplexityScore(value: number): RiskLevel {
-    return classifyCvssScore(complexityToCvssScore(value));
+    return classifyScore(complexityToScore(value));
 }
 
 const RISK_LABEL: Record<RiskLevel, string> = {
@@ -288,13 +292,13 @@ function describeComplexityFindings(label: string, violations: EnergyViolation[]
     }
 
     const worst = values[0];
-    const cvss = complexityToCvssScore(worst);
-    const level = classifyCvssScore(cvss);
+    const score = complexityToScore(worst);
+    const level = classifyScore(score);
     const countText = values.length === 1
         ? `1 function scores ${worst}`
         : `${values.length} functions score ${values.join(', ')} (worst: ${worst})`;
 
-    return `- **${label}**: ${countText} — CVSS ${cvss.toFixed(1)} (${RISK_LABEL[level]}): ${RISK_DESCRIPTION[level]}.`;
+    return `- **${label}**: ${countText} — score ${score.toFixed(1)} (${RISK_LABEL[level]}): ${RISK_DESCRIPTION[level]}.`;
 }
 
 function describeCategoryFindings(type: string, violations: EnergyViolation[]): string {
@@ -328,7 +332,7 @@ function fileScore(violations: EnergyViolation[]): number {
         .filter((value): value is number => value !== undefined);
 
     if (complexityValues.length > 0) {
-        return complexityToCvssScore(Math.max(...complexityValues));
+        return complexityToScore(Math.max(...complexityValues));
     }
     if (violations.some(v => v.severity === SEVERITY.HIGH)) {
         return 7.5;
@@ -345,9 +349,9 @@ function fileScore(violations: EnergyViolation[]): number {
 function renderFileSection(result: FileResult): string {
     const lines: string[] = [];
     const score = fileScore(result.violations);
-    const risk = classifyCvssScore(score);
+    const risk = classifyScore(score);
 
-    lines.push(`## ${result.filePath} — ${RISK_LABEL[risk]} (CVSS ${score.toFixed(1)})`);
+    lines.push(`## ${result.filePath} — ${RISK_LABEL[risk]} (score ${score.toFixed(1)})`);
     lines.push('');
 
     const byType = new Map<string, EnergyViolation[]>();
@@ -370,9 +374,9 @@ function renderFileSection(result: FileResult): string {
 const SCORE_LEGEND = [
     '## Score legend',
     '',
-    '_Risk is reported on the CVSS (Common Vulnerability Scoring System) severity scale — the same scale used for CVEs — so the label carries a weight most developers already have an intuition for._',
+    '_Risk is reported on a 0.0–10.0 complexity score, sorted into the same None/Low/Medium/High/Critical levels already used elsewhere in this tool._',
     '',
-    '| CVSS score | Risk | Roughly | Cyclomatic/cognitive complexity |',
+    '| Score | Risk | Roughly | Cyclomatic/cognitive complexity |',
     '| --- | --- | --- | --- |',
     '| 0.0 | None | No violations found | — |',
     '| 0.1–3.9 | Low | Simple, easy to test exhaustively | 1–10 |',
@@ -380,7 +384,7 @@ const SCORE_LEGEND = [
     '| 7.0–8.9 | High | Complex, testing all paths is impractical | 21–50 |',
     '| 9.0–10.0 | Critical | Effectively untestable | 50+ |',
     '',
-    '_Cyclomatic and cognitive complexity numbers are converted to CVSS using the ranges above. Other detectors flag a pattern rather than a path count, so a file with no complexity violations of its own instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._'
+    '_Cyclomatic and cognitive complexity numbers are converted to the score using the ranges above. Other detectors flag a pattern rather than a path count, so a file with no complexity violations of its own instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._'
 ].join('\n');
 
 export function renderHumanReport(results: FileResult[]): string {
@@ -407,7 +411,7 @@ export function renderHumanReport(results: FileResult[]): string {
 
     const fileScores = results.map(r => ({ filePath: r.filePath, score: fileScore(r.violations) }));
     const worst = fileScores.reduce((a, b) => (b.score > a.score ? b : a), { filePath: '', score: 0 });
-    const repoLevel = classifyCvssScore(worst.score);
+    const repoLevel = classifyScore(worst.score);
 
     if (worst.score > 0) {
         lines.push(`**Repo score: ${worst.score.toFixed(1)} (${RISK_LABEL[repoLevel]})** — driven by the worst file in the scan, \`${worst.filePath}\` (${RISK_DESCRIPTION[repoLevel]}).`);
@@ -420,7 +424,7 @@ export function renderHumanReport(results: FileResult[]): string {
 
     const riskCounts: Record<RiskLevel, number> = { none: 0, low: 0, medium: 0, high: 0, critical: 0 };
     for (const { score } of fileScores) {
-        riskCounts[classifyCvssScore(score)] += 1;
+        riskCounts[classifyScore(score)] += 1;
     }
 
     lines.push('| Risk | Files |');

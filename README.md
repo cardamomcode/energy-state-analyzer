@@ -141,7 +141,7 @@ npx energy-state-analyzer src --report human
 
 ## Score legend
 
-| CVSS score | Risk | Roughly | Cyclomatic/cognitive complexity |
+| Score | Risk | Roughly | Cyclomatic/cognitive complexity |
 | --- | --- | --- | --- |
 | 0.0 | None | No violations found | — |
 | 0.1–3.9 | Low | Simple, easy to test exhaustively | 1–10 |
@@ -151,9 +151,9 @@ npx energy-state-analyzer src --report human
 
 **25 files scanned** — 8 clean, 17 flagged
 
-## src/foo.py — High (CVSS 7.8)
+## src/foo.py — High (score 7.8)
 
-- **Cyclomatic complexity**: 1 function scores 34 — CVSS 7.8 (High): complex, testing all paths is impractical.
+- **Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): complex, testing all paths is impractical.
 - **Primitive obsession**: 2 findings (2 medium) — adjacent same-typed values a caller could silently swap without the compiler noticing.
 
 ...
@@ -173,7 +173,7 @@ npx energy-state-analyzer src --report human
 **51 total findings** (1 high, 25 medium, 25 low) — breadth of issues across the scan, independent of peak severity.
 ```
 
-Risk is reported on the [CVSS](https://www.first.org/cvss/) (Common Vulnerability Scoring System) severity scale — the same None/Low/Medium/High/Critical scale used for CVEs — rather than a bespoke label set, so it carries a weight most developers already have an intuition for. The underlying 0.0–10.0 score is a direct re-expression of the McCabe risk table above: cyclomatic/cognitive complexity numbers are converted onto it by linear interpolation anchored at the same 10/20/50 breakpoints (see [Interpreting the Scores](#interpreting-the-scores)), so "High" here means the same thing it always has in this project, just on a scale a CVE reader already recognizes. Every other detector reports a finding count and severity instead, since it flags a pattern rather than a path count — a file with only non-complexity findings gets a fixed score from its worst one (Low 2.0 / Medium 5.0 / High 7.5), which can never reach Critical (Critical is reserved for genuinely extreme complexity).
+Risk is reported on a 0.0–10.0 complexity score, sorted into the same None/Low/Medium/High/Critical levels used elsewhere in this tool, rather than a bespoke label set. The score is a direct re-expression of the McCabe risk table above: cyclomatic/cognitive complexity numbers are converted onto it by linear interpolation anchored at the same 10/20/50 breakpoints (see [Interpreting the Scores](#interpreting-the-scores)), so "High" here means the same thing it always has in this project, just expressed as a single number. Every other detector reports a finding count and severity instead, since it flags a pattern rather than a path count — a file with only non-complexity findings gets a fixed score from its worst one (Low 2.0 / Medium 5.0 / High 7.5), which can never reach Critical (Critical is reserved for genuinely extreme complexity).
 
 Both the per-file score and the repo-wide "Repo score" are the **maximum** found, not an average. Averaging a file's (or a repo's) scores lets one severely complex function or file hide behind many trivial ones — nine functions at complexity 2 and one at 60 average to about 8 (which itself would still misleadingly read as "Low"), hiding exactly the function most worth fixing. Total finding counts are reported separately as a breadth indicator, deliberately not folded into the same number. Flagged files are listed worst-first.
 

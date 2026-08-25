@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { classifyComplexityScore, classifyCvssScore, complexityToCvssScore, diffSummaries, renderDiffMarkdown, renderHumanReport, renderMarkdownReport, summarize, summarizeFile, FileResult } from '../../core/report';
+import { classifyComplexityScore, classifyScore, complexityToScore, diffSummaries, renderDiffMarkdown, renderHumanReport, renderMarkdownReport, summarize, summarizeFile, FileResult } from '../../core/report';
 import { EnergyViolation, SEVERITY, VIOLATION_TYPE } from '../../types';
 
 function violation(severity: 'low' | 'medium' | 'high', type: EnergyViolation['type'] = VIOLATION_TYPE.COMPLEXITY, message = 'test'): EnergyViolation {
@@ -104,26 +104,26 @@ suite('Integration: report (summarize/diff/render)', () => {
     });
 });
 
-suite('Integration: report (CVSS mapping)', () => {
-    test('complexityToCvssScore interpolates between the README McCabe breakpoints (10/20/50/100)', () => {
-        assert.strictEqual(complexityToCvssScore(0), 0);
-        assert.strictEqual(complexityToCvssScore(10), 3.9);
-        assert.strictEqual(complexityToCvssScore(20), 6.9);
-        assert.strictEqual(complexityToCvssScore(50), 8.9);
-        assert.strictEqual(complexityToCvssScore(100), 10.0);
-        assert.strictEqual(complexityToCvssScore(200), 10.0, 'caps at 10.0 beyond the curve');
+suite('Integration: report (complexity score mapping)', () => {
+    test('complexityToScore interpolates between the README McCabe breakpoints (10/20/50/100)', () => {
+        assert.strictEqual(complexityToScore(0), 0);
+        assert.strictEqual(complexityToScore(10), 3.9);
+        assert.strictEqual(complexityToScore(20), 6.9);
+        assert.strictEqual(complexityToScore(50), 8.9);
+        assert.strictEqual(complexityToScore(100), 10.0);
+        assert.strictEqual(complexityToScore(200), 10.0, 'caps at 10.0 beyond the curve');
     });
 
-    test('classifyCvssScore matches the official CVSS v3.1 qualitative severity boundaries', () => {
-        assert.strictEqual(classifyCvssScore(0), 'none');
-        assert.strictEqual(classifyCvssScore(0.1), 'low');
-        assert.strictEqual(classifyCvssScore(3.9), 'low');
-        assert.strictEqual(classifyCvssScore(4.0), 'medium');
-        assert.strictEqual(classifyCvssScore(6.9), 'medium');
-        assert.strictEqual(classifyCvssScore(7.0), 'high');
-        assert.strictEqual(classifyCvssScore(8.9), 'high');
-        assert.strictEqual(classifyCvssScore(9.0), 'critical');
-        assert.strictEqual(classifyCvssScore(10.0), 'critical');
+    test('classifyScore matches the None/Low/Medium/High/Critical boundaries', () => {
+        assert.strictEqual(classifyScore(0), 'none');
+        assert.strictEqual(classifyScore(0.1), 'low');
+        assert.strictEqual(classifyScore(3.9), 'low');
+        assert.strictEqual(classifyScore(4.0), 'medium');
+        assert.strictEqual(classifyScore(6.9), 'medium');
+        assert.strictEqual(classifyScore(7.0), 'high');
+        assert.strictEqual(classifyScore(8.9), 'high');
+        assert.strictEqual(classifyScore(9.0), 'critical');
+        assert.strictEqual(classifyScore(10.0), 'critical');
     });
 
     test('classifyComplexityScore composes the two — a complexity of 34 is High, 60 is Critical', () => {
@@ -133,18 +133,18 @@ suite('Integration: report (CVSS mapping)', () => {
 });
 
 suite('Integration: report (renderHumanReport)', () => {
-    test('describes a cyclomatic/cognitive finding with its CVSS-equivalent score and risk label', () => {
+    test('describes a cyclomatic/cognitive finding with its complexity score and risk label', () => {
         const markdown = renderHumanReport([{ filePath: 'a.py', violations: [cyclomatic(34, 'high')] }]);
 
-        assert.ok(markdown.includes('## a.py — High (CVSS 7.8)'));
-        assert.ok(markdown.includes('**Cyclomatic complexity**: 1 function scores 34 — CVSS 7.8 (High): complex, testing all paths is impractical.'));
+        assert.ok(markdown.includes('## a.py — High (score 7.8)'));
+        assert.ok(markdown.includes('**Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): complex, testing all paths is impractical.'));
     });
 
-    test('lists multiple complexity values worst-first and reports the worst in the CVSS score/label', () => {
+    test('lists multiple complexity values worst-first and reports the worst in the score/label', () => {
         const markdown = renderHumanReport([{ filePath: 'a.py', violations: [cognitive(12), cognitive(60, 'high')] }]);
 
-        assert.ok(markdown.includes('**Cognitive complexity**: 2 functions score 60, 12 (worst: 60) — CVSS 9.1 (Critical): effectively untestable.'));
-        assert.ok(markdown.includes('## a.py — Critical (CVSS 9.1)'));
+        assert.ok(markdown.includes('**Cognitive complexity**: 2 functions score 60, 12 (worst: 60) — score 9.1 (Critical): effectively untestable.'));
+        assert.ok(markdown.includes('## a.py — Critical (score 9.1)'));
     });
 
     test('describes a non-complexity category by finding count and severity, with a static blurb', () => {
@@ -155,7 +155,7 @@ suite('Integration: report (renderHumanReport)', () => {
 
     test('falls back to a fixed severity-based score when there are no complexity violations', () => {
         const markdown = renderHumanReport([{ filePath: 'a.py', violations: [violation('high', VIOLATION_TYPE.COHERENCE)] }]);
-        assert.ok(markdown.includes('## a.py — High (CVSS 7.5)'));
+        assert.ok(markdown.includes('## a.py — High (score 7.5)'));
     });
 
     test('omits clean files from the per-file sections but counts them in the summary line', () => {
@@ -197,7 +197,7 @@ suite('Integration: report (renderHumanReport)', () => {
         assert.ok(markdown.includes('**Repo score: 0.0 (None)** — no violations were found anywhere in the scan.'));
     });
 
-    test('total evaluation tallies files by CVSS risk band and total findings by severity', () => {
+    test('total evaluation tallies files by risk band and total findings by severity', () => {
         const markdown = renderHumanReport([
             { filePath: 'low.py', violations: [violation('low', VIOLATION_TYPE.MAGIC)] },
             { filePath: 'high.py', violations: [cyclomatic(30, 'high')] },
