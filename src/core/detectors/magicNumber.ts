@@ -43,7 +43,15 @@ export function analyzeMagicNumbers(
                 if (language.isFunctionDefinition(parent)) {
                     return false;
                 }
-                const grandparent = parent.parent;
+                // decision: Python wraps every top-level `name = value` in an
+                // `expression_statement` between the assignment and the module root (unlike
+                // TS's `lexical_declaration`, which sits directly under `program`) — unwrap it
+                // before checking against module/export so `MAX_RETRIES = 5` at module scope
+                // is still recognized as a constant binding.
+                let grandparent = parent.parent;
+                if (grandparent?.type === nodeTypes.expressionStatement) {
+                    grandparent = grandparent.parent;
+                }
                 if (grandparent?.type === nodeTypes.module) {
                     // decision: F#'s `declaration_expression` node type is reused both for the
                     // true module root and for wrapping a nested `let` binding's continuation
