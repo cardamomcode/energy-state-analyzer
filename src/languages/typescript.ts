@@ -125,5 +125,13 @@ export const TYPESCRIPT: LanguageAdapter = {
         }
         return parent.children?.some((c: any) => c.type === '=')
             && parent.children?.[parent.children.length - 1]?.id === node.id;
+    },
+    isBooleanLiteral(node: any): boolean {
+        return node?.type === 'true' || node?.type === 'false';
+    },
+    // An object-literal field (`{ retries: true }`) wraps the literal in `pair` inside
+    // `object`, so a labeled boolean's parent is never `arguments` directly.
+    isPositionalCallArgument(node: any): boolean {
+        return node?.parent?.type === 'arguments' && node.parent.parent?.type === 'call_expression';
     }
 };
