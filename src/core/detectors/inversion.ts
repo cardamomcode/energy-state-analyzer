@@ -74,8 +74,16 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
         const validationChecks: any[] = [];
 
         while (currentNode && nestingLevel < 4) {
+            // decision: matches against language.nestingControlTypes rather than the
+            // nodeTypes.ifStatement/forStatement/whileStatement trio directly — TypeScript's
+            // `for...of`/`for...in` parses as its own for_in_statement node, distinct from
+            // nodeTypes.forStatement's plain `for_statement`, and nestingControlTypes is the
+            // per-language set that already accounts for that (bug found by running this
+            // detector on its own source: a sibling for-of loop went unseen by the old filter,
+            // making its lone if-sibling look like the only statement in this body and get
+            // mistaken for a validation-chain step)
             const statements = currentNode.children?.filter((child: any) =>
-                child.type === nodeTypes.ifStatement || child.type === nodeTypes.forStatement || child.type === nodeTypes.whileStatement
+                language.nestingControlTypes.includes(child.type)
             ) || [];
 
             if (statements.length === 1 && statements[0].type === nodeTypes.ifStatement) {
@@ -116,6 +124,15 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
         let nestedIfLocation: any = null;
 
         function countNesting(node: any, currentDepth: number = 0) {
+            // invariant: never descends into a nested function/method's body — that function is
+            // walked as its own separate analyzeFunction call once traverse() reaches it, so
+            // counting its if-nesting here too would both double-report the same location and
+            // misattribute nesting depth to the wrong enclosing function (mirrors the same rule
+            // in cognitive.ts's walk())
+            if (language.isFunctionDefinition(node)) {
+                return;
+            }
+
             if (node.type === nodeTypes.ifStatement) {
                 if (currentDepth > maxNesting) {
                     maxNesting = currentDepth;

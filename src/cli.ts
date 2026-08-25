@@ -8,8 +8,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 const { Parser, Language } = require('web-tree-sitter');
 
-import { analyzeSource } from './core/analyze';
+import { analyzeSource, AnalyzeThresholds } from './core/analyze';
+import { LanguageAdapter } from './core/language';
 import { DEFAULT_NESTING_THRESHOLDS } from './core/detectors/nesting';
+import { DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
+import { DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
 import { resolveLanguageForFile } from './languages';
 import { EnergyViolation, SEVERITY } from './types';
 
@@ -41,8 +44,43 @@ function parseArgs(argv: string[]) {
     };
 }
 
+type ThresholdOverride = { mediumThreshold?: number; highThreshold?: number };
+
+// decision: returns undefined (not the detector's own default) when neither flag was passed —
+// analyzeSource already falls back to each detector's own DEFAULT_*_THRESHOLDS when its entry is
+// undefined, so resolving the default here too would just be a second place that default could
+// drift out of sync with the detector module that owns it
+function resolveThresholdOverride<T extends ThresholdOverride>(override: ThresholdOverride, defaults: T): T | undefined {
+    if (override.mediumThreshold === undefined && override.highThreshold === undefined) {
+        return undefined;
+    }
+    return {
+        ...defaults,
+        mediumThreshold: override.mediumThreshold ?? defaults.mediumThreshold,
+        highThreshold: override.highThreshold ?? defaults.highThreshold
+    };
+}
+
+function buildThresholds(parsed: ReturnType<typeof parseArgs>): AnalyzeThresholds {
+    return {
+        nesting: resolveThresholdOverride(parsed.nesting, DEFAULT_NESTING_THRESHOLDS),
+        cyclomatic: resolveThresholdOverride(parsed.cyclomatic, DEFAULT_CYCLOMATIC_THRESHOLDS),
+        cognitive: resolveThresholdOverride(parsed.cognitive, DEFAULT_COGNITIVE_THRESHOLDS)
+    };
+}
+
+async function loadParser(adapter: LanguageAdapter) {
+    await Parser.init();
+    const parser = new Parser();
+    const grammarPath = path.join(__dirname, '..', adapter.grammarPath);
+    const grammar = await Language.load(grammarPath);
+    parser.setLanguage(grammar);
+    return parser;
+}
+
 async function main(): Promise<void> {
-    const { filePath, nesting, cyclomatic, cognitive } = parseArgs(process.argv.slice(2));
+    const parsed = parseArgs(process.argv.slice(2));
+    const { filePath } = parsed;
 
     if (!filePath) {
         printUsage();
@@ -57,28 +95,10 @@ async function main(): Promise<void> {
     }
 
     const sourceCode = fs.readFileSync(filePath, 'utf8');
-
-    await Parser.init();
-    const parser = new Parser();
-    const grammarPath = path.join(__dirname, '..', adapter.grammarPath);
-    const grammar = await Language.load(grammarPath);
-    parser.setLanguage(grammar);
-
+    const parser = await loadParser(adapter);
     const tree = parser.parse(sourceCode);
-    const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, adapter, filePath, {
-        nesting: nesting.mediumThreshold !== undefined || nesting.highThreshold !== undefined
-            ? {
-                mediumThreshold: nesting.mediumThreshold ?? DEFAULT_NESTING_THRESHOLDS.mediumThreshold,
-                highThreshold: nesting.highThreshold ?? DEFAULT_NESTING_THRESHOLDS.highThreshold
-            }
-            : undefined,
-        cyclomatic: cyclomatic.mediumThreshold !== undefined || cyclomatic.highThreshold !== undefined
-            ? { mediumThreshold: cyclomatic.mediumThreshold ?? 10, highThreshold: cyclomatic.highThreshold ?? 15 }
-            : undefined,
-        cognitive: cognitive.mediumThreshold !== undefined || cognitive.highThreshold !== undefined
-            ? { mediumThreshold: cognitive.mediumThreshold ?? 15, highThreshold: cognitive.highThreshold ?? 25 }
-            : undefined
-    });
+
+    const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, adapter, filePath, buildThresholds(parsed));
 
     console.log(JSON.stringify(violations, null, 2));
 

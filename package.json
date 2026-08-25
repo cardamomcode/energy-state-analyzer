@@ -97,6 +97,13 @@
           "minimum": 1,
           "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
         },
+        "energyStateAnalyzer.coherence.singleDomainNameShare": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Share of a file's functions that must share a leading name word (e.g. extractFoo/extractBar) to treat the file as one coherent domain and skip the function-count sprawl check."
+        },
         "energyStateAnalyzer.magicNumber.enabled": {
           "type": "boolean",
           "default": true,
