@@ -43,3 +43,18 @@ Two situations produce their own low-severity `suppression` finding instead of s
 - **Unknown type name** — a typo like `esa-ignore: nseting`. An unrecognized type never falls back to "suppress everything"; it matches nothing, which is what surfaces it as unused.
 
 Both show up in the editor and in every CLI report format like any other finding, so a suppression can't quietly outlive the thing it was suppressing.
+
+## Combining with other tools' suppression comments
+
+`esa-ignore` looks for its own `#`/`//` marker anywhere on the line, so it composes fine alongside `ruff`/`pyright`/`eslint` directives as long as it gets its own leading `#`/`//` — it doesn't need to be the only thing in the comment, and it won't interfere with another tool's directive parsing or vice versa:
+
+```python
+x = eval(y)  # noqa: S307  # esa-ignore: magic
+foo: int = 1  # type: ignore[assignment]  # esa-ignore: magic
+```
+
+```typescript
+doThing(true);  // eslint-disable-line no-restricted-syntax // esa-ignore: opaque-boolean
+```
+
+Tacking `esa-ignore` directly onto another tool's directive *without* its own marker does not work — `# noqa: E501 esa-ignore: parameters` is not recognized, since "esa-ignore" isn't preceded by a `#`/`//` of its own. Give it a marker of its own.
