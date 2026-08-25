@@ -1,0 +1,87 @@
+name: 'Energy State Report'
+description: 'Run energy-state-analyzer over a path or PR diff and post a Markdown report as a sticky PR comment.'
+author: 'dbrattli'
+branding:
+  icon: 'zap'
+  color: 'yellow'
+
+# Requires the caller's checkout step to use `fetch-depth: 0` when base-ref is
+# set, so both the head and base commits are present locally for `git diff`/
+# `git show` (see src/cliModes.ts's changedFilesFromGit/readAtRef).
+
+inputs:
+  path:
+    description: 'Path(s) to scan, space-separated. Ignored in diff mode (base-ref set), which only scans changed files.'
+    required: false
+    default: '.'
+  base-ref:
+    description: 'Git ref to diff the current HEAD against (e.g. origin/main). When set, runs in PR-diff mode instead of a full scan.'
+    required: false
+    default: ''
+  report-format:
+    description: 'Report format: md, json, or human. Diff mode (base-ref set) only supports md/json.'
+    required: false
+    default: 'md'
+  version:
+    description: 'energy-state-analyzer npm version or dist-tag to run via npx (e.g. 0.2.0, latest).'
+    required: false
+    default: 'latest'
+  fail-on-regression:
+    description: 'Fail the step when the analyzer reports a blocking result (scan mode: any medium/high violation; diff mode: any worsened file).'
+    required: false
+    default: 'true'
+  post-comment:
+    description: 'Post the report as a sticky PR comment. No-ops outside pull_request events.'
+    required: false
+    default: 'true'
+  comment-header:
+    description: 'Header used to identify and update the sticky PR comment across pushes.'
+    required: false
+    default: 'energy-state-report'
+
+outputs:
+  report-path:
+    description: 'Path to the generated report file.'
+    value: ${{ steps.run.outputs.report-path }}
+  exit-code:
+    description: 'Exit code returned by energy-state-analyzer (0 = clean, 1 = blocking violations/regressions).'
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v5
+      with:
+        node-version: 22
+
+    - name: Run energy-state-analyzer
+      id: run
+      shell: bash
+      run: |
+        set +e
+        if [ -n "${{ inputs.base-ref }}" ]; then
+          npx --yes "energy-state-analyzer@${{ inputs.version }}" --base-ref "${{ inputs.base-ref }}" --report "${{ inputs.report-format }}" > energy-state-report.md
+        else
+          npx --yes "energy-state-analyzer@${{ inputs.version }}" ${{ inputs.path }} --report "${{ inputs.report-format }}" > energy-state-report.md
+        fi
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "report-path=energy-state-report.md" >> "$GITHUB_OUTPUT"
+        # decision: always exit 0 here regardless of the analyzer's own exit code — a blocking
+        # result must still reach the comment step below (marocchino/sticky-pull-request-comment
+        # needs the report file to exist), so failure is deferred to the dedicated step at the
+        # end instead of short-circuiting the rest of this composite action.
+        exit 0
+
+    - name: Comment on PR
+      if: ${{ inputs.post-comment == 'true' && github.event_name == 'pull_request' }}
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: ${{ inputs.comment-header }}
+        path: ${{ steps.run.outputs.report-path }}
+
+    - name: Fail on regression
+      if: ${{ inputs.fail-on-regression == 'true' && steps.run.outputs.exit-code != '0' }}
+      shell: bash
+      run: exit ${{ steps.run.outputs.exit-code }}

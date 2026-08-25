@@ -1,45 +1,63 @@
 #!/usr/bin/env node
 // Headless entry point: run the same detectors the extension uses, without
-// vscode, so an external process (e.g. an AI coding agent) can gate on
-// complexity without opening an editor.
+// vscode, so an external process (e.g. an AI coding agent or a CI job) can
+// gate on complexity without opening an editor.
 //
 // decision: exits 1 when any medium-or-high violation is found, not just high — CI/agent gating wants a single boolean signal, and severity is already visible in the emitted JSON for anyone who wants to discriminate further
+// invariant: `energy-state-cli <single-file>` with no other flags keeps printing the flat
+// EnergyViolation[] JSON array it always has — this is the published npm CLI contract
+// (README's "Command-Line Usage"), and scan/diff mode are additive, not a replacement for it
 import * as fs from 'fs';
-import * as path from 'path';
-const { Parser, Language } = require('web-tree-sitter');
 
-import { analyzeSource, AnalyzeThresholds } from './core/analyze';
-import { LanguageAdapter } from './core/language';
+import { AnalyzeThresholds } from './core/analyze';
 import { DEFAULT_NESTING_THRESHOLDS } from './core/detectors/nesting';
 import { DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
 import { DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
-import { resolveLanguageForFile } from './languages';
-import { EnergyViolation, SEVERITY } from './types';
+import { printUsage, runDiff, runLegacySingleFile, runScan, ReportFormat } from './cliModes';
 
-function printUsage(): void {
-    console.error('Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [--medium-nesting N] [--high-nesting N] [--medium-cyclomatic N] [--high-cyclomatic N] [--medium-cognitive N] [--high-cognitive N]');
-}
+// decision: every flag recognized here (including --base-ref/--report) takes exactly one
+// value, so a positional path list can be recovered by skipping each `--flag value` pair
+// rather than needing a real argument-parsing library
+const VALUE_FLAGS = ['base-ref', 'report', 'medium-nesting', 'high-nesting', 'medium-cyclomatic', 'high-cyclomatic', 'medium-cognitive', 'high-cognitive'];
 
 function parseArgs(argv: string[]) {
-    const filePath = argv.find(arg => !arg.startsWith('--'));
-    const flag = (name: string): number | undefined => {
-        const index = argv.indexOf(`--${name}`);
-        return index !== -1 ? Number(argv[index + 1]) : undefined;
+    const paths: string[] = [];
+    const flagValues = new Map<string, string>();
+
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i];
+        if (arg.startsWith('--')) {
+            const name = arg.slice(2);
+            if (VALUE_FLAGS.includes(name)) {
+                flagValues.set(name, argv[i + 1]);
+                i++;
+            }
+        } else {
+            paths.push(arg);
+        }
+    }
+
+    const flag = (name: string): string | undefined => flagValues.get(name);
+    const numberFlag = (name: string): number | undefined => {
+        const value = flag(name);
+        return value !== undefined ? Number(value) : undefined;
     };
 
     return {
-        filePath,
+        paths,
+        baseRef: flag('base-ref'),
+        report: (flag('report') as ReportFormat | undefined),
         nesting: {
-            mediumThreshold: flag('medium-nesting'),
-            highThreshold: flag('high-nesting')
+            mediumThreshold: numberFlag('medium-nesting'),
+            highThreshold: numberFlag('high-nesting')
         },
         cyclomatic: {
-            mediumThreshold: flag('medium-cyclomatic'),
-            highThreshold: flag('high-cyclomatic')
+            mediumThreshold: numberFlag('medium-cyclomatic'),
+            highThreshold: numberFlag('high-cyclomatic')
         },
         cognitive: {
-            mediumThreshold: flag('medium-cognitive'),
-            highThreshold: flag('high-cognitive')
+            mediumThreshold: numberFlag('medium-cognitive'),
+            highThreshold: numberFlag('high-cognitive')
         }
     };
 }
@@ -69,41 +87,27 @@ function buildThresholds(parsed: ReturnType<typeof parseArgs>): AnalyzeThreshold
     };
 }
 
-async function loadParser(adapter: LanguageAdapter) {
-    await Parser.init();
-    const parser = new Parser();
-    const grammarPath = path.join(__dirname, '..', adapter.grammarPath);
-    const grammar = await Language.load(grammarPath);
-    parser.setLanguage(grammar);
-    return parser;
-}
-
 async function main(): Promise<void> {
     const parsed = parseArgs(process.argv.slice(2));
-    const { filePath } = parsed;
+    const thresholds = buildThresholds(parsed);
+    const reportFormat: ReportFormat = parsed.report ?? (parsed.baseRef || parsed.paths.length !== 1 ? 'md' : 'json');
 
-    if (!filePath) {
+    if (parsed.baseRef) {
+        await runDiff(parsed.baseRef, parsed.paths, thresholds, reportFormat);
+        return;
+    }
+
+    if (parsed.paths.length === 0) {
         printUsage();
         process.exit(2);
     }
 
-    const adapter = resolveLanguageForFile(filePath);
-    if (!adapter) {
-        console.error(`Unsupported file type: ${filePath}`);
-        printUsage();
-        process.exit(2);
+    if (parsed.paths.length === 1 && fs.existsSync(parsed.paths[0]) && fs.statSync(parsed.paths[0]).isFile() && !parsed.report) {
+        await runLegacySingleFile(parsed.paths[0], thresholds);
+        return;
     }
 
-    const sourceCode = fs.readFileSync(filePath, 'utf8');
-    const parser = await loadParser(adapter);
-    const tree = parser.parse(sourceCode);
-
-    const violations: EnergyViolation[] = analyzeSource(sourceCode, tree, adapter, filePath, buildThresholds(parsed));
-
-    console.log(JSON.stringify(violations, null, 2));
-
-    const hasBlockingViolation = violations.some(v => v.severity === SEVERITY.HIGH || v.severity === SEVERITY.MEDIUM);
-    process.exit(hasBlockingViolation ? 1 : 0);
+    await runScan(parsed.paths, thresholds, reportFormat);
 }
 
 main().catch(error => {
