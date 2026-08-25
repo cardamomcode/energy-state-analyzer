@@ -87,7 +87,11 @@ export const KOTLIN: LanguageAdapter = {
     // Kotlin has no enforced-keyword-only parameter syntax (named arguments are optional
     // at the call site) — see language.ts's field doc, same reasoning as F#.
     keywordOnlyBoundaryTypes: [],
-    distinctTypeAdvice: 'a value class (@JvmInline value class) or a typealias',
+    // decision: only suggests value class, not typealias — a typealias is just a synonym (the
+    // compiler still sees the underlying primitive), so it wouldn't actually catch the swap this
+    // warning is about, unlike Python's NewType/TS's branded type/F#'s single-case union, which
+    // this field's other adapters correctly point to
+    distinctTypeAdvice: 'a value class (@JvmInline value class)',
     getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
         if (node?.type !== 'binary_expression') {
             return [];
