@@ -1,0 +1,39 @@
+name: Energy state diff
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run compile
+
+      - name: Run energy state diff
+        run: node dist/cli.js --base-ref "origin/${{ github.base_ref }}" --report md > energy-diff.md
+
+      - name: Comment on PR
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: energy-state-diff
+          path: energy-diff.md
