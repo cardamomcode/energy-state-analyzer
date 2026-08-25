@@ -15,10 +15,14 @@ function stripQuotes(text: string): string {
 }
 
 // Walks an if-statement/if-expression node and returns every branch in the
-// same chain, in source order: the node itself, then either its flat elif
-// siblings (Python/F#, via getElseIfBranches) or — when there are none — the
-// chain of `else if`-nested if-statements (TypeScript's shape, where each
-// continuation sits one level inside an else_clause).
+// same chain, in source order: the node itself, then one of three grammar
+// shapes for its continuations —
+//   - flat elif siblings (Python/F#, via getElseIfBranches)
+//   - else if there are none, `else if`-nested if-statements one level
+//     inside an else_clause wrapper (TypeScript's shape)
+//   - or, for grammars with no else_clause wrapper at all (Kotlin's
+//     if_expression), a nested if-statement sitting as a *direct* child of
+//     the previous one, with no wrapper node to key off
 function collectChainBranches(ifNode: any, language: LanguageAdapter): any[] {
     const branches = [ifNode];
 
@@ -30,9 +34,10 @@ function collectChainBranches(ifNode: any, language: LanguageAdapter): any[] {
 
     let current = ifNode;
     while (true) {
-        const elseClause = current.children?.find((c: any) => c.type === language.nodeTypes.elseClause);
-        if (!elseClause) { break; }
-        const nestedIf = elseClause.children?.find((c: any) => c.type === language.nodeTypes.ifStatement);
+        const nestedIf = language.nodeTypes.elseClause
+            ? current.children?.find((c: any) => c.type === language.nodeTypes.elseClause)
+                ?.children?.find((c: any) => c.type === language.nodeTypes.ifStatement)
+            : current.children?.find((c: any) => c.type === language.nodeTypes.ifStatement);
         if (!nestedIf) { break; }
         branches.push(nestedIf);
         current = nestedIf;

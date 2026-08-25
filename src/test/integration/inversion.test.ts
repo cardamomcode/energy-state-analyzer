@@ -4,13 +4,15 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
 suite('Integration: inversion opportunities (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/inversion.py'],
-        ['TypeScript', TYPESCRIPT, 'typescript/inversion.ts']
+        ['TypeScript', TYPESCRIPT, 'typescript/inversion.ts'],
+        ['Kotlin', KOTLIN, 'kotlin/inversion.kt']
     ] as const) {
         test(`${label}: early-return guard clauses stay clean; a dominant if-block and a nested validation chain are flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);
@@ -44,6 +46,21 @@ suite('Integration: inversion opportunities (real code examples)', () => {
         const clean = findFunctionRange(sourceCode, 'cleanForOfSibling');
         assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
             'a for-of loop sibling should disqualify the nested if from looking like a validation chain');
+    });
+
+    // decision: Kotlin-only — its else has no else_clause wrapper node (unlike TS/Python), so
+    // "does this if have an else" can't be answered by checking one child's type; this guards
+    // the fallback in inversion.ts's hasElse check (a second block child, or a nested if child)
+    // that makes that possible without one. Without it, the outer if here would be wrongly
+    // treated as an else-less guard step and the chain below it would be flagged.
+    test('Kotlin: an if/else is not mistaken for the start of a guard-clause validation chain', async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/inversion.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'inversion.kt');
+        assertValidPositions(violations, sourceCode);
+
+        const clean = findFunctionRange(sourceCode, 'cleanIfElseNotValidationChain');
+        assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
+            'the outer if has an else, so it must not be treated as a validation-chain guard step');
     });
 
     // decision: documents a known adapter limitation (see fsharp.ts's nodeTypes.block:

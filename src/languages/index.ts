@@ -2,12 +2,14 @@ import { LanguageAdapter } from '../core/language';
 import { PYTHON } from './python';
 import { FSHARP } from './fsharp';
 import { TYPESCRIPT } from './typescript';
+import { KOTLIN } from './kotlin';
 
 // decision: keys LANGUAGES by vscode languageId rather than file extension — the extension host already resolves languageId, and resolveLanguageForFile below provides the file-extension equivalent for the CLI
 export const LANGUAGES: Record<string, LanguageAdapter> = {
     python: PYTHON,
     fsharp: FSHARP,
-    typescript: TYPESCRIPT
+    typescript: TYPESCRIPT,
+    kotlin: KOTLIN
 };
 
 const EXTENSION_TO_LANGUAGE_ID: Record<string, string> = {
@@ -15,7 +17,9 @@ const EXTENSION_TO_LANGUAGE_ID: Record<string, string> = {
     '.fs': 'fsharp',
     '.fsx': 'fsharp',
     '.fsi': 'fsharp',
-    '.ts': 'typescript'
+    '.ts': 'typescript',
+    '.kt': 'kotlin',
+    '.kts': 'kotlin'
 };
 
 export function resolveLanguageForFile(fileName: string): LanguageAdapter | undefined {

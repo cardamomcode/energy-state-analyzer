@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: magic numbers (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/magicNumber.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/magicNumber.ts'],
-        ['F#', FSHARP, 'fsharp/magicNumber.fs']
+        ['F#', FSHARP, 'fsharp/magicNumber.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/magicNumber.kt']
     ] as const) {
         test(`${label}: allowlisted values stay clean, significant literals are flagged`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);
@@ -52,12 +54,20 @@ suite('Integration: magic numbers (real code examples)', () => {
             'let maxRetries = 5 at module scope should not be flagged: any literal directly bound by a let is treated as named');
     });
 
+    test('Kotlin: a module-level `val` binding is a constant binding', async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/magicNumber.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'magicNumber.kt');
+        assert.strictEqual(violations.filter(v => v.line === 0 && v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'const val MAX_RETRIES = 5 at module scope should not be flagged: assignment maps to property_declaration, not the bare-reassignment `assignment` node');
+    });
+
     for (const [label, language] of [
         ['Python', PYTHON],
-        ['TypeScript', TYPESCRIPT]
+        ['TypeScript', TYPESCRIPT],
+        ['Kotlin', KOTLIN]
     ] as const) {
         test(`${label}: array index and default parameter value are exempt`, async () => {
-            const fixture = language === PYTHON ? 'python/magicNumber.py' : 'typescript/magicNumber.ts';
+            const fixture = `${language.id}/magicNumber.${language === PYTHON ? 'py' : language === TYPESCRIPT ? 'ts' : 'kt'}`;
             const { sourceCode, tree } = await parseFixture(language, fixture);
             const violations = analyzeSource(sourceCode, tree, language, fixture);
             const exempt = findFunctionRange(sourceCode, 'exemptIndexAndDefault');

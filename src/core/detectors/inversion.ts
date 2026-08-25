@@ -19,7 +19,14 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
 
     function analyzeFunction(functionNode: any) {
         // Find the function body
-        const body = functionNode.children.find((child: any) => child.type === nodeTypes.block);
+        //
+        // decision: also checks one level of grandchildren, not just direct children — Kotlin's
+        // function_declaration wraps its block in an intermediate function_body node
+        // (function_declaration -> function_body -> block), unlike Python/TS/F# where the block
+        // (or its equivalent) sits directly under the function node
+        const body = functionNode.children.find((child: any) => child.type === nodeTypes.block)
+            ?? functionNode.children.flatMap((child: any) => child.children ?? [])
+                .find((child: any) => child.type === nodeTypes.block);
         if (!body) { return; }
 
         // Look for patterns that could benefit from inversion
@@ -91,7 +98,16 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
                 validationChecks.push(ifStatement);
 
                 // Check if this looks like a validation (no else clause, simple condition)
-                const hasElse = ifStatement.children.some((child: any) => child.type === nodeTypes.elseClause);
+                //
+                // decision: grammars with no elseClause wrapper (Kotlin, F#) can't be checked via
+                // a single child's type — Kotlin's else-branch is either a second nodeTypes.block
+                // child or a directly-nested ifStatement child, with no wrapper node distinguishing
+                // it from the then-branch's own block. F#'s block-less grammar still can't detect a
+                // plain (non-if) else this way — pre-existing, not a regression from this fallback.
+                const hasElse = nodeTypes.elseClause
+                    ? ifStatement.children.some((child: any) => child.type === nodeTypes.elseClause)
+                    : ifStatement.children.filter((child: any) => child.type === nodeTypes.block).length > 1
+                        || ifStatement.children.some((child: any) => child.type === nodeTypes.ifStatement);
                 if (!hasElse) {
                     const ifBody = ifStatement.children.find((child: any) => child.type === nodeTypes.block);
                     currentNode = ifBody;

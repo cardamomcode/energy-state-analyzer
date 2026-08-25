@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE, SEVERITY } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -44,6 +45,17 @@ suite('Integration: logical operator as control flow (real code examples)', () =
         assert.strictEqual(
             violations.filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length, 0,
             "F#'s LanguageAdapter has nodeTypes.expressionStatement: null, so this detector never fires for it"
+        );
+    });
+
+    test("Kotlin: '&&' used as a statement is not flagged (no expressionStatement node in this grammar)", async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/logicalControlFlow.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'kotlin/logicalControlFlow.kt');
+        assertValidPositions(violations, sourceCode);
+
+        assert.strictEqual(
+            violations.filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length, 0,
+            "Kotlin's bare `a && b()` statement is a direct binary_expression child of block, with no expression_statement wrapper to key off, same gap as F#"
         );
     });
 });

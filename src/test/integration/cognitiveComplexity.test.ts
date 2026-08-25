@@ -4,6 +4,7 @@ import { analyzeSource } from '../../core/analyze';
 import { PYTHON } from '../../languages/python';
 import { TYPESCRIPT } from '../../languages/typescript';
 import { FSHARP } from '../../languages/fsharp';
+import { KOTLIN } from '../../languages/kotlin';
 import { VIOLATION_TYPE, SEVERITY } from '../../types';
 import { parseFixture, findFunctionRange, violationsIn, assertValidPositions } from './testUtils';
 
@@ -11,7 +12,8 @@ suite('Integration: cognitive complexity (real code examples)', () => {
     for (const [label, language, fixture] of [
         ['Python', PYTHON, 'python/cognitiveComplexity.py'],
         ['TypeScript', TYPESCRIPT, 'typescript/cognitiveComplexity.ts'],
-        ['F#', FSHARP, 'fsharp/cognitiveComplexity.fs']
+        ['F#', FSHARP, 'fsharp/cognitiveComplexity.fs'],
+        ['Kotlin', KOTLIN, 'kotlin/cognitiveComplexity.kt']
     ] as const) {
         test(`${label}: a flat check stays clean, 6-deep nesting is medium, 7-deep nesting is high`, async () => {
             const { sourceCode, tree } = await parseFixture(language, fixture);

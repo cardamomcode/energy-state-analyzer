@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Energy State Analyzer is a VS Code extension that visualizes "energy states" in Python code via real-time static analysis. It parses Python source with `web-tree-sitter` (WASM grammar in `grammars/tree-sitter-python.wasm`) and highlights code that is complex, deeply nested, or otherwise hard to maintain using editor decorations, gutter icons, and Problems-panel diagnostics.
+Energy State Analyzer is a VS Code extension that visualizes "energy states" in Python, F#, TypeScript, and Kotlin code via real-time static analysis. It parses source with `web-tree-sitter` (per-language WASM grammars in `grammars/`) and highlights code that is complex, deeply nested, or otherwise hard to maintain using editor decorations, gutter icons, and Problems-panel diagnostics.
 
 See `energy-state.md` for the original design doc (energy-state principle, planned "detection agents", and known issues/next steps at project inception).
 
@@ -29,7 +29,7 @@ There is a single test suite (`src/test/extension.test.ts`); there's no mechanis
 
 Everything lives in one file, `src/extension.ts`, structured as:
 
-1. **Activation (`activate`)** — initializes the tree-sitter `Parser`, loads the Python grammar from `grammars/tree-sitter-python.wasm` (path resolved via `context.extensionPath`), creates decoration types, registers the `energy-state-analyzer.analyze` command, and wires up editor/document change listeners to re-analyze on the fly. Activation is gated by `onLanguage:python` in `package.json`.
+1. **Activation (`activate`)** — initializes the tree-sitter `Parser`, creates decoration types, registers the `energy-state-analyzer.analyze` command, and wires up editor/document change listeners to re-analyze on the fly. Each language's grammar (`grammars/tree-sitter-<language>.wasm`, path resolved via `context.extensionPath`) is loaded lazily on first use of that language, not up front — see `getOrLoadLanguage`. Activation is gated by the `onLanguage:*` entries in `package.json` (python, fsharp, typescript, kotlin).
 2. **Analysis pipeline (`analyzeDocument`)** — parses the active document's text into a tree-sitter AST, then runs a fixed set of independent detector passes over it, each returning `EnergyViolation[]`:
    - `analyzeNesting` — flags `if`/`for`/`while`/`with` nesting deeper than 3 levels.
    - `analyzeFunctionComplexity` — computes cyclomatic complexity per function, flags >10.
@@ -49,7 +49,7 @@ Follow the existing pattern: write an `analyze<Thing>(tree, document): EnergyVio
 ### Build/packaging notes
 
 - Webpack bundles `src/extension.ts` → `dist/extension.js` (CommonJS, `vscode` module treated as external).
-- `web-tree-sitter`'s own `tree-sitter.wasm` is copied into `dist/` via `CopyWebpackPlugin` (webpack.config.js); the Python grammar WASM in `grammars/` ships separately and is loaded at runtime by path, not bundled.
+- `web-tree-sitter`'s own `tree-sitter.wasm` is copied into `dist/` via `CopyWebpackPlugin` (webpack.config.js); the per-language grammar WASMs in `grammars/` ship separately and are loaded at runtime by path, not bundled.
 - `tsconfig.json` targets ES2022/commonjs with `strict: true`.
 
 ## Releasing
