@@ -61,6 +61,14 @@ suite('Integration: magic numbers (real code examples)', () => {
             'const val MAX_RETRIES = 5 at module scope should not be flagged: assignment maps to property_declaration, not the bare-reassignment `assignment` node');
     });
 
+    test('Kotlin: a `const val` inside a companion object is a constant binding regardless of nesting', async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/magicNumber.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'magicNumber.kt');
+        const limits = findFunctionRange(sourceCode, 'Limits');
+        assert.strictEqual(violationsIn(violations, limits).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'const val inside a companion object is a real compile-time constant, not just a module-scope heuristic match, so it should stay exempt at any nesting depth');
+    });
+
     for (const [label, language] of [
         ['Python', PYTHON],
         ['TypeScript', TYPESCRIPT],

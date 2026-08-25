@@ -157,5 +157,19 @@ export const KOTLIN: LanguageAdapter = {
             return false;
         }
         return valueArgument.children?.[0]?.id === node.id;
+    },
+    // decision: `const val` is an explicit, compiler-enforced compile-time-constant marker —
+    // unlike the module-scope heuristic isInConstantContext (magicNumber.ts) otherwise relies
+    // on, this is valid at ANY nesting depth (a companion object's `const val` is just as much
+    // a real constant as a top-level one), so it's checked as its own signal rather than folded
+    // into that scope walk.
+    isExplicitConstant(node: any): boolean {
+        if (node?.type !== 'property_declaration') {
+            return false;
+        }
+        const modifiers = node.children?.find((c: any) => c.type === 'modifiers');
+        return modifiers?.children?.some((modifier: any) =>
+            modifier.type === 'property_modifier'
+            && modifier.children?.some((c: any) => c.type === 'const')) ?? false;
     }
 };

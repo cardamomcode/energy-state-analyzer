@@ -24,3 +24,10 @@ fun cleanNegativeValue(flag: Boolean): Int {
     }
     return 1
 }
+
+class Limits {
+    companion object {
+        const val MAX_PATH_LENGTH = 255
+        const val MAX_PARAMETERS_COUNT = 10
+    }
+}

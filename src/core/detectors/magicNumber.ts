@@ -43,6 +43,13 @@ export function analyzeMagicNumbers(
                 if (language.isFunctionDefinition(parent)) {
                     return false;
                 }
+                // decision: checked before the module-scope walk below, and independent of it —
+                // an explicit compile-time-constant marker (Kotlin's `const val`) is valid at any
+                // nesting depth (companion object, object declaration, etc.), unlike the
+                // module-scope heuristic that walk relies on for languages with no such marker
+                if (language.isExplicitConstant(parent)) {
+                    return true;
+                }
                 // decision: Python wraps every top-level `name = value` in an
                 // `expression_statement` between the assignment and the module root (unlike
                 // TS's `lexical_declaration`, which sits directly under `program`) — unwrap it
