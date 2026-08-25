@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 const { Parser, Language } = require('web-tree-sitter');
 
 import { analyzeFileCoherence, DEFAULT_COHERENCE_THRESHOLDS } from '../core/detectors/coherence';
+import { analyzeInversionOpportunities } from '../core/detectors/inversion';
 import { analyzePrimitiveObsession } from '../core/detectors/primitiveObsession';
 import { analyzeMatchOpportunities, MatchOpportunityThresholds } from '../core/detectors/matchOpportunity';
 import { createPositionLookup } from '../core/position';
@@ -82,6 +83,28 @@ suite('analyzeFileCoherence', () => {
 		});
 		const largeFunctionViolation = strictViolations.find(v => v.message.includes('exceed'));
 		assert.ok(largeFunctionViolation, 'expected a violation once maxLargeFunctions is lowered to 2');
+	});
+
+	test('flags a file with many small, differently-named functions (grab-bag sprawl)', async () => {
+		const names = ['parse', 'format', 'validate', 'normalize', 'render', 'cache', 'retry', 'log', 'sanitize', 'merge', 'diff', 'sort', 'flatten'];
+		const source = names.map(name => makeFunction(name, 3)).join('\n');
+		const tree = await parsePython(source);
+
+		const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+
+		const countViolation = violations.find(v => v.message.includes('functions in one file'));
+		assert.ok(countViolation, 'expected a raw function-count coherence violation');
+	});
+
+	test('does not flag many small functions that share a leading name word (single domain)', async () => {
+		const names = ['extract_functions', 'extract_classes', 'extract_imports', 'extract_variables', 'extract_types', 'extract_fields', 'extract_bases', 'extract_params', 'extract_returns', 'extract_docs', 'extract_decorators', 'extract_annotations', 'extract_defaults'];
+		const source = names.map(name => makeFunction(name, 3)).join('\n');
+		const tree = await parsePython(source);
+
+		const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+
+		const countViolation = violations.find(v => v.message.includes('functions in one file'));
+		assert.strictEqual(countViolation, undefined, 'a shared extract_* naming domain should suppress the raw count check');
 	});
 });
 
@@ -184,5 +207,44 @@ suite('analyzeMatchOpportunities', () => {
 		const violations = await violationsFor(FSHARP, `let classify status =\n    if status = "open" then 1\n    elif status = "closed" then 2\n    elif status = "pending" then 3\n    else 0\n`);
 		const match = violations.find(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
 		assert.ok(match, 'expected a match-opportunity violation');
+	});
+});
+
+suite('analyzeInversionOpportunities', () => {
+	async function parsePython(sourceCode: string) {
+		await Parser.init();
+		const parser = new Parser();
+		const grammarPath = path.join(__dirname, '..', '..', PYTHON.grammarPath);
+		const grammar = await Language.load(grammarPath);
+		parser.setLanguage(grammar);
+		return parser.parse(sourceCode);
+	}
+
+	// Regression test: a nested function definition inside an analyzed function used to get its
+	// if-nesting counted twice — once when analyzeNestedIfs walked the outer function's body
+	// (with no function-boundary check, it kept going into the nested function too), and again
+	// when the traversal separately visited the nested function as its own target. Found by
+	// running this detector on its own source (src/core/detectors/inversion.ts), which nests
+	// several helper functions this way.
+	test('does not double-count if-nesting inside a nested function definition', async () => {
+		const source = [
+			'def outer():',
+			'    def helper(a, b, c, d):',
+			'        if a:',
+			'            if b:',
+			'                if c:',
+			'                    if d:',
+			'                        return 1',
+			'        return 0',
+			'    return helper(True, True, True, True)'
+		].join('\n');
+		const tree = await parsePython(source);
+		const positions = createPositionLookup(source);
+
+		const violations = analyzeInversionOpportunities(tree, positions, PYTHON);
+		const deepNesting = violations.filter(v => v.message.includes('Deep if-nesting'));
+
+		assert.strictEqual(deepNesting.length, 1,
+			`expected exactly one deep-nesting violation (for helper), got ${deepNesting.length}`);
 	});
 });

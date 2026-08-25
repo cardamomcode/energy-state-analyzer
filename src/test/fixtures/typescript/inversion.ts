@@ -30,3 +30,17 @@ function flaggedValidationChain(a: boolean, b: boolean, c: boolean): number {
     }
     return 0;
 }
+
+// Regression fixture: a for-of loop sibling to a 2-deep nested if should not be mistaken
+// for a validation chain — the for-of loop is unrelated control flow, not another guard step.
+function cleanForOfSibling(items: number[]): number {
+    if (items.length > 0) {
+        if (items[0] > 0) {
+            return items[0];
+        }
+    }
+    for (const item of items) {
+        console.log(item);
+    }
+    return 0;
+}

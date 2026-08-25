@@ -32,6 +32,20 @@ suite('Integration: inversion opportunities (real code examples)', () => {
         });
     }
 
+    // decision: TS-only — Python's `for x in y` is a single for_statement node type covering
+    // both classic and "for-of"-style iteration, so the bug this guards against (a for-of loop
+    // going unrecognized because nodeTypes.forStatement only covers TS's separate for_statement,
+    // not its for_in_statement) can only reproduce here
+    test('TypeScript: a for-of loop sibling to a 2-deep nested if is not mistaken for a validation chain', async () => {
+        const { sourceCode, tree } = await parseFixture(TYPESCRIPT, 'typescript/inversion.ts');
+        const violations = analyzeSource(sourceCode, tree, TYPESCRIPT, 'inversion.ts');
+        assertValidPositions(violations, sourceCode);
+
+        const clean = findFunctionRange(sourceCode, 'cleanForOfSibling');
+        assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
+            'a for-of loop sibling should disqualify the nested if from looking like a validation chain');
+    });
+
     // decision: documents a known adapter limitation (see fsharp.ts's nodeTypes.block:
     // null) rather than asserting the "expected" behavior - analyzeInversionOpportunities
     // looks up a function's body via nodeTypes.block, which F# has no equivalent for, so

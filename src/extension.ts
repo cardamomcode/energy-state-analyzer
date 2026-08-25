@@ -4,14 +4,10 @@ const { Parser, Language } = require('web-tree-sitter');
 
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from './types';
 import { analyzeSource } from './core/analyze';
+import { createPositionLookup } from './core/position';
+import { extractTypeInformation } from './core/pythonTypeInfo';
 import { LanguageAdapter } from './core/language';
-import { NestingThresholds, DEFAULT_NESTING_THRESHOLDS } from './core/detectors/nesting';
-import { CyclomaticThresholds, DEFAULT_CYCLOMATIC_THRESHOLDS } from './core/detectors/cyclomatic';
-import { CognitiveThresholds, DEFAULT_COGNITIVE_THRESHOLDS } from './core/detectors/cognitive';
-import { CoherenceThresholds, DEFAULT_COHERENCE_THRESHOLDS } from './core/detectors/coherence';
-import { MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './core/detectors/matchOpportunity';
-import { MagicNumberOptions, DEFAULT_MAGIC_NUMBER_OPTIONS } from './core/detectors/magicNumber';
-import { MagicStringOptions, DEFAULT_MAGIC_STRING_OPTIONS } from './core/detectors/magicString';
+import { readAnalyzeThresholds, getEnergyColors, DEFAULT_ENERGY_COLORS } from './config';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -109,38 +105,26 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 }
 
-interface EnergyColors {
-    highEnergy: string;
-    mediumEnergy: string;
-    lowEnergy: string;
-    backgroundOpacity: number;
-}
+// Increasing alpha steps for the complexity heatmap bands, darkest last. Not user-configurable
+// — see the `decision:` note at their only use site in createDecorations.
+const HEAT_BAND_ALPHAS = [0.10, 0.18, 0.28, 0.42];
 
-const DEFAULT_ENERGY_COLORS: EnergyColors = {
-    highEnergy: '#fb8500',
-    mediumEnergy: '#ffb703',
-    lowEnergy: '#99dd99',
-    backgroundOpacity: 0.1
-};
-
-function getEnergyColors(): EnergyColors {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.colors');
-    return {
-        highEnergy: config.get('highEnergy', DEFAULT_ENERGY_COLORS.highEnergy),
-        mediumEnergy: config.get('mediumEnergy', DEFAULT_ENERGY_COLORS.mediumEnergy),
-        lowEnergy: config.get('lowEnergy', DEFAULT_ENERGY_COLORS.lowEnergy),
-        backgroundOpacity: config.get('backgroundOpacity', DEFAULT_ENERGY_COLORS.backgroundOpacity)
-    };
-}
+const HEX_RADIX = 16;
+const HEX_CHANNEL_WIDTH = 2;
 
 // decision: parses user-supplied hex strings defensively and falls back to the built-in default on malformed input, since a bad `energyStateAnalyzer.colors.*` setting must not crash decoration setup
 function hexToRgba(hex: string, alpha: number, fallback: string): string {
     const match = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
     const digits = match ? match[1] : fallback.replace('#', '');
-    const r = parseInt(digits.substring(0, 2), 16);
-    const g = parseInt(digits.substring(2, 4), 16);
-    const b = parseInt(digits.substring(4, 6), 16);
+    const r = parseHexChannel(digits, 0);
+    const g = parseHexChannel(digits, 1);
+    const b = parseHexChannel(digits, 2);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function parseHexChannel(digits: string, channelIndex: number): number {
+    const start = channelIndex * HEX_CHANNEL_WIDTH;
+    return parseInt(digits.substring(start, start + HEX_CHANNEL_WIDTH), HEX_RADIX);
 }
 
 function createDecorations() {
@@ -169,8 +153,8 @@ function createDecorations() {
     });
 
     // decision: complexity heat bands carry no gutter icon — the function-level violation decoration already owns the gutter icon for that line range, so these bands only paint background intensity
-    // decision: heat bands derive from the same highEnergy color as the gutter icon (four increasing alpha steps) instead of a separate setting, so the heatmap and the violation it belongs to always match
-    complexityHeatDecorations = [0.10, 0.18, 0.28, 0.42].map(alpha =>
+    // decision: heat bands derive from the same highEnergy color as the gutter icon (four increasing alpha steps) instead of a separate setting, so the heatmap and the violation it belongs to always match — kept as a fixed constant rather than a config option for the same reason
+    complexityHeatDecorations = HEAT_BAND_ALPHAS.map(alpha =>
         vscode.window.createTextEditorDecorationType({
             backgroundColor: hexToRgba(colors.highEnergy, alpha, DEFAULT_ENERGY_COLORS.highEnergy)
         })
@@ -223,80 +207,16 @@ function analyzeActiveEditor() {
     updateProblemsPanel(editor.document, violations);
 }
 
-function getNestingThresholds(): NestingThresholds {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.nesting');
-    return {
-        mediumThreshold: config.get('mediumThreshold', DEFAULT_NESTING_THRESHOLDS.mediumThreshold),
-        highThreshold: config.get('highThreshold', DEFAULT_NESTING_THRESHOLDS.highThreshold)
-    };
-}
-
-function getCyclomaticThresholds(): CyclomaticThresholds {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.cyclomaticComplexity');
-    return {
-        mediumThreshold: config.get('mediumThreshold', DEFAULT_CYCLOMATIC_THRESHOLDS.mediumThreshold),
-        highThreshold: config.get('highThreshold', DEFAULT_CYCLOMATIC_THRESHOLDS.highThreshold)
-    };
-}
-
-function getCognitiveThresholds(): CognitiveThresholds {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.cognitiveComplexity');
-    return {
-        mediumThreshold: config.get('mediumThreshold', DEFAULT_COGNITIVE_THRESHOLDS.mediumThreshold),
-        highThreshold: config.get('highThreshold', DEFAULT_COGNITIVE_THRESHOLDS.highThreshold)
-    };
-}
-
-function getCoherenceThresholds(): CoherenceThresholds {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.coherence');
-    return {
-        largeFunctionLines: config.get('largeFunctionLines', DEFAULT_COHERENCE_THRESHOLDS.largeFunctionLines),
-        maxLargeFunctions: config.get('maxLargeFunctions', DEFAULT_COHERENCE_THRESHOLDS.maxLargeFunctions)
-    };
-}
-
-function getMatchOpportunityThresholds(): MatchOpportunityThresholds {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.matchOpportunity');
-    return {
-        minBranches: config.get('minBranches', DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS.minBranches)
-    };
-}
-
-function getMagicNumberOptions(): MagicNumberOptions {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicNumber');
-    return {
-        enabled: config.get('enabled', DEFAULT_MAGIC_NUMBER_OPTIONS.enabled),
-        allowlist: config.get('allowlist', DEFAULT_MAGIC_NUMBER_OPTIONS.allowlist)
-    };
-}
-
-function getMagicStringOptions(): MagicStringOptions {
-    const config = vscode.workspace.getConfiguration('energyStateAnalyzer.magicString');
-    return {
-        enabled: config.get('enabled', DEFAULT_MAGIC_STRING_OPTIONS.enabled),
-        minDuplicates: config.get('minDuplicates', DEFAULT_MAGIC_STRING_OPTIONS.minDuplicates),
-        allowlist: config.get('allowlist', DEFAULT_MAGIC_STRING_OPTIONS.allowlist)
-    };
-}
-
 function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage): EnergyViolation[] {
     const sourceCode = document.getText();
 
     try {
         const tree = loaded.parser.parse(sourceCode);
-        const violations = analyzeSource(sourceCode, tree, loaded.adapter, document.fileName, {
-            nesting: getNestingThresholds(),
-            cyclomatic: getCyclomaticThresholds(),
-            cognitive: getCognitiveThresholds(),
-            coherence: getCoherenceThresholds(),
-            matchOpportunity: getMatchOpportunityThresholds(),
-            magicNumber: getMagicNumberOptions(),
-            magicString: getMagicStringOptions()
-        });
+        const violations = analyzeSource(sourceCode, tree, loaded.adapter, document.fileName, readAnalyzeThresholds());
 
         // decision: extracts type information for Python only and only logs it — scaffolding for future features, not yet wired into any violation, so it deliberately does not affect the returned violations
         if (loaded.adapter.id === PYTHON.id) {
-            const typeInfo = extractTypeInformation(tree, document);
+            const typeInfo = extractTypeInformation(tree, createPositionLookup(sourceCode));
             console.log('🔍 Found types:', typeInfo);
         }
 
@@ -306,6 +226,11 @@ function analyzeDocument(document: vscode.TextDocument, loaded: LoadedLanguage):
         return [];
     }
 }
+
+// Fixed-width span used to highlight a flagged element (a magic value, a parameter) when there's
+// no AST range to highlight instead — not user-configurable, since it's a rendering detail of
+// this decoration rather than a detection threshold.
+const ELEMENT_HIGHLIGHT_WIDTH = 15;
 
 function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation[]) {
     const highEnergyRanges: vscode.DecorationOptions[] = [];
@@ -326,7 +251,7 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
             range = new vscode.Range(violation.line, functionStart, violation.line, line.text.length);
         } else {
             // For magic values and parameters, highlight the specific element
-            const endColumn = Math.min(violation.column + 15, line.text.length);
+            const endColumn = Math.min(violation.column + ELEMENT_HIGHLIGHT_WIDTH, line.text.length);
             range = new vscode.Range(violation.line, violation.column, violation.line, endColumn);
         }
 
@@ -355,12 +280,8 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
     applyComplexityHeat(editor, violations);
 }
 
-// Paints a progressive heatmap (in the configured high-energy color) over the lines
-// that actually drive a flagged function's complexity, so instead of just knowing
-// "this function is complex" you can see exactly which branches to break apart first.
-//
 // invariant: heat intensity is normalized per-violation — the single worst line in a function is always the darkest band, regardless of how that function compares to others in the file
-function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolation[]) {
+function computeHeatByLine(violations: EnergyViolation[]): Map<number, number> {
     const heatByLine = new Map<number, number>();
 
     for (const violation of violations) {
@@ -379,16 +300,22 @@ function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolat
         }
     }
 
+    return heatByLine;
+}
+
+// Paints a progressive heatmap (in the configured high-energy color) over the lines
+// that actually drive a flagged function's complexity, so instead of just knowing
+// "this function is complex" you can see exactly which branches to break apart first.
+function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolation[]) {
+    const heatByLine = computeHeatByLine(violations);
+    const bandCount = complexityHeatDecorations.length;
     const bandRanges: vscode.Range[][] = complexityHeatDecorations.map(() => []);
 
     for (const [line, intensity] of heatByLine) {
         if (line < 0 || line >= editor.document.lineCount) {
             continue;
         }
-        const bandIndex = Math.min(
-            complexityHeatDecorations.length - 1,
-            Math.floor(intensity * complexityHeatDecorations.length)
-        );
+        const bandIndex = Math.min(bandCount - 1, Math.floor(intensity * bandCount));
         const lineText = editor.document.lineAt(line).text;
         bandRanges[bandIndex].push(new vscode.Range(line, 0, line, lineText.length));
     }
@@ -423,13 +350,11 @@ function tagsForViolationType(type: string): vscode.DiagnosticTag[] {
     }
 }
 
-// decision: groups violations by line before building diagnostics, rather than emitting one
-// Diagnostic per violation — VS Code's inline "after-line" problem text shows only a single
-// diagnostic's message per line (picked by its own severity/position heuristic), silently
-// dropping the rest even though the hover popup correctly lists every diagnostic on that line.
-// Merging same-line violations into one Diagnostic with a combined message means the inline
-// text can no longer hide a violation the hover would otherwise reveal.
-function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyViolation[]) {
+// Fixed width for every Problems-panel diagnostic range — not user-configurable; see the
+// decision note at its use site in buildLineDiagnostic below.
+const DIAGNOSTIC_RANGE_WIDTH = 10;
+
+function groupViolationsByLine(violations: EnergyViolation[]): Map<number, EnergyViolation[]> {
     const byLine = new Map<number, EnergyViolation[]>();
     for (const violation of violations) {
         const group = byLine.get(violation.line);
@@ -439,345 +364,48 @@ function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyVi
             byLine.set(violation.line, [violation]);
         }
     }
+    return byLine;
+}
 
-    const diagnostics: vscode.Diagnostic[] = [];
-    for (const group of byLine.values()) {
-        // Sort so the highest-severity, then earliest-column violation leads the combined message
-        const bySeverityThenColumn = [...group].sort((a, b) =>
-            toDiagnosticSeverity(a.severity) - toDiagnosticSeverity(b.severity) || a.column - b.column
-        );
-        const lead = bySeverityThenColumn[0];
+function buildLineDiagnostic(group: EnergyViolation[]): vscode.Diagnostic {
+    // Sort so the highest-severity, then earliest-column violation leads the combined message
+    const bySeverityThenColumn = [...group].sort((a, b) =>
+        toDiagnosticSeverity(a.severity) - toDiagnosticSeverity(b.severity) || a.column - b.column
+    );
+    const lead = bySeverityThenColumn[0];
 
-        // decision: uses a fixed 10-column-wide range for every diagnostic regardless of violation type — the Problems panel only needs a clickable location, unlike applyDecorations' editor highlight which must visually match the flagged construct
-        const range = new vscode.Range(
-            lead.line, lead.column,
-            lead.line, lead.column + 10
-        );
+    // decision: uses a fixed-width range for every diagnostic regardless of violation type — the Problems panel only needs a clickable location, unlike applyDecorations' editor highlight which must visually match the flagged construct
+    const range = new vscode.Range(
+        lead.line, lead.column,
+        lead.line, lead.column + DIAGNOSTIC_RANGE_WIDTH
+    );
 
-        const message = bySeverityThenColumn.length === 1
-            ? lead.message
-            : bySeverityThenColumn.map(v => v.message).join(' | ');
+    const message = bySeverityThenColumn.length === 1
+        ? lead.message
+        : bySeverityThenColumn.map(v => v.message).join(' | ');
 
-        const diagnostic = new vscode.Diagnostic(
-            range,
-            message,
-            toDiagnosticSeverity(lead.severity)
-        );
+    const diagnostic = new vscode.Diagnostic(range, message, toDiagnosticSeverity(lead.severity));
+    diagnostic.source = 'Energy State Analyzer';
+    diagnostic.code = bySeverityThenColumn.map(v => `energy-${v.type}`).join(',');
 
-        diagnostic.source = 'Energy State Analyzer';
-        diagnostic.code = bySeverityThenColumn.map(v => `energy-${v.type}`).join(',');
-        const tags = bySeverityThenColumn.flatMap(v => tagsForViolationType(v.type));
-        if (tags.length > 0) {
-            diagnostic.tags = tags;
-        }
-
-        diagnostics.push(diagnostic);
+    const tags = bySeverityThenColumn.flatMap(v => tagsForViolationType(v.type));
+    if (tags.length > 0) {
+        diagnostic.tags = tags;
     }
 
-    // Update the Problems panel
+    return diagnostic;
+}
+
+// decision: groups violations by line before building diagnostics, rather than emitting one
+// Diagnostic per violation — VS Code's inline "after-line" problem text shows only a single
+// diagnostic's message per line (picked by its own severity/position heuristic), silently
+// dropping the rest even though the hover popup correctly lists every diagnostic on that line.
+// Merging same-line violations into one Diagnostic with a combined message means the inline
+// text can no longer hide a violation the hover would otherwise reveal.
+function updateProblemsPanel(document: vscode.TextDocument, violations: EnergyViolation[]) {
+    const byLine = groupViolationsByLine(violations);
+    const diagnostics = [...byLine.values()].map(buildLineDiagnostic);
     diagnosticsCollection.set(document.uri, diagnostics);
-}
-
-// Type information extraction from AST
-interface TypeInfo {
-    functions: FunctionTypeInfo[];
-    variables: VariableTypeInfo[];
-    classes: ClassTypeInfo[];
-    imports: ImportInfo[];
-}
-
-interface FunctionTypeInfo {
-    name: string;
-    line: number;
-    parameters: ParameterTypeInfo[];
-    returnType: string | null;
-}
-
-interface ParameterTypeInfo {
-    name: string;
-    type: string | null;
-    hasDefault: boolean;
-}
-
-interface VariableTypeInfo {
-    name: string;
-    type: string;
-    line: number;
-}
-
-interface ClassTypeInfo {
-    name: string;
-    line: number;
-    baseClasses: string[];
-    isTypedDict: boolean;
-    fields: VariableTypeInfo[];
-}
-
-interface ImportInfo {
-    module: string;
-    items: string[];
-    line: number;
-}
-
-function extractTypeInformation(tree: any, document: vscode.TextDocument): TypeInfo {
-    const typeInfo: TypeInfo = {
-        functions: [],
-        variables: [],
-        classes: [],
-        imports: []
-    };
-
-    function traverse(node: any) {
-        switch (node.type) {
-            case 'function_definition':
-                typeInfo.functions.push(extractFunctionTypeInfo(node, document));
-                break;
-            case 'class_definition':
-                typeInfo.classes.push(extractClassTypeInfo(node, document));
-                break;
-            case 'assignment':
-                const varInfo = extractVariableTypeInfo(node, document);
-                if (varInfo) {
-                    typeInfo.variables.push(varInfo);
-                }
-                break;
-            case 'import_statement':
-            case 'import_from_statement':
-                typeInfo.imports.push(extractImportInfo(node, document));
-                break;
-        }
-
-        for (const child of node.children) {
-            traverse(child);
-        }
-    }
-
-    traverse(tree.rootNode);
-    return typeInfo;
-}
-
-function extractFunctionTypeInfo(node: any, document: vscode.TextDocument): FunctionTypeInfo {
-    const nameNode = node.children.find((child: any) => child.type === 'identifier');
-    const parametersNode = node.children.find((child: any) => child.type === 'parameters');
-
-    const returnType = extractReturnTypeAnnotation(node.children);
-    const parameters = parametersNode ? extractParameters(parametersNode) : [];
-
-    const position = document.positionAt(node.startIndex);
-    return {
-        name: nameNode?.text || 'unknown',
-        line: position.line,
-        parameters,
-        returnType
-    };
-}
-
-function extractReturnTypeAnnotation(children: any[]): string | null {
-    const arrowIndex = children.findIndex((child: any) => child.text === '->');
-    if (arrowIndex === -1 || arrowIndex + 1 >= children.length) {
-        return null;
-    }
-
-    const returnTypeNode = children[arrowIndex + 1];
-    return returnTypeNode.type === 'type' ? extractTypeString(returnTypeNode) : null;
-}
-
-function extractParameters(parametersNode: any): ParameterTypeInfo[] {
-    const parameters: ParameterTypeInfo[] = [];
-    for (const child of parametersNode.children) {
-        if (child.type === 'typed_parameter') {
-            parameters.push(extractParameterTypeInfo(child));
-        } else if (child.type === 'default_parameter') {
-            parameters.push(extractDefaultParameterTypeInfo(child));
-        } else if (child.type === 'identifier') {
-            // Untyped parameter
-            parameters.push({ name: child.text, type: null, hasDefault: false });
-        }
-    }
-    return parameters;
-}
-
-function extractParameterTypeInfo(node: any): ParameterTypeInfo {
-    const nameNode = node.children.find((child: any) => child.type === 'identifier');
-    const typeNode = node.children.find((child: any) => child.type === 'type');
-
-    return {
-        name: nameNode?.text || 'unknown',
-        type: typeNode ? extractTypeString(typeNode) : null,
-        hasDefault: false
-    };
-}
-
-function extractDefaultParameterTypeInfo(node: any): ParameterTypeInfo {
-    // Default parameters might have type annotations too
-    const nameNode = node.children.find((child: any) => child.type === 'identifier');
-    const typeNode = node.children.find((child: any) => child.type === 'type');
-
-    return {
-        name: nameNode?.text || 'unknown',
-        type: typeNode ? extractTypeString(typeNode) : null,
-        hasDefault: true
-    };
-}
-
-function extractVariableTypeInfo(node: any, document: vscode.TextDocument): VariableTypeInfo | null {
-    // Look for assignments with type annotations: x: int = 5
-    const identifierNode = node.children.find((child: any) => child.type === 'identifier');
-    const typeNode = node.children.find((child: any) => child.type === 'type');
-
-    if (identifierNode && typeNode) {
-        const position = document.positionAt(node.startIndex);
-        return {
-            name: identifierNode.text,
-            type: extractTypeString(typeNode),
-            line: position.line
-        };
-    }
-
-    return null;
-}
-
-function extractClassTypeInfo(node: any, document: vscode.TextDocument): ClassTypeInfo {
-    const nameNode = node.children.find((child: any) => child.type === 'identifier');
-    const argumentListNode = node.children.find((child: any) => child.type === 'argument_list');
-
-    const baseClasses = extractBaseClasses(argumentListNode);
-    const isTypedDict = baseClasses.includes('TypedDict');
-
-    const blockNode = node.children.find((child: any) => child.type === 'block');
-    const fields = isTypedDict ? extractTypedDictFields(blockNode, document) : [];
-
-    const position = document.positionAt(node.startIndex);
-    return {
-        name: nameNode?.text || 'unknown',
-        line: position.line,
-        baseClasses,
-        isTypedDict,
-        fields
-    };
-}
-
-function extractBaseClasses(argumentListNode: any): string[] {
-    if (!argumentListNode) {
-        return [];
-    }
-
-    return argumentListNode.children
-        .filter((child: any) => child.type === 'identifier')
-        .map((child: any) => child.text);
-}
-
-function extractTypedDictFields(blockNode: any, document: vscode.TextDocument): VariableTypeInfo[] {
-    if (!blockNode) {
-        return [];
-    }
-
-    const fields: VariableTypeInfo[] = [];
-    for (const child of blockNode.children) {
-        if (child.type !== 'expression_statement') {
-            continue;
-        }
-        const assignment = child.children.find((grandchild: any) => grandchild.type === 'assignment');
-        if (!assignment) {
-            continue;
-        }
-        const fieldInfo = extractVariableTypeInfo(assignment, document);
-        if (fieldInfo) {
-            fields.push(fieldInfo);
-        }
-    }
-    return fields;
-}
-
-function extractImportInfo(node: any, document: vscode.TextDocument): ImportInfo {
-    const line = document.positionAt(node.startIndex).line;
-
-    if (node.type === 'import_statement') {
-        return extractPlainImportInfo(node, line);
-    }
-    if (node.type === 'import_from_statement') {
-        return extractFromImportInfo(node, line);
-    }
-
-    return { module: '', items: [], line };
-}
-
-function extractPlainImportInfo(node: any, line: number): ImportInfo {
-    // import module1, module2
-    const items = node.children
-        .filter((child: any) => child.type === 'dotted_name' || child.type === 'identifier')
-        .map((child: any) => child.text);
-
-    return { module: items[0] || '', items, line };
-}
-
-function extractFromImportInfo(node: any, line: number): ImportInfo {
-    // from module import item1, item2
-    const fromIndex = node.children.findIndex((child: any) => child.text === 'from');
-    const importIndex = node.children.findIndex((child: any) => child.text === 'import');
-
-    if (fromIndex === -1 || importIndex === -1) {
-        return { module: '', items: [], line };
-    }
-
-    const module = findImportModuleName(node.children, fromIndex, importIndex);
-    const items = collectImportedItems(node.children, importIndex);
-
-    return { module, items, line };
-}
-
-function findImportModuleName(children: any[], fromIndex: number, importIndex: number): string {
-    for (let i = fromIndex + 1; i < importIndex; i++) {
-        const child = children[i];
-        if (child.type === 'dotted_name' || child.type === 'identifier') {
-            return child.text;
-        }
-    }
-    return '';
-}
-
-function collectImportedItems(children: any[], importIndex: number): string[] {
-    const items: string[] = [];
-    for (let i = importIndex + 1; i < children.length; i++) {
-        const child = children[i];
-        if (child.type === 'identifier') {
-            items.push(child.text);
-        }
-    }
-    return items;
-}
-
-function extractTypeString(typeNode: any): string {
-    if (typeNode.type !== 'type' || typeNode.children.length !== 1) {
-        return typeNode.text || 'unknown';
-    }
-
-    const child = typeNode.children[0];
-    if (child.type === 'generic_type') {
-        return extractGenericTypeString(child);
-    }
-    if (child.type === 'identifier') {
-        return child.text;
-    }
-
-    return typeNode.text || 'unknown';
-}
-
-function extractGenericTypeString(genericTypeNode: any): string {
-    const baseType = genericTypeNode.children.find((child: any) => child.type === 'identifier');
-    const typeParameterNode = genericTypeNode.children.find((child: any) => child.type === 'type_parameter');
-
-    if (baseType && typeParameterNode) {
-        const params: string[] = [];
-        for (const child of typeParameterNode.children) {
-            if (child.type === 'type') {
-                params.push(extractTypeString(child));
-            }
-        }
-        return `${baseType.text}[${params.join(', ')}]`;
-    }
-
-    return genericTypeNode.text || 'unknown';
 }
 
 export function deactivate() {
