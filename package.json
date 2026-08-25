@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript)",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "cardamom-code",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -111,8 +111,15 @@
         },
         "energyStateAnalyzer.magicNumber.allowlist": {
           "type": "array",
-          "items": { "type": "number" },
-          "default": [0, 1, -1, 2],
+          "items": {
+            "type": "number"
+          },
+          "default": [
+            0,
+            1,
+            -1,
+            2
+          ],
           "description": "Numeric literals that are never flagged as magic numbers, regardless of context."
         },
         "energyStateAnalyzer.magicString.enabled": {
@@ -128,8 +135,14 @@
         },
         "energyStateAnalyzer.magicString.allowlist": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["", "utf-8", "__main__"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "",
+            "utf-8",
+            "__main__"
+          ],
           "description": "String literals that are never flagged as magic strings, regardless of context."
         },
         "energyStateAnalyzer.matchOpportunity.minBranches": {
