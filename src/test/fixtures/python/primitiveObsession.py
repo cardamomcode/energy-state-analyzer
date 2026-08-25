@@ -14,3 +14,9 @@ def flaggedStringlyTyped(status: str):
     elif status == "closed":
         return 3
     return 0
+
+
+def flaggedMembershipCheck(status: str):
+    if status in ("pending", "active", "closed"):
+        return 1
+    return 0

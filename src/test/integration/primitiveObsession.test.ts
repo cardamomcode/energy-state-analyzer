@@ -33,4 +33,19 @@ suite('Integration: primitive obsession (real code examples)', () => {
                 'expected a stringly-typed-control-flow violation for 3 distinct string comparisons');
         });
     }
+
+    // Python-only: `x in (a, b, c)` membership checks have no direct equivalent in
+    // F#'s or TypeScript's grammars (see README Known Issues), so this sub-check
+    // only has a fixture/test for Python.
+    test('Python: variable checked against a literal tuple in one `in` expression is flagged', async () => {
+        const fixture = 'python/primitiveObsession.py';
+        const { sourceCode, tree } = await parseFixture(PYTHON, fixture);
+        const violations = analyzeSource(sourceCode, tree, PYTHON, fixture);
+        assertValidPositions(violations, sourceCode);
+
+        const membership = findFunctionRange(sourceCode, 'flaggedMembershipCheck');
+        const membershipHit = violationsIn(violations, membership).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
+        assert.ok(membershipHit.some(v => v.message.includes('Stringly-typed')),
+            'expected a stringly-typed-control-flow violation for a 3-element `in (...)` membership check');
+    });
 });

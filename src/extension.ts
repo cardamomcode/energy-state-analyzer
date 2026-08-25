@@ -343,9 +343,9 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
     applyComplexityHeat(editor, violations);
 }
 
-// Paints a progressive red heatmap over the lines that actually drive a
-// flagged function's complexity, so instead of just knowing "this function
-// is complex" you can see exactly which branches to break apart first.
+// Paints a progressive heatmap (in the configured high-energy color) over the lines
+// that actually drive a flagged function's complexity, so instead of just knowing
+// "this function is complex" you can see exactly which branches to break apart first.
 //
 // invariant: heat intensity is normalized per-violation — the single worst line in a function is always the darkest band, regardless of how that function compares to others in the file
 function applyComplexityHeat(editor: vscode.TextEditor, violations: EnergyViolation[]) {
