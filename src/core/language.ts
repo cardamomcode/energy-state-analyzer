@@ -81,6 +81,16 @@ export interface LanguageAdapter {
     // float/bool/bytes, TS's string/number/boolean, F#'s string/int/float/
     // bool).
     primitiveTypeNames: Set<string>;
+    // Node types that mark "every parameter after this one is keyword-only" (Python's
+    // bare `*` keyword_separator and `*args` list_splat_pattern — both make positional
+    // calls to later parameters impossible). Drives the primitive-obsession detector's
+    // parameter-swap-risk suppression: two same-typed params can't be flagged for swap
+    // risk if a caller is structurally unable to pass them positionally in the first
+    // place. Empty for languages with no such enforcement mechanism (TypeScript's
+    // destructured-object pattern isn't modeled here since extractTypedParameter
+    // already never matches it; F#'s named-argument syntax is optional at the call
+    // site, so it doesn't prevent a future positional call and isn't a valid mitigation).
+    keywordOnlyBoundaryTypes: string[];
     // What to suggest in place of a naked primitive to fix a swap-risk
     // violation, phrased in this language's own idiom (Python: NewType/
     // dataclass, TypeScript: a branded/nominal type, F#: a single-case

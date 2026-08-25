@@ -66,6 +66,7 @@ export const PYTHON: LanguageAdapter = {
         return { name: nameNode.text, type: typeNode.text };
     },
     primitiveTypeNames: new Set(['str', 'int', 'float', 'bool', 'bytes']),
+    keywordOnlyBoundaryTypes: ['keyword_separator', 'list_splat_pattern'],
     distinctTypeAdvice: 'NewType or a dataclass',
     getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
         if (node?.type !== 'comparison_operator') {

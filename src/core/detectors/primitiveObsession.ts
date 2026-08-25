@@ -7,33 +7,54 @@ interface TypedParam {
     name: string;
     type: string;
     node: any;
+    keywordOnly: boolean;
 }
 
 // Sub-check A ("parameter swap risk"): two adjacent parameters sharing the
 // same unqualified primitive type are indistinguishable at the call site —
 // nothing stops a caller passing them in the wrong order.
+//
+// decision: a pair is suppressed only when BOTH params sit past a
+// keywordOnlyBoundaryTypes marker (Python's bare `*` / `*args`) — the signature
+// itself must make positional calls impossible, not just "some call sites happen
+// to use keywords". A signature that still allows positional calls will
+// eventually get one.
+// known gap: Python's `**kwargs` dict-splatting can reintroduce positional-style
+// swap risk even past a keyword-only boundary (a caller building the dict by
+// hand can still transpose the values) — not worth detecting, left undocumented
+// in code but called out here for future readers.
 function findParameterCollisions(paramsNode: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
-    const typed: TypedParam[] = paramsNode.children
-        .map((n: any) => {
-            const extracted = language.extractTypedParameter(n);
-            return extracted ? { ...extracted, node: n } : null;
-        })
-        .filter((p: TypedParam | null): p is TypedParam => p !== null);
+    let keywordOnly = false;
+    const typed: TypedParam[] = [];
+    for (const n of paramsNode.children) {
+        if (language.keywordOnlyBoundaryTypes.includes(n.type)) {
+            keywordOnly = true;
+            continue;
+        }
+        const extracted = language.extractTypedParameter(n);
+        if (extracted) {
+            typed.push({ ...extracted, node: n, keywordOnly });
+        }
+    }
 
     for (let i = 0; i < typed.length - 1; i++) {
         const a = typed[i];
         const b = typed[i + 1];
-        if (a.type === b.type && language.primitiveTypeNames.has(a.type)) {
-            const position = positions.toPosition(a.node.startIndex);
-            violations.push({
-                line: position.line,
-                column: position.column,
-                type: VIOLATION_TYPE.PRIMITIVE_OBSESSION,
-                severity: SEVERITY.MEDIUM,
-                message: `Primitive obsession: consecutive parameters '${a.name}: ${a.type}' and '${b.name}: ${b.type}' share the same primitive type — a caller can swap them and nothing will complain. Consider ${language.distinctTypeAdvice} so the type checker catches it.`
-            });
+        if (a.type !== b.type || !language.primitiveTypeNames.has(a.type)) {
+            continue;
         }
+        if (a.keywordOnly && b.keywordOnly) {
+            continue;
+        }
+        const position = positions.toPosition(a.node.startIndex);
+        violations.push({
+            line: position.line,
+            column: position.column,
+            type: VIOLATION_TYPE.PRIMITIVE_OBSESSION,
+            severity: SEVERITY.MEDIUM,
+            message: `Primitive obsession: consecutive parameters '${a.name}: ${a.type}' and '${b.name}: ${b.type}' share the same primitive type — a caller can swap them and nothing will complain. Consider ${language.distinctTypeAdvice} so the type checker catches it.`
+        });
     }
     return violations;
 }

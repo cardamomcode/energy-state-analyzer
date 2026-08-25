@@ -20,3 +20,15 @@ def flaggedMembershipCheck(status: str):
     if status in ("pending", "active", "closed"):
         return 1
     return 0
+
+
+def suppressedKeywordOnly(*, lat: float, lon: float):
+    return (lat, lon)
+
+
+def suppressedAfterStarArgs(name: str, *args, lat: float, lon: float):
+    return (name, args, lat, lon)
+
+
+def flaggedPartiallyKeywordOnly(x: int, *, y: int):
+    return x + y
