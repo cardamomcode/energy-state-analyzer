@@ -11,5 +11,4 @@ def suppressedKeywordArgument():
 
 
 def suppressedNonCallUsage():
-    ok = True
-    return ok
+    return True
