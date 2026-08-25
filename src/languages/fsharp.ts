@@ -85,6 +85,9 @@ export const FSHARP: LanguageAdapter = {
         return { name: patternNode.text, type: typeNode.text };
     },
     primitiveTypeNames: new Set(['string', 'int', 'float', 'bool']),
+    // F#'s named-argument syntax is optional at the call site, so it doesn't prevent a
+    // future positional call — not a valid swap-risk mitigation. See language.ts's field doc.
+    keywordOnlyBoundaryTypes: [],
     distinctTypeAdvice: 'a single-case union type',
     getEqualityComparisons(node: any): Array<{ left: any; right: any }> {
         if (node?.type !== 'infix_expression') {

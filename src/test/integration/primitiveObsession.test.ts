@@ -48,4 +48,28 @@ suite('Integration: primitive obsession (real code examples)', () => {
         assert.ok(membershipHit.some(v => v.message.includes('Stringly-typed')),
             'expected a stringly-typed-control-flow violation for a 3-element `in (...)` membership check');
     });
+
+    test('Python: keyword-only same-typed params are not flagged as swappable', async () => {
+        const fixture = 'python/primitiveObsession.py';
+        const { sourceCode, tree } = await parseFixture(PYTHON, fixture);
+        const violations = analyzeSource(sourceCode, tree, PYTHON, fixture);
+        assertValidPositions(violations, sourceCode);
+
+        const suppressed = findFunctionRange(sourceCode, 'suppressedKeywordOnly');
+        assert.strictEqual(
+            violationsIn(violations, suppressed).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length, 0,
+            'params after a bare `*` cannot be called positionally, so swap risk does not apply'
+        );
+
+        const suppressedAfterStar = findFunctionRange(sourceCode, 'suppressedAfterStarArgs');
+        assert.strictEqual(
+            violationsIn(violations, suppressedAfterStar).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length, 0,
+            'params after `*args` are also keyword-only and cannot be called positionally'
+        );
+
+        const partial = findFunctionRange(sourceCode, 'flaggedPartiallyKeywordOnly');
+        const partialHit = violationsIn(violations, partial).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
+        assert.ok(partialHit.some(v => v.message.includes('swap')),
+            'only one of the two same-typed params is keyword-only, so a positional call is still possible');
+    });
 });
