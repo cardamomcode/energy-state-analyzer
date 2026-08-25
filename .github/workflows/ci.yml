@@ -26,6 +26,9 @@ jobs:
       - name: Compile and lint
         run: npm run pretest
 
+      - name: Check dependency licenses
+        run: npm run license-check
+
       - name: Run tests
         uses: coactions/setup-xvfb@v1
         with:

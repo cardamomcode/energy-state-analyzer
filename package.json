@@ -111,8 +111,15 @@
         },
         "energyStateAnalyzer.magicNumber.allowlist": {
           "type": "array",
-          "items": { "type": "number" },
-          "default": [0, 1, -1, 2],
+          "items": {
+            "type": "number"
+          },
+          "default": [
+            0,
+            1,
+            -1,
+            2
+          ],
           "description": "Numeric literals that are never flagged as magic numbers, regardless of context."
         },
         "energyStateAnalyzer.magicString.enabled": {
@@ -128,8 +135,14 @@
         },
         "energyStateAnalyzer.magicString.allowlist": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["", "utf-8", "__main__"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "",
+            "utf-8",
+            "__main__"
+          ],
           "description": "String literals that are never flagged as magic strings, regardless of context."
         },
         "energyStateAnalyzer.matchOpportunity.minBranches": {
@@ -174,7 +187,8 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "analyze": "node dist/cli.js"
+    "analyze": "node dist/cli.js",
+    "license-check": "license-checker --production --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;Unlicense\" --excludePackages \"$npm_package_name@$npm_package_version\""
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -185,6 +199,7 @@
     "@vscode/vsce": "^3.2.1",
     "copy-webpack-plugin": "^14.0.0",
     "eslint": "^10.9.0",
+    "license-checker": "^25.0.1",
     "ts-loader": "^9.4.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",
