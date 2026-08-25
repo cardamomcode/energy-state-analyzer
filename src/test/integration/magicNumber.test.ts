@@ -37,6 +37,21 @@ suite('Integration: magic numbers (real code examples)', () => {
         });
     }
 
+    test('Python: a module-level assignment (wrapped in expression_statement) is a constant binding', async () => {
+        const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');
+        const violations = analyzeSource(sourceCode, tree, PYTHON, 'magicNumber.py');
+        assert.strictEqual(violations.filter(v => v.line === 0 && v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'MAX_RETRIES = 5 at module scope should not be flagged even though Python wraps the assignment in an expression_statement before the module root');
+    });
+
+    test('F#: a module-level `let` binding is a constant binding', async () => {
+        const { sourceCode, tree } = await parseFixture(FSHARP, 'fsharp/magicNumber.fs');
+        const violations = analyzeSource(sourceCode, tree, FSHARP, 'magicNumber.fs');
+        const maxRetries = findFunctionRange(sourceCode, 'maxRetries');
+        assert.strictEqual(violationsIn(violations, maxRetries).filter(v => v.type === VIOLATION_TYPE.MAGIC).length, 0,
+            'let maxRetries = 5 at module scope should not be flagged: any literal directly bound by a let is treated as named');
+    });
+
     for (const [label, language] of [
         ['Python', PYTHON],
         ['TypeScript', TYPESCRIPT]

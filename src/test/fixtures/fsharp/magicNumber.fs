@@ -1,5 +1,7 @@
 module MagicNumber
 
+let maxRetries = 5
+
 let cleanCommonValues (x: float) =
     let total = x * 1.0
     total + 0.0
