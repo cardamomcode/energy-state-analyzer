@@ -17,6 +17,7 @@ import {
 } from './detectors/matchOpportunity';
 import { analyzeLogicalControlFlow } from './detectors/logicalControlFlow';
 import { analyzeOpaqueBooleanLiteral } from './detectors/opaqueBoolean';
+import { applySuppressions } from './suppressions';
 
 export interface AnalyzeThresholds {
     nesting?: NestingThresholds;
@@ -28,6 +29,11 @@ export interface AnalyzeThresholds {
     magicString?: MagicStringOptions;
 }
 
+// esa-ignore-file: coherence
+// decision: this file's import count is inherent to being the one place that wires up every
+// detector (one import per detector, by design) — not accidental grab-bag sprawl, so the
+// import-sprawl coherence check is suppressed file-wide rather than chased by deleting imports.
+//
 // Language-agnostic entry point: runs every detector over an already-parsed
 // tree-sitter tree.
 //
@@ -77,5 +83,9 @@ export function analyzeSource(
     violations.push(...analyzeLogicalControlFlow(tree, positions, language));
     violations.push(...analyzeOpaqueBooleanLiteral(tree, positions, language));
 
-    return violations;
+    // decision: suppression is applied last, over the full combined list — an esa-ignore
+    // directive can name any violation type regardless of which detector produced it, so it
+    // must see everything before deciding what's unused.
+    const { violations: suppressed, suppressionNotes } = applySuppressions(violations, sourceText);
+    return [...suppressed, ...suppressionNotes];
 }

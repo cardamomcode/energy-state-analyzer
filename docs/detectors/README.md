@@ -23,4 +23,8 @@ Each detector is documented in its own file: what it flags, an example, its conf
 - [Logical operator as control flow](logical-operator-control-flow.md), an `if` hidden behind `&&`/`||`.
 - [Opaque boolean literal](opaque-boolean-literal.md), an unlabeled `true`/`false` at a call site.
 
+## Suppression
+
+- [Suppression (`esa-ignore`)](suppression.md), silence a specific violation with a comment, without disabling the detector everywhere else.
+
 See [Energy and Entropy](../energy-and-entropy.md) for the design philosophy behind why complexity and its arrangement are tracked as separate signals.
