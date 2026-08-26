@@ -48,7 +48,7 @@ export const FSHARP: LanguageAdapter = {
         'if_expression', 'elif_expression', 'for_expression', 'while_expression',
         'try_expression', 'match_expression'
     ],
-    nestingControlTypes: ['if_expression', 'elif_expression', 'for_expression', 'while_expression', 'match_expression'],
+    nestingControlTypes: ['if_expression', 'elif_expression', 'for_expression', 'while_expression', 'try_expression', 'match_expression'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'infix_expression') {
             return null;

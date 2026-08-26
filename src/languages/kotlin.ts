@@ -49,7 +49,7 @@ export const KOTLIN: LanguageAdapter = {
     cognitiveNestedDecisionTypes: [
         'if_expression', 'for_statement', 'while_statement', 'when_expression', 'catch_block'
     ],
-    nestingControlTypes: ['if_expression', 'for_statement', 'while_statement'],
+    nestingControlTypes: ['if_expression', 'for_statement', 'while_statement', 'try_expression'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'binary_expression') {
             return null;

@@ -40,3 +40,27 @@ fun flaggedSevereNesting(x: Int): Int {
     }
     return 0
 }
+
+fun flaggedTryNesting(x: Int): Int {
+    try {
+        try {
+            try {
+                try {
+                    try {
+                        return x
+                    } catch (e: Exception) {
+                        return 0
+                    }
+                } catch (e: Exception) {
+                    return 0
+                }
+            } catch (e: Exception) {
+                return 0
+            }
+        } catch (e: Exception) {
+            return 0
+        }
+    } catch (e: Exception) {
+        return 0
+    }
+}

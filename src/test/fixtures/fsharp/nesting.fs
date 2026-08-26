@@ -33,3 +33,16 @@ let flaggedSevereNesting (x: int) =
             else 0
         else 0
     else 0
+
+let flaggedTryNesting (x: int) =
+    try
+        try
+            try
+                try
+                    try
+                        x
+                    with _ -> 0
+                with _ -> 0
+            with _ -> 0
+        with _ -> 0
+    with _ -> 0

@@ -40,3 +40,27 @@ function flaggedSevereNesting(x: number): number {
     }
     return 0;
 }
+
+function flaggedTryNesting(x: number): number {
+    try {
+        try {
+            try {
+                try {
+                    try {
+                        return x;
+                    } catch (e) {
+                        return 0;
+                    }
+                } catch (e) {
+                    return 0;
+                }
+            } catch (e) {
+                return 0;
+            }
+        } catch (e) {
+            return 0;
+        }
+    } catch (e) {
+        return 0;
+    }
+}

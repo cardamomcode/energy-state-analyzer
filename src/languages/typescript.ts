@@ -41,7 +41,7 @@ export const TYPESCRIPT: LanguageAdapter = {
     cognitiveNestedDecisionTypes: [
         'if_statement', 'for_statement', 'for_in_statement', 'while_statement', 'catch_clause'
     ],
-    nestingControlTypes: ['if_statement', 'for_statement', 'for_in_statement', 'while_statement'],
+    nestingControlTypes: ['if_statement', 'for_statement', 'for_in_statement', 'while_statement', 'try_statement'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'binary_expression') {
             return null;
