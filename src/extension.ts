@@ -8,6 +8,7 @@ import { createPositionLookup } from './core/position';
 import { extractTypeInformation } from './core/pythonTypeInfo';
 import { LanguageAdapter } from './core/language';
 import { readAnalyzeThresholds, getEnergyColors, DEFAULT_ENERGY_COLORS } from './config';
+import { isIgnored, loadIgnorePatterns } from './core/esaignore';
 import { LANGUAGES } from './languages';
 import { PYTHON } from './languages/python';
 
@@ -212,12 +213,31 @@ async function getOrLoadLanguage(languageId: string): Promise<LoadedLanguage | u
     return pending;
 }
 
+// A document with no containing workspace folder (e.g. a file opened standalone) has
+// nowhere to look for a `.esaignore`, so it's never treated as ignored.
+function isDocumentIgnored(document: vscode.TextDocument): boolean {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!workspaceFolder) {
+        return false;
+    }
+    const rootDir = workspaceFolder.uri.fsPath;
+    const patterns = loadIgnorePatterns(rootDir);
+    return isIgnored(document.fileName, rootDir, patterns);
+}
+
 async function analyzeActiveEditor() {
     const editor = vscode.window.activeTextEditor;
     console.log('🔍 Analyzing active editor...');
 
     if (!editor) {
         console.log('❌ No active editor found');
+        return;
+    }
+
+    if (isDocumentIgnored(editor.document)) {
+        console.log('🚫 Ignored by .esaignore:', editor.document.fileName);
+        applyDecorations(editor, []);
+        diagnosticsCollection.delete(editor.document.uri);
         return;
     }
 
