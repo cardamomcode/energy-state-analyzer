@@ -43,11 +43,13 @@ export const KOTLIN: LanguageAdapter = {
         return node?.type === 'function_declaration';
     },
     parameterChildTypes: ['parameter'],
-    decisionNodeTypes: [
-        'if_expression', 'for_statement', 'while_statement', 'when_expression', 'catch_block'
-    ],
+    decisionNodeTypes: ['if_expression', 'for_statement', 'while_statement', 'when_expression', 'catch_block'],
     cognitiveNestedDecisionTypes: [
-        'if_expression', 'for_statement', 'while_statement', 'when_expression', 'catch_block'
+        'if_expression',
+        'for_statement',
+        'while_statement',
+        'when_expression',
+        'catch_block'
     ],
     nestingControlTypes: ['if_expression', 'for_statement', 'while_statement', 'try_expression'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
@@ -134,9 +136,7 @@ export const KOTLIN: LanguageAdapter = {
         }
         const siblings = parent.children ?? [];
         const index = siblings.findIndex((c: any) => c.id === node.id);
-        return index >= 2
-            && siblings[index - 1]?.type === '='
-            && siblings[index - 2]?.type === 'parameter';
+        return index >= 2 && siblings[index - 1]?.type === '=' && siblings[index - 2]?.type === 'parameter';
     },
     // decision: true/false have no dedicated literal node in this grammar — they lex as plain
     // `identifier` tokens (verified: no boolean_literal rule exists). Safe to key off text since
@@ -168,8 +168,11 @@ export const KOTLIN: LanguageAdapter = {
             return false;
         }
         const modifiers = node.children?.find((c: any) => c.type === 'modifiers');
-        return modifiers?.children?.some((modifier: any) =>
-            modifier.type === 'property_modifier'
-            && modifier.children?.some((c: any) => c.type === 'const')) ?? false;
+        return (
+            modifiers?.children?.some(
+                (modifier: any) =>
+                    modifier.type === 'property_modifier' && modifier.children?.some((c: any) => c.type === 'const')
+            ) ?? false
+        );
     }
 };

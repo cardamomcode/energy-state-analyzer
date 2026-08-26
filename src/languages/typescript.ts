@@ -35,11 +35,19 @@ export const TYPESCRIPT: LanguageAdapter = {
     },
     parameterChildTypes: ['required_parameter', 'optional_parameter'],
     decisionNodeTypes: [
-        'if_statement', 'for_statement', 'for_in_statement', 'while_statement',
-        'catch_clause', 'ternary_expression'
+        'if_statement',
+        'for_statement',
+        'for_in_statement',
+        'while_statement',
+        'catch_clause',
+        'ternary_expression'
     ],
     cognitiveNestedDecisionTypes: [
-        'if_statement', 'for_statement', 'for_in_statement', 'while_statement', 'catch_clause'
+        'if_statement',
+        'for_statement',
+        'for_in_statement',
+        'while_statement',
+        'catch_clause'
     ],
     nestingControlTypes: ['if_statement', 'for_statement', 'for_in_statement', 'while_statement', 'try_statement'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
@@ -123,8 +131,10 @@ export const TYPESCRIPT: LanguageAdapter = {
         if (parent?.type !== 'required_parameter' && parent?.type !== 'optional_parameter') {
             return false;
         }
-        return parent.children?.some((c: any) => c.type === '=')
-            && parent.children?.[parent.children.length - 1]?.id === node.id;
+        return (
+            parent.children?.some((c: any) => c.type === '=') &&
+            parent.children?.[parent.children.length - 1]?.id === node.id
+        );
     },
     isBooleanLiteral(node: any): boolean {
         return node?.type === 'true' || node?.type === 'false';

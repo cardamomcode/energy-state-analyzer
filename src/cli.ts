@@ -18,7 +18,16 @@ import { printUsage, runDiff, runLegacySingleFile, runScan, ReportFormat } from 
 // decision: every flag recognized here (including --base-ref/--report) takes exactly one
 // value, so a positional path list can be recovered by skipping each `--flag value` pair
 // rather than needing a real argument-parsing library
-const VALUE_FLAGS = ['base-ref', 'report', 'medium-nesting', 'high-nesting', 'medium-cyclomatic', 'high-cyclomatic', 'medium-cognitive', 'high-cognitive'];
+const VALUE_FLAGS = [
+    'base-ref',
+    'report',
+    'medium-nesting',
+    'high-nesting',
+    'medium-cyclomatic',
+    'high-cyclomatic',
+    'medium-cognitive',
+    'high-cognitive'
+];
 
 function parseArgs(argv: string[]) {
     const paths: string[] = [];
@@ -46,7 +55,7 @@ function parseArgs(argv: string[]) {
     return {
         paths,
         baseRef: flag('base-ref'),
-        report: (flag('report') as ReportFormat | undefined),
+        report: flag('report') as ReportFormat | undefined,
         nesting: {
             mediumThreshold: numberFlag('medium-nesting'),
             highThreshold: numberFlag('high-nesting')
@@ -68,7 +77,10 @@ type ThresholdOverride = { mediumThreshold?: number; highThreshold?: number };
 // analyzeSource already falls back to each detector's own DEFAULT_*_THRESHOLDS when its entry is
 // undefined, so resolving the default here too would just be a second place that default could
 // drift out of sync with the detector module that owns it
-function resolveThresholdOverride<T extends ThresholdOverride>(override: ThresholdOverride, defaults: T): T | undefined {
+function resolveThresholdOverride<T extends ThresholdOverride>(
+    override: ThresholdOverride,
+    defaults: T
+): T | undefined {
     if (override.mediumThreshold === undefined && override.highThreshold === undefined) {
         return undefined;
     }
@@ -102,7 +114,12 @@ async function main(): Promise<void> {
         process.exit(2);
     }
 
-    if (parsed.paths.length === 1 && fs.existsSync(parsed.paths[0]) && fs.statSync(parsed.paths[0]).isFile() && !parsed.report) {
+    if (
+        parsed.paths.length === 1 &&
+        fs.existsSync(parsed.paths[0]) &&
+        fs.statSync(parsed.paths[0]).isFile() &&
+        !parsed.report
+    ) {
         await runLegacySingleFile(parsed.paths[0], thresholds);
         return;
     }
@@ -110,7 +127,7 @@ async function main(): Promise<void> {
     await runScan(parsed.paths, thresholds, reportFormat);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error('energy-state-cli failed:', error);
     process.exit(1);
 });

@@ -50,8 +50,11 @@ export function analyzeMagicStrings(
         // decision: compares node identity by `.id`, not `===` — web-tree-sitter mints a fresh
         // JS wrapper object on every `.children`/`.parent` access, so two accessors that reach
         // the same underlying tree node are not reference-equal even though `.id` matches
-        return candidates.some(candidate =>
-            language.getEqualityComparisons(candidate).some(({ left, right }) => left.id === node.id || right.id === node.id));
+        return candidates.some((candidate) =>
+            language
+                .getEqualityComparisons(candidate)
+                .some(({ left, right }) => left.id === node.id || right.id === node.id)
+        );
     }
 
     function isMembershipOperand(node: any, content: string): boolean {
@@ -71,13 +74,18 @@ export function analyzeMagicStrings(
     }
 
     function isExempt(node: any, content: string): boolean {
-        return isDocstring(node)
-            || language.isFormattedOrInterpolatedString(node)
-            || options.allowlist.includes(content)
-            || content.length <= 1;
+        return (
+            isDocstring(node) ||
+            language.isFormattedOrInterpolatedString(node) ||
+            options.allowlist.includes(content) ||
+            content.length <= 1
+        );
     }
 
-    interface Candidate { node: any; content: string; }
+    interface Candidate {
+        node: any;
+        content: string;
+    }
     const candidates: Candidate[] = [];
 
     function traverse(node: any) {

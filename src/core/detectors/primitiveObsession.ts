@@ -23,7 +23,11 @@ interface TypedParam {
 // swap risk even past a keyword-only boundary (a caller building the dict by
 // hand can still transpose the values) — not worth detecting, left undocumented
 // in code but called out here for future readers.
-function findParameterCollisions(paramsNode: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+function findParameterCollisions(
+    paramsNode: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
     let keywordOnly = false;
     const typed: TypedParam[] = [];
@@ -70,7 +74,11 @@ function stripQuotes(text: string): string {
 // assumption: scoped to one function body at a time — the same variable name reused
 // across unrelated functions (e.g. two functions both naming a parameter `status`) does
 // not accumulate into a single false positive
-function findStringlyTypedControlFlow(functionNode: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+function findStringlyTypedControlFlow(
+    functionNode: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const { nodeTypes } = language;
     const valuesByVariable = new Map<string, Set<string>>();
     const firstOccurrence = new Map<string, any>();
@@ -86,7 +94,7 @@ function findStringlyTypedControlFlow(functionNode: any, positions: PositionLook
             firstOccurrence.set(key, varNode);
         }
         const set = valuesByVariable.get(key)!;
-        values.forEach(v => set.add(v));
+        values.forEach((v) => set.add(v));
     }
 
     function traverse(node: any) {
@@ -133,7 +141,11 @@ function findStringlyTypedControlFlow(functionNode: any, positions: PositionLook
 // primitiveTypeNames, getEqualityComparisons, getMembershipComparisons,
 // variableReferenceNodeTypes), so Python/TypeScript/F# all run the same
 // traversal logic below.
-export function analyzePrimitiveObsession(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzePrimitiveObsession(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {

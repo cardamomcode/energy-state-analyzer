@@ -71,12 +71,12 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register event listeners
         vscode.window.onDidChangeActiveTextEditor(() => void analyzeActiveEditor());
         // tradeoff: re-parses and re-runs every detector on every keystroke rather than debouncing — keeps decorations and Problems-panel entries always in sync with the visible buffer, at the cost of re-analysis work the user never sees skipped
-        vscode.workspace.onDidChangeTextDocument(event => {
+        vscode.workspace.onDidChangeTextDocument((event) => {
             if (event.document === vscode.window.activeTextEditor?.document) {
                 void analyzeActiveEditor();
             }
         });
-        vscode.workspace.onDidChangeConfiguration(event => {
+        vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration('energyStateAnalyzer.colors')) {
                 disposeDecorations();
                 createDecorations();
@@ -87,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
         });
 
         // Clear diagnostics when document is closed
-        vscode.workspace.onDidCloseTextDocument(document => {
+        vscode.workspace.onDidCloseTextDocument((document) => {
             if (document.languageId in LANGUAGES) {
                 diagnosticsCollection.delete(document.uri);
             }
@@ -97,7 +97,6 @@ export async function activate(context: vscode.ExtensionContext) {
         void analyzeActiveEditor();
 
         console.log('✅ Energy State Analyzer activated successfully!');
-
     } catch (error) {
         console.error('Failed to activate Energy State Analyzer:', error);
         vscode.window.showErrorMessage(`Energy State Analyzer failed to activate: ${error}`);
@@ -106,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 // Increasing alpha steps for the complexity heatmap bands, darkest last. Not user-configurable
 // — see the `decision:` note at their only use site in createDecorations.
-const HEAT_BAND_ALPHAS = [0.10, 0.18, 0.28, 0.42];
+const HEAT_BAND_ALPHAS = [0.1, 0.18, 0.28, 0.42];
 
 const HEX_RADIX = 16;
 const HEX_CHANNEL_WIDTH = 2;
@@ -153,7 +152,7 @@ function createDecorations() {
 
     // decision: complexity heat bands carry no gutter icon — the function-level violation decoration already owns the gutter icon for that line range, so these bands only paint background intensity
     // decision: heat bands derive from the same highEnergy color as the gutter icon (four increasing alpha steps) instead of a separate setting, so the heatmap and the violation it belongs to always match — kept as a fixed constant rather than a config option for the same reason
-    complexityHeatDecorations = HEAT_BAND_ALPHAS.map(alpha =>
+    complexityHeatDecorations = HEAT_BAND_ALPHAS.map((alpha) =>
         vscode.window.createTextEditorDecorationType({
             backgroundColor: hexToRgba(colors.highEnergy, alpha, DEFAULT_ENERGY_COLORS.highEnergy)
         })
@@ -164,7 +163,7 @@ function disposeDecorations() {
     highEnergyDecoration?.dispose();
     mediumEnergyDecoration?.dispose();
     lowEnergyDecoration?.dispose();
-    complexityHeatDecorations?.forEach(decoration => decoration.dispose());
+    complexityHeatDecorations?.forEach((decoration) => decoration.dispose());
 }
 
 // Create lightning bolt icon for energy violations
@@ -178,7 +177,6 @@ function createLightningIcon(color: string): vscode.Uri {
     const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
     return vscode.Uri.parse(dataUri);
 }
-
 
 // Loads and caches a language's grammar on first use, keyed by vscode languageId.
 // decision: caches the in-flight load promise too, not just the settled result — without
@@ -302,7 +300,11 @@ function applyDecorations(editor: vscode.TextEditor, violations: EnergyViolation
         if (violation.type === VIOLATION_TYPE.COHERENCE) {
             // Highlight entire first line for file-level issues
             range = new vscode.Range(violation.line, 0, violation.line, line.text.length);
-        } else if (violation.type === VIOLATION_TYPE.NESTING || violation.type === VIOLATION_TYPE.COMPLEXITY || violation.type === VIOLATION_TYPE.COGNITIVE) {
+        } else if (
+            violation.type === VIOLATION_TYPE.NESTING ||
+            violation.type === VIOLATION_TYPE.COMPLEXITY ||
+            violation.type === VIOLATION_TYPE.COGNITIVE
+        ) {
             // Highlight from function start to end of line
             const functionStart = line.text.search(/\S/); // Find first non-whitespace
             range = new vscode.Range(violation.line, functionStart, violation.line, line.text.length);
@@ -346,7 +348,7 @@ function computeHeatByLine(violations: EnergyViolation[]): Map<number, number> {
             continue;
         }
 
-        const maxWeight = Math.max(...violation.hotspots.map(hotspot => hotspot.weight));
+        const maxWeight = Math.max(...violation.hotspots.map((hotspot) => hotspot.weight));
         if (maxWeight <= 0) {
             continue;
         }
@@ -426,26 +428,22 @@ function groupViolationsByLine(violations: EnergyViolation[]): Map<number, Energ
 
 function buildLineDiagnostic(group: EnergyViolation[]): vscode.Diagnostic {
     // Sort so the highest-severity, then earliest-column violation leads the combined message
-    const bySeverityThenColumn = [...group].sort((a, b) =>
-        toDiagnosticSeverity(a.severity) - toDiagnosticSeverity(b.severity) || a.column - b.column
+    const bySeverityThenColumn = [...group].sort(
+        (a, b) => toDiagnosticSeverity(a.severity) - toDiagnosticSeverity(b.severity) || a.column - b.column
     );
     const lead = bySeverityThenColumn[0];
 
     // decision: uses a fixed-width range for every diagnostic regardless of violation type — the Problems panel only needs a clickable location, unlike applyDecorations' editor highlight which must visually match the flagged construct
-    const range = new vscode.Range(
-        lead.line, lead.column,
-        lead.line, lead.column + DIAGNOSTIC_RANGE_WIDTH
-    );
+    const range = new vscode.Range(lead.line, lead.column, lead.line, lead.column + DIAGNOSTIC_RANGE_WIDTH);
 
-    const message = bySeverityThenColumn.length === 1
-        ? lead.message
-        : bySeverityThenColumn.map(v => v.message).join(' | ');
+    const message =
+        bySeverityThenColumn.length === 1 ? lead.message : bySeverityThenColumn.map((v) => v.message).join(' | ');
 
     const diagnostic = new vscode.Diagnostic(range, message, toDiagnosticSeverity(lead.severity));
     diagnostic.source = 'Energy State Analyzer';
-    diagnostic.code = bySeverityThenColumn.map(v => `energy-${v.type}`).join(',');
+    diagnostic.code = bySeverityThenColumn.map((v) => `energy-${v.type}`).join(',');
 
-    const tags = bySeverityThenColumn.flatMap(v => tagsForViolationType(v.type));
+    const tags = bySeverityThenColumn.flatMap((v) => tagsForViolationType(v.type));
     if (tags.length > 0) {
         diagnostic.tags = tags;
     }

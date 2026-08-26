@@ -30,7 +30,19 @@ export interface ComplexityHotspot {
 export interface EnergyViolation {
     line: number;
     column: number;
-    type: 'nesting' | 'complexity' | 'cognitive' | 'naming' | 'coherence' | 'magic' | 'parameters' | 'inversion' | 'primitive-obsession' | 'match-opportunity' | 'logical-control-flow' | 'opaque-boolean';
+    type:
+        | 'nesting'
+        | 'complexity'
+        | 'cognitive'
+        | 'naming'
+        | 'coherence'
+        | 'magic'
+        | 'parameters'
+        | 'inversion'
+        | 'primitive-obsession'
+        | 'match-opportunity'
+        | 'logical-control-flow'
+        | 'opaque-boolean';
     severity: 'low' | 'medium' | 'high';
     message: string;
     hotspots?: ComplexityHotspot[];

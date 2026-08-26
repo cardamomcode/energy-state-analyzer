@@ -3,7 +3,11 @@ import { PositionLookup } from '../position';
 import { LanguageAdapter } from '../language';
 
 // The "Inversion Opportunity" detector - finds patterns that could benefit from early returns
-export function analyzeInversionOpportunities(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzeInversionOpportunities(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
     const { nodeTypes } = language;
 
@@ -24,10 +28,14 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
         // function_declaration wraps its block in an intermediate function_body node
         // (function_declaration -> function_body -> block), unlike Python/TS/F# where the block
         // (or its equivalent) sits directly under the function node
-        const body = functionNode.children.find((child: any) => child.type === nodeTypes.block)
-            ?? functionNode.children.flatMap((child: any) => child.children ?? [])
+        const body =
+            functionNode.children.find((child: any) => child.type === nodeTypes.block) ??
+            functionNode.children
+                .flatMap((child: any) => child.children ?? [])
                 .find((child: any) => child.type === nodeTypes.block);
-        if (!body) { return; }
+        if (!body) {
+            return;
+        }
 
         // Look for patterns that could benefit from inversion
         //
@@ -36,8 +44,8 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
         // tokens in .children, and those pass a text?.trim() check same as a real statement would.
         // Without this, `statements[0]` on such grammars is always the '{' token, never the
         // function's actual first statement, so Pattern 1 below can never match.
-        const statements = body.children.filter((child: any) =>
-            child.isNamed && child.type !== nodeTypes.comment && child.text?.trim()
+        const statements = body.children.filter(
+            (child: any) => child.isNamed && child.type !== nodeTypes.comment && child.text?.trim()
         );
 
         // Pattern 1: Single large if-statement dominating the function
@@ -89,9 +97,8 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
             // detector on its own source: a sibling for-of loop went unseen by the old filter,
             // making its lone if-sibling look like the only statement in this body and get
             // mistaken for a validation-chain step)
-            const statements = currentNode.children?.filter((child: any) =>
-                language.nestingControlTypes.includes(child.type)
-            ) || [];
+            const statements =
+                currentNode.children?.filter((child: any) => language.nestingControlTypes.includes(child.type)) || [];
 
             if (statements.length === 1 && statements[0].type === nodeTypes.ifStatement) {
                 const ifStatement = statements[0];
@@ -106,8 +113,8 @@ export function analyzeInversionOpportunities(tree: any, positions: PositionLook
                 // plain (non-if) else this way — pre-existing, not a regression from this fallback.
                 const hasElse = nodeTypes.elseClause
                     ? ifStatement.children.some((child: any) => child.type === nodeTypes.elseClause)
-                    : ifStatement.children.filter((child: any) => child.type === nodeTypes.block).length > 1
-                        || ifStatement.children.some((child: any) => child.type === nodeTypes.ifStatement);
+                    : ifStatement.children.filter((child: any) => child.type === nodeTypes.block).length > 1 ||
+                      ifStatement.children.some((child: any) => child.type === nodeTypes.ifStatement);
                 if (!hasElse) {
                     const ifBody = ifStatement.children.find((child: any) => child.type === nodeTypes.block);
                     currentNode = ifBody;

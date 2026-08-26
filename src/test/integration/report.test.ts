@@ -1,25 +1,53 @@
 import * as assert from 'assert';
 
-import { classifyComplexityScore, classifyScore, complexityToScore, diffSummaries, renderDiffMarkdown, renderHumanReport, renderMarkdownReport, summarize, summarizeFile, FileResult } from '../../core/report';
+import {
+    classifyComplexityScore,
+    classifyScore,
+    complexityToScore,
+    diffSummaries,
+    renderDiffMarkdown,
+    renderHumanReport,
+    renderMarkdownReport,
+    summarize,
+    summarizeFile,
+    FileResult
+} from '../../core/report';
 import { EnergyViolation, SEVERITY, VIOLATION_TYPE } from '../../types';
 
-function violation(severity: 'low' | 'medium' | 'high', type: EnergyViolation['type'] = VIOLATION_TYPE.COMPLEXITY, message = 'test'): EnergyViolation {
+function violation(
+    severity: 'low' | 'medium' | 'high',
+    type: EnergyViolation['type'] = VIOLATION_TYPE.COMPLEXITY,
+    message = 'test'
+): EnergyViolation {
     return { line: 0, column: 0, type, severity, message };
 }
 
 function cyclomatic(value: number, severity: 'medium' | 'high' = 'medium') {
-    return violation(severity, VIOLATION_TYPE.COMPLEXITY, `High cyclomatic complexity: ${value}. Consider breaking down this function.`);
+    return violation(
+        severity,
+        VIOLATION_TYPE.COMPLEXITY,
+        `High cyclomatic complexity: ${value}. Consider breaking down this function.`
+    );
 }
 
 function cognitive(value: number, severity: 'medium' | 'high' = 'medium') {
-    return violation(severity, VIOLATION_TYPE.COGNITIVE, `High cognitive complexity: ${value}. This function is hard to read.`);
+    return violation(
+        severity,
+        VIOLATION_TYPE.COGNITIVE,
+        `High cognitive complexity: ${value}. This function is hard to read.`
+    );
 }
 
 suite('Integration: report (summarize/diff/render)', () => {
     test('summarizeFile scores by severity weight (1/4/9) and tallies counts/types', () => {
         const result: FileResult = {
             filePath: 'a.py',
-            violations: [violation(SEVERITY.LOW), violation(SEVERITY.MEDIUM), violation(SEVERITY.HIGH), violation(SEVERITY.HIGH)]
+            violations: [
+                violation(SEVERITY.LOW),
+                violation(SEVERITY.MEDIUM),
+                violation(SEVERITY.HIGH),
+                violation(SEVERITY.HIGH)
+            ]
         };
 
         const summary = summarizeFile(result);
@@ -74,7 +102,7 @@ suite('Integration: report (summarize/diff/render)', () => {
         ];
 
         const entries = diffSummaries(base, head);
-        const byPath = new Map(entries.map(e => [e.filePath, e]));
+        const byPath = new Map(entries.map((e) => [e.filePath, e]));
 
         assert.strictEqual(byPath.get('worse.py')?.status, 'worsened');
         assert.strictEqual(byPath.get('worse.py')?.delta, 9);
@@ -137,24 +165,46 @@ suite('Integration: report (renderHumanReport)', () => {
         const markdown = renderHumanReport([{ filePath: 'a.py', violations: [cyclomatic(34, 'high')] }]);
 
         assert.ok(markdown.includes('## a.py — High (score 7.8)'));
-        assert.ok(markdown.includes('**Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): complex, testing all paths is impractical.'));
+        assert.ok(
+            markdown.includes(
+                '**Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): complex, testing all paths is impractical.'
+            )
+        );
     });
 
     test('lists multiple complexity values worst-first and reports the worst in the score/label', () => {
         const markdown = renderHumanReport([{ filePath: 'a.py', violations: [cognitive(12), cognitive(60, 'high')] }]);
 
-        assert.ok(markdown.includes('**Cognitive complexity**: 2 functions score 60, 12 (worst: 60) — score 9.1 (Critical): effectively untestable.'));
+        assert.ok(
+            markdown.includes(
+                '**Cognitive complexity**: 2 functions score 60, 12 (worst: 60) — score 9.1 (Critical): effectively untestable.'
+            )
+        );
         assert.ok(markdown.includes('## a.py — Critical (score 9.1)'));
     });
 
     test('describes a non-complexity category by finding count and severity, with a static blurb', () => {
-        const markdown = renderHumanReport([{ filePath: 'a.py', violations: [violation('medium', VIOLATION_TYPE.PRIMITIVE_OBSESSION), violation('low', VIOLATION_TYPE.PRIMITIVE_OBSESSION)] }]);
+        const markdown = renderHumanReport([
+            {
+                filePath: 'a.py',
+                violations: [
+                    violation('medium', VIOLATION_TYPE.PRIMITIVE_OBSESSION),
+                    violation('low', VIOLATION_TYPE.PRIMITIVE_OBSESSION)
+                ]
+            }
+        ]);
 
-        assert.ok(markdown.includes('**Primitive obsession**: 2 findings (1 medium, 1 low) — adjacent same-typed values a caller could silently swap without the compiler noticing.'));
+        assert.ok(
+            markdown.includes(
+                '**Primitive obsession**: 2 findings (1 medium, 1 low) — adjacent same-typed values a caller could silently swap without the compiler noticing.'
+            )
+        );
     });
 
     test('falls back to a fixed severity-based score when there are no complexity violations', () => {
-        const markdown = renderHumanReport([{ filePath: 'a.py', violations: [violation('high', VIOLATION_TYPE.COHERENCE)] }]);
+        const markdown = renderHumanReport([
+            { filePath: 'a.py', violations: [violation('high', VIOLATION_TYPE.COHERENCE)] }
+        ]);
         assert.ok(markdown.includes('## a.py — High (score 7.5)'));
     });
 
@@ -174,7 +224,10 @@ suite('Integration: report (renderHumanReport)', () => {
             { filePath: 'severe.py', violations: [cyclomatic(60, 'high')] }
         ]);
 
-        assert.ok(markdown.indexOf('## severe.py') < markdown.indexOf('## mild.py'), 'the worse file should be listed first');
+        assert.ok(
+            markdown.indexOf('## severe.py') < markdown.indexOf('## mild.py'),
+            'the worse file should be listed first'
+        );
     });
 
     test('repo score is the maximum file score, not an average across files', () => {
@@ -183,12 +236,19 @@ suite('Integration: report (renderHumanReport)', () => {
             { filePath: 'one-severe.py', violations: [cyclomatic(60, 'high')] }
         ]);
 
-        assert.ok(markdown.includes('**Repo score: 9.1 (Critical)** — driven by the worst file in the scan, `one-severe.py`'));
-        assert.ok(!markdown.includes('Repo score: 0.8'), 'many-trivial.py alone would score 0.8 (Low) — the worse file must win, not an average of the two');
+        assert.ok(
+            markdown.includes('**Repo score: 9.1 (Critical)** — driven by the worst file in the scan, `one-severe.py`')
+        );
+        assert.ok(
+            !markdown.includes('Repo score: 0.8'),
+            'many-trivial.py alone would score 0.8 (Low) — the worse file must win, not an average of the two'
+        );
     });
 
     test('repo score falls back to a Low fixed score when no complexity violations exist anywhere', () => {
-        const markdown = renderHumanReport([{ filePath: 'a.py', violations: [violation('low', VIOLATION_TYPE.MAGIC)] }]);
+        const markdown = renderHumanReport([
+            { filePath: 'a.py', violations: [violation('low', VIOLATION_TYPE.MAGIC)] }
+        ]);
         assert.ok(markdown.includes('**Repo score: 2.0 (Low)** — driven by the worst file in the scan, `a.py`'));
     });
 

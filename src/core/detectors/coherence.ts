@@ -61,7 +61,10 @@ function collectFunctionsAndImports(tree: any, language: LanguageAdapter): { fun
     function traverse(node: any) {
         if (language.isFunctionDefinition(node)) {
             functions.push(node);
-        } else if (node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)) {
+        } else if (
+            node.isNamed &&
+            (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
+        ) {
             // decision: requires isNamed, not just a type match — Kotlin's import rule is
             // literally named `import`, which collides with the anonymous `import` keyword
             // token that is itself a child of every import node (node.type for an anonymous
@@ -92,7 +95,11 @@ const HIGH_IMPORT_COUNT_THRESHOLD = 15;
 
 // Flag files with too many unrelated functions (utils/helpers sprawl)
 // decision: lowers the flagging threshold from 12 to 8 functions when the filename itself signals a grab-bag module (util/helper/common) — the name is treated as a proxy for "already known to lack a single responsibility"
-function checkFunctionCountSprawl(functions: any[], fileName: string, thresholds: CoherenceThresholds): EnergyViolation | null {
+function checkFunctionCountSprawl(
+    functions: any[],
+    fileName: string,
+    thresholds: CoherenceThresholds
+): EnergyViolation | null {
     if (functions.length <= UTILS_FILE_FUNCTION_THRESHOLD) {
         return null;
     }
@@ -118,7 +125,7 @@ function checkFunctionCountSprawl(functions: any[], fileName: string, thresholds
 // Flag files with too many large functions, regardless of total function count - a module with
 // 30 small functions is fine, one with 6 sprawling ones isn't.
 function checkLargeFunctionSprawl(functions: any[], thresholds: CoherenceThresholds): EnergyViolation | null {
-    const largeFunctions = functions.filter(fn => lineCount(fn) > thresholds.largeFunctionLines);
+    const largeFunctions = functions.filter((fn) => lineCount(fn) > thresholds.largeFunctionLines);
     if (largeFunctions.length <= thresholds.maxLargeFunctions) {
         return null;
     }
@@ -127,7 +134,10 @@ function checkLargeFunctionSprawl(functions: any[], thresholds: CoherenceThresho
         line: 0,
         column: 0,
         type: VIOLATION_TYPE.COHERENCE,
-        severity: largeFunctions.length > thresholds.maxLargeFunctions * LARGE_FUNCTION_SEVERITY_MULTIPLIER ? SEVERITY.HIGH : SEVERITY.MEDIUM,
+        severity:
+            largeFunctions.length > thresholds.maxLargeFunctions * LARGE_FUNCTION_SEVERITY_MULTIPLIER
+                ? SEVERITY.HIGH
+                : SEVERITY.MEDIUM,
         message: `${largeFunctions.length} functions exceed ${thresholds.largeFunctionLines} lines. Large functions carry more complexity than function count alone suggests.`
     };
 }

@@ -28,19 +28,22 @@ suite('Integration: nesting (real code examples)', () => {
             const deep = findFunctionRange(sourceCode, 'flaggedDeepNesting');
             const severe = findFunctionRange(sourceCode, 'flaggedSevereNesting');
 
-            assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.NESTING).length, 0,
-                'shallow (2-level) nesting should not be flagged');
+            assert.strictEqual(
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.NESTING).length,
+                0,
+                'shallow (2-level) nesting should not be flagged'
+            );
 
-            const deepNesting = violationsIn(violations, deep).filter(v => v.type === VIOLATION_TYPE.NESTING);
+            const deepNesting = violationsIn(violations, deep).filter((v) => v.type === VIOLATION_TYPE.NESTING);
             assert.ok(deepNesting.length > 0, 'expected a nesting violation for the 5-level-deep function');
             assert.strictEqual(deepNesting[0].severity, SEVERITY.MEDIUM);
 
-            const severeNesting = violationsIn(violations, severe).filter(v => v.type === VIOLATION_TYPE.NESTING);
+            const severeNesting = violationsIn(violations, severe).filter((v) => v.type === VIOLATION_TYPE.NESTING);
             assert.ok(severeNesting.length > 0, 'expected a nesting violation for the 7-level-deep function');
             assert.strictEqual(severeNesting[severeNesting.length - 1].severity, SEVERITY.HIGH);
 
             const tryNested = findFunctionRange(sourceCode, 'flaggedTryNesting');
-            const tryNesting = violationsIn(violations, tryNested).filter(v => v.type === VIOLATION_TYPE.NESTING);
+            const tryNesting = violationsIn(violations, tryNested).filter((v) => v.type === VIOLATION_TYPE.NESTING);
             assert.ok(tryNesting.length > 0, 'expected a nesting violation for the 5-level-deep try/catch function');
         });
     }

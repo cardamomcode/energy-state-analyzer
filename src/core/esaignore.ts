@@ -18,11 +18,12 @@ export function loadIgnorePatterns(rootDir: string): string[] {
     if (!fs.existsSync(ignorePath)) {
         return [];
     }
-    return fs.readFileSync(ignorePath, 'utf8')
+    return fs
+        .readFileSync(ignorePath, 'utf8')
         .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.startsWith('#'))
-        .map(line => line.replace(/\/+$/, ''));
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('#'))
+        .map((line) => line.replace(/\/+$/, ''));
 }
 
 function matchesLiteralPattern(relPath: string, pattern: string): boolean {
@@ -35,7 +36,7 @@ function matchesLiteralPattern(relPath: string, pattern: string): boolean {
 function basenameGlobToRegExp(pattern: string): RegExp {
     const escaped = pattern
         .split('*')
-        .map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+        .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
         .join('.*');
     return new RegExp(`^${escaped}$`);
 }
@@ -49,7 +50,7 @@ export function isIgnored(absolutePath: string, rootDir: string, patterns: strin
     const relPath = path.relative(rootDir, absolutePath).split(path.sep).join('/');
     const basename = path.basename(absolutePath);
 
-    return patterns.some(pattern => pattern.includes('*')
-        ? basenameGlobToRegExp(pattern).test(basename)
-        : matchesLiteralPattern(relPath, pattern));
+    return patterns.some((pattern) =>
+        pattern.includes('*') ? basenameGlobToRegExp(pattern).test(basename) : matchesLiteralPattern(relPath, pattern)
+    );
 }

@@ -10,16 +10,22 @@ See `energy-state.md` for the original design doc (energy-state principle, plann
 
 ## Build Commands
 
+Commands are wrapped in a `Justfile`; run `just --list` to see all of them. Prefer these over calling `npm run` directly.
+
 ```bash
-npm run compile        # Build extension bundle via webpack (dev mode)
-npm run watch          # Webpack in watch mode
-npm run package        # Production build (minified, hidden source maps) — used by vscode:prepublish
-npm run lint           # ESLint over src/**/*.ts
-npm run compile-tests  # Compile src/test/*.ts to out/ via tsc
-npm run watch-tests    # Same, in watch mode
-npm run pretest        # compile-tests + compile + lint (run before test)
-npm test               # Runs out/test/runTest.js (VS Code extension test host)
+just install       # npm install
+just build         # Build extension bundle via webpack (dev mode)
+just watch         # Webpack in watch mode
+just lint          # ESLint over src/**/*.ts
+just format        # Format src/**/*.ts in place with Prettier
+just format-check  # Check formatting without writing changes (used by CI)
+just analyze       # Run the CLI's own analyzer over src/ (or `just analyze <path...>` for specific files/dirs)
+just test          # compile-tests + compile + lint, then run the VS Code extension test host
+just pack          # Production build + package into a .vsix via vsce
+just clean         # Remove build artifacts (dist, out, *.vsix)
 ```
+
+The underlying `npm run` scripts (`compile`, `watch`, `package`, `lint`, `format`, `format-check`, `compile-tests`, `watch-tests`, `pretest`, `test`, `analyze`) still work directly if you need finer control than the Justfile recipes give you.
 
 To run and debug the extension interactively, press `F5` in VS Code — this launches an Extension Development Host with the extension loaded, per `.vscode/launch.json`.
 
@@ -51,6 +57,12 @@ Follow the existing pattern: write an `analyze<Thing>(tree, document): EnergyVio
 - Webpack bundles `src/extension.ts` → `dist/extension.js` (CommonJS, `vscode` module treated as external).
 - `web-tree-sitter`'s own `tree-sitter.wasm` is copied into `dist/` via `CopyWebpackPlugin` (webpack.config.js); the per-language grammar WASMs in `grammars/` ship separately and are loaded at runtime by path, not bundled.
 - `tsconfig.json` targets ES2022/commonjs with `strict: true`.
+
+## Before Committing or Opening a PR
+
+Run `just format`, `just lint`, and `just analyze` (this project dogfoods its own analyzer over `src/`) before every commit or PR, and fix what they flag. Don't rely on CI to catch formatting, lint, or energy-state violations you could have caught locally.
+
+If satisfying `just analyze` on your change requires refactoring existing code (e.g. splitting a file to fix a coherence violation, extracting a function to fix complexity/nesting) rather than just the new code you're adding, do that refactor as its own preceding PR, merged before the PR with the actual change. Don't mix the two in one PR — a refactor bundled with a behavior change makes the diff hard to review and obscures what the change is actually about.
 
 ## Releasing
 

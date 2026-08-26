@@ -19,6 +19,18 @@ watch:
 lint:
     npm run lint
 
+# Format src/**/*.ts in place with Prettier
+format:
+    npm run format
+
+# Check formatting without writing changes (used by CI)
+format-check:
+    npm run format-check
+
+# Run the energy-state-analyzer CLI against local file(s)/dir(s), e.g. `just analyze src/extension.ts`
+analyze *paths="src":
+    npm run analyze -- {{paths}}
+
 # Compile tests, compile, lint, then run the VS Code extension test host
 test:
     npm run pretest

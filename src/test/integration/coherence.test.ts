@@ -25,7 +25,7 @@ suite('Integration: file coherence (real code examples)', () => {
             const violations = analyzeSource(sourceCode, tree, language, fixture);
             assertValidPositions(violations, sourceCode);
 
-            const hit = violations.find(v => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('exceed'));
+            const hit = violations.find((v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('exceed'));
             assert.ok(hit, 'expected a large-function coherence violation for 6 functions over 20 lines each');
         });
 
@@ -35,7 +35,9 @@ suite('Integration: file coherence (real code examples)', () => {
             const violations = analyzeSource(sourceCode, tree, language, fixture);
             assertValidPositions(violations, sourceCode);
 
-            const hit = violations.find(v => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('Import sprawl'));
+            const hit = violations.find(
+                (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('Import sprawl')
+            );
             assert.ok(hit, 'expected an import-sprawl coherence violation for 11 imports');
         });
 
@@ -45,7 +47,7 @@ suite('Integration: file coherence (real code examples)', () => {
             const violations = analyzeSource(sourceCode, tree, language, fixture);
             assertValidPositions(violations, sourceCode);
 
-            const hit = violations.filter(v => v.type === VIOLATION_TYPE.COHERENCE);
+            const hit = violations.filter((v) => v.type === VIOLATION_TYPE.COHERENCE);
             assert.strictEqual(hit.length, 0, `expected no coherence violations, got: ${JSON.stringify(hit)}`);
         });
     }

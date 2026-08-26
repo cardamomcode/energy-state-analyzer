@@ -48,9 +48,7 @@ export function summarizeFile(result: FileResult): FileSummary {
     }
 
     const score =
-        counts.low * SEVERITY_WEIGHT.low +
-        counts.medium * SEVERITY_WEIGHT.medium +
-        counts.high * SEVERITY_WEIGHT.high;
+        counts.low * SEVERITY_WEIGHT.low + counts.medium * SEVERITY_WEIGHT.medium + counts.high * SEVERITY_WEIGHT.high;
 
     return { filePath: result.filePath, score, counts, byType };
 }
@@ -75,22 +73,28 @@ export function hasBlockingViolations(counts: SeverityCounts): boolean {
 }
 
 export function renderMarkdownReport(summary: AggregateSummary): string {
-    const cleanCount = summary.files.filter(f => f.score === 0).length;
+    const cleanCount = summary.files.filter((f) => f.score === 0).length;
     const lines: string[] = [];
 
     lines.push('# Energy State Report');
     lines.push('');
-    lines.push(`**${summary.files.length} file${summary.files.length === 1 ? '' : 's'} scanned** — ${cleanCount} clean, ${summary.files.length - cleanCount} with violations`);
+    lines.push(
+        `**${summary.files.length} file${summary.files.length === 1 ? '' : 's'} scanned** — ${cleanCount} clean, ${summary.files.length - cleanCount} with violations`
+    );
     lines.push('');
     lines.push('| File | Score | High | Medium | Low |');
     lines.push('| --- | --- | --- | --- | --- |');
 
     for (const file of summary.files) {
-        lines.push(`| ${file.filePath} | ${file.score} | ${file.counts.high} | ${file.counts.medium} | ${file.counts.low} |`);
+        lines.push(
+            `| ${file.filePath} | ${file.score} | ${file.counts.high} | ${file.counts.medium} | ${file.counts.low} |`
+        );
     }
 
     lines.push('');
-    lines.push(`**Total score: ${summary.totalScore}** (${summary.totalCounts.high} high, ${summary.totalCounts.medium} medium, ${summary.totalCounts.low} low)`);
+    lines.push(
+        `**Total score: ${summary.totalScore}** (${summary.totalCounts.high} high, ${summary.totalCounts.medium} medium, ${summary.totalCounts.low} low)`
+    );
 
     return lines.join('\n');
 }

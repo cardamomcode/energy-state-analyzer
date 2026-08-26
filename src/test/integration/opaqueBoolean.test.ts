@@ -21,27 +21,37 @@ suite('Integration: opaque boolean literal (real code examples)', () => {
             assertValidPositions(violations, sourceCode);
 
             const single = findFunctionRange(sourceCode, 'flaggedPositionalBoolean');
-            const singleHit = violationsIn(violations, single).filter(v => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN);
+            const singleHit = violationsIn(violations, single).filter((v) => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN);
             assert.strictEqual(singleHit.length, 1, 'a single positional boolean argument should be flagged once');
 
             const amongOthers = findFunctionRange(sourceCode, 'flaggedPositionalBooleanAmongOthers');
-            const amongOthersHit = violationsIn(violations, amongOthers).filter(v => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN);
-            assert.strictEqual(amongOthersHit.length, 1, 'a positional boolean alongside a non-boolean argument should still be flagged');
+            const amongOthersHit = violationsIn(violations, amongOthers).filter(
+                (v) => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN
+            );
+            assert.strictEqual(
+                amongOthersHit.length,
+                1,
+                'a positional boolean alongside a non-boolean argument should still be flagged'
+            );
 
-            const labeledFunctionName = label === 'TypeScript'
-                ? 'suppressedObjectLiteralField'
-                : label === 'Python'
-                    ? 'suppressedKeywordArgument'
-                    : 'suppressedNamedArgument';
+            const labeledFunctionName =
+                label === 'TypeScript'
+                    ? 'suppressedObjectLiteralField'
+                    : label === 'Python'
+                      ? 'suppressedKeywordArgument'
+                      : 'suppressedNamedArgument';
             const suppressedLabeled = findFunctionRange(sourceCode, labeledFunctionName);
             assert.strictEqual(
-                violationsIn(violations, suppressedLabeled).filter(v => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN).length, 0,
+                violationsIn(violations, suppressedLabeled).filter((v) => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN)
+                    .length,
+                0,
                 'a boolean labeled at the call site should not be flagged'
             );
 
             const nonCall = findFunctionRange(sourceCode, 'suppressedNonCallUsage');
             assert.strictEqual(
-                violationsIn(violations, nonCall).filter(v => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN).length, 0,
+                violationsIn(violations, nonCall).filter((v) => v.type === VIOLATION_TYPE.OPAQUE_BOOLEAN).length,
+                0,
                 'a boolean that is never a call argument should not be flagged'
             );
         });
