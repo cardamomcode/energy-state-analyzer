@@ -10,6 +10,7 @@ import { analyzeSource, AnalyzeThresholds } from './core/analyze';
 import { LanguageAdapter } from './core/language';
 import { resolveLanguageForFile } from './languages';
 import { resolveSupportedFiles } from './core/scan';
+import { isIgnored, loadIgnorePatterns } from './core/esaignore';
 import { FileResult, FileSummary, hasBlockingViolations, renderDiffMarkdown, renderHumanReport, renderMarkdownReport, summarize, summarizeFile, diffSummaries } from './core/report';
 import { EnergyViolation, SEVERITY } from './types';
 
@@ -115,8 +116,11 @@ function readAtRef(ref: string, filePath: string): string | null {
 }
 
 export async function runDiff(baseRef: string, explicitPaths: string[], thresholds: AnalyzeThresholds, reportFormat: ReportFormat): Promise<void> {
+    const rootDir = process.cwd();
+    const ignorePatterns = loadIgnorePatterns(rootDir);
     const changedFiles = (explicitPaths.length > 0 ? explicitPaths : changedFilesFromGit(baseRef))
-        .filter(filePath => resolveLanguageForFile(filePath) && fs.existsSync(filePath));
+        .filter(filePath => resolveLanguageForFile(filePath) && fs.existsSync(filePath))
+        .filter(filePath => !isIgnored(path.resolve(filePath), rootDir, ignorePatterns));
 
     const headSummaries: FileSummary[] = [];
     const baseSummaries: FileSummary[] = [];

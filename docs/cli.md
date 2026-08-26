@@ -49,6 +49,19 @@ npx energy-state-analyzer src --report md
 
 Only one glob shape is supported: a trailing `**/*.ext` pattern on an otherwise literal directory prefix (e.g. `src/**/*.py`). There's no brace expansion, negation, or mid-path wildcards, pass explicit directories/files for anything more complex.
 
+### Excluding files and folders: `.esaignore`
+
+Add a `.esaignore` file next to where you run the CLI (or the extension's workspace root) to exclude paths from both `--report`/scan mode and `--base-ref` diff mode. One pattern per line:
+
+```
+# comment
+src/test/fixtures     # a literal path — matches it and everything under it
+generated             # a bare name with no '/' matches at any depth
+*.generated.ts        # a basename glob
+```
+
+This isn't a full `.gitignore` engine: no negation, no `**`, no brace expansion — just literal path/prefix matches and single-segment basename globs. A richer, TOML-based config file (`.esaconfig.toml`) covering ignore patterns plus other project-wide settings is a likely follow-up.
+
 ### A report for humans: `--report human`
 
 `--report md`/`--report json` are compact, built for scripts and PR comments. `--report human` produces a longer, prose-and-tables report meant to be read by a person auditing a repo or subtree: a section per flagged file, each with its findings translated into plain language, followed by a repo-wide "Total evaluation":
