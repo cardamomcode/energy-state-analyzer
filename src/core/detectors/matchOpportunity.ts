@@ -35,10 +35,13 @@ function collectChainBranches(ifNode: any, language: LanguageAdapter): any[] {
     let current = ifNode;
     while (true) {
         const nestedIf = language.nodeTypes.elseClause
-            ? current.children?.find((c: any) => c.type === language.nodeTypes.elseClause)
-                ?.children?.find((c: any) => c.type === language.nodeTypes.ifStatement)
+            ? current.children
+                  ?.find((c: any) => c.type === language.nodeTypes.elseClause)
+                  ?.children?.find((c: any) => c.type === language.nodeTypes.ifStatement)
             : current.children?.find((c: any) => c.type === language.nodeTypes.ifStatement);
-        if (!nestedIf) { break; }
+        if (!nestedIf) {
+            break;
+        }
         branches.push(nestedIf);
         current = nestedIf;
     }
@@ -56,7 +59,11 @@ function collectChainBranches(ifNode: any, language: LanguageAdapter): any[] {
 // keeps that consistent at the cost of also scanning a branch's own
 // consequence when a grammar has no block wrapper (F#), matching the same
 // whole-subtree-scan tradeoff already accepted by primitiveObsession.ts
-function collectBranchDiscriminants(branchNode: any, otherBranches: Set<any>, language: LanguageAdapter): Array<{ variable: string; value: string }> {
+function collectBranchDiscriminants(
+    branchNode: any,
+    otherBranches: Set<any>,
+    language: LanguageAdapter
+): Array<{ variable: string; value: string }> {
     const { nodeTypes } = language;
     const found: Array<{ variable: string; value: string }> = [];
 
@@ -65,7 +72,11 @@ function collectBranchDiscriminants(branchNode: any, otherBranches: Set<any>, la
     }
 
     function isLiteral(node: any): boolean {
-        return node.type === nodeTypes.stringLiteral || node.type === nodeTypes.integerLiteral || node.type === nodeTypes.floatLiteral;
+        return (
+            node.type === nodeTypes.stringLiteral ||
+            node.type === nodeTypes.integerLiteral ||
+            node.type === nodeTypes.floatLiteral
+        );
     }
 
     function literalValue(node: any): string {
@@ -86,7 +97,7 @@ function collectBranchDiscriminants(branchNode: any, otherBranches: Set<any>, la
         }
         for (const { left, values } of language.getMembershipComparisons(node)) {
             if (isVariableRef(left)) {
-                values.forEach(value => found.push({ variable: left.text, value }));
+                values.forEach((value) => found.push({ variable: left.text, value }));
             }
         }
 
@@ -132,23 +143,23 @@ export function analyzeMatchOpportunities(
 
     function analyzeChain(topIfNode: any) {
         const branches = collectChainBranches(topIfNode, language);
-        branches.slice(1).forEach(branch => consumed.add(branch));
+        branches.slice(1).forEach((branch) => consumed.add(branch));
 
         if (branches.length < thresholds.minBranches) {
             return;
         }
 
-        const perBranchDiscriminants = branches.map(branch =>
-            collectBranchDiscriminants(branch, new Set(branches.filter(b => b !== branch)), language)
+        const perBranchDiscriminants = branches.map((branch) =>
+            collectBranchDiscriminants(branch, new Set(branches.filter((b) => b !== branch)), language)
         );
 
-        if (perBranchDiscriminants.some(discriminants => discriminants.length === 0)) {
+        if (perBranchDiscriminants.some((discriminants) => discriminants.length === 0)) {
             return;
         }
 
-        const candidateVariables = perBranchDiscriminants[0].map(d => d.variable);
-        const commonVariable = candidateVariables.find(variable =>
-            perBranchDiscriminants.every(discriminants => discriminants.some(d => d.variable === variable))
+        const candidateVariables = perBranchDiscriminants[0].map((d) => d.variable);
+        const commonVariable = candidateVariables.find((variable) =>
+            perBranchDiscriminants.every((discriminants) => discriminants.some((d) => d.variable === variable))
         );
         if (!commonVariable) {
             return;

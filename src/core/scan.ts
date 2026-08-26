@@ -7,7 +7,16 @@ import { isIgnored, loadIgnorePatterns } from './esaignore';
 // invariant: this module only touches the filesystem (fs/path) — no tree-sitter, no vscode,
 // no git — so it stays independently testable against src/test/fixtures
 
-const IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'dist', 'out', 'build', '.next', 'coverage', '.vscode-test']);
+const IGNORED_DIR_NAMES = new Set([
+    'node_modules',
+    '.git',
+    'dist',
+    'out',
+    'build',
+    '.next',
+    'coverage',
+    '.vscode-test'
+]);
 
 // decision: bundles rootDir + ignorePatterns rather than passing them as two adjacent
 // string/string[] parameters — they always travel together, and rootDir sitting next to
@@ -54,7 +63,7 @@ function expandGlobLike(pattern: string, ignore: IgnoreContext): string[] {
 
     const results: string[] = [];
     walkDirectory(prefixDir, ignore, results);
-    return extension ? results.filter(file => file.toLowerCase().endsWith(extension.toLowerCase())) : results;
+    return extension ? results.filter((file) => file.toLowerCase().endsWith(extension.toLowerCase())) : results;
 }
 
 // Expands file/directory/glob-like CLI arguments into a deduplicated, sorted list of
@@ -85,6 +94,6 @@ export function resolveSupportedFiles(inputs: string[], rootDir: string = proces
         }
     }
 
-    const absolute = results.map(file => path.resolve(file));
+    const absolute = results.map((file) => path.resolve(file));
     return Array.from(new Set(absolute)).sort();
 }

@@ -188,6 +188,8 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format-check": "prettier --check \"src/**/*.ts\"",
     "test": "vscode-test",
     "analyze": "node dist/cli.js",
     "license-check": "license-checker --production --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;Unlicense\" --excludePackages \"$npm_package_name@$npm_package_version\""
@@ -202,6 +204,7 @@
     "copy-webpack-plugin": "^14.0.0",
     "eslint": "^10.9.0",
     "license-checker": "^25.0.1",
+    "prettier": "^3.9.6",
     "ts-loader": "^9.4.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",

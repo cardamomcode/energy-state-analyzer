@@ -22,7 +22,11 @@ function buildViolation(node: any, positions: PositionLookup): EnergyViolation {
     };
 }
 
-export function analyzeOpaqueBooleanLiteral(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzeOpaqueBooleanLiteral(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {

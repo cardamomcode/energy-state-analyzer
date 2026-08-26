@@ -29,7 +29,7 @@ export async function parseFixture(language: LanguageAdapter, relativePath: stri
 // belongs to a specific example function without hardcoding exact line numbers.
 export function findFunctionRange(sourceCode: string, functionName: string): { start: number; end: number } {
     const lines = sourceCode.split('\n');
-    const start = lines.findIndex(line => line.includes(functionName));
+    const start = lines.findIndex((line) => line.includes(functionName));
     if (start === -1) {
         throw new Error(`fixture does not contain a function named '${functionName}'`);
     }
@@ -47,18 +47,22 @@ export function findFunctionRange(sourceCode: string, functionName: string): { s
 }
 
 export function violationsIn(violations: EnergyViolation[], range: { start: number; end: number }): EnergyViolation[] {
-    return violations.filter(v => v.line >= range.start && v.line <= range.end);
+    return violations.filter((v) => v.line >= range.start && v.line <= range.end);
 }
 
 export function assertValidPositions(violations: EnergyViolation[], sourceCode: string): void {
     const assert = require('assert');
     const lineCount = sourceCode.split('\n').length;
     for (const violation of violations) {
-        assert.ok(violation.line >= 0 && violation.line < lineCount,
-            `violation line ${violation.line} out of range for a ${lineCount}-line file (${violation.message})`);
+        assert.ok(
+            violation.line >= 0 && violation.line < lineCount,
+            `violation line ${violation.line} out of range for a ${lineCount}-line file (${violation.message})`
+        );
         assert.ok(violation.column >= 0, `violation column ${violation.column} should be non-negative`);
-        assert.ok(Object.values(VIOLATION_TYPE).includes(violation.type as any),
-            `unknown violation type: ${violation.type}`);
+        assert.ok(
+            Object.values(VIOLATION_TYPE).includes(violation.type as any),
+            `unknown violation type: ${violation.type}`
+        );
     }
     assert.doesNotThrow(() => JSON.stringify(violations));
 }

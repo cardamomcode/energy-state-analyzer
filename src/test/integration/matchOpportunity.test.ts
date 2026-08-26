@@ -23,12 +23,17 @@ suite('Integration: match opportunities (real code examples)', () => {
             const clean = findFunctionRange(sourceCode, 'cleanMixedConditions');
             const chain = findFunctionRange(sourceCode, 'flaggedThreeWayChain');
 
-            assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY).length, 0,
-                'an if/elif chain branching on different variables should not be flagged');
+            assert.strictEqual(
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY).length,
+                0,
+                'an if/elif chain branching on different variables should not be flagged'
+            );
 
-            const chainHit = violationsIn(violations, chain).filter(v => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
-            assert.ok(chainHit.some(v => v.message.includes('status')),
-                'expected a match-opportunity violation for the 3-way chain on status');
+            const chainHit = violationsIn(violations, chain).filter((v) => v.type === VIOLATION_TYPE.MATCH_OPPORTUNITY);
+            assert.ok(
+                chainHit.some((v) => v.message.includes('status')),
+                'expected a match-opportunity violation for the 3-way chain on status'
+            );
         });
     }
 });

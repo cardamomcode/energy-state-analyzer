@@ -28,13 +28,30 @@ export const PYTHON: LanguageAdapter = {
     },
     parameterChildTypes: ['identifier', 'default_parameter'],
     decisionNodeTypes: [
-        'if_statement', 'elif_clause', 'while_statement', 'for_statement',
-        'except_clause', 'conditional_expression', 'match_statement'
+        'if_statement',
+        'elif_clause',
+        'while_statement',
+        'for_statement',
+        'except_clause',
+        'conditional_expression',
+        'match_statement'
     ],
     cognitiveNestedDecisionTypes: [
-        'if_statement', 'elif_clause', 'for_statement', 'while_statement', 'except_clause', 'match_statement'
+        'if_statement',
+        'elif_clause',
+        'for_statement',
+        'while_statement',
+        'except_clause',
+        'match_statement'
     ],
-    nestingControlTypes: ['if_statement', 'for_statement', 'while_statement', 'with_statement', 'try_statement', 'match_statement'],
+    nestingControlTypes: [
+        'if_statement',
+        'for_statement',
+        'while_statement',
+        'with_statement',
+        'try_statement',
+        'match_statement'
+    ],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'boolean_operator') {
             return null;
@@ -130,8 +147,11 @@ export const PYTHON: LanguageAdapter = {
         // JS wrapper object on every `.children`/`.parent` access, so two accessors that reach
         // the same underlying tree node are not reference-equal even though `.id` matches
         const parent = node?.parent;
-        if (parent?.type === 'binary_operator' && parent.children?.[0]?.id === node.id
-            && parent.children?.some((c: any) => c.type === '%')) {
+        if (
+            parent?.type === 'binary_operator' &&
+            parent.children?.[0]?.id === node.id &&
+            parent.children?.some((c: any) => c.type === '%')
+        ) {
             // "%s" % value
             return true;
         }
@@ -145,8 +165,10 @@ export const PYTHON: LanguageAdapter = {
     },
     isDefaultParameterValue(node: any): boolean {
         const parent = node?.parent;
-        return (parent?.type === 'default_parameter' || parent?.type === 'typed_default_parameter')
-            && parent.children?.[parent.children.length - 1]?.id === node.id;
+        return (
+            (parent?.type === 'default_parameter' || parent?.type === 'typed_default_parameter') &&
+            parent.children?.[parent.children.length - 1]?.id === node.id
+        );
     },
     isBooleanLiteral(node: any): boolean {
         return node?.type === 'true' || node?.type === 'false';

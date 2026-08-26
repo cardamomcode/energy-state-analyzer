@@ -31,19 +31,18 @@ suite('Integration: scan (resolveSupportedFiles)', () => {
 
     test('recurses into directories and filters to supported extensions', () => {
         const files = resolveSupportedFiles([root]);
-        const relative = files.map(f => path.relative(root, f)).sort();
+        const relative = files.map((f) => path.relative(root, f)).sort();
 
-        assert.deepStrictEqual(relative, [
-            path.join('src', 'nested', 'inner.py'),
-            path.join('src', 'nested', 'inner.ts'),
-            'top.py'
-        ].sort());
+        assert.deepStrictEqual(
+            relative,
+            [path.join('src', 'nested', 'inner.py'), path.join('src', 'nested', 'inner.ts'), 'top.py'].sort()
+        );
     });
 
     test('skips node_modules, dist, and other ignored directory names', () => {
         const files = resolveSupportedFiles([root]);
-        assert.ok(!files.some(f => f.includes('node_modules')), 'node_modules should be skipped');
-        assert.ok(!files.some(f => f.includes(`${path.sep}dist${path.sep}`)), 'dist should be skipped');
+        assert.ok(!files.some((f) => f.includes('node_modules')), 'node_modules should be skipped');
+        assert.ok(!files.some((f) => f.includes(`${path.sep}dist${path.sep}`)), 'dist should be skipped');
     });
 
     test('accepts an explicit single file regardless of extension support', () => {
@@ -58,13 +57,13 @@ suite('Integration: scan (resolveSupportedFiles)', () => {
 
     test('supports a single trailing **/*.ext glob shape', () => {
         const files = resolveSupportedFiles([path.join(root, 'src', '**', '*.py')]);
-        const relative = files.map(f => path.relative(root, f)).sort();
+        const relative = files.map((f) => path.relative(root, f)).sort();
         assert.deepStrictEqual(relative, [path.join('src', 'nested', 'inner.py')]);
     });
 
     test('deduplicates and sorts results across overlapping inputs', () => {
         const files = resolveSupportedFiles([root, path.join(root, 'top.py')]);
-        const topOccurrences = files.filter(f => f === path.resolve(path.join(root, 'top.py')));
+        const topOccurrences = files.filter((f) => f === path.resolve(path.join(root, 'top.py')));
         assert.strictEqual(topOccurrences.length, 1, 'top.py should not be duplicated');
         assert.deepStrictEqual(files, [...files].sort(), 'results should be sorted');
     });

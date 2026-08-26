@@ -23,15 +23,20 @@ suite('Integration: logical operator as control flow (real code examples)', () =
             const orAsUnless = findFunctionRange(sourceCode, 'flaggedOrAsUnless');
 
             assert.strictEqual(
-                violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length, 0,
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length,
+                0,
                 'an explicit if-statement should not be flagged'
             );
 
-            const andHit = violationsIn(violations, andAsIf).filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW);
+            const andHit = violationsIn(violations, andAsIf).filter(
+                (v) => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW
+            );
             assert.ok(andHit.length > 0, "expected a logical-control-flow violation for '&&' used as a statement");
             assert.strictEqual(andHit[0].severity, SEVERITY.LOW);
 
-            const orHit = violationsIn(violations, orAsUnless).filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW);
+            const orHit = violationsIn(violations, orAsUnless).filter(
+                (v) => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW
+            );
             assert.ok(orHit.length > 0, "expected a logical-control-flow violation for '||' used as a statement");
             assert.strictEqual(orHit[0].severity, SEVERITY.LOW);
         });
@@ -43,7 +48,8 @@ suite('Integration: logical operator as control flow (real code examples)', () =
         assertValidPositions(violations, sourceCode);
 
         assert.strictEqual(
-            violations.filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length, 0,
+            violations.filter((v) => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length,
+            0,
             "F#'s LanguageAdapter has nodeTypes.expressionStatement: null, so this detector never fires for it"
         );
     });
@@ -54,7 +60,8 @@ suite('Integration: logical operator as control flow (real code examples)', () =
         assertValidPositions(violations, sourceCode);
 
         assert.strictEqual(
-            violations.filter(v => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length, 0,
+            violations.filter((v) => v.type === VIOLATION_TYPE.LOGICAL_CONTROL_FLOW).length,
+            0,
             "Kotlin's bare `a && b()` statement is a direct binary_expression child of block, with no expression_statement wrapper to key off, same gap as F#"
         );
     });

@@ -36,19 +36,36 @@ export const FSHARP: LanguageAdapter = {
         stringLiteral: 'string'
     },
     isFunctionDefinition(node: any): boolean {
-        return node?.type === 'function_or_value_defn'
-            && node.children?.some((child: any) => child.type === 'function_declaration_left');
+        return (
+            node?.type === 'function_or_value_defn' &&
+            node.children?.some((child: any) => child.type === 'function_declaration_left')
+        );
     },
     parameterChildTypes: ['long_identifier', 'typed_pattern'],
     decisionNodeTypes: [
-        'if_expression', 'elif_expression', 'for_expression', 'while_expression',
-        'try_expression', 'match_expression'
+        'if_expression',
+        'elif_expression',
+        'for_expression',
+        'while_expression',
+        'try_expression',
+        'match_expression'
     ],
     cognitiveNestedDecisionTypes: [
-        'if_expression', 'elif_expression', 'for_expression', 'while_expression',
-        'try_expression', 'match_expression'
+        'if_expression',
+        'elif_expression',
+        'for_expression',
+        'while_expression',
+        'try_expression',
+        'match_expression'
     ],
-    nestingControlTypes: ['if_expression', 'elif_expression', 'for_expression', 'while_expression', 'try_expression', 'match_expression'],
+    nestingControlTypes: [
+        'if_expression',
+        'elif_expression',
+        'for_expression',
+        'while_expression',
+        'try_expression',
+        'match_expression'
+    ],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'infix_expression') {
             return null;
@@ -104,9 +121,7 @@ export const FSHARP: LanguageAdapter = {
         const [left, rawRight] = operands;
         // Literals are wrapped in a `const` node; unwrap so callers can compare
         // .type against nodeTypes.stringLiteral directly, same as Python/TS.
-        const right = (rawRight.type === 'const' && rawRight.children?.length === 1)
-            ? rawRight.children[0]
-            : rawRight;
+        const right = rawRight.type === 'const' && rawRight.children?.length === 1 ? rawRight.children[0] : rawRight;
         return [{ left, right }];
     },
     // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks

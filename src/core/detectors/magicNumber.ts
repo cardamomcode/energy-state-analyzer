@@ -68,8 +68,11 @@ export function analyzeMagicNumbers(
                     // rule out an enclosing function definition somewhere further up
                     return !hasEnclosingFunction(parent);
                 }
-                if (nodeTypes.exportStatement && grandparent?.type === nodeTypes.exportStatement
-                    && grandparent.parent?.type === nodeTypes.module) {
+                if (
+                    nodeTypes.exportStatement &&
+                    grandparent?.type === nodeTypes.exportStatement &&
+                    grandparent.parent?.type === nodeTypes.module
+                ) {
                     return true;
                 }
             }
@@ -116,10 +119,11 @@ export function analyzeMagicNumbers(
             if (!Number.isNaN(rawValue)) {
                 const value = signedValue(node, rawValue);
 
-                const isExempt = options.allowlist.includes(value)
-                    || isInConstantContext(node)
-                    || isIndexPosition(node)
-                    || language.isDefaultParameterValue(node);
+                const isExempt =
+                    options.allowlist.includes(value) ||
+                    isInConstantContext(node) ||
+                    isIndexPosition(node) ||
+                    language.isDefaultParameterValue(node);
 
                 if (!isExempt) {
                     const position = positions.toPosition(node.startIndex);

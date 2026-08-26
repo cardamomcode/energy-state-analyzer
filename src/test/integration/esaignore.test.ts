@@ -53,11 +53,11 @@ suite('Integration: .esaignore', () => {
         fs.writeFileSync(path.join(root, '.esaignore'), 'src/fixtures\n');
 
         const files = resolveSupportedFiles([root], root);
-        const relative = files.map(f => path.relative(root, f)).sort();
+        const relative = files.map((f) => path.relative(root, f)).sort();
 
-        assert.deepStrictEqual(relative, [
-            path.join('src', 'real', 'good.generated.py'),
-            path.join('src', 'real', 'good.py')
-        ].sort());
+        assert.deepStrictEqual(
+            relative,
+            [path.join('src', 'real', 'good.generated.py'), path.join('src', 'real', 'good.py')].sort()
+        );
     });
 });

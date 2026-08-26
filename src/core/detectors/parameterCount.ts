@@ -20,7 +20,11 @@ export function findParametersNode(node: any, parametersType: string): any {
 }
 
 // The "Parameter Explosion" detector
-export function analyzeParameterCount(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzeParameterCount(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
 
     function traverse(node: any) {

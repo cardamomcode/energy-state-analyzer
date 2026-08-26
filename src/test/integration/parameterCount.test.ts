@@ -24,14 +24,17 @@ suite('Integration: parameter count (real code examples)', () => {
             const many = findFunctionRange(sourceCode, 'flaggedManyParams');
             const tooMany = findFunctionRange(sourceCode, 'flaggedTooManyParams');
 
-            assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.PARAMETERS).length, 0,
-                '2 parameters should not be flagged');
+            assert.strictEqual(
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.PARAMETERS).length,
+                0,
+                '2 parameters should not be flagged'
+            );
 
-            const manyHit = violationsIn(violations, many).filter(v => v.type === VIOLATION_TYPE.PARAMETERS);
+            const manyHit = violationsIn(violations, many).filter((v) => v.type === VIOLATION_TYPE.PARAMETERS);
             assert.ok(manyHit.length > 0, 'expected a parameter-explosion violation for 6 parameters');
             assert.strictEqual(manyHit[0].severity, SEVERITY.MEDIUM);
 
-            const tooManyHit = violationsIn(violations, tooMany).filter(v => v.type === VIOLATION_TYPE.PARAMETERS);
+            const tooManyHit = violationsIn(violations, tooMany).filter((v) => v.type === VIOLATION_TYPE.PARAMETERS);
             assert.ok(tooManyHit.length > 0, 'expected a parameter-explosion violation for 9 parameters');
             assert.strictEqual(tooManyHit[0].severity, SEVERITY.HIGH);
         });

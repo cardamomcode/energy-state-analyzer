@@ -10,7 +10,11 @@ import { analyzeMagicStrings, MagicStringOptions, DEFAULT_MAGIC_STRING_OPTIONS }
 import { analyzeParameterCount } from './detectors/parameterCount';
 import { analyzeInversionOpportunities } from './detectors/inversion';
 import { analyzePrimitiveObsession } from './detectors/primitiveObsession';
-import { analyzeMatchOpportunities, MatchOpportunityThresholds, DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS } from './detectors/matchOpportunity';
+import {
+    analyzeMatchOpportunities,
+    MatchOpportunityThresholds,
+    DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS
+} from './detectors/matchOpportunity';
 import { analyzeLogicalControlFlow } from './detectors/logicalControlFlow';
 import { analyzeOpaqueBooleanLiteral } from './detectors/opaqueBoolean';
 
@@ -44,15 +48,32 @@ export function analyzeSource(
     const violations: EnergyViolation[] = [];
 
     violations.push(...analyzeNesting(tree, positions, language, thresholds.nesting ?? DEFAULT_NESTING_THRESHOLDS));
-    violations.push(...analyzeFunctionComplexity(tree, positions, language, thresholds.cyclomatic ?? DEFAULT_CYCLOMATIC_THRESHOLDS));
-    violations.push(...analyzeCognitiveComplexity(tree, positions, language, thresholds.cognitive ?? DEFAULT_COGNITIVE_THRESHOLDS));
-    violations.push(...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS));
-    violations.push(...analyzeMagicNumbers(tree, positions, language, thresholds.magicNumber ?? DEFAULT_MAGIC_NUMBER_OPTIONS));
-    violations.push(...analyzeMagicStrings(tree, positions, language, thresholds.magicString ?? DEFAULT_MAGIC_STRING_OPTIONS));
+    violations.push(
+        ...analyzeFunctionComplexity(tree, positions, language, thresholds.cyclomatic ?? DEFAULT_CYCLOMATIC_THRESHOLDS)
+    );
+    violations.push(
+        ...analyzeCognitiveComplexity(tree, positions, language, thresholds.cognitive ?? DEFAULT_COGNITIVE_THRESHOLDS)
+    );
+    violations.push(
+        ...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS)
+    );
+    violations.push(
+        ...analyzeMagicNumbers(tree, positions, language, thresholds.magicNumber ?? DEFAULT_MAGIC_NUMBER_OPTIONS)
+    );
+    violations.push(
+        ...analyzeMagicStrings(tree, positions, language, thresholds.magicString ?? DEFAULT_MAGIC_STRING_OPTIONS)
+    );
     violations.push(...analyzeParameterCount(tree, positions, language));
     violations.push(...analyzeInversionOpportunities(tree, positions, language));
     violations.push(...analyzePrimitiveObsession(tree, positions, language));
-    violations.push(...analyzeMatchOpportunities(tree, positions, language, thresholds.matchOpportunity ?? DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS));
+    violations.push(
+        ...analyzeMatchOpportunities(
+            tree,
+            positions,
+            language,
+            thresholds.matchOpportunity ?? DEFAULT_MATCH_OPPORTUNITY_THRESHOLDS
+        )
+    );
     violations.push(...analyzeLogicalControlFlow(tree, positions, language));
     violations.push(...analyzeOpaqueBooleanLiteral(tree, positions, language));
 

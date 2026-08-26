@@ -11,16 +11,32 @@ import { LanguageAdapter } from './core/language';
 import { resolveLanguageForFile } from './languages';
 import { resolveSupportedFiles } from './core/scan';
 import { isIgnored, loadIgnorePatterns } from './core/esaignore';
-import { FileResult, FileSummary, hasBlockingViolations, renderDiffMarkdown, renderHumanReport, renderMarkdownReport, summarize, summarizeFile, diffSummaries } from './core/report';
+import {
+    FileResult,
+    FileSummary,
+    hasBlockingViolations,
+    renderDiffMarkdown,
+    renderHumanReport,
+    renderMarkdownReport,
+    summarize,
+    summarizeFile,
+    diffSummaries
+} from './core/report';
 import { EnergyViolation, SEVERITY } from './types';
 
 export type ReportFormat = 'json' | 'md' | 'human';
 
 export function printUsage(): void {
     console.error('Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]');
-    console.error('       energy-state-cli <path...> [--report json|md|human] [thresholds...]              (scan a directory/subtree)');
-    console.error('       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)');
-    console.error('Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N');
+    console.error(
+        '       energy-state-cli <path...> [--report json|md|human] [thresholds...]              (scan a directory/subtree)'
+    );
+    console.error(
+        '       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)'
+    );
+    console.error(
+        'Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N'
+    );
 }
 
 // decision: caches one parser instance per language adapter — scan/diff mode analyze many
@@ -41,7 +57,11 @@ async function loadParser(adapter: LanguageAdapter) {
     return parser;
 }
 
-async function analyzeFile(filePath: string, sourceCode: string, thresholds: AnalyzeThresholds): Promise<EnergyViolation[]> {
+async function analyzeFile(
+    filePath: string,
+    sourceCode: string,
+    thresholds: AnalyzeThresholds
+): Promise<EnergyViolation[]> {
     const adapter = resolveLanguageForFile(filePath);
     if (!adapter) {
         return [];
@@ -68,11 +88,15 @@ export async function runLegacySingleFile(filePath: string, thresholds: AnalyzeT
 
     console.log(JSON.stringify(violations, null, 2));
 
-    const hasBlockingViolation = violations.some(v => v.severity === SEVERITY.HIGH || v.severity === SEVERITY.MEDIUM);
+    const hasBlockingViolation = violations.some((v) => v.severity === SEVERITY.HIGH || v.severity === SEVERITY.MEDIUM);
     process.exit(hasBlockingViolation ? 1 : 0);
 }
 
-export async function runScan(paths: string[], thresholds: AnalyzeThresholds, reportFormat: ReportFormat): Promise<void> {
+export async function runScan(
+    paths: string[],
+    thresholds: AnalyzeThresholds,
+    reportFormat: ReportFormat
+): Promise<void> {
     const files = resolveSupportedFiles(paths);
     const results: FileResult[] = [];
 
@@ -97,8 +121,13 @@ export async function runScan(paths: string[], thresholds: AnalyzeThresholds, re
 }
 
 function changedFilesFromGit(baseRef: string): string[] {
-    const output = execFileSync('git', ['diff', '--name-only', '--diff-filter=d', `${baseRef}...HEAD`], { encoding: 'utf8' });
-    return output.split('\n').map(line => line.trim()).filter(Boolean);
+    const output = execFileSync('git', ['diff', '--name-only', '--diff-filter=d', `${baseRef}...HEAD`], {
+        encoding: 'utf8'
+    });
+    return output
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
 }
 
 // decision: returns null (not throwing) when the file doesn't exist at baseRef — a newly
@@ -108,19 +137,27 @@ function readAtRef(ref: string, filePath: string): string | null {
         // decision: pipes stderr instead of inheriting it — git's own "fatal: path ... exists
         // on disk, but not in <ref>" would otherwise print to the CLI's stderr on every new
         // file, duplicating (and outnumbering) our own, already-informative message below
-        return execFileSync('git', ['show', `${ref}:${filePath}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        return execFileSync('git', ['show', `${ref}:${filePath}`], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore']
+        });
     } catch (error) {
         console.error(`energy-state-cli: could not read ${filePath} at ${ref} (new file or rename) — treating as new`);
         return null;
     }
 }
 
-export async function runDiff(baseRef: string, explicitPaths: string[], thresholds: AnalyzeThresholds, reportFormat: ReportFormat): Promise<void> {
+export async function runDiff(
+    baseRef: string,
+    explicitPaths: string[],
+    thresholds: AnalyzeThresholds,
+    reportFormat: ReportFormat
+): Promise<void> {
     const rootDir = process.cwd();
     const ignorePatterns = loadIgnorePatterns(rootDir);
     const changedFiles = (explicitPaths.length > 0 ? explicitPaths : changedFilesFromGit(baseRef))
-        .filter(filePath => resolveLanguageForFile(filePath) && fs.existsSync(filePath))
-        .filter(filePath => !isIgnored(path.resolve(filePath), rootDir, ignorePatterns));
+        .filter((filePath) => resolveLanguageForFile(filePath) && fs.existsSync(filePath))
+        .filter((filePath) => !isIgnored(path.resolve(filePath), rootDir, ignorePatterns));
 
     const headSummaries: FileSummary[] = [];
     const baseSummaries: FileSummary[] = [];
@@ -144,5 +181,5 @@ export async function runDiff(baseRef: string, explicitPaths: string[], threshol
     // "does head have any medium/high violation" (scan/legacy mode's rule) — a PR touching a
     // file that already carried debt, or a genuinely new file, should not fail this check on
     // pre-existing severity alone; only a file this PR made worse should block it
-    process.exit(entries.some(entry => entry.status === 'worsened') ? 1 : 0);
+    process.exit(entries.some((entry) => entry.status === 'worsened') ? 1 : 0);
 }

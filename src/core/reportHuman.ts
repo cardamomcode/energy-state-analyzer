@@ -61,7 +61,10 @@ export function complexityToScore(value: number): number {
         const next = COMPLEXITY_CURVE[i];
         if (value <= next.value) {
             const ratio = (value - prev.value) / (next.value - prev.value);
-            return Math.round((prev.score + ratio * (next.score - prev.score)) * SCORE_DECIMAL_PRECISION) / SCORE_DECIMAL_PRECISION;
+            return (
+                Math.round((prev.score + ratio * (next.score - prev.score)) * SCORE_DECIMAL_PRECISION) /
+                SCORE_DECIMAL_PRECISION
+            );
         }
     }
     return MAX_COMPLEXITY_SCORE;
@@ -130,14 +133,18 @@ const CATEGORY_LABEL: Record<string, string> = {
 // decision: only the non-complexity categories get a static blurb — cyclomatic/cognitive
 // findings are described from their own extracted numbers instead (see describeCategory)
 const CATEGORY_BLURB: Record<string, string> = {
-    [VIOLATION_TYPE.NESTING]: 'control-flow blocks nested deep enough that a reader has to hold several levels of context in mind at once',
+    [VIOLATION_TYPE.NESTING]:
+        'control-flow blocks nested deep enough that a reader has to hold several levels of context in mind at once',
     [VIOLATION_TYPE.NAMING]: 'naming that obscures intent',
-    [VIOLATION_TYPE.COHERENCE]: 'the file mixes too many responsibilities (too many functions/imports, or too many large functions) to read as one coherent unit',
+    [VIOLATION_TYPE.COHERENCE]:
+        'the file mixes too many responsibilities (too many functions/imports, or too many large functions) to read as one coherent unit',
     [VIOLATION_TYPE.MAGIC]: 'unnamed literals standing in for a value that deserves a name',
     [VIOLATION_TYPE.PARAMETERS]: 'a function with enough parameters that call sites are easy to get wrong',
     [VIOLATION_TYPE.INVERSION]: 'validation/guard logic that would read more clearly as early returns',
-    [VIOLATION_TYPE.PRIMITIVE_OBSESSION]: 'adjacent same-typed values a caller could silently swap without the compiler noticing',
-    [VIOLATION_TYPE.MATCH_OPPORTUNITY]: 'an if/elif chain on one variable that would read more clearly as a match/switch',
+    [VIOLATION_TYPE.PRIMITIVE_OBSESSION]:
+        'adjacent same-typed values a caller could silently swap without the compiler noticing',
+    [VIOLATION_TYPE.MATCH_OPPORTUNITY]:
+        'an if/elif chain on one variable that would read more clearly as a match/switch',
     [VIOLATION_TYPE.LOGICAL_CONTROL_FLOW]: '&&/|| used to hide an if statement',
     [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'a bare true/false at a call site that only makes sense by reading the callee'
 };
@@ -169,9 +176,10 @@ function describeComplexityFindings(label: string, violations: EnergyViolation[]
     const worst = values[0];
     const score = complexityToScore(worst);
     const level = classifyScore(score);
-    const countText = values.length === 1
-        ? `1 function scores ${worst}`
-        : `${values.length} functions score ${values.join(', ')} (worst: ${worst})`;
+    const countText =
+        values.length === 1
+            ? `1 function scores ${worst}`
+            : `${values.length} functions score ${values.join(', ')} (worst: ${worst})`;
 
     return `- **${label}**: ${countText} — score ${score.toFixed(1)} (${RISK_LABEL[level]}): ${RISK_DESCRIPTION[level]}.`;
 }
@@ -188,8 +196,8 @@ function describeCategoryFindings(type: string, violations: EnergyViolation[]): 
         counts[violation.severity] += 1;
     }
     const severityText = (['high', 'medium', 'low'] as const)
-        .filter(severity => counts[severity] > 0)
-        .map(severity => `${counts[severity]} ${severity}`)
+        .filter((severity) => counts[severity] > 0)
+        .map((severity) => `${counts[severity]} ${severity}`)
         .join(', ');
     const blurb = CATEGORY_BLURB[type];
 
@@ -215,10 +223,10 @@ function fileScore(violations: EnergyViolation[]): number {
     if (complexityValues.length > 0) {
         return complexityToScore(Math.max(...complexityValues));
     }
-    if (violations.some(v => v.severity === SEVERITY.HIGH)) {
+    if (violations.some((v) => v.severity === SEVERITY.HIGH)) {
         return FALLBACK_SEVERITY_SCORE.high;
     }
-    if (violations.some(v => v.severity === SEVERITY.MEDIUM)) {
+    if (violations.some((v) => v.severity === SEVERITY.MEDIUM)) {
         return FALLBACK_SEVERITY_SCORE.medium;
     }
     if (violations.length > 0) {
@@ -270,7 +278,7 @@ const SCORE_LEGEND = [
 
 export function renderHumanReport(results: FileResult[]): string {
     const flagged = results
-        .filter(r => r.violations.length > 0)
+        .filter((r) => r.violations.length > 0)
         .sort((a, b) => fileScore(b.violations) - fileScore(a.violations));
     const cleanCount = results.length - flagged.length;
 
@@ -279,7 +287,9 @@ export function renderHumanReport(results: FileResult[]): string {
     lines.push('');
     lines.push(SCORE_LEGEND);
     lines.push('');
-    lines.push(`**${results.length} file${results.length === 1 ? '' : 's'} scanned** — ${cleanCount} clean, ${flagged.length} flagged`);
+    lines.push(
+        `**${results.length} file${results.length === 1 ? '' : 's'} scanned** — ${cleanCount} clean, ${flagged.length} flagged`
+    );
     lines.push('');
 
     for (const result of flagged) {
@@ -290,17 +300,21 @@ export function renderHumanReport(results: FileResult[]): string {
     lines.push('## Total evaluation');
     lines.push('');
 
-    const fileScores = results.map(r => ({ filePath: r.filePath, score: fileScore(r.violations) }));
+    const fileScores = results.map((r) => ({ filePath: r.filePath, score: fileScore(r.violations) }));
     const worst = fileScores.reduce((a, b) => (b.score > a.score ? b : a), { filePath: '', score: 0 });
     const repoLevel = classifyScore(worst.score);
 
     if (worst.score > 0) {
-        lines.push(`**Repo score: ${worst.score.toFixed(1)} (${RISK_LABEL[repoLevel]})** — driven by the worst file in the scan, \`${worst.filePath}\` (${RISK_DESCRIPTION[repoLevel]}).`);
+        lines.push(
+            `**Repo score: ${worst.score.toFixed(1)} (${RISK_LABEL[repoLevel]})** — driven by the worst file in the scan, \`${worst.filePath}\` (${RISK_DESCRIPTION[repoLevel]}).`
+        );
     } else {
         lines.push('**Repo score: 0.0 (None)** — no violations were found anywhere in the scan.');
     }
     lines.push('');
-    lines.push('This is the _maximum_ file score, not an average across files — see the note at the top of this report for why an average would hide the file most worth fixing.');
+    lines.push(
+        'This is the _maximum_ file score, not an average across files — see the note at the top of this report for why an average would hide the file most worth fixing.'
+    );
     lines.push('');
 
     const riskCounts: Record<RiskLevel, number> = { none: 0, low: 0, medium: 0, high: 0, critical: 0 };
@@ -324,7 +338,9 @@ export function renderHumanReport(results: FileResult[]): string {
         }
     }
     const totalFindings = totalCounts.low + totalCounts.medium + totalCounts.high;
-    lines.push(`**${totalFindings} total finding${totalFindings === 1 ? '' : 's'}** (${totalCounts.high} high, ${totalCounts.medium} medium, ${totalCounts.low} low) — breadth of issues across the scan, independent of peak severity.`);
+    lines.push(
+        `**${totalFindings} total finding${totalFindings === 1 ? '' : 's'}** (${totalCounts.high} high, ${totalCounts.medium} medium, ${totalCounts.low} low) — breadth of issues across the scan, independent of peak severity.`
+    );
 
     return lines.join('\n');
 }

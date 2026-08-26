@@ -24,15 +24,27 @@ suite('Integration: primitive obsession (real code examples)', () => {
             const swapRisk = findFunctionRange(sourceCode, 'flaggedSwapRisk');
             const stringly = findFunctionRange(sourceCode, 'flaggedStringlyTyped');
 
-            assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length, 0,
-                'a string and an int parameter should not be flagged as swappable');
+            assert.strictEqual(
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length,
+                0,
+                'a string and an int parameter should not be flagged as swappable'
+            );
 
-            const swapHit = violationsIn(violations, swapRisk).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
-            assert.ok(swapHit.some(v => v.message.includes('swap')), 'expected a swap-risk violation for two consecutive int params');
+            const swapHit = violationsIn(violations, swapRisk).filter(
+                (v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION
+            );
+            assert.ok(
+                swapHit.some((v) => v.message.includes('swap')),
+                'expected a swap-risk violation for two consecutive int params'
+            );
 
-            const stringlyHit = violationsIn(violations, stringly).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
-            assert.ok(stringlyHit.some(v => v.message.includes('Stringly-typed')),
-                'expected a stringly-typed-control-flow violation for 3 distinct string comparisons');
+            const stringlyHit = violationsIn(violations, stringly).filter(
+                (v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION
+            );
+            assert.ok(
+                stringlyHit.some((v) => v.message.includes('Stringly-typed')),
+                'expected a stringly-typed-control-flow violation for 3 distinct string comparisons'
+            );
         });
     }
 
@@ -46,9 +58,13 @@ suite('Integration: primitive obsession (real code examples)', () => {
         assertValidPositions(violations, sourceCode);
 
         const membership = findFunctionRange(sourceCode, 'flaggedMembershipCheck');
-        const membershipHit = violationsIn(violations, membership).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
-        assert.ok(membershipHit.some(v => v.message.includes('Stringly-typed')),
-            'expected a stringly-typed-control-flow violation for a 3-element `in (...)` membership check');
+        const membershipHit = violationsIn(violations, membership).filter(
+            (v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION
+        );
+        assert.ok(
+            membershipHit.some((v) => v.message.includes('Stringly-typed')),
+            'expected a stringly-typed-control-flow violation for a 3-element `in (...)` membership check'
+        );
     });
 
     test('Python: keyword-only same-typed params are not flagged as swappable', async () => {
@@ -59,19 +75,26 @@ suite('Integration: primitive obsession (real code examples)', () => {
 
         const suppressed = findFunctionRange(sourceCode, 'suppressedKeywordOnly');
         assert.strictEqual(
-            violationsIn(violations, suppressed).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length, 0,
+            violationsIn(violations, suppressed).filter((v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length,
+            0,
             'params after a bare `*` cannot be called positionally, so swap risk does not apply'
         );
 
         const suppressedAfterStar = findFunctionRange(sourceCode, 'suppressedAfterStarArgs');
         assert.strictEqual(
-            violationsIn(violations, suppressedAfterStar).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION).length, 0,
+            violationsIn(violations, suppressedAfterStar).filter((v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION)
+                .length,
+            0,
             'params after `*args` are also keyword-only and cannot be called positionally'
         );
 
         const partial = findFunctionRange(sourceCode, 'flaggedPartiallyKeywordOnly');
-        const partialHit = violationsIn(violations, partial).filter(v => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION);
-        assert.ok(partialHit.some(v => v.message.includes('swap')),
-            'only one of the two same-typed params is keyword-only, so a positional call is still possible');
+        const partialHit = violationsIn(violations, partial).filter(
+            (v) => v.type === VIOLATION_TYPE.PRIMITIVE_OBSESSION
+        );
+        assert.ok(
+            partialHit.some((v) => v.message.includes('swap')),
+            'only one of the two same-typed params is keyword-only, so a positional call is still possible'
+        );
     });
 });

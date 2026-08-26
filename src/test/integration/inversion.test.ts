@@ -23,14 +23,21 @@ suite('Integration: inversion opportunities (real code examples)', () => {
             const dominant = findFunctionRange(sourceCode, 'flaggedDominantIf');
             const chain = findFunctionRange(sourceCode, 'flaggedValidationChain');
 
-            assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
-                'two independent guard clauses should not be flagged');
+            assert.strictEqual(
+                violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.INVERSION).length,
+                0,
+                'two independent guard clauses should not be flagged'
+            );
 
-            assert.ok(violationsIn(violations, dominant).some(v => v.type === VIOLATION_TYPE.INVERSION),
-                'expected an inversion violation for the if-block that dominates the function body');
+            assert.ok(
+                violationsIn(violations, dominant).some((v) => v.type === VIOLATION_TYPE.INVERSION),
+                'expected an inversion violation for the if-block that dominates the function body'
+            );
 
-            assert.ok(violationsIn(violations, chain).some(v => v.type === VIOLATION_TYPE.INVERSION),
-                'expected an inversion violation for the 3-deep nested validation chain');
+            assert.ok(
+                violationsIn(violations, chain).some((v) => v.type === VIOLATION_TYPE.INVERSION),
+                'expected an inversion violation for the 3-deep nested validation chain'
+            );
         });
     }
 
@@ -44,8 +51,11 @@ suite('Integration: inversion opportunities (real code examples)', () => {
         assertValidPositions(violations, sourceCode);
 
         const clean = findFunctionRange(sourceCode, 'cleanForOfSibling');
-        assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
-            'a for-of loop sibling should disqualify the nested if from looking like a validation chain');
+        assert.strictEqual(
+            violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.INVERSION).length,
+            0,
+            'a for-of loop sibling should disqualify the nested if from looking like a validation chain'
+        );
     });
 
     // decision: Kotlin-only — its else has no else_clause wrapper node (unlike TS/Python), so
@@ -59,8 +69,11 @@ suite('Integration: inversion opportunities (real code examples)', () => {
         assertValidPositions(violations, sourceCode);
 
         const clean = findFunctionRange(sourceCode, 'cleanIfElseNotValidationChain');
-        assert.strictEqual(violationsIn(violations, clean).filter(v => v.type === VIOLATION_TYPE.INVERSION).length, 0,
-            'the outer if has an else, so it must not be treated as a validation-chain guard step');
+        assert.strictEqual(
+            violationsIn(violations, clean).filter((v) => v.type === VIOLATION_TYPE.INVERSION).length,
+            0,
+            'the outer if has an else, so it must not be treated as a validation-chain guard step'
+        );
     });
 
     // decision: documents a known adapter limitation (see fsharp.ts's nodeTypes.block:
@@ -74,8 +87,11 @@ suite('Integration: inversion opportunities (real code examples)', () => {
         const violations = analyzeSource(sourceCode, tree, FSHARP, 'inversion.fs');
         assertValidPositions(violations, sourceCode);
 
-        const hits = violations.filter(v => v.type === VIOLATION_TYPE.INVERSION);
-        assert.strictEqual(hits.length, 0,
-            'expected no inversion violations, even though this is a 3-deep nested validation chain');
+        const hits = violations.filter((v) => v.type === VIOLATION_TYPE.INVERSION);
+        assert.strictEqual(
+            hits.length,
+            0,
+            'expected no inversion violations, even though this is a 3-deep nested validation chain'
+        );
     });
 });

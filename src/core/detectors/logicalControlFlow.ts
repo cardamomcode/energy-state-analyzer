@@ -11,7 +11,11 @@ import { LanguageAdapter } from '../language';
 // getBooleanOperator (see cyclomatic.ts) — this detector exists only to name the *readability*
 // cost separately: an if hidden as an expression is invisible to anyone skimming for branches,
 // and can't grow past a single consequent expression without becoming unreadable.
-export function analyzeLogicalControlFlow(tree: any, positions: PositionLookup, language: LanguageAdapter): EnergyViolation[] {
+export function analyzeLogicalControlFlow(
+    tree: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
     const { nodeTypes } = language;
 
@@ -24,9 +28,10 @@ export function analyzeLogicalControlFlow(tree: any, positions: PositionLookup, 
                 column: position.column,
                 type: VIOLATION_TYPE.LOGICAL_CONTROL_FLOW,
                 severity: SEVERITY.LOW,
-                message: operator === 'and'
-                    ? "If-statement disguised as '&&'. Consider an explicit if-statement instead."
-                    : "If-statement disguised as '||'. Consider an explicit if-statement instead."
+                message:
+                    operator === 'and'
+                        ? "If-statement disguised as '&&'. Consider an explicit if-statement instead."
+                        : "If-statement disguised as '||'. Consider an explicit if-statement instead."
             });
         }
 

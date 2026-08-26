@@ -56,7 +56,8 @@ export function calculateCognitiveComplexity(
             return;
         }
 
-        if (node.type === nodeTypes.conditionalExpression) { // ternary: "a if cond else b"
+        if (node.type === nodeTypes.conditionalExpression) {
+            // ternary: "a if cond else b"
             add(node, 1 + nesting);
             for (const child of node.children) {
                 walk(child, nesting + 1);
@@ -92,7 +93,11 @@ export function calculateCognitiveComplexity(
 // Re-runs the same walk used for scoring, but records where each point of
 // score comes from so callers can render a per-line heatmap across the
 // function body instead of a single flat highlight.
-export function findCognitiveHotspots(functionNode: any, positions: PositionLookup, language: LanguageAdapter): ComplexityHotspot[] {
+export function findCognitiveHotspots(
+    functionNode: any,
+    positions: PositionLookup,
+    language: LanguageAdapter
+): ComplexityHotspot[] {
     const hotspots: ComplexityHotspot[] = [];
     calculateCognitiveComplexity(functionNode, language, (node, amount) => {
         hotspots.push({ line: positions.toPosition(node.startIndex).line, weight: amount });
