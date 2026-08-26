@@ -9,14 +9,28 @@ import { isIgnored, loadIgnorePatterns } from './esaignore';
 
 const IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'dist', 'out', 'build', '.next', 'coverage', '.vscode-test']);
 
-function walkDirectory(dir: string, rootDir: string, ignorePatterns: string[], results: string[]): void {
+// decision: bundles rootDir + ignorePatterns rather than passing them as two adjacent
+// string/string[] parameters — they always travel together, and rootDir sitting next to
+// another string parameter (dir, pattern) at each call site is exactly the swap-risk shape
+// the primitive-obsession detector flags (two consecutive same-typed params a caller could
+// transpose without the type checker complaining)
+interface IgnoreContext {
+    rootDir: string;
+    ignorePatterns: string[];
+}
+
+function isPathIgnored(targetPath: string, ignore: IgnoreContext): boolean {
+    return isIgnored(targetPath, ignore.rootDir, ignore.ignorePatterns);
+}
+
+function walkDirectory(dir: string, ignore: IgnoreContext, results: string[]): void {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const fullPath = path.join(dir, entry.name);
-        if (IGNORED_DIR_NAMES.has(entry.name) || isIgnored(fullPath, rootDir, ignorePatterns)) {
+        if (IGNORED_DIR_NAMES.has(entry.name) || isPathIgnored(fullPath, ignore)) {
             continue;
         }
         if (entry.isDirectory()) {
-            walkDirectory(fullPath, rootDir, ignorePatterns, results);
+            walkDirectory(fullPath, ignore, results);
         } else if (entry.isFile() && resolveLanguageForFile(entry.name)) {
             results.push(fullPath);
         }
@@ -27,7 +41,7 @@ function walkDirectory(dir: string, rootDir: string, ignorePatterns: string[], r
 // otherwise literal directory prefix — rather than pulling in a general glob-matching
 // dependency. This covers the common "src/**/*.py" case; anything with brace expansion,
 // negation, or mid-path wildcards is not a glob engine this function implements.
-function expandGlobLike(pattern: string, rootDir: string, ignorePatterns: string[]): string[] {
+function expandGlobLike(pattern: string, ignore: IgnoreContext): string[] {
     const starIndex = pattern.indexOf('*');
     const prefixEnd = pattern.lastIndexOf(path.sep, starIndex);
     const prefixDir = prefixEnd === -1 ? '.' : pattern.slice(0, prefixEnd);
@@ -39,7 +53,7 @@ function expandGlobLike(pattern: string, rootDir: string, ignorePatterns: string
     }
 
     const results: string[] = [];
-    walkDirectory(prefixDir, rootDir, ignorePatterns, results);
+    walkDirectory(prefixDir, ignore, results);
     return extension ? results.filter(file => file.toLowerCase().endsWith(extension.toLowerCase())) : results;
 }
 
@@ -48,12 +62,12 @@ function expandGlobLike(pattern: string, rootDir: string, ignorePatterns: string
 // excluding anything matched by a `.esaignore` file found in `rootDir` (defaults to the
 // current working directory, mirroring where a CLI invocation expects to find it).
 export function resolveSupportedFiles(inputs: string[], rootDir: string = process.cwd()): string[] {
-    const ignorePatterns = loadIgnorePatterns(rootDir);
+    const ignore: IgnoreContext = { rootDir, ignorePatterns: loadIgnorePatterns(rootDir) };
     const results: string[] = [];
 
     for (const input of inputs) {
         if (input.includes('*')) {
-            results.push(...expandGlobLike(input, rootDir, ignorePatterns));
+            results.push(...expandGlobLike(input, ignore));
             continue;
         }
 
@@ -63,10 +77,10 @@ export function resolveSupportedFiles(inputs: string[], rootDir: string = proces
 
         const stat = fs.statSync(input);
         if (stat.isDirectory()) {
-            if (!isIgnored(input, rootDir, ignorePatterns)) {
-                walkDirectory(input, rootDir, ignorePatterns, results);
+            if (!isPathIgnored(input, ignore)) {
+                walkDirectory(input, ignore, results);
             }
-        } else if (stat.isFile() && resolveLanguageForFile(input) && !isIgnored(input, rootDir, ignorePatterns)) {
+        } else if (stat.isFile() && resolveLanguageForFile(input) && !isPathIgnored(input, ignore)) {
             results.push(input);
         }
     }
