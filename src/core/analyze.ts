@@ -64,7 +64,13 @@ export function analyzeSource(
         ...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS)
     );
     violations.push(
-        ...analyzeMagicNumbers(tree, positions, language, thresholds.magicNumber ?? DEFAULT_MAGIC_NUMBER_OPTIONS)
+        ...analyzeMagicNumbers(
+            tree,
+            positions,
+            language,
+            fileName,
+            thresholds.magicNumber ?? DEFAULT_MAGIC_NUMBER_OPTIONS
+        )
     );
     violations.push(
         ...analyzeMagicStrings(tree, positions, language, thresholds.magicString ?? DEFAULT_MAGIC_STRING_OPTIONS)
