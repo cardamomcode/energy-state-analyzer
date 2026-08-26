@@ -120,6 +120,34 @@ suite('Integration: magic numbers (real code examples)', () => {
         );
     });
 
+    for (const fileName of [
+        'test_pricing.py',
+        'pricing_test.py',
+        'pricing.test.ts',
+        'PricingTest.kt',
+        'test/pricing.py',
+        'tests/pricing.py'
+    ]) {
+        test(`magic numbers are not flagged in test files (${fileName})`, async () => {
+            const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');
+            const violations = analyzeSource(sourceCode, tree, PYTHON, fileName);
+            assert.strictEqual(
+                violations.filter((v) => v.type === VIOLATION_TYPE.MAGIC).length,
+                0,
+                `${fileName} looks like a test file and should be exempt from the magic-number check`
+            );
+        });
+    }
+
+    test('magic numbers are still flagged in a file that merely contains "test" mid-word', async () => {
+        const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');
+        const violations = analyzeSource(sourceCode, tree, PYTHON, 'latest_pricing.py');
+        assert.ok(
+            violations.some((v) => v.type === VIOLATION_TYPE.MAGIC),
+            '"latest_pricing.py" is not a test file and should still be checked for magic numbers'
+        );
+    });
+
     test('magicNumber.allowlist: a custom allowlist exempts additional values', async () => {
         const { sourceCode, tree } = await parseFixture(PYTHON, 'python/magicNumber.py');
         const violations = analyzeSource(sourceCode, tree, PYTHON, 'magicNumber.py', {

@@ -18,14 +18,43 @@ export const DEFAULT_MAGIC_NUMBER_OPTIONS: MagicNumberOptions = {
 // strings do, so this stays broad (any significant literal outside a named binding) and leans
 // on the allowlist plus a few structural exemptions (index position, default parameter value)
 // to keep it from flagging the common idioms where a bare number isn't actually magic.
+// decision: splits on non-alphanumeric separators and camelCase boundaries rather than a plain
+// substring match on "test" - a substring check would misflag names like "latest.ts" (ends with
+// the literal characters "test") as test files
+function splitIntoWords(text: string): string[] {
+    return text
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .split(/[^a-zA-Z0-9]+/)
+        .filter(Boolean);
+}
+
+// decision: test files are exempt from the magic-number check specifically (not from other
+// detectors) - tests still need to be readable/reasoned-about, but literal test inputs/expected
+// values (e.g. `assert.equal(result, 42)`) are inherently self-contained and naming them adds
+// noise rather than clarity
+function isTestFile(fileName: string): boolean {
+    const segments = fileName.replace(/\\/g, '/').split('/').filter(Boolean);
+    if (segments.some((segment) => /^tests?$/i.test(segment))) {
+        return true;
+    }
+    const base = segments[segments.length - 1] ?? '';
+    const stem = base.replace(/\.[^./]+$/, '');
+    const words = splitIntoWords(stem);
+    if (words.length === 0) {
+        return false;
+    }
+    return words[0].toLowerCase() === 'test' || words[words.length - 1].toLowerCase() === 'test';
+}
+
 export function analyzeMagicNumbers(
     tree: any,
     positions: PositionLookup,
     language: LanguageAdapter,
+    fileName: string,
     options: MagicNumberOptions = DEFAULT_MAGIC_NUMBER_OPTIONS
 ): EnergyViolation[] {
     const violations: EnergyViolation[] = [];
-    if (!options.enabled) {
+    if (!options.enabled || isTestFile(fileName)) {
         return violations;
     }
     const { nodeTypes } = language;
