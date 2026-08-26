@@ -34,7 +34,7 @@ export const PYTHON: LanguageAdapter = {
     cognitiveNestedDecisionTypes: [
         'if_statement', 'elif_clause', 'for_statement', 'while_statement', 'except_clause', 'match_statement'
     ],
-    nestingControlTypes: ['if_statement', 'for_statement', 'while_statement', 'with_statement', 'match_statement'],
+    nestingControlTypes: ['if_statement', 'for_statement', 'while_statement', 'with_statement', 'try_statement', 'match_statement'],
     getBooleanOperator(node: any): 'and' | 'or' | null {
         if (!node || node.type !== 'boolean_operator') {
             return null;

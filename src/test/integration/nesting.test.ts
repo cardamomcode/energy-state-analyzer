@@ -38,6 +38,10 @@ suite('Integration: nesting (real code examples)', () => {
             const severeNesting = violationsIn(violations, severe).filter(v => v.type === VIOLATION_TYPE.NESTING);
             assert.ok(severeNesting.length > 0, 'expected a nesting violation for the 7-level-deep function');
             assert.strictEqual(severeNesting[severeNesting.length - 1].severity, SEVERITY.HIGH);
+
+            const tryNested = findFunctionRange(sourceCode, 'flaggedTryNesting');
+            const tryNesting = violationsIn(violations, tryNested).filter(v => v.type === VIOLATION_TYPE.NESTING);
+            assert.ok(tryNesting.length > 0, 'expected a nesting violation for the 5-level-deep try/catch function');
         });
     }
 });

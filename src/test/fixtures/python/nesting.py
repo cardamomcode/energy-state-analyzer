@@ -25,3 +25,22 @@ def flaggedSevereNesting(x):
                             if x > 6:
                                 return x
     return 0
+
+
+def flaggedTryNesting(x):
+    try:
+        try:
+            try:
+                try:
+                    try:
+                        return x
+                    except Exception:
+                        return 0
+                except Exception:
+                    return 0
+            except Exception:
+                return 0
+        except Exception:
+            return 0
+    except Exception:
+        return 0
