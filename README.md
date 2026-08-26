@@ -65,6 +65,8 @@ Detector thresholds are configurable under **Settings → Energy State Analyzer*
 
 Changes take effect immediately on the active editor.
 
+To exclude files/folders (e.g. test fixtures, generated code) from both the extension's live analysis and the CLI, add a `.esaignore` file to your workspace root — see [`docs/cli.md`](docs/cli.md#excluding-files-and-folders-esaignore).
+
 ## Commands
 
 - **Energy State Analyzer: Analyze Energy State** (`energy-state-analyzer.analyze`), manually re-run analysis on the active editor.
