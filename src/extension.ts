@@ -40,7 +40,6 @@ let complexityHeatDecorations: vscode.TextEditorDecorationType[];
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🚀 Activating Energy State Analyzer...');
-    vscode.window.showInformationMessage('Energy State Analyzer: Starting activation...');
 
     try {
         // Initialize Parser
@@ -97,7 +96,6 @@ export async function activate(context: vscode.ExtensionContext) {
         void analyzeActiveEditor();
 
         console.log('✅ Energy State Analyzer activated successfully!');
-        vscode.window.showInformationMessage('Energy State Analyzer: Ready! Open a Python, F#, TypeScript, or Kotlin file to see energy analysis.');
 
     } catch (error) {
         console.error('Failed to activate Energy State Analyzer:', error);
