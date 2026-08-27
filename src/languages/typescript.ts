@@ -1,5 +1,10 @@
 import { LanguageAdapter } from '../core/language';
 
+// decision: shared by extractTypedParameter/extractReturnType below - both check for TS's
+// type-annotation grammar node (`: <type>`); a literal repeated across both would trip the
+// magic-string detector's own duplicate-string check.
+const TYPE_ANNOTATION_NODE_TYPE = 'type_annotation';
+
 // tree-sitter-typescript is structurally close to Python's grammar: real
 // block/body nodes, a distinct else_clause, and and/or (&&/||) each get
 // their own node type as the operator-token child of a binary_expression.
@@ -73,7 +78,7 @@ export const TYPESCRIPT: LanguageAdapter = {
             return null;
         }
         const nameNode = node.children.find((c: any) => c.type === 'identifier');
-        const typeAnnotation = node.children.find((c: any) => c.type === 'type_annotation');
+        const typeAnnotation = node.children.find((c: any) => c.type === TYPE_ANNOTATION_NODE_TYPE);
         if (!nameNode || !typeAnnotation) {
             return null;
         }
@@ -88,7 +93,7 @@ export const TYPESCRIPT: LanguageAdapter = {
         // decision: scans only the function node's own direct children - a parameter's
         // type_annotation lives two levels deeper (inside formal_parameters), so this can't
         // accidentally pick up a parameter's type instead of the return type.
-        const typeAnnotation = node?.children?.find((c: any) => c.type === 'type_annotation');
+        const typeAnnotation = node?.children?.find((c: any) => c.type === TYPE_ANNOTATION_NODE_TYPE);
         if (!typeAnnotation) {
             return null;
         }

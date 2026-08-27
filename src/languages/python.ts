@@ -1,5 +1,11 @@
 import { LanguageAdapter } from '../core/language';
 
+// decision: shared by extractTypedParameter/extractReturnType below - both check a node's
+// type against Python's grammar node-type name for a type annotation ('type', wrapping
+// either a plain identifier or a generic_type); a literal repeated across both would trip
+// the magic-string detector's own duplicate-string check.
+const TYPE_ANNOTATION_NODE_TYPE = 'type';
+
 export const PYTHON: LanguageAdapter = {
     id: 'python',
     grammarPath: 'grammars/tree-sitter-python.wasm',
@@ -76,7 +82,7 @@ export const PYTHON: LanguageAdapter = {
             return null;
         }
         const nameNode = node.children.find((c: any) => c.type === 'identifier');
-        const typeNode = node.children.find((c: any) => c.type === 'type');
+        const typeNode = node.children.find((c: any) => c.type === TYPE_ANNOTATION_NODE_TYPE);
         if (!nameNode || !typeNode) {
             return null;
         }
@@ -88,7 +94,7 @@ export const PYTHON: LanguageAdapter = {
             return null;
         }
         const typeNode = node.children[arrowIndex + 1];
-        return typeNode?.type === 'type' ? typeNode.text : null;
+        return typeNode?.type === TYPE_ANNOTATION_NODE_TYPE ? typeNode.text : null;
     },
     genericBrackets: { open: '[', close: ']' },
     primitiveTypeNames: new Set(['str', 'int', 'float', 'bool', 'bytes']),

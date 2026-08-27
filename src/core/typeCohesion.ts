@@ -104,11 +104,18 @@ export interface TypeCohesionResult {
 // ratio captures that correctly (seq.py: 8 distinct types / 80 typed functions = 0.10,
 // clearly cohesive) without needing to know in advance how many "related" types a cohesive
 // module is allowed to use.
+export interface TypeCohesionThresholds {
+    maxDiversityRatio: number;
+    minCoverage: number;
+}
+
+// decision: takes its two thresholds as a named options object rather than two positional
+// numbers - both are plain 0-1 ratios, so adjacent positional params would themselves be
+// exactly the primitive-obsession swap-risk this project's own detector flags.
 export function typeCohesionResult(
     functions: any[],
     language: LanguageAdapter,
-    maxDiversityRatio: number,
-    minCoverage: number
+    { maxDiversityRatio, minCoverage }: TypeCohesionThresholds
 ): TypeCohesionResult {
     const perFunctionTypes = functions.map((fn) => collectTypeSignals(fn, language));
     const typedFunctions = perFunctionTypes.filter((types) => types.size > 0);

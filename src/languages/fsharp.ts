@@ -1,5 +1,10 @@
 import { LanguageAdapter } from '../core/language';
 
+// decision: shared by isFunctionDefinition/extractReturnType below - both check a node's
+// type against this grammar node-type name; a literal repeated across both would trip the
+// magic-string detector's own duplicate-string check.
+const FUNCTION_DECLARATION_LEFT = 'function_declaration_left';
+
 // tree-sitter-fsharp has no block/body wrapper node — an if/for/while's
 // branches are direct expression children of the construct itself (there's
 // no equivalent of Python's `block` or TypeScript's `statement_block`), and
@@ -38,7 +43,7 @@ export const FSHARP: LanguageAdapter = {
     isFunctionDefinition(node: any): boolean {
         return (
             node?.type === 'function_or_value_defn' &&
-            node.children?.some((child: any) => child.type === 'function_declaration_left')
+            node.children?.some((child: any) => child.type === FUNCTION_DECLARATION_LEFT)
         );
     },
     parameterChildTypes: ['long_identifier', 'typed_pattern'],
@@ -94,11 +99,13 @@ export const FSHARP: LanguageAdapter = {
         if (node?.type !== 'typed_pattern') {
             return null;
         }
-        const patternNode = node.children.find((c: any) => c.type === 'identifier_pattern');
+        const patternNode = node.children.find((patternChild: any) => patternChild.type === 'identifier_pattern');
         // decision: also matches generic_type (e.g. `xs: Iterable<'a>`), not just simple_type
         // (`x: int`) - a curried, generically-typed parameter is exactly the shape the
         // type-cohesion signal needs to see to recognize an F#-style single-type module.
-        const typeNode = node.children.find((c: any) => c.type === 'simple_type' || c.type === 'generic_type');
+        const typeNode = node.children.find(
+            (typeChild: any) => typeChild.type === 'simple_type' || typeChild.type === 'generic_type'
+        );
         if (!patternNode || !typeNode) {
             return null;
         }
@@ -108,8 +115,8 @@ export const FSHARP: LanguageAdapter = {
         if (node?.type !== 'function_or_value_defn') {
             return null;
         }
-        const declIndex = node.children.findIndex((c: any) => c.type === 'function_declaration_left');
-        const equalsIndex = node.children.findIndex((c: any) => c.type === '=');
+        const declIndex = node.children.findIndex((declChild: any) => declChild.type === FUNCTION_DECLARATION_LEFT);
+        const equalsIndex = node.children.findIndex((eqChild: any) => eqChild.type === '=');
         if (declIndex === -1 || equalsIndex === -1) {
             return null;
         }
@@ -121,7 +128,7 @@ export const FSHARP: LanguageAdapter = {
         // than reaching into a parameter node avoids misattributing a parameter's type as
         // the return type.
         const colonIndex = node.children.findIndex(
-            (c: any, i: number) => c.type === ':' && i > declIndex && i < equalsIndex
+            (colonChild: any, i: number) => colonChild.type === ':' && i > declIndex && i < equalsIndex
         );
         if (colonIndex === -1) {
             return null;
