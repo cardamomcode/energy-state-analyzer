@@ -1,5 +1,7 @@
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { LanguageAdapter } from '../language';
+import { isUtilsFileName, looksLikeSingleDomain } from '../namingCohesion';
+import { Position, PositionLookup } from '../position';
 import { typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
 
 export interface CoherenceThresholds {
@@ -51,41 +53,13 @@ function lineCount(node: any): number {
     return node.endPosition.row - node.startPosition.row + 1;
 }
 
-// decision: a raw function name is a weak signal on its own, but a *dominant leading word*
-// shared across most of a file's functions (extractFoo/extractBar/extractBaz) is a cheap,
-// AST-only proxy for "this file is one coherent domain factored into many small steps" —
-// exactly the case the function-count sprawl check below would otherwise misflag, since it
-// can't tell that apart from an actual grab-bag of unrelated helpers by count alone
-function leadingNameWord(node: any): string | null {
-    const nameNode = node.children?.find((c: any) => c.type === 'identifier');
-    if (!nameNode?.text) {
-        return null;
-    }
-    const match = /^[a-z]+/.exec(nameNode.text);
-    return match ? match[0] : nameNode.text.toLowerCase();
-}
-
-function looksLikeSingleDomain(functions: any[], minShare: number): boolean {
-    const leadingWords = functions.map(leadingNameWord).filter((word): word is string => word !== null);
-    if (leadingWords.length === 0) {
-        return false;
-    }
-
-    const wordCounts = new Map<string, number>();
-    for (const word of leadingWords) {
-        wordCounts.set(word, (wordCounts.get(word) ?? 0) + 1);
-    }
-
-    const dominantWordCount = Math.max(...wordCounts.values());
-    return dominantWordCount / leadingWords.length >= minShare;
-}
-
 function collectFunctionsAndImports(
     tree: any,
     language: LanguageAdapter
-): { functions: any[]; importSources: Set<string> } {
+): { functions: any[]; importSources: Set<string>; firstImportNode: any | null } {
     const functions: any[] = [];
     const importSources = new Set<string>();
+    let firstImportNode: any | null = null;
     const { nodeTypes } = language;
 
     function traverse(node: any) {
@@ -101,6 +75,7 @@ function collectFunctionsAndImports(
             // node is its literal text). Without this guard, every Kotlin import is counted
             // twice: once for the named node, once for its own leading keyword token.
             importSources.add(language.importSource(node) || node.text || '');
+            firstImportNode ??= node;
         }
 
         for (const child of node.children) {
@@ -109,7 +84,7 @@ function collectFunctionsAndImports(
     }
 
     traverse(tree.rootNode);
-    return { functions, importSources };
+    return { functions, importSources, firstImportNode };
 }
 
 // decision: the raw function-count trigger (8/12) and its severity escalation (15) are
@@ -123,27 +98,30 @@ const LARGE_FUNCTION_SEVERITY_MULTIPLIER = 1.5;
 const IMPORT_COUNT_THRESHOLD = 10;
 const HIGH_IMPORT_COUNT_THRESHOLD = 15;
 
-function isUtilsFileName(fileName: string): boolean {
-    const baseName = fileName.split('/').pop() || '';
-    return baseName.includes('util') || baseName.includes('helper') || baseName.includes('common');
-}
-
-// decision: typeResult.result === true (measured, confirmed shared type - e.g. an F#-style
-// module of one-verb-per-operation functions sharing no name prefix at all) is a stronger
-// signal than looksLikeSingleDomain and is checked first; the naming heuristic only runs
-// when typeResult is 'insufficient-data' (too little type coverage to trust).
+// decision: a confirmed type signal (typeResult.result is boolean, not 'insufficient-data')
+// is authoritative and short-circuits the naming heuristic entirely - both for a confirmed
+// shared type (result === true, e.g. an F#-style module of one-verb-per-operation functions
+// sharing no name prefix at all) and for confirmed type diversity (result === false), which
+// must NOT be overridden by a coincidentally shared name prefix. The naming heuristic only
+// runs when typeResult is 'insufficient-data' (too little type coverage to trust).
 function isCohesiveByNamingOrType(
     functions: any[],
     thresholds: CoherenceThresholds,
     typeResult: TypeCohesionResult
 ): boolean {
-    return typeResult.result === true || looksLikeSingleDomain(functions, thresholds.singleDomainNameShare);
+    if (typeof typeResult.result === 'boolean') {
+        return typeResult.result;
+    }
+    return looksLikeSingleDomain(functions, thresholds.singleDomainNameShare);
 }
 
-function functionCountViolation(functionCount: number, message: string): EnergyViolation {
+// decision: anchored on the first function in the file (source order) rather than line 0 —
+// there's no single "worst offender" for a whole-file count signal, but pointing at the first
+// function at least lands the reader inside the file instead of at a meaningless (0, 0).
+function functionCountViolation(functionCount: number, message: string, position: Position): EnergyViolation {
     return {
-        line: 0,
-        column: 0,
+        line: position.line,
+        column: position.column,
         type: VIOLATION_TYPE.COHERENCE,
         severity: functionCount > HIGH_FUNCTION_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
         message
@@ -156,7 +134,8 @@ function checkFunctionCountSprawl(
     functions: any[],
     fileName: string,
     thresholds: CoherenceThresholds,
-    language: LanguageAdapter
+    language: LanguageAdapter,
+    positions: PositionLookup
 ): EnergyViolation | null {
     if (functions.length <= UTILS_FILE_FUNCTION_THRESHOLD) {
         return null;
@@ -187,30 +166,41 @@ function checkFunctionCountSprawl(
     // going to be flagged at the existing thresholds, though, a confidently-diverse type
     // result is authoritative over naming (see CoherenceThresholds.maxTypeDiversityRatio's
     // doc) and gets the stronger, more specific message below instead of the generic one.
+    const position = positions.toPosition(functions[0].startIndex);
+
     if (typeResult.result === false) {
         return functionCountViolation(
             functions.length,
-            `File coherence warning: ${functions.length} functions in one file spanning ${typeResult.distinctTypes} unrelated types. This is a stronger sprawl signal than function count alone — the functions don't share a common domain type, so moving them into existing cohesive modules (grouped by the type they operate on) is likely to help more than an arbitrary split.`
+            `File coherence warning: ${functions.length} functions in one file spanning ${typeResult.distinctTypes} unrelated types. This is a stronger sprawl signal than function count alone — the functions don't share a common domain type, so moving them into existing cohesive modules (grouped by the type they operate on) is likely to help more than an arbitrary split.`,
+            position
         );
     }
 
     return functionCountViolation(
         functions.length,
-        `File coherence warning: ${functions.length} functions in one file. If they belong to distinct domains, prefer moving them into existing cohesive modules; splitting into a new file only helps if it doesn't just relocate the same imports/coupling.`
+        `File coherence warning: ${functions.length} functions in one file. If they belong to distinct domains, prefer moving them into existing cohesive modules; splitting into a new file only helps if it doesn't just relocate the same imports/coupling.`,
+        position
     );
 }
 
 // Flag files with too many large functions, regardless of total function count - a module with
 // 30 small functions is fine, one with 6 sprawling ones isn't.
-function checkLargeFunctionSprawl(functions: any[], thresholds: CoherenceThresholds): EnergyViolation | null {
+// decision: anchored on the first large function in source order, not line 0 — it's the most
+// directly actionable of the offenders, rather than an arbitrary or averaged position.
+function checkLargeFunctionSprawl(
+    functions: any[],
+    thresholds: CoherenceThresholds,
+    positions: PositionLookup
+): EnergyViolation | null {
     const largeFunctions = functions.filter((fn) => lineCount(fn) > thresholds.largeFunctionLines);
     if (largeFunctions.length <= thresholds.maxLargeFunctions) {
         return null;
     }
 
+    const position = positions.toPosition(largeFunctions[0].startIndex);
     return {
-        line: 0,
-        column: 0,
+        line: position.line,
+        column: position.column,
         type: VIOLATION_TYPE.COHERENCE,
         severity:
             largeFunctions.length > thresholds.maxLargeFunctions * LARGE_FUNCTION_SEVERITY_MULTIPLIER
@@ -224,15 +214,21 @@ function checkLargeFunctionSprawl(functions: any[], thresholds: CoherenceThresho
 // decision: counts distinct import *sources* (modules/packages), not raw import lines/symbols —
 // see LanguageAdapter.importSource's doc for why raw-line counting isn't comparable across
 // languages (Kotlin has no brace-grouped import syntax, so the same set of dependencies costs
-// far more lines there than in TS/Python).
-function checkImportSprawl(importSources: Set<string>): EnergyViolation | null {
+// far more lines there than in TS/Python). Anchored on the first import statement in the file,
+// rather than line 0, so the violation points somewhere a reader can actually look.
+function checkImportSprawl(
+    importSources: Set<string>,
+    firstImportNode: any | null,
+    positions: PositionLookup
+): EnergyViolation | null {
     if (importSources.size <= IMPORT_COUNT_THRESHOLD) {
         return null;
     }
 
+    const position = firstImportNode ? positions.toPosition(firstImportNode.startIndex) : { line: 0, column: 0 };
     return {
-        line: 0,
-        column: 0,
+        line: position.line,
+        column: position.column,
         type: VIOLATION_TYPE.COHERENCE,
         severity: importSources.size > HIGH_IMPORT_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
         message: `Import sprawl: ${importSources.size} distinct modules imported suggest this file does too much. Splitting only helps if the resulting files don't each still need most of these imports.`
@@ -244,13 +240,14 @@ export function analyzeFileCoherence(
     tree: any,
     fileName: string,
     language: LanguageAdapter,
+    positions: PositionLookup,
     thresholds: CoherenceThresholds = DEFAULT_COHERENCE_THRESHOLDS
 ): EnergyViolation[] {
-    const { functions, importSources } = collectFunctionsAndImports(tree, language);
+    const { functions, importSources, firstImportNode } = collectFunctionsAndImports(tree, language);
 
     return [
-        checkFunctionCountSprawl(functions, fileName, thresholds, language),
-        checkLargeFunctionSprawl(functions, thresholds),
-        checkImportSprawl(importSources)
+        checkFunctionCountSprawl(functions, fileName, thresholds, language, positions),
+        checkLargeFunctionSprawl(functions, thresholds, positions),
+        checkImportSprawl(importSources, firstImportNode, positions)
     ].filter((violation): violation is EnergyViolation => violation !== null);
 }
