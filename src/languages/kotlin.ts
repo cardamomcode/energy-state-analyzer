@@ -164,16 +164,29 @@ export const KOTLIN: LanguageAdapter = {
     // a real constant as a top-level one), so it's checked as its own signal rather than folded
     // into that scope walk.
     isExplicitConstant(node: any): boolean {
-        if (node?.type !== 'property_declaration') {
-            return false;
+        if (node?.type === 'property_declaration') {
+            const modifiers = node.children?.find((c: any) => c.type === 'modifiers');
+            return (
+                modifiers?.children?.some(
+                    (modifier: any) =>
+                        modifier.type === 'property_modifier' &&
+                        modifier.children?.some((c: any) => c.type === 'const')
+                ) ?? false
+            );
         }
-        const modifiers = node.children?.find((c: any) => c.type === 'modifiers');
-        return (
-            modifiers?.children?.some(
-                (modifier: any) =>
-                    modifier.type === 'property_modifier' && modifier.children?.some((c: any) => c.type === 'const')
-            ) ?? false
-        );
+        // decision: a leading annotation (`@VisibleForTesting const val X = 5`) makes this
+        // tree-sitter-kotlin grammar (v1.1.0) lose the property_declaration/modifiers shape
+        // entirely and instead parse the whole line as a generic `assignment` whose LHS is an
+        // `annotated_expression` wrapping an `infix_expression` with `const`/`val`/the name as
+        // three bare identifier tokens (verified by dumping the parse tree) — recognize that
+        // specific misparse shape so an annotated const val isn't wrongly flagged as magic.
+        if (node?.type === 'assignment') {
+            const annotated = node.children?.find((c: any) => c.type === 'annotated_expression');
+            const infix = annotated?.children?.find((c: any) => c.type === 'infix_expression');
+            const identifiers = infix?.children?.filter((c: any) => c.type === 'identifier') ?? [];
+            return identifiers.length === 3 && identifiers[0]?.text === 'const' && identifiers[1]?.text === 'val';
+        }
+        return false;
     },
     // `import a.b.C` -> source 'a.b' (the package, one symbol per line here since Kotlin has no
     // brace-grouped import syntax); `import a.b.*` -> source 'a.b' as-is, the qualified_identifier

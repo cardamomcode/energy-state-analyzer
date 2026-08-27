@@ -63,6 +63,15 @@ export function analyzeMagicNumbers(
         // decision: uses a heuristic (assignment at module level, optionally wrapped in `export`) rather than resolving actual scope — cheap to check per-node and sufficient because idiomatic module-level constants are the common case this is meant to exempt
         let parent = node.parent;
         while (parent) {
+            // decision: checked on every ancestor, not just nodes matching nodeTypes.assignment —
+            // an annotation directly before Kotlin's `const val` (e.g. `@VisibleForTesting const
+            // val MAX_RETRIES = 5`) makes tree-sitter-kotlin misparse the whole declaration as a
+            // generic `assignment` node instead of `property_declaration`, so the type-gated check
+            // below would never even look at it. isExplicitConstant is always false for languages/
+            // shapes it doesn't recognize, so this is a no-op everywhere else.
+            if (language.isExplicitConstant(parent)) {
+                return true;
+            }
             if (parent.type === nodeTypes.assignment) {
                 // decision: F# has no separate node type for "function definition" vs "plain
                 // value binding" (both are function_or_value_defn), so a literal deep inside a
@@ -71,13 +80,6 @@ export function analyzeMagicNumbers(
                 // ancestor is actually a function, the literal is computed logic, not a binding.
                 if (language.isFunctionDefinition(parent)) {
                     return false;
-                }
-                // decision: checked before the module-scope walk below, and independent of it —
-                // an explicit compile-time-constant marker (Kotlin's `const val`) is valid at any
-                // nesting depth (companion object, object declaration, etc.), unlike the
-                // module-scope heuristic that walk relies on for languages with no such marker
-                if (language.isExplicitConstant(parent)) {
-                    return true;
                 }
                 // decision: Python wraps every top-level `name = value` in an
                 // `expression_statement` between the assignment and the module root (unlike
