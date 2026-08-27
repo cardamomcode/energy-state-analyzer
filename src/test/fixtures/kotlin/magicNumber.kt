@@ -1,5 +1,7 @@
 const val MAX_RETRIES = 5
 
+@VisibleForTesting const val MAX_ANNOTATED_RETRIES = 7
+
 fun cleanCommonValues(x: Int): Int {
     val total = x * 1
     return total + 0

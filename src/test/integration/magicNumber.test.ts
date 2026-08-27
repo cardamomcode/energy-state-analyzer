@@ -76,6 +76,17 @@ suite('Integration: magic numbers (real code examples)', () => {
         );
     });
 
+    test('Kotlin: a `const val` preceded by an annotation is still a constant binding', async () => {
+        const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/magicNumber.kt');
+        const violations = analyzeSource(sourceCode, tree, KOTLIN, 'magicNumber.kt');
+        const annotated = findFunctionRange(sourceCode, 'MAX_ANNOTATED_RETRIES');
+        assert.strictEqual(
+            violationsIn(violations, annotated).filter((v) => v.type === VIOLATION_TYPE.MAGIC).length,
+            0,
+            '@VisibleForTesting const val MAX_ANNOTATED_RETRIES = 7 should not be flagged: the leading annotation makes tree-sitter-kotlin misparse the declaration into a generic assignment node instead of property_declaration'
+        );
+    });
+
     test('Kotlin: a `const val` inside a companion object is a constant binding regardless of nesting', async () => {
         const { sourceCode, tree } = await parseFixture(KOTLIN, 'kotlin/magicNumber.kt');
         const violations = analyzeSource(sourceCode, tree, KOTLIN, 'magicNumber.kt');
