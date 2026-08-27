@@ -182,5 +182,18 @@ export const PYTHON: LanguageAdapter = {
     // only signal (see isInConstantContext in magicNumber.ts).
     isExplicitConstant(): boolean {
         return false;
+    },
+    // `import os` -> source 'os'; `from foo.bar import a, b, c` -> source 'foo.bar' (the names
+    // after `import` are irrelevant, they're all the same dependency). `import os, sys` (two
+    // unrelated modules on one line) is rare enough that only the first is used as the source -
+    // undercounting a line like that is the safe direction, since it only reduces false positives.
+    importSource(node: any): string {
+        const children = node?.children ?? [];
+        if (node?.type === 'import_from_statement') {
+            const importIdx = children.findIndex((c: any) => c.type === 'import');
+            return children[importIdx - 1]?.text ?? node.text ?? '';
+        }
+        const dotted = children.find((c: any) => c.type === 'dotted_name');
+        return dotted?.text ?? node?.text ?? '';
     }
 };

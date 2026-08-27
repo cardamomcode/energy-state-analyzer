@@ -53,9 +53,12 @@ function looksLikeSingleDomain(functions: any[], minShare: number): boolean {
     return dominantWordCount / leadingWords.length >= minShare;
 }
 
-function collectFunctionsAndImports(tree: any, language: LanguageAdapter): { functions: any[]; imports: string[] } {
+function collectFunctionsAndImports(
+    tree: any,
+    language: LanguageAdapter
+): { functions: any[]; importSources: Set<string> } {
     const functions: any[] = [];
-    const imports: string[] = [];
+    const importSources = new Set<string>();
     const { nodeTypes } = language;
 
     function traverse(node: any) {
@@ -70,7 +73,7 @@ function collectFunctionsAndImports(tree: any, language: LanguageAdapter): { fun
             // token that is itself a child of every import node (node.type for an anonymous
             // node is its literal text). Without this guard, every Kotlin import is counted
             // twice: once for the named node, once for its own leading keyword token.
-            imports.push(node.text || '');
+            importSources.add(language.importSource(node) || node.text || '');
         }
 
         for (const child of node.children) {
@@ -79,7 +82,7 @@ function collectFunctionsAndImports(tree: any, language: LanguageAdapter): { fun
     }
 
     traverse(tree.rootNode);
-    return { functions, imports };
+    return { functions, importSources };
 }
 
 // decision: the raw function-count trigger (8/12) and its severity escalation (15) are
@@ -143,8 +146,12 @@ function checkLargeFunctionSprawl(functions: any[], thresholds: CoherenceThresho
 }
 
 // Flag excessive imports (another sign of incoherence)
-function checkImportSprawl(imports: string[]): EnergyViolation | null {
-    if (imports.length <= IMPORT_COUNT_THRESHOLD) {
+// decision: counts distinct import *sources* (modules/packages), not raw import lines/symbols —
+// see LanguageAdapter.importSource's doc for why raw-line counting isn't comparable across
+// languages (Kotlin has no brace-grouped import syntax, so the same set of dependencies costs
+// far more lines there than in TS/Python).
+function checkImportSprawl(importSources: Set<string>): EnergyViolation | null {
+    if (importSources.size <= IMPORT_COUNT_THRESHOLD) {
         return null;
     }
 
@@ -152,8 +159,8 @@ function checkImportSprawl(imports: string[]): EnergyViolation | null {
         line: 0,
         column: 0,
         type: VIOLATION_TYPE.COHERENCE,
-        severity: imports.length > HIGH_IMPORT_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-        message: `Import sprawl: ${imports.length} imports suggest this file does too much.`
+        severity: importSources.size > HIGH_IMPORT_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
+        message: `Import sprawl: ${importSources.size} distinct modules imported suggest this file does too much.`
     };
 }
 
@@ -164,11 +171,11 @@ export function analyzeFileCoherence(
     language: LanguageAdapter,
     thresholds: CoherenceThresholds = DEFAULT_COHERENCE_THRESHOLDS
 ): EnergyViolation[] {
-    const { functions, imports } = collectFunctionsAndImports(tree, language);
+    const { functions, importSources } = collectFunctionsAndImports(tree, language);
 
     return [
         checkFunctionCountSprawl(functions, fileName, thresholds),
         checkLargeFunctionSprawl(functions, thresholds),
-        checkImportSprawl(imports)
+        checkImportSprawl(importSources)
     ].filter((violation): violation is EnergyViolation => violation !== null);
 }

@@ -174,5 +174,20 @@ export const KOTLIN: LanguageAdapter = {
                     modifier.type === 'property_modifier' && modifier.children?.some((c: any) => c.type === 'const')
             ) ?? false
         );
+    },
+    // `import a.b.C` -> source 'a.b' (the package, one symbol per line here since Kotlin has no
+    // brace-grouped import syntax); `import a.b.*` -> source 'a.b' as-is, the qualified_identifier
+    // is already the package with no trailing symbol to strip.
+    importSource(node: any): string {
+        const qualified = node?.children?.find((c: any) => c.type === 'qualified_identifier');
+        if (!qualified?.text) {
+            return node?.text ?? '';
+        }
+        const hasWildcard = node.children?.some((c: any) => c.type === '*');
+        if (hasWildcard) {
+            return qualified.text;
+        }
+        const lastDot = qualified.text.lastIndexOf('.');
+        return lastDot === -1 ? qualified.text : qualified.text.slice(0, lastDot);
     }
 };

@@ -148,5 +148,11 @@ export const TYPESCRIPT: LanguageAdapter = {
     // `const val`) — module-scope lexical_declaration is the only signal here.
     isExplicitConstant(): boolean {
         return false;
+    },
+    // The module specifier (the `string` child) is the dependency; everything in
+    // import_clause (named/default/namespace imports) is just which symbols come from it.
+    importSource(node: any): string {
+        const specifier = node?.children?.find((c: any) => c.type === 'string');
+        return specifier?.text ?? node?.text ?? '';
     }
 };
