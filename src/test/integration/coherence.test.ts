@@ -41,6 +41,21 @@ suite('Integration: file coherence (real code examples)', () => {
             assert.ok(hit, 'expected an import-sprawl coherence violation for 11 imports');
         });
 
+        test(`${label}: many imports from one source stays quiet`, async () => {
+            const fixture = `${language.id}/coherence/narrowImports.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.find(
+                (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('Import sprawl')
+            );
+            assert.ok(
+                !hit,
+                `expected no import-sprawl violation for 11 import lines drawing from one real dependency, got: ${JSON.stringify(hit)}`
+            );
+        });
+
         test(`${label}: a small module stays quiet`, async () => {
             const fixture = `${language.id}/coherence/clean.${ext}`;
             const { sourceCode, tree } = await parseFixture(language, fixture);
