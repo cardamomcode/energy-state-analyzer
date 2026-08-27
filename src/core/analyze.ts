@@ -61,7 +61,7 @@ export function analyzeSource(
         ...analyzeCognitiveComplexity(tree, positions, language, thresholds.cognitive ?? DEFAULT_COGNITIVE_THRESHOLDS)
     );
     violations.push(
-        ...analyzeFileCoherence(tree, fileName, language, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS)
+        ...analyzeFileCoherence(tree, fileName, language, positions, thresholds.coherence ?? DEFAULT_COHERENCE_THRESHOLDS)
     );
     violations.push(
         ...analyzeMagicNumbers(

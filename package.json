@@ -106,6 +106,20 @@
           "maximum": 1,
           "description": "Share of a file's functions that must share a leading name word (e.g. extractFoo/extractBar) to treat the file as one coherent domain and skip the function-count sprawl check."
         },
+        "energyStateAnalyzer.coherence.maxTypeDiversityRatio": {
+          "type": "number",
+          "default": 0.4,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum ratio of distinct parameter/return base types to typed functions for a file to be treated as one type-cohesive module and skip the function-count sprawl check. A stronger signal than singleDomainNameShare when there's enough type-annotation coverage to trust it."
+        },
+        "energyStateAnalyzer.coherence.minTypedCoverage": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum share of a file's functions that must carry an explicit parameter or return-type annotation before typeCohesionShare is trusted; below this the detector falls back to singleDomainNameShare."
+        },
         "energyStateAnalyzer.magicNumber.enabled": {
           "type": "boolean",
           "default": true,

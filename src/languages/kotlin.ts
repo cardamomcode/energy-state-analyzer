@@ -108,6 +108,18 @@ export const KOTLIN: LanguageAdapter = {
         }
         return { name: nameNode.text, type: typeIdentifier.text };
     },
+    extractReturnType(node: any): string | null {
+        // decision: scans only the function node's own direct children (`:` followed by the
+        // return-type node, after function_value_parameters and before function_body) - a
+        // parameter's own `:` and type live one level deeper, inside function_value_parameters,
+        // so this can't accidentally pick up a parameter's type instead of the return type.
+        const colonIndex = node?.children?.findIndex((c: any) => c.type === ':') ?? -1;
+        if (colonIndex === -1) {
+            return null;
+        }
+        return node.children[colonIndex + 1]?.text ?? null;
+    },
+    genericBrackets: { open: '<', close: '>' },
     primitiveTypeNames: new Set(['Int', 'Long', 'Short', 'Byte', 'Double', 'Float', 'Boolean', 'String', 'Char']),
     // Kotlin has no enforced-keyword-only parameter syntax (named arguments are optional
     // at the call site) — see language.ts's field doc, same reasoning as F#.

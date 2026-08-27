@@ -1,5 +1,11 @@
 import { LanguageAdapter } from '../core/language';
 
+// decision: shared by extractTypedParameter/extractReturnType below - both check a node's
+// type against Python's grammar node-type name for a type annotation ('type', wrapping
+// either a plain identifier or a generic_type); a literal repeated across both would trip
+// the magic-string detector's own duplicate-string check.
+const TYPE_ANNOTATION_NODE_TYPE = 'type';
+
 export const PYTHON: LanguageAdapter = {
     id: 'python',
     grammarPath: 'grammars/tree-sitter-python.wasm',
@@ -76,12 +82,21 @@ export const PYTHON: LanguageAdapter = {
             return null;
         }
         const nameNode = node.children.find((c: any) => c.type === 'identifier');
-        const typeNode = node.children.find((c: any) => c.type === 'type');
+        const typeNode = node.children.find((c: any) => c.type === TYPE_ANNOTATION_NODE_TYPE);
         if (!nameNode || !typeNode) {
             return null;
         }
         return { name: nameNode.text, type: typeNode.text };
     },
+    extractReturnType(node: any): string | null {
+        const arrowIndex = node?.children?.findIndex((c: any) => c.type === '->') ?? -1;
+        if (arrowIndex === -1) {
+            return null;
+        }
+        const typeNode = node.children[arrowIndex + 1];
+        return typeNode?.type === TYPE_ANNOTATION_NODE_TYPE ? typeNode.text : null;
+    },
+    genericBrackets: { open: '[', close: ']' },
     primitiveTypeNames: new Set(['str', 'int', 'float', 'bool', 'bytes']),
     keywordOnlyBoundaryTypes: ['keyword_separator', 'list_splat_pattern'],
     distinctTypeAdvice: 'NewType or a dataclass',

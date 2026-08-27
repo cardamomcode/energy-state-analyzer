@@ -46,7 +46,9 @@ function getCoherenceThresholds(): CoherenceThresholds {
     return {
         largeFunctionLines: config.get('largeFunctionLines', DEFAULT_COHERENCE_THRESHOLDS.largeFunctionLines),
         maxLargeFunctions: config.get('maxLargeFunctions', DEFAULT_COHERENCE_THRESHOLDS.maxLargeFunctions),
-        singleDomainNameShare: config.get('singleDomainNameShare', DEFAULT_COHERENCE_THRESHOLDS.singleDomainNameShare)
+        singleDomainNameShare: config.get('singleDomainNameShare', DEFAULT_COHERENCE_THRESHOLDS.singleDomainNameShare),
+        maxTypeDiversityRatio: config.get('maxTypeDiversityRatio', DEFAULT_COHERENCE_THRESHOLDS.maxTypeDiversityRatio),
+        minTypedCoverage: config.get('minTypedCoverage', DEFAULT_COHERENCE_THRESHOLDS.minTypedCoverage)
     };
 }
 

@@ -46,7 +46,8 @@ suite('analyzeFileCoherence', () => {
         const source = Array.from({ length: 6 }, (_, i) => makeFunction(`big_${i}`, 25)).join('\n');
         const tree = await parsePython(source);
 
-        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+        const positions = createPositionLookup(source);
+        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions);
 
         const largeFunctionViolation = violations.find(
             (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('exceed')
@@ -58,7 +59,8 @@ suite('analyzeFileCoherence', () => {
         const source = Array.from({ length: 20 }, (_, i) => makeFunction(`small_${i}`, 3)).join('\n');
         const tree = await parsePython(source);
 
-        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+        const positions = createPositionLookup(source);
+        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions);
 
         const largeFunctionViolation = violations.find(
             (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('exceed')
@@ -70,14 +72,15 @@ suite('analyzeFileCoherence', () => {
         const source = Array.from({ length: 3 }, (_, i) => makeFunction(`big_${i}`, 25)).join('\n');
         const tree = await parsePython(source);
 
-        const defaultViolations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+        const positions = createPositionLookup(source);
+        const defaultViolations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions);
         assert.strictEqual(
             defaultViolations.find((v) => v.message.includes('exceed')),
             undefined,
             '3 large functions should not trip the default threshold of 5'
         );
 
-        const strictViolations = analyzeFileCoherence(tree, 'module.py', PYTHON, {
+        const strictViolations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions, {
             ...DEFAULT_COHERENCE_THRESHOLDS,
             maxLargeFunctions: 2
         });
@@ -104,7 +107,8 @@ suite('analyzeFileCoherence', () => {
         const source = names.map((name) => makeFunction(name, 3)).join('\n');
         const tree = await parsePython(source);
 
-        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+        const positions = createPositionLookup(source);
+        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions);
 
         const countViolation = violations.find((v) => v.message.includes('functions in one file'));
         assert.ok(countViolation, 'expected a raw function-count coherence violation');
@@ -129,7 +133,8 @@ suite('analyzeFileCoherence', () => {
         const source = names.map((name) => makeFunction(name, 3)).join('\n');
         const tree = await parsePython(source);
 
-        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON);
+        const positions = createPositionLookup(source);
+        const violations = analyzeFileCoherence(tree, 'module.py', PYTHON, positions);
 
         const countViolation = violations.find((v) => v.message.includes('functions in one file'));
         assert.strictEqual(
