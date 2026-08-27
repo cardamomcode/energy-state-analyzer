@@ -84,6 +84,18 @@ export const TYPESCRIPT: LanguageAdapter = {
         }
         return { name: nameNode.text, type: typeNode.text };
     },
+    extractReturnType(node: any): string | null {
+        // decision: scans only the function node's own direct children - a parameter's
+        // type_annotation lives two levels deeper (inside formal_parameters), so this can't
+        // accidentally pick up a parameter's type instead of the return type.
+        const typeAnnotation = node?.children?.find((c: any) => c.type === 'type_annotation');
+        if (!typeAnnotation) {
+            return null;
+        }
+        const typeNode = typeAnnotation.children.find((c: any) => c.type !== ':');
+        return typeNode?.text ?? null;
+    },
+    genericBrackets: { open: '<', close: '>' },
     primitiveTypeNames: new Set(['string', 'number', 'boolean']),
     // TS has no enforced-keyword-only parameter syntax — see language.ts's field doc.
     keywordOnlyBoundaryTypes: [],

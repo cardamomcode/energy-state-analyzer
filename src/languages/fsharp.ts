@@ -95,12 +95,40 @@ export const FSHARP: LanguageAdapter = {
             return null;
         }
         const patternNode = node.children.find((c: any) => c.type === 'identifier_pattern');
-        const typeNode = node.children.find((c: any) => c.type === 'simple_type');
+        // decision: also matches generic_type (e.g. `xs: Iterable<'a>`), not just simple_type
+        // (`x: int`) - a curried, generically-typed parameter is exactly the shape the
+        // type-cohesion signal needs to see to recognize an F#-style single-type module.
+        const typeNode = node.children.find((c: any) => c.type === 'simple_type' || c.type === 'generic_type');
         if (!patternNode || !typeNode) {
             return null;
         }
         return { name: patternNode.text, type: typeNode.text };
     },
+    extractReturnType(node: any): string | null {
+        if (node?.type !== 'function_or_value_defn') {
+            return null;
+        }
+        const declIndex = node.children.findIndex((c: any) => c.type === 'function_declaration_left');
+        const equalsIndex = node.children.findIndex((c: any) => c.type === '=');
+        if (declIndex === -1 || equalsIndex === -1) {
+            return null;
+        }
+        // decision: only trusts a `:` <type> pair sitting as a direct child strictly between
+        // the declaration head and `=` - tree-sitter-fsharp has been observed to fold a
+        // curried function's return-type annotation into its last parameter's typed_pattern
+        // instead of producing this clean shape when the function is parsed as a file's only
+        // statement (see the module-level landmine comments above). Returning null rather
+        // than reaching into a parameter node avoids misattributing a parameter's type as
+        // the return type.
+        const colonIndex = node.children.findIndex(
+            (c: any, i: number) => c.type === ':' && i > declIndex && i < equalsIndex
+        );
+        if (colonIndex === -1) {
+            return null;
+        }
+        return node.children[colonIndex + 1]?.text ?? null;
+    },
+    genericBrackets: { open: '<', close: '>' },
     primitiveTypeNames: new Set(['string', 'int', 'float', 'bool']),
     // F#'s named-argument syntax is optional at the call site, so it doesn't prevent a
     // future positional call — not a valid swap-risk mitigation. See language.ts's field doc.

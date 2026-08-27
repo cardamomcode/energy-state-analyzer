@@ -82,6 +82,15 @@ export const PYTHON: LanguageAdapter = {
         }
         return { name: nameNode.text, type: typeNode.text };
     },
+    extractReturnType(node: any): string | null {
+        const arrowIndex = node?.children?.findIndex((c: any) => c.type === '->') ?? -1;
+        if (arrowIndex === -1) {
+            return null;
+        }
+        const typeNode = node.children[arrowIndex + 1];
+        return typeNode?.type === 'type' ? typeNode.text : null;
+    },
+    genericBrackets: { open: '[', close: ']' },
     primitiveTypeNames: new Set(['str', 'int', 'float', 'bool', 'bytes']),
     keywordOnlyBoundaryTypes: ['keyword_separator', 'list_splat_pattern'],
     distinctTypeAdvice: 'NewType or a dataclass',

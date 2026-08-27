@@ -76,6 +76,16 @@ export interface LanguageAdapter {
     // annotation, else null (untyped/inferred parameters return null).
     // Drives the primitive-obsession detector's parameter-swap-risk check.
     extractTypedParameter(node: any): { name: string; type: string } | null;
+    // Given a function-definition node (per isFunctionDefinition), returns its declared
+    // return-type text if one is explicitly annotated, else null (inferred/untyped return
+    // types return null — same null-and-skip convention as extractTypedParameter). Drives
+    // the file-coherence detector's type-cohesion signal alongside extractTypedParameter.
+    extractReturnType(node: any): string | null;
+    // The bracket characters this language's grammar uses to wrap generic type arguments
+    // (Python: `[` `]`, TS/Kotlin/F#: `<` `>`), so callers can strip a raw type-text blob
+    // like "Iterable[T]"/"Iterable<T>" down to its base type name "Iterable" without each
+    // detector special-casing per-language generic syntax.
+    genericBrackets: { open: string; close: string };
     // Unqualified primitive type names this language's swap-risk check
     // treats as interchangeable-and-therefore-risky (Python's str/int/
     // float/bool/bytes, TS's string/number/boolean, F#'s string/int/float/

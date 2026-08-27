@@ -1,5 +1,6 @@
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { LanguageAdapter } from '../language';
+import { typeCohesionResult } from '../typeCohesion';
 
 export interface CoherenceThresholds {
     // decision: gates file-coherence sprawl detection on large-function count, not raw function count — languages like F# idiomatically have many small functions per module, so what matters is functions large enough to carry real complexity
@@ -10,14 +11,40 @@ export interface CoherenceThresholds {
     // Share (0-1) of a file's functions that must share a leading name word (e.g. all
     // `extractX`/`extractY`) for the file to be treated as one coherent domain broken into many
     // small steps, rather than a grab-bag of unrelated helpers, and skip the raw function-count
-    // sprawl check below.
+    // sprawl check below. Only consulted when there isn't enough type-annotation coverage to
+    // trust maxTypeDiversityRatio instead - see checkFunctionCountSprawl.
     singleDomainNameShare: number;
+    // Maximum allowed ratio (0-1) of distinct base types to typed functions (those with >=1
+    // typed parameter or return-type annotation) for the file to be treated as one
+    // type-cohesive module, skipping the function-count sprawl check outright. A stronger
+    // signal than singleDomainNameShare when available, since it isn't vulnerable to
+    // name-prefix coincidence: an F#-style module exposing one verb per operation (map/
+    // filter/fold/zip/scan/...) shares no name prefix at all, but reuses a small type
+    // vocabulary throughout. Measures reuse (few distinct types across many functions) rather
+    // than one type dominating, since a real cohesive module often legitimately spans a
+    // *family* of related types (e.g. a Seq module touching Iterable, Seq, and Iterator) -
+    // requiring one single type to reach a majority share was tried first and rejected after
+    // it false-negatived on exactly that case. Only ever evaluated once a file already
+    // crosses the existing function-count thresholds (8 utils-named, 12 generic) below - a
+    // separate, lower threshold letting this signal flag files earlier was also tried and
+    // rejected, after it false-positived on this project's own coherence.ts (see
+    // checkFunctionCountSprawl's doc): type diversity alone isn't reliable enough below ~12
+    // functions to tell a legitimately-typed small module apart from a real grab-bag.
+    maxTypeDiversityRatio: number;
+    // Minimum share (0-1) of a file's functions that must carry at least one typed parameter
+    // or return-type annotation before maxTypeDiversityRatio is trusted at all. Below this,
+    // the file is treated as having insufficient type data and the detector falls back to
+    // singleDomainNameShare instead - avoids false confidence on largely-untyped files, where
+    // a handful of coincidentally same-typed functions could otherwise fake a low ratio.
+    minTypedCoverage: number;
 }
 
 export const DEFAULT_COHERENCE_THRESHOLDS: CoherenceThresholds = {
     largeFunctionLines: 20,
     maxLargeFunctions: 5,
-    singleDomainNameShare: 0.7
+    singleDomainNameShare: 0.7,
+    maxTypeDiversityRatio: 0.4,
+    minTypedCoverage: 0.5
 };
 
 function lineCount(node: any): number {
@@ -101,7 +128,8 @@ const HIGH_IMPORT_COUNT_THRESHOLD = 15;
 function checkFunctionCountSprawl(
     functions: any[],
     fileName: string,
-    thresholds: CoherenceThresholds
+    thresholds: CoherenceThresholds,
+    language: LanguageAdapter
 ): EnergyViolation | null {
     if (functions.length <= UTILS_FILE_FUNCTION_THRESHOLD) {
         return null;
@@ -109,11 +137,46 @@ function checkFunctionCountSprawl(
 
     const baseName = fileName.split('/').pop() || '';
     const isUtilsFile = baseName.includes('util') || baseName.includes('helper') || baseName.includes('common');
-    // decision: an explicit utils/helper/common filename overrides the naming-cohesion signal — a module that already admits to being a grab-bag in its own name doesn't get to argue its way out via consistent prefixes
-    const singleDomain = !isUtilsFile && looksLikeSingleDomain(functions, thresholds.singleDomainNameShare);
+    const typeResult = typeCohesionResult(
+        functions,
+        language,
+        thresholds.maxTypeDiversityRatio,
+        thresholds.minTypedCoverage
+    );
+
+    // decision: typeResult.result === true (measured, confirmed shared type - e.g. an
+    // F#-style module of one-verb-per-operation functions sharing no name prefix at all) is a
+    // stronger signal than looksLikeSingleDomain and is checked first; the naming heuristic
+    // only runs when typeResult is 'insufficient-data' (too little type coverage to trust).
+    // decision: an explicit utils/helper/common filename overrides either cohesion signal
+    // (naming or type) — a module that already admits to being a grab-bag in its own name
+    // doesn't get to argue its way out via consistent prefixes or a shared type.
+    const singleDomain =
+        !isUtilsFile &&
+        (typeResult.result === true || looksLikeSingleDomain(functions, thresholds.singleDomainNameShare));
 
     if (!isUtilsFile && (functions.length <= GENERIC_FUNCTION_COUNT_THRESHOLD || singleDomain)) {
         return null;
+    }
+
+    // decision: the type signal is evaluated at the SAME function-count thresholds as the
+    // naming/utils-filename path above (8 for utils-named files, 12 generic), not a lower,
+    // earlier-firing one — a lower threshold was tried and rejected after dogfooding surfaced
+    // a real false positive on this project's own coherence.ts (9 small, purpose-cohesive
+    // helper functions with a few different supporting types - not an entropy dump), showing
+    // the type-diversity signal isn't reliable enough below ~12 functions to tell a
+    // legitimately-typed small module apart from a real grab-bag. Once a file is already
+    // going to be flagged at the existing thresholds, though, a confidently-diverse type
+    // result is authoritative over naming (see CoherenceThresholds.maxTypeDiversityRatio's
+    // doc) and gets the stronger, more specific message below instead of the generic one.
+    if (typeResult.result === false) {
+        return {
+            line: 0,
+            column: 0,
+            type: VIOLATION_TYPE.COHERENCE,
+            severity: functions.length > HIGH_FUNCTION_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
+            message: `File coherence warning: ${functions.length} functions in one file spanning ${typeResult.distinctTypes} unrelated types. This is a stronger sprawl signal than function count alone — the functions don't share a common domain type, so moving them into existing cohesive modules (grouped by the type they operate on) is likely to help more than an arbitrary split.`
+        };
     }
 
     return {
@@ -121,7 +184,7 @@ function checkFunctionCountSprawl(
         column: 0,
         type: VIOLATION_TYPE.COHERENCE,
         severity: functions.length > HIGH_FUNCTION_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-        message: `File coherence warning: ${functions.length} functions in one file. Consider splitting by domain.`
+        message: `File coherence warning: ${functions.length} functions in one file. If they belong to distinct domains, prefer moving them into existing cohesive modules; splitting into a new file only helps if it doesn't just relocate the same imports/coupling.`
     };
 }
 
@@ -160,7 +223,7 @@ function checkImportSprawl(importSources: Set<string>): EnergyViolation | null {
         column: 0,
         type: VIOLATION_TYPE.COHERENCE,
         severity: importSources.size > HIGH_IMPORT_COUNT_THRESHOLD ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-        message: `Import sprawl: ${importSources.size} distinct modules imported suggest this file does too much.`
+        message: `Import sprawl: ${importSources.size} distinct modules imported suggest this file does too much. Splitting only helps if the resulting files don't each still need most of these imports.`
     };
 }
 
@@ -174,7 +237,7 @@ export function analyzeFileCoherence(
     const { functions, importSources } = collectFunctionsAndImports(tree, language);
 
     return [
-        checkFunctionCountSprawl(functions, fileName, thresholds),
+        checkFunctionCountSprawl(functions, fileName, thresholds, language),
         checkLargeFunctionSprawl(functions, thresholds),
         checkImportSprawl(importSources)
     ].filter((violation): violation is EnergyViolation => violation !== null);

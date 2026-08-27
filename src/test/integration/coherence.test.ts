@@ -65,5 +65,40 @@ suite('Integration: file coherence (real code examples)', () => {
             const hit = violations.filter((v) => v.type === VIOLATION_TYPE.COHERENCE);
             assert.strictEqual(hit.length, 0, `expected no coherence violations, got: ${JSON.stringify(hit)}`);
         });
+
+        // decision: regression guard for a real false positive - an F#-style module exposing
+        // one verb per operation (map/filter/fold/...) over a shared domain type, no naming
+        // cohesion at all, well past the generic 12-function threshold. Confirmed to
+        // misfire under the naming-only heuristic before the type-cohesion signal existed
+        // (see coherence.ts's decision comments).
+        test(`${label}: a type-cohesive module with no naming cohesion stays quiet`, async () => {
+            const fixture = `${language.id}/coherence/typeCohesive.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.filter((v) => v.type === VIOLATION_TYPE.COHERENCE);
+            assert.strictEqual(
+                hit.length,
+                0,
+                `expected no coherence violations for a type-cohesive module, got: ${JSON.stringify(hit)}`
+            );
+        });
+
+        // decision: confirms the type signal produces the stronger, more specific message
+        // once a file is already past the existing function-count threshold (12, same as the
+        // naming-cohesion check) and genuinely spans unrelated types - not a case of a shared
+        // type family the naming heuristic alone would have missed.
+        test(`${label}: a module with distinct names AND unrelated types gets the stronger entropy-dump message`, async () => {
+            const fixture = `${language.id}/coherence/entropyDump.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.find(
+                (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('unrelated types')
+            );
+            assert.ok(hit, 'expected an entropy-dump coherence violation for 13 functions spanning unrelated types');
+        });
     }
 });
