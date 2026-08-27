@@ -8,7 +8,7 @@ Flags files that have lost a single responsibility, the "utils/helpers sprawl" p
 
 **Large-function sprawl.** Counted independently of the check above, on the theory that a module with 30 small functions is fine but one with 6 sprawling ones isn't. A file with more than 5 functions exceeding 20 lines is flagged (medium; high past 7.5 large functions). This gates on large-function count rather than raw function count so that languages like F#, which idiomatically have many small functions per module, aren't penalized just for having a lot of them.
 
-**Import sprawl.** A file with more than 10 imports is flagged (medium; high past 15).
+**Import sprawl.** A file drawing from more than 10 distinct modules/packages is flagged (medium; high past 15). Counts distinct import *sources*, not raw import lines/symbols, since that's not comparable across languages: TS (`import { a, b, c } from 'x'`) and Python (`from x import a, b, c`) can bundle many symbols from one module into a single import line, but Kotlin has no equivalent grouping syntax and idiomatic style (ktlint's `no-wildcard-imports`) forbids collapsing them with `import x.*`, so each symbol needs its own line. Counting raw lines would flag a Kotlin file pulling many symbols from a handful of packages as far more sprawling than an equivalent TS/Python file with identical actual coupling.
 
 ## Example
 

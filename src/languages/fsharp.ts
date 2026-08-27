@@ -176,5 +176,11 @@ export const FSHARP: LanguageAdapter = {
     // module-scope binding is the only signal here.
     isExplicitConstant(): boolean {
         return false;
+    },
+    // `open X.Y` already names one whole module per line (F# has no per-symbol import), so the
+    // long_identifier child is used as-is with no stripping.
+    importSource(node: any): string {
+        const longIdentifier = node?.children?.find((c: any) => c.type === 'long_identifier');
+        return longIdentifier?.text ?? node?.text ?? '';
     }
 };

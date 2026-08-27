@@ -1,14 +1,14 @@
-import pkg.mod0
-import pkg.mod1
-import pkg.mod2
-import pkg.mod3
-import pkg.mod4
-import pkg.mod5
-import pkg.mod6
-import pkg.mod7
-import pkg.mod8
-import pkg.mod9
-import pkg.mod10
+import pkg0.Mod0
+import pkg1.Mod1
+import pkg2.Mod2
+import pkg3.Mod3
+import pkg4.Mod4
+import pkg5.Mod5
+import pkg6.Mod6
+import pkg7.Mod7
+import pkg8.Mod8
+import pkg9.Mod9
+import pkg10.Mod10
 
 fun doSomething(): Int {
     return 1

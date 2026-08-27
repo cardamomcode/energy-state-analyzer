@@ -161,4 +161,17 @@ export interface LanguageAdapter {
     // reach. Always false for languages with no such marker (Python, TS, F#), which still rely
     // on the module-scope heuristic alone.
     isExplicitConstant(node: any): boolean;
+    // Given an import node (matched via nodeTypes.importStatement/importFromStatement), returns
+    // the module/package it draws from, used to count *distinct dependencies* rather than raw
+    // import lines for the coherence detector's import-sprawl check. This distinction matters
+    // because grammars differ in how many lines one dependency costs: TS's `import { a, b, c }
+    // from 'x'` and Python's `from x import a, b, c` both bundle arbitrarily many symbols from
+    // one module into a single import line, but Kotlin has no such grouping syntax — each
+    // symbol needs its own `import` line, and idiomatic style (ktlint's no-wildcard-imports)
+    // forbids collapsing them with `import x.*`. Without this, a Kotlin file pulling 11 symbols
+    // from 3 packages reads as 3x more import-sprawl than equivalent TS/Python, even though its
+    // actual coupling is identical. Kotlin/F# return the package/module path (everything but the
+    // trailing symbol name for Kotlin; the whole `open`-ed path for F#, which is already
+    // per-module); Python/TS return the module string after from/'from '.
+    importSource(node: any): string;
 }
