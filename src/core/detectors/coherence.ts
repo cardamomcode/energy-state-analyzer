@@ -3,6 +3,7 @@ import { LanguageAdapter } from '../language';
 import { isUtilsFileName, looksLikeSingleDomain } from '../namingCohesion';
 import { Position, PositionLookup } from '../position';
 import { typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
+import { ClassInfo, checkClassRelatedness } from './classRelatedness';
 
 export interface CoherenceThresholds {
     // decision: gates file-coherence sprawl detection on large-function count, not raw function count — languages like F# idiomatically have many small functions per module, so what matters is functions large enough to carry real complexity
@@ -53,38 +54,67 @@ function lineCount(node: any): number {
     return node.endPosition.row - node.startPosition.row + 1;
 }
 
-function collectFunctionsAndImports(
+// decision: methods are grouped by their nearest enclosing class rather than folded into the
+// same flat function list a free-standing function would land in — a class is already a
+// cohesion boundary of its own (see checkClassRelatedness below), so its method count isn't
+// this detector's function-count-sprawl concern (that would be a separate "god class" check,
+// deliberately out of scope here). A method with no enclosing class (every function in a
+// functional-style module) still lands in `freeFunctions`, preserving this detector's existing
+// behavior for non-OOP files untouched.
+function collectFunctionsClassesAndImports(
     tree: any,
     language: LanguageAdapter
-): { functions: any[]; importSources: Set<string>; firstImportNode: any | null } {
-    const functions: any[] = [];
+): { freeFunctions: any[]; classes: ClassInfo[]; importSources: Set<string>; firstImportNode: any | null } {
+    const freeFunctions: any[] = [];
+    const classes: ClassInfo[] = [];
     const importSources = new Set<string>();
     let firstImportNode: any | null = null;
-    const { nodeTypes } = language;
 
-    function traverse(node: any) {
+    // decision: requires isNamed, not just a type match — Kotlin's import rule is literally
+    // named `import`, which collides with the anonymous `import` keyword token that is itself
+    // a child of every import node (node.type for an anonymous node is its literal text).
+    // Without this guard, every Kotlin import is counted twice: once for the named node, once
+    // for its own leading keyword token.
+    function isImportNode(node: any): boolean {
+        const { nodeTypes } = language;
+        return (
+            node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
+        );
+    }
+
+    function traverseClass(node: any) {
+        const classInfo: ClassInfo = {
+            name: language.getClassName(node),
+            node,
+            baseNames: language.getBaseClassNames(node),
+            methods: []
+        };
+        classes.push(classInfo);
+        for (const child of node.children) {
+            traverse(child, classInfo);
+        }
+    }
+
+    function traverse(node: any, enclosingClass: ClassInfo | null) {
+        if (language.classDefinitionNodeTypes.includes(node.type)) {
+            traverseClass(node);
+            return;
+        }
+
         if (language.isFunctionDefinition(node)) {
-            functions.push(node);
-        } else if (
-            node.isNamed &&
-            (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
-        ) {
-            // decision: requires isNamed, not just a type match — Kotlin's import rule is
-            // literally named `import`, which collides with the anonymous `import` keyword
-            // token that is itself a child of every import node (node.type for an anonymous
-            // node is its literal text). Without this guard, every Kotlin import is counted
-            // twice: once for the named node, once for its own leading keyword token.
+            (enclosingClass ? enclosingClass.methods : freeFunctions).push(node);
+        } else if (isImportNode(node)) {
             importSources.add(language.importSource(node) || node.text || '');
             firstImportNode ??= node;
         }
 
         for (const child of node.children) {
-            traverse(child);
+            traverse(child, enclosingClass);
         }
     }
 
-    traverse(tree.rootNode);
-    return { functions, importSources, firstImportNode };
+    traverse(tree.rootNode, null);
+    return { freeFunctions, classes, importSources, firstImportNode };
 }
 
 // decision: the raw function-count trigger (8/12) and its severity escalation (15) are
@@ -130,6 +160,9 @@ function functionCountViolation(functionCount: number, message: string, position
 
 // Flag files with too many unrelated functions (utils/helpers sprawl)
 // decision: lowers the flagging threshold from 12 to 8 functions when the filename itself signals a grab-bag module (util/helper/common) — the name is treated as a proxy for "already known to lack a single responsibility"
+// decision: only ever sees free-standing functions, not class methods (see
+// collectFunctionsClassesAndImports) — a method's cohesion is judged relative to its own
+// class by checkClassRelatedness below, not by this file-wide function count.
 function checkFunctionCountSprawl(
     functions: any[],
     fileName: string,
@@ -243,11 +276,16 @@ export function analyzeFileCoherence(
     positions: PositionLookup,
     thresholds: CoherenceThresholds = DEFAULT_COHERENCE_THRESHOLDS
 ): EnergyViolation[] {
-    const { functions, importSources, firstImportNode } = collectFunctionsAndImports(tree, language);
+    const { freeFunctions, classes, importSources, firstImportNode } = collectFunctionsClassesAndImports(
+        tree,
+        language
+    );
+    const allFunctions = [...freeFunctions, ...classes.flatMap((c) => c.methods)];
 
     return [
-        checkFunctionCountSprawl(functions, fileName, thresholds, language, positions),
-        checkLargeFunctionSprawl(functions, thresholds, positions),
-        checkImportSprawl(importSources, firstImportNode, positions)
+        checkFunctionCountSprawl(freeFunctions, fileName, thresholds, language, positions),
+        checkLargeFunctionSprawl(allFunctions, thresholds, positions),
+        checkImportSprawl(importSources, firstImportNode, positions),
+        checkClassRelatedness(classes, thresholds.singleDomainNameShare, language, positions)
     ].filter((violation): violation is EnergyViolation => violation !== null);
 }

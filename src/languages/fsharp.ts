@@ -217,5 +217,18 @@ export const FSHARP: LanguageAdapter = {
     importSource(node: any): string {
         const longIdentifier = node?.children?.find((c: any) => c.type === 'long_identifier');
         return longIdentifier?.text ?? node?.text ?? '';
+    },
+    // F# has no idiomatic class-per-file OOP pattern the class-relatedness check targets —
+    // its type_definition node also covers records/unions/modules, and distinguishing "this is
+    // a class with methods" from those would need the same kind of grammar-shape disambiguation
+    // isFunctionDefinition already does for function_or_value_defn, for a construct this
+    // codebase's F# usage rarely reaches for. Left unmodeled; every method-bearing F# file is
+    // still covered by the free-function checks above, unaffected by this gap.
+    classDefinitionNodeTypes: [],
+    getClassName(): string | null {
+        return null;
+    },
+    getBaseClassNames(): string[] {
+        return [];
     }
 };
