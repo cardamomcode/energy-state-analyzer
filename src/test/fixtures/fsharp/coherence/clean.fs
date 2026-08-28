@@ -5,5 +5,7 @@ open System.IO
 let readConfig (path: string) =
     File.Exists path
 
-let writeConfig (path: string) (data: string) =
-    data.Length > 0
+type ConfigWrite = { Path: string; Data: string }
+
+let writeConfig (config: ConfigWrite) =
+    config.Data.Length > 0

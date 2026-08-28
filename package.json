@@ -161,6 +161,11 @@
           ],
           "description": "String literals that are never flagged as magic strings, regardless of context."
         },
+        "energyStateAnalyzer.includeFixtures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Analyze files that .esaignore excludes when opened in the editor, for visually verifying detector fixtures. Does not affect the CLI/CI scan, which always honors .esaignore."
+        },
         "energyStateAnalyzer.matchOpportunity.minBranches": {
           "type": "number",
           "default": 3,
