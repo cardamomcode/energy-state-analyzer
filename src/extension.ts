@@ -217,6 +217,8 @@ async function getOrLoadLanguage(languageId: string): Promise<LoadedLanguage | u
 // `includeFixtures` is an editor-only override for visually spot-checking detector
 // fixtures (deliberately bad code under .esaignore, e.g. src/test/fixtures) without
 // touching .esaignore itself, which the CLI/CI scan (src/cliModes.ts) always honors.
+const INCLUDE_FIXTURES_DEFAULT = false;
+
 function isDocumentIgnored(document: vscode.TextDocument): boolean {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
     if (!workspaceFolder) {
@@ -224,7 +226,7 @@ function isDocumentIgnored(document: vscode.TextDocument): boolean {
     }
     const includeFixtures = vscode.workspace
         .getConfiguration('energyStateAnalyzer')
-        .get<boolean>('includeFixtures', false);
+        .get<boolean>('includeFixtures', INCLUDE_FIXTURES_DEFAULT);
     if (includeFixtures) {
         return false;
     }
