@@ -1,8 +1,8 @@
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { LanguageAdapter } from '../language';
-import { isUtilsFileName, looksLikeSingleDomain } from '../namingCohesion';
+import { isUtilsFileName, looksLikeSingleDomain, looksLikeSingleDomainByNames } from '../namingCohesion';
 import { Position, PositionLookup } from '../position';
-import { typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
+import { collectTypeSignals, typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
 
 export interface CoherenceThresholds {
     // decision: gates file-coherence sprawl detection on large-function count, not raw function count — languages like F# idiomatically have many small functions per module, so what matters is functions large enough to carry real complexity
@@ -53,18 +53,53 @@ function lineCount(node: any): number {
     return node.endPosition.row - node.startPosition.row + 1;
 }
 
-function collectFunctionsAndImports(
+// A class defined in the file, along with the methods nested directly (or transitively,
+// through non-class nesting like a method's own closures) inside it.
+interface ClassInfo {
+    name: string | null;
+    node: any;
+    baseNames: string[];
+    methods: any[];
+}
+
+// decision: methods are grouped by their nearest enclosing class rather than folded into the
+// same flat function list a free-standing function would land in — a class is already a
+// cohesion boundary of its own (see checkClassRelatedness below), so its method count isn't
+// this detector's function-count-sprawl concern (that would be a separate "god class" check,
+// deliberately out of scope here). A method with no enclosing class (every function in a
+// functional-style module) still lands in `freeFunctions`, preserving this detector's existing
+// behavior for non-OOP files untouched.
+function collectFunctionsClassesAndImports(
     tree: any,
     language: LanguageAdapter
-): { functions: any[]; importSources: Set<string>; firstImportNode: any | null } {
-    const functions: any[] = [];
+): { freeFunctions: any[]; classes: ClassInfo[]; importSources: Set<string>; firstImportNode: any | null } {
+    const freeFunctions: any[] = [];
+    const classes: ClassInfo[] = [];
     const importSources = new Set<string>();
     let firstImportNode: any | null = null;
-    const { nodeTypes } = language;
+    const { nodeTypes, classDefinitionNodeTypes } = language;
 
-    function traverse(node: any) {
+    function traverse(node: any, enclosingClass: ClassInfo | null) {
+        if (classDefinitionNodeTypes.includes(node.type)) {
+            const classInfo: ClassInfo = {
+                name: language.getClassName(node),
+                node,
+                baseNames: language.getBaseClassNames(node),
+                methods: []
+            };
+            classes.push(classInfo);
+            for (const child of node.children) {
+                traverse(child, classInfo);
+            }
+            return;
+        }
+
         if (language.isFunctionDefinition(node)) {
-            functions.push(node);
+            if (enclosingClass) {
+                enclosingClass.methods.push(node);
+            } else {
+                freeFunctions.push(node);
+            }
         } else if (
             node.isNamed &&
             (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
@@ -79,12 +114,12 @@ function collectFunctionsAndImports(
         }
 
         for (const child of node.children) {
-            traverse(child);
+            traverse(child, enclosingClass);
         }
     }
 
-    traverse(tree.rootNode);
-    return { functions, importSources, firstImportNode };
+    traverse(tree.rootNode, null);
+    return { freeFunctions, classes, importSources, firstImportNode };
 }
 
 // decision: the raw function-count trigger (8/12) and its severity escalation (15) are
@@ -130,6 +165,9 @@ function functionCountViolation(functionCount: number, message: string, position
 
 // Flag files with too many unrelated functions (utils/helpers sprawl)
 // decision: lowers the flagging threshold from 12 to 8 functions when the filename itself signals a grab-bag module (util/helper/common) — the name is treated as a proxy for "already known to lack a single responsibility"
+// decision: only ever sees free-standing functions, not class methods (see
+// collectFunctionsClassesAndImports) — a method's cohesion is judged relative to its own
+// class by checkClassRelatedness below, not by this file-wide function count.
 function checkFunctionCountSprawl(
     functions: any[],
     fileName: string,
@@ -235,6 +273,131 @@ function checkImportSprawl(
     };
 }
 
+// decision: a tiny local union-find over the file's classes, not a general graph library -
+// the only operation needed is "merge these two classes' families" then "list the resulting
+// families", which a parent-pointer array covers in a few lines.
+function unionFind(size: number): { union: (a: number, b: number) => void; find: (i: number) => number } {
+    const parent = Array.from({ length: size }, (_, i) => i);
+    function find(i: number): number {
+        while (parent[i] !== i) {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        return i;
+    }
+    function union(a: number, b: number): void {
+        const rootA = find(a);
+        const rootB = find(b);
+        if (rootA !== rootB) {
+            parent[rootA] = rootB;
+        }
+    }
+    return { union, find };
+}
+
+// Flag a file whose classes split into multiple families with no relationship to each other -
+// the class-level counterpart to checkFunctionCountSprawl's "unrelated types" message, but for
+// a different shape of sprawl: several small, internally-cohesive classes that don't belong
+// together in the same file, rather than many loose functions.
+// decision: unlike checkFunctionCountSprawl, this has no minimum class count before it can
+// fire - a class is already a much stronger unit of cohesion than a single function (it's a
+// whole type, not one operation), so two totally unrelated classes are worth flagging even at
+// just 2, not only past some larger threshold.
+// decision: three independent signals link two classes into one family, checked in this
+// order because each is progressively weaker evidence: (1) direct inheritance - one class's
+// base name is another's own name; (2) shared base - two classes both extend/implement the
+// same name, even one not defined in this file at all (e.g. a file of exception classes that
+// all extend `Exception` but never reference each other); (3) type cross-reference - a
+// method's signature (via collectTypeSignals, the same signal checkFunctionCountSprawl's type
+// cohesion uses) touches another class defined in the file, as with a token/token-source pair
+// where one constructs or returns the other. If the resulting graph still splits into more
+// than one group, a naming-affix fallback (shared prefix or suffix across class names, same
+// mechanism as looksLikeSingleDomain for functions) gets one last chance to unify the whole
+// file before it's flagged - unlike the function-level type-diversity signal, an unconnected
+// class graph is an absence of positive evidence, not a positive diversity measurement, so
+// it's not treated as authoritative over naming the way checkFunctionCountSprawl's type
+// signal is.
+function checkClassRelatedness(
+    classes: ClassInfo[],
+    thresholds: CoherenceThresholds,
+    language: LanguageAdapter,
+    positions: PositionLookup
+): EnergyViolation | null {
+    if (classes.length < 2) {
+        return null;
+    }
+
+    const names = classes.map((c) => c.name);
+    const { union, find } = unionFind(classes.length);
+
+    classes.forEach((cls, i) => {
+        for (const baseName of cls.baseNames) {
+            const baseIndex = names.findIndex((name) => name !== null && name === baseName);
+            if (baseIndex !== -1) {
+                union(i, baseIndex);
+            }
+        }
+    });
+
+    const indicesByBaseName = new Map<string, number[]>();
+    classes.forEach((cls, i) => {
+        for (const baseName of cls.baseNames) {
+            const group = indicesByBaseName.get(baseName) ?? [];
+            group.push(i);
+            indicesByBaseName.set(baseName, group);
+        }
+    });
+    for (const group of indicesByBaseName.values()) {
+        for (let i = 1; i < group.length; i++) {
+            union(group[0], group[i]);
+        }
+    }
+
+    classes.forEach((cls, i) => {
+        for (const method of cls.methods) {
+            for (const type of collectTypeSignals(method, language)) {
+                const otherIndex = names.findIndex((name) => name !== null && name === type);
+                if (otherIndex !== -1 && otherIndex !== i) {
+                    union(i, otherIndex);
+                }
+            }
+        }
+    });
+
+    const groups = new Map<number, number[]>();
+    classes.forEach((_, i) => {
+        const root = find(i);
+        const group = groups.get(root) ?? [];
+        group.push(i);
+        groups.set(root, group);
+    });
+
+    if (groups.size <= 1) {
+        return null;
+    }
+
+    const definiteNames = names.filter((name): name is string => name !== null);
+    if (
+        definiteNames.length === names.length &&
+        looksLikeSingleDomainByNames(definiteNames, thresholds.singleDomainNameShare)
+    ) {
+        return null;
+    }
+
+    const groupList = [...groups.values()]
+        .map((indices) => indices.map((i) => names[i] ?? '(anonymous)'))
+        .sort((a, b) => b.length - a.length);
+
+    const position = positions.toPosition(classes[0].node.startIndex);
+    return {
+        line: position.line,
+        column: position.column,
+        type: VIOLATION_TYPE.COHERENCE,
+        severity: groupList.length > 2 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
+        message: `File coherence warning: ${classes.length} classes in one file split into ${groupList.length} unrelated groups: ${groupList.map((g) => `{${g.join(', ')}}`).join(' vs ')}. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file.`
+    };
+}
+
 // The "Utils/Helpers Sprawl" detector - detects files losing coherence
 export function analyzeFileCoherence(
     tree: any,
@@ -243,11 +406,16 @@ export function analyzeFileCoherence(
     positions: PositionLookup,
     thresholds: CoherenceThresholds = DEFAULT_COHERENCE_THRESHOLDS
 ): EnergyViolation[] {
-    const { functions, importSources, firstImportNode } = collectFunctionsAndImports(tree, language);
+    const { freeFunctions, classes, importSources, firstImportNode } = collectFunctionsClassesAndImports(
+        tree,
+        language
+    );
+    const allFunctions = [...freeFunctions, ...classes.flatMap((c) => c.methods)];
 
     return [
-        checkFunctionCountSprawl(functions, fileName, thresholds, language, positions),
-        checkLargeFunctionSprawl(functions, thresholds, positions),
-        checkImportSprawl(importSources, firstImportNode, positions)
+        checkFunctionCountSprawl(freeFunctions, fileName, thresholds, language, positions),
+        checkLargeFunctionSprawl(allFunctions, thresholds, positions),
+        checkImportSprawl(importSources, firstImportNode, positions),
+        checkClassRelatedness(classes, thresholds, language, positions)
     ].filter((violation): violation is EnergyViolation => violation !== null);
 }

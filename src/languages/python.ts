@@ -210,5 +210,20 @@ export const PYTHON: LanguageAdapter = {
         }
         const dotted = children.find((c: any) => c.type === 'dotted_name');
         return dotted?.text ?? node?.text ?? '';
+    },
+    classDefinitionNodeTypes: ['class_definition'],
+    getClassName(node: any): string | null {
+        return node?.children?.find((c: any) => c.type === 'identifier')?.text ?? null;
+    },
+    // `class Foo(Bar, Baz):` -> ['Bar', 'Baz']; `class Foo(meta=Meta):` skips the keyword_argument
+    // (not a base class); `class Foo(pkg.Bar):` -> ['pkg.Bar'] via the attribute node's own text.
+    getBaseClassNames(node: any): string[] {
+        const argumentList = node?.children?.find((c: any) => c.type === 'argument_list');
+        if (!argumentList) {
+            return [];
+        }
+        return argumentList.children
+            .filter((c: any) => c.type === 'identifier' || c.type === 'attribute')
+            .map((c: any) => c.text);
     }
 };

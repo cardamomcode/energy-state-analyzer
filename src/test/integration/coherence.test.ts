@@ -101,4 +101,60 @@ suite('Integration: file coherence (real code examples)', () => {
             assert.ok(hit, 'expected an entropy-dump coherence violation for 13 functions spanning unrelated types');
         });
     }
+
+    // decision: only languages with a real class construct - F# has no classDefinitionNodeTypes
+    // (see fsharp.ts), so it's excluded from this block rather than given empty fixtures.
+    for (const [label, language, ext] of [
+        ['Python', PYTHON, 'py'],
+        ['TypeScript', TYPESCRIPT, 'ts'],
+        ['Kotlin', KOTLIN, 'kt']
+    ] as const) {
+        // decision: regression guard for a real false positive - methods were being counted
+        // like free-standing functions and their few incidental parameter/return types (each
+        // other's own class) misread as "unrelated types", flagging a 2-class file with 15
+        // methods total as function-count sprawl. Classes must be grouped by enclosing type
+        // before the type-diversity signal is evaluated.
+        test(`${label}: two classes that construct/return each other stay quiet`, async () => {
+            const fixture = `${language.id}/coherence/relatedClasses.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.filter((v) => v.type === VIOLATION_TYPE.COHERENCE);
+            assert.strictEqual(
+                hit.length,
+                0,
+                `expected no coherence violations for two type-linked classes, got: ${JSON.stringify(hit)}`
+            );
+        });
+
+        test(`${label}: two classes with no shared inheritance, type reference, or naming pattern are flagged`, async () => {
+            const fixture = `${language.id}/coherence/unrelatedClasses.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.find(
+                (v) => v.type === VIOLATION_TYPE.COHERENCE && v.message.includes('unrelated groups')
+            );
+            assert.ok(hit, 'expected an unrelated-classes coherence violation for Logger/HttpClient');
+        });
+
+        // decision: regression guard for an exceptions.py-style file - classes with no
+        // cross-reference and no shared naming affix, but sharing a common base class (even
+        // one not defined in this file, e.g. Exception/Error) must stay quiet.
+        test(`${label}: classes sharing a common base with no naming pattern stay quiet`, async () => {
+            const fixture = `${language.id}/coherence/exceptionFamily.${ext}`;
+            const { sourceCode, tree } = await parseFixture(language, fixture);
+            const violations = analyzeSource(sourceCode, tree, language, fixture);
+            assertValidPositions(violations, sourceCode);
+
+            const hit = violations.filter((v) => v.type === VIOLATION_TYPE.COHERENCE);
+            assert.strictEqual(
+                hit.length,
+                0,
+                `expected no coherence violations for a shared-base exception family, got: ${JSON.stringify(hit)}`
+            );
+        });
+    }
 });

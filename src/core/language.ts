@@ -185,4 +185,23 @@ export interface LanguageAdapter {
     // trailing symbol name for Kotlin; the whole `open`-ed path for F#, which is already
     // per-module); Python/TS return the module string after from/'from '.
     importSource(node: any): string;
+    // Node types that introduce a class-like scope for the file-coherence detector's
+    // class-relatedness check — methods nested inside one of these are grouped by their
+    // enclosing class instead of counted as free-standing functions (a class's own method
+    // count isn't file-coherence's concern; see coherence.ts's checkClassRelatedness). Empty
+    // for F#, which has no idiomatic class-per-file OOP pattern this check targets.
+    classDefinitionNodeTypes: string[];
+    // Given a class-definition node (per classDefinitionNodeTypes), returns its declared name,
+    // or null if it can't be determined. Always called with a node whose type is one of
+    // classDefinitionNodeTypes.
+    getClassName(node: any): string | null;
+    // Given a class-definition node, returns the names of every class it directly extends or
+    // implements, as written in the source (not resolved against imports — a name here might
+    // refer to a class defined elsewhere in the file, or to an external one like `Exception`).
+    // Used two ways by checkClassRelatedness: (1) two classes in the same file are linked
+    // directly if one's base name is the other's own name; (2) two classes are linked as
+    // siblings if they share a base name in common, even when that base isn't itself defined
+    // in the file (e.g. a whole file of exception classes that all extend `Exception` but
+    // never reference each other).
+    getBaseClassNames(node: any): string[];
 }

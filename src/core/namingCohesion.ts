@@ -48,11 +48,15 @@ function dominantShare(words: string[]): number {
     return Math.max(...wordCounts.values()) / words.length;
 }
 
-export function looksLikeSingleDomain(functions: any[], minShare: number): boolean {
+// decision: shared by looksLikeSingleDomain (functions) and looksLikeSingleDomainByNames
+// (classes, see coherence.ts's checkClassRelatedness) — both want "does a dominant leading or
+// trailing word-boundary chunk recur across most of these names", just starting from a
+// different source (a function's identifier child vs. a class's already-extracted name string).
+export function looksLikeSingleDomainByNames(names: string[], minShare: number): boolean {
     const leadingWords: string[] = [];
     const trailingWords: string[] = [];
-    for (const fn of functions) {
-        const words = functionNameWords(fn);
+    for (const name of names) {
+        const words = splitIntoWords(name);
         if (words.length === 0) {
             continue;
         }
@@ -65,4 +69,11 @@ export function looksLikeSingleDomain(functions: any[], minShare: number): boole
     }
 
     return dominantShare(leadingWords) >= minShare || dominantShare(trailingWords) >= minShare;
+}
+
+export function looksLikeSingleDomain(functions: any[], minShare: number): boolean {
+    return looksLikeSingleDomainByNames(
+        functions.map((fn) => functionNameWords(fn).join(' ')),
+        minShare
+    );
 }

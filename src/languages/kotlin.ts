@@ -221,5 +221,34 @@ export const KOTLIN: LanguageAdapter = {
         }
         const lastDot = qualified.text.lastIndexOf('.');
         return lastDot === -1 ? qualified.text : qualified.text.slice(0, lastDot);
+    },
+    classDefinitionNodeTypes: ['class_declaration'],
+    getClassName(node: any): string | null {
+        return node?.children?.find((c: any) => c.type === 'identifier')?.text ?? null;
+    },
+    // `class Foo : Bar(), Baz` -> ['Bar', 'Baz']. Each delegation_specifier wraps either a
+    // constructor_invocation (a superclass call, `Bar()`) or a bare user_type (an interface,
+    // `Baz`) - both nest their name one level deeper inside a user_type node.
+    getBaseClassNames(node: any): string[] {
+        const specifiers = node?.children?.find((c: any) => c.type === 'delegation_specifiers');
+        if (!specifiers) {
+            return [];
+        }
+        const names: string[] = [];
+        for (const specifier of specifiers.children ?? []) {
+            if (specifier.type !== 'delegation_specifier') {
+                continue;
+            }
+            const userType =
+                specifier.children?.find((c: any) => c.type === 'user_type') ??
+                specifier.children
+                    ?.find((c: any) => c.type === 'constructor_invocation')
+                    ?.children?.find((c: any) => c.type === 'user_type');
+            const identifier = userType?.children?.find((c: any) => c.type === 'identifier');
+            if (identifier) {
+                names.push(identifier.text);
+            }
+        }
+        return names;
     }
 };

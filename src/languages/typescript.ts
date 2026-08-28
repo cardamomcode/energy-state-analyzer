@@ -171,5 +171,32 @@ export const TYPESCRIPT: LanguageAdapter = {
     importSource(node: any): string {
         const specifier = node?.children?.find((c: any) => c.type === 'string');
         return specifier?.text ?? node?.text ?? '';
+    },
+    // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
+    classDefinitionNodeTypes: ['class_declaration', 'abstract_class_declaration'],
+    getClassName(node: any): string | null {
+        return node?.children?.find((c: any) => c.type === 'type_identifier')?.text ?? null;
+    },
+    // `class Foo extends Bar implements Baz, Qux {}` -> ['Bar', 'Baz', 'Qux']. extends_clause
+    // wraps a single expression (usually an identifier, occasionally `Foo.Bar` as a
+    // member_expression); implements_clause lists one or more type_identifier siblings directly.
+    getBaseClassNames(node: any): string[] {
+        const heritage = node?.children?.find((c: any) => c.type === 'class_heritage');
+        if (!heritage) {
+            return [];
+        }
+        const names: string[] = [];
+        const extendsClause = heritage.children?.find((c: any) => c.type === 'extends_clause');
+        const extendsTarget = extendsClause?.children?.find((c: any) => c.type !== 'extends');
+        if (extendsTarget) {
+            names.push(extendsTarget.text);
+        }
+        const implementsClause = heritage.children?.find((c: any) => c.type === 'implements_clause');
+        for (const c of implementsClause?.children ?? []) {
+            if (c.type === 'type_identifier') {
+                names.push(c.text);
+            }
+        }
+        return names;
     }
 };
