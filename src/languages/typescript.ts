@@ -5,6 +5,29 @@ import { LanguageAdapter } from '../core/language';
 // magic-string detector's own duplicate-string check.
 const TYPE_ANNOTATION_NODE_TYPE = 'type_annotation';
 
+// decision: shared by getClassName/getBaseClassNames below - both check a node's type against
+// TS's grammar node-type name for a class's own name identifier (distinct from a plain
+// `identifier`, which lower-cased bindings use); a literal repeated across both would trip the
+// magic-string detector's own duplicate-string check.
+const TYPE_IDENTIFIER_NODE_TYPE = 'type_identifier';
+
+// decision: split out of getBaseClassNames into their own functions, each checking a single
+// node type, rather than several `c.type === '...'` comparisons against the same `heritage`
+// subtree in one function - that shape is exactly what the primitive-obsession detector's
+// stringly-typed-control-flow check flags as a switch-like branch on an ad hoc string tag.
+function extendsTargetNames(heritage: any): string[] {
+    const extendsClause = heritage.children?.find((c: any) => c.type === 'extends_clause');
+    const extendsTarget = extendsClause?.children?.find((c: any) => c.type !== 'extends');
+    return extendsTarget ? [extendsTarget.text] : [];
+}
+
+function implementsTargetNames(heritage: any): string[] {
+    const implementsClause = heritage.children?.find((c: any) => c.type === 'implements_clause');
+    return (implementsClause?.children ?? [])
+        .filter((c: any) => c.type === TYPE_IDENTIFIER_NODE_TYPE)
+        .map((c: any) => c.text);
+}
+
 // tree-sitter-typescript is structurally close to Python's grammar: real
 // block/body nodes, a distinct else_clause, and and/or (&&/||) each get
 // their own node type as the operator-token child of a binary_expression.
@@ -175,7 +198,7 @@ export const TYPESCRIPT: LanguageAdapter = {
     // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
     classDefinitionNodeTypes: ['class_declaration', 'abstract_class_declaration'],
     getClassName(node: any): string | null {
-        return node?.children?.find((c: any) => c.type === 'type_identifier')?.text ?? null;
+        return node?.children?.find((c: any) => c.type === TYPE_IDENTIFIER_NODE_TYPE)?.text ?? null;
     },
     // `class Foo extends Bar implements Baz, Qux {}` -> ['Bar', 'Baz', 'Qux']. extends_clause
     // wraps a single expression (usually an identifier, occasionally `Foo.Bar` as a
@@ -185,18 +208,6 @@ export const TYPESCRIPT: LanguageAdapter = {
         if (!heritage) {
             return [];
         }
-        const names: string[] = [];
-        const extendsClause = heritage.children?.find((c: any) => c.type === 'extends_clause');
-        const extendsTarget = extendsClause?.children?.find((c: any) => c.type !== 'extends');
-        if (extendsTarget) {
-            names.push(extendsTarget.text);
-        }
-        const implementsClause = heritage.children?.find((c: any) => c.type === 'implements_clause');
-        for (const c of implementsClause?.children ?? []) {
-            if (c.type === 'type_identifier') {
-                names.push(c.text);
-            }
-        }
-        return names;
+        return [...extendsTargetNames(heritage), ...implementsTargetNames(heritage)];
     }
 };

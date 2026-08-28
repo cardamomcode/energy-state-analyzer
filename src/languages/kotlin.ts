@@ -98,7 +98,7 @@ export const KOTLIN: LanguageAdapter = {
             return null;
         }
         const nameNode = node.children.find((c: any) => c.type === 'identifier');
-        const typeNode = node.children.find((c: any) => c.type === 'user_type');
+        const typeNode = node.children.find(isUserType);
         if (!nameNode || !typeNode) {
             return null;
         }
@@ -234,21 +234,24 @@ export const KOTLIN: LanguageAdapter = {
         if (!specifiers) {
             return [];
         }
-        const names: string[] = [];
-        for (const specifier of specifiers.children ?? []) {
-            if (specifier.type !== 'delegation_specifier') {
-                continue;
-            }
-            const userType =
-                specifier.children?.find((c: any) => c.type === 'user_type') ??
-                specifier.children
-                    ?.find((c: any) => c.type === 'constructor_invocation')
-                    ?.children?.find((c: any) => c.type === 'user_type');
-            const identifier = userType?.children?.find((c: any) => c.type === 'identifier');
-            if (identifier) {
-                names.push(identifier.text);
-            }
-        }
-        return names;
+        return (specifiers.children ?? [])
+            .filter((specifier: any) => specifier.type === 'delegation_specifier')
+            .map(delegationSpecifierName)
+            .filter((name: string | null): name is string => name !== null);
     }
 };
+
+// decision: split out of getBaseClassNames into its own function, rather than several
+// `c.type === '...'` comparisons against the same `specifier` subtree inline there - that
+// shape is exactly what the primitive-obsession detector's stringly-typed-control-flow check
+// flags as a switch-like branch on an ad hoc string tag.
+function delegationSpecifierName(specifier: any): string | null {
+    const userType =
+        specifier.children?.find(isUserType) ??
+        specifier.children?.find((c: any) => c.type === 'constructor_invocation')?.children?.find(isUserType);
+    return userType?.children?.find((c: any) => c.type === 'identifier')?.text ?? null;
+}
+
+function isUserType(node: any): boolean {
+    return node?.type === 'user_type';
+}

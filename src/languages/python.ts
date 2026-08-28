@@ -6,6 +6,19 @@ import { LanguageAdapter } from '../core/language';
 // the magic-string detector's own duplicate-string check.
 const TYPE_ANNOTATION_NODE_TYPE = 'type';
 
+// decision: shared by isPositionalCallArgument and getBaseClassNames below - both check a
+// node's type against Python's grammar node-type name for a call's parenthesized argument list
+// (used for a function call in the former, a class's base-class list in the latter, since
+// Python's grammar reuses the same node shape for both); a literal repeated across both would
+// trip the magic-string detector's own duplicate-string check.
+const ARGUMENT_LIST_NODE_TYPE = 'argument_list';
+
+// decision: shared by isFormattedOrInterpolatedString and getBaseClassNames below - both check
+// a node's type against Python's grammar node-type name for a dotted attribute access
+// (`a.b.C`); a literal repeated across both would trip the magic-string detector's own
+// duplicate-string check.
+const ATTRIBUTE_NODE_TYPE = 'attribute';
+
 export const PYTHON: LanguageAdapter = {
     id: 'python',
     grammarPath: 'grammars/tree-sitter-python.wasm',
@@ -170,7 +183,7 @@ export const PYTHON: LanguageAdapter = {
             // "%s" % value
             return true;
         }
-        if (parent?.type === 'attribute' && parent.children?.[0]?.id === node.id) {
+        if (parent?.type === ATTRIBUTE_NODE_TYPE && parent.children?.[0]?.id === node.id) {
             const methodName = parent.children?.find((c: any) => c.type === 'identifier');
             if (methodName?.text === 'format' && parent.parent?.type === 'call') {
                 return true;
@@ -191,7 +204,7 @@ export const PYTHON: LanguageAdapter = {
     // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument`
     // node, so a labeled boolean's parent is never `argument_list` directly.
     isPositionalCallArgument(node: any): boolean {
-        return node?.parent?.type === 'argument_list' && node.parent.parent?.type === 'call';
+        return node?.parent?.type === ARGUMENT_LIST_NODE_TYPE && node.parent.parent?.type === 'call';
     },
     // Python has no dedicated compile-time-constant marker — module-scope assignment is the
     // only signal (see isInConstantContext in magicNumber.ts).
@@ -218,12 +231,12 @@ export const PYTHON: LanguageAdapter = {
     // `class Foo(Bar, Baz):` -> ['Bar', 'Baz']; `class Foo(meta=Meta):` skips the keyword_argument
     // (not a base class); `class Foo(pkg.Bar):` -> ['pkg.Bar'] via the attribute node's own text.
     getBaseClassNames(node: any): string[] {
-        const argumentList = node?.children?.find((c: any) => c.type === 'argument_list');
+        const argumentList = node?.children?.find((c: any) => c.type === ARGUMENT_LIST_NODE_TYPE);
         if (!argumentList) {
             return [];
         }
         return argumentList.children
-            .filter((c: any) => c.type === 'identifier' || c.type === 'attribute')
+            .filter((c: any) => c.type === 'identifier' || c.type === ATTRIBUTE_NODE_TYPE)
             .map((c: any) => c.text);
     }
 };

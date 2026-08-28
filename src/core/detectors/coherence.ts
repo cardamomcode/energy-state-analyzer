@@ -1,8 +1,9 @@
 import { EnergyViolation, VIOLATION_TYPE, SEVERITY } from '../../types';
 import { LanguageAdapter } from '../language';
-import { isUtilsFileName, looksLikeSingleDomain, looksLikeSingleDomainByNames } from '../namingCohesion';
+import { isUtilsFileName, looksLikeSingleDomain } from '../namingCohesion';
 import { Position, PositionLookup } from '../position';
-import { collectTypeSignals, typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
+import { typeCohesionResult, TypeCohesionResult } from '../typeCohesion';
+import { ClassInfo, checkClassRelatedness } from './classRelatedness';
 
 export interface CoherenceThresholds {
     // decision: gates file-coherence sprawl detection on large-function count, not raw function count — languages like F# idiomatically have many small functions per module, so what matters is functions large enough to carry real complexity
@@ -53,15 +54,6 @@ function lineCount(node: any): number {
     return node.endPosition.row - node.startPosition.row + 1;
 }
 
-// A class defined in the file, along with the methods nested directly (or transitively,
-// through non-class nesting like a method's own closures) inside it.
-interface ClassInfo {
-    name: string | null;
-    node: any;
-    baseNames: string[];
-    methods: any[];
-}
-
 // decision: methods are grouped by their nearest enclosing class rather than folded into the
 // same flat function list a free-standing function would land in — a class is already a
 // cohesion boundary of its own (see checkClassRelatedness below), so its method count isn't
@@ -77,38 +69,41 @@ function collectFunctionsClassesAndImports(
     const classes: ClassInfo[] = [];
     const importSources = new Set<string>();
     let firstImportNode: any | null = null;
-    const { nodeTypes, classDefinitionNodeTypes } = language;
+
+    // decision: requires isNamed, not just a type match — Kotlin's import rule is literally
+    // named `import`, which collides with the anonymous `import` keyword token that is itself
+    // a child of every import node (node.type for an anonymous node is its literal text).
+    // Without this guard, every Kotlin import is counted twice: once for the named node, once
+    // for its own leading keyword token.
+    function isImportNode(node: any): boolean {
+        const { nodeTypes } = language;
+        return (
+            node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
+        );
+    }
+
+    function traverseClass(node: any) {
+        const classInfo: ClassInfo = {
+            name: language.getClassName(node),
+            node,
+            baseNames: language.getBaseClassNames(node),
+            methods: []
+        };
+        classes.push(classInfo);
+        for (const child of node.children) {
+            traverse(child, classInfo);
+        }
+    }
 
     function traverse(node: any, enclosingClass: ClassInfo | null) {
-        if (classDefinitionNodeTypes.includes(node.type)) {
-            const classInfo: ClassInfo = {
-                name: language.getClassName(node),
-                node,
-                baseNames: language.getBaseClassNames(node),
-                methods: []
-            };
-            classes.push(classInfo);
-            for (const child of node.children) {
-                traverse(child, classInfo);
-            }
+        if (language.classDefinitionNodeTypes.includes(node.type)) {
+            traverseClass(node);
             return;
         }
 
         if (language.isFunctionDefinition(node)) {
-            if (enclosingClass) {
-                enclosingClass.methods.push(node);
-            } else {
-                freeFunctions.push(node);
-            }
-        } else if (
-            node.isNamed &&
-            (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
-        ) {
-            // decision: requires isNamed, not just a type match — Kotlin's import rule is
-            // literally named `import`, which collides with the anonymous `import` keyword
-            // token that is itself a child of every import node (node.type for an anonymous
-            // node is its literal text). Without this guard, every Kotlin import is counted
-            // twice: once for the named node, once for its own leading keyword token.
+            (enclosingClass ? enclosingClass.methods : freeFunctions).push(node);
+        } else if (isImportNode(node)) {
             importSources.add(language.importSource(node) || node.text || '');
             firstImportNode ??= node;
         }
@@ -273,131 +268,6 @@ function checkImportSprawl(
     };
 }
 
-// decision: a tiny local union-find over the file's classes, not a general graph library -
-// the only operation needed is "merge these two classes' families" then "list the resulting
-// families", which a parent-pointer array covers in a few lines.
-function unionFind(size: number): { union: (a: number, b: number) => void; find: (i: number) => number } {
-    const parent = Array.from({ length: size }, (_, i) => i);
-    function find(i: number): number {
-        while (parent[i] !== i) {
-            parent[i] = parent[parent[i]];
-            i = parent[i];
-        }
-        return i;
-    }
-    function union(a: number, b: number): void {
-        const rootA = find(a);
-        const rootB = find(b);
-        if (rootA !== rootB) {
-            parent[rootA] = rootB;
-        }
-    }
-    return { union, find };
-}
-
-// Flag a file whose classes split into multiple families with no relationship to each other -
-// the class-level counterpart to checkFunctionCountSprawl's "unrelated types" message, but for
-// a different shape of sprawl: several small, internally-cohesive classes that don't belong
-// together in the same file, rather than many loose functions.
-// decision: unlike checkFunctionCountSprawl, this has no minimum class count before it can
-// fire - a class is already a much stronger unit of cohesion than a single function (it's a
-// whole type, not one operation), so two totally unrelated classes are worth flagging even at
-// just 2, not only past some larger threshold.
-// decision: three independent signals link two classes into one family, checked in this
-// order because each is progressively weaker evidence: (1) direct inheritance - one class's
-// base name is another's own name; (2) shared base - two classes both extend/implement the
-// same name, even one not defined in this file at all (e.g. a file of exception classes that
-// all extend `Exception` but never reference each other); (3) type cross-reference - a
-// method's signature (via collectTypeSignals, the same signal checkFunctionCountSprawl's type
-// cohesion uses) touches another class defined in the file, as with a token/token-source pair
-// where one constructs or returns the other. If the resulting graph still splits into more
-// than one group, a naming-affix fallback (shared prefix or suffix across class names, same
-// mechanism as looksLikeSingleDomain for functions) gets one last chance to unify the whole
-// file before it's flagged - unlike the function-level type-diversity signal, an unconnected
-// class graph is an absence of positive evidence, not a positive diversity measurement, so
-// it's not treated as authoritative over naming the way checkFunctionCountSprawl's type
-// signal is.
-function checkClassRelatedness(
-    classes: ClassInfo[],
-    thresholds: CoherenceThresholds,
-    language: LanguageAdapter,
-    positions: PositionLookup
-): EnergyViolation | null {
-    if (classes.length < 2) {
-        return null;
-    }
-
-    const names = classes.map((c) => c.name);
-    const { union, find } = unionFind(classes.length);
-
-    classes.forEach((cls, i) => {
-        for (const baseName of cls.baseNames) {
-            const baseIndex = names.findIndex((name) => name !== null && name === baseName);
-            if (baseIndex !== -1) {
-                union(i, baseIndex);
-            }
-        }
-    });
-
-    const indicesByBaseName = new Map<string, number[]>();
-    classes.forEach((cls, i) => {
-        for (const baseName of cls.baseNames) {
-            const group = indicesByBaseName.get(baseName) ?? [];
-            group.push(i);
-            indicesByBaseName.set(baseName, group);
-        }
-    });
-    for (const group of indicesByBaseName.values()) {
-        for (let i = 1; i < group.length; i++) {
-            union(group[0], group[i]);
-        }
-    }
-
-    classes.forEach((cls, i) => {
-        for (const method of cls.methods) {
-            for (const type of collectTypeSignals(method, language)) {
-                const otherIndex = names.findIndex((name) => name !== null && name === type);
-                if (otherIndex !== -1 && otherIndex !== i) {
-                    union(i, otherIndex);
-                }
-            }
-        }
-    });
-
-    const groups = new Map<number, number[]>();
-    classes.forEach((_, i) => {
-        const root = find(i);
-        const group = groups.get(root) ?? [];
-        group.push(i);
-        groups.set(root, group);
-    });
-
-    if (groups.size <= 1) {
-        return null;
-    }
-
-    const definiteNames = names.filter((name): name is string => name !== null);
-    if (
-        definiteNames.length === names.length &&
-        looksLikeSingleDomainByNames(definiteNames, thresholds.singleDomainNameShare)
-    ) {
-        return null;
-    }
-
-    const groupList = [...groups.values()]
-        .map((indices) => indices.map((i) => names[i] ?? '(anonymous)'))
-        .sort((a, b) => b.length - a.length);
-
-    const position = positions.toPosition(classes[0].node.startIndex);
-    return {
-        line: position.line,
-        column: position.column,
-        type: VIOLATION_TYPE.COHERENCE,
-        severity: groupList.length > 2 ? SEVERITY.HIGH : SEVERITY.MEDIUM,
-        message: `File coherence warning: ${classes.length} classes in one file split into ${groupList.length} unrelated groups: ${groupList.map((g) => `{${g.join(', ')}}`).join(' vs ')}. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file.`
-    };
-}
-
 // The "Utils/Helpers Sprawl" detector - detects files losing coherence
 export function analyzeFileCoherence(
     tree: any,
@@ -416,6 +286,6 @@ export function analyzeFileCoherence(
         checkFunctionCountSprawl(freeFunctions, fileName, thresholds, language, positions),
         checkLargeFunctionSprawl(allFunctions, thresholds, positions),
         checkImportSprawl(importSources, firstImportNode, positions),
-        checkClassRelatedness(classes, thresholds, language, positions)
+        checkClassRelatedness(classes, thresholds.singleDomainNameShare, language, positions)
     ].filter((violation): violation is EnergyViolation => violation !== null);
 }
