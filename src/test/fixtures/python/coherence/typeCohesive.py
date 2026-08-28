@@ -3,7 +3,8 @@
 # shared name prefix, but nearly every function touches Iterable[T]/Iterator[T]. Must NOT
 # be flagged as function-count sprawl despite exceeding the generic 12-function threshold
 # with no naming cohesion at all.
-from typing import Callable, Iterable, Iterator, TypeVar
+from collections.abc import Callable, Iterable, Iterator
+from typing import TypeVar
 
 T = TypeVar("T")
 U = TypeVar("U")

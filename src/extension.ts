@@ -213,9 +213,21 @@ async function getOrLoadLanguage(languageId: string): Promise<LoadedLanguage | u
 
 // A document with no containing workspace folder (e.g. a file opened standalone) has
 // nowhere to look for a `.esaignore`, so it's never treated as ignored.
+//
+// `includeFixtures` is an editor-only override for visually spot-checking detector
+// fixtures (deliberately bad code under .esaignore, e.g. src/test/fixtures) without
+// touching .esaignore itself, which the CLI/CI scan (src/cliModes.ts) always honors.
+const INCLUDE_FIXTURES_DEFAULT = false;
+
 function isDocumentIgnored(document: vscode.TextDocument): boolean {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
     if (!workspaceFolder) {
+        return false;
+    }
+    const includeFixtures = vscode.workspace
+        .getConfiguration('energyStateAnalyzer')
+        .get<boolean>('includeFixtures', INCLUDE_FIXTURES_DEFAULT);
+    if (includeFixtures) {
         return false;
     }
     const rootDir = workspaceFolder.uri.fsPath;
