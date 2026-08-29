@@ -4,6 +4,11 @@ import { FSHARP } from './fsharp';
 import { TYPESCRIPT } from './typescript';
 import { KOTLIN } from './kotlin';
 
+// Re-export the individual adapters so callers can import a specific language (e.g. PYTHON)
+// straight from this barrel without reaching into ./languages/python — keeps extension.ts and
+// analysis.ts at one fewer import source after the domain split (see #30).
+export { PYTHON };
+
 // decision: keys LANGUAGES by vscode languageId rather than file extension — the extension host already resolves languageId, and resolveLanguageForFile below provides the file-extension equivalent for the CLI
 export const LANGUAGES: Record<string, LanguageAdapter> = {
     python: PYTHON,
