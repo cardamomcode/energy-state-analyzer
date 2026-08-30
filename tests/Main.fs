@@ -18,4 +18,5 @@ let main _ =
           MagicStringTests.tests
           InversionTests.tests
           MatchOpportunityTests.tests
+          LogicalControlFlowTests.tests
           ParameterCountTests.tests ]

@@ -19,6 +19,7 @@
     <Compile Include="MagicStringTests.fs" />
     <Compile Include="InversionTests.fs" />
     <Compile Include="MatchOpportunityTests.fs" />
+    <Compile Include="LogicalControlFlowTests.fs" />
     <Compile Include="ParameterCountTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>

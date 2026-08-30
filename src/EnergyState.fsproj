@@ -31,6 +31,7 @@
     <Compile Include="Core/Detectors/MagicString.fs" />
     <Compile Include="Core/Detectors/Inversion.fs" />
     <Compile Include="Core/Detectors/MatchOpportunity.fs" />
+    <Compile Include="Core/Detectors/LogicalControlFlow.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>
