@@ -27,11 +27,7 @@ type private ExtensionState =
 
 let mutable private state: ExtensionState option = None
 
-[<Emit("console.log($0)")>]
-let private log (message: string) : unit = nativeOnly
-
-[<Emit("console.error($0, $1)")>]
-let private logError (message: string) (error: obj) : unit = nativeOnly
+let console = JS.console
 
 let private clearIgnored editor current =
     let document = editorDocument editor
@@ -47,29 +43,29 @@ let private isCurrentDocument document =
 // the promise is pending; decorations must never be written onto the newly active document.
 let private analyzeActiveEditor () : Task<unit> =
     task {
-        log "🔍 Analyzing active editor..."
+        console.log ("🔍 Analyzing active editor...")
 
         match state, activeTextEditor window with
-        | _, null -> log "❌ No active editor found"
+        | _, null -> console.log ("❌ No active editor found")
         | None, _ -> ()
         | Some current, editor ->
             let document = editorDocument editor
 
             if isDocumentIgnored document then
-                log ("🚫 Ignored by .esaignore: " + documentFileName document)
+                console.log ("🚫 Ignored by .esaignore: " + documentFileName document)
                 clearIgnored editor current
             else
                 let! loaded = getOrLoadLanguage (documentLanguageId document) current.Grammar
 
                 match loaded with
                 | None ->
-                    log ("⚠️ Unsupported language: " + documentLanguageId document)
+                    console.log ("⚠️ Unsupported language: " + documentLanguageId document)
                     clearDiagnostics current.Diagnostics
                 | Some _ when not (isCurrentDocument document) -> ()
                 | Some loaded ->
-                    log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
+                    console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document
-                    log ("🔍 Found " + string violations.Length + " energy violations")
+                    console.log ("🔍 Found " + string violations.Length + " energy violations")
                     applyDecorations editor current.Decorations violations
                     updateProblemsPanel current.Diagnostics document violations
     }
@@ -105,12 +101,12 @@ let private subscribeEvents context =
 
 let activate (context: obj) : Task<unit> =
     task {
-        log "🚀 Activating Energy State Analyzer..."
+        console.log ("🚀 Activating Energy State Analyzer...")
 
         try
-            log "🔧 Initializing Parser..."
+            console.log ("🔧 Initializing Parser...")
             do! initializeParser ()
-            log "✅ Parser initialized"
+            console.log ("✅ Parser initialized")
 
             let grammar =
                 { ExtensionPath = extensionPath context
@@ -127,8 +123,8 @@ let activate (context: obj) : Task<unit> =
                       Decorations = decorations }
 
             addSubscription context diagnostics
-            log "🎨 Decoration types created"
-            log "📋 Diagnostics collection created"
+            console.log ("🎨 Decoration types created")
+            console.log ("📋 Diagnostics collection created")
 
             registerCommand commands "energy-state-analyzer.analyze" (fun () ->
                 showInformationMessage window "Energy State Analyzer: Manual analysis triggered!"
@@ -137,9 +133,9 @@ let activate (context: obj) : Task<unit> =
 
             subscribeEvents context
             requestAnalysis ()
-            log "✅ Energy State Analyzer activated successfully!"
+            console.log ("✅ Energy State Analyzer activated successfully!")
         with error ->
-            logError "Failed to activate Energy State Analyzer:" (box error)
+            console.error ("Failed to activate Energy State Analyzer:", box error)
             showErrorMessage window ("Energy State Analyzer failed to activate: " + string error)
     }
 

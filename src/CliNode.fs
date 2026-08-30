@@ -1,6 +1,7 @@
 module Energy.CliNode
 
 open Fable.Core
+open Fable.Core.JS
 open Fable.Core.JsInterop
 
 // Narrow Node interop surface shared by CLI mode modules.
@@ -41,11 +42,9 @@ let bundleDirectory: string = nativeOnly
 [<Emit("process.exit($0)")>]
 let exit (code: int) : unit = nativeOnly
 
-[<Emit("console.error($0)")>]
-let error (message: string) : unit = nativeOnly
+let error (message: string) : unit = console.error (message)
 
-[<Emit("console.log($0)")>]
-let output (message: string) : unit = nativeOnly
+let output (message: string) : unit = console.log (message)
 
 [<Emit("JSON.stringify($0, null, 2)")>]
 let stringify (value: obj) : string = nativeOnly

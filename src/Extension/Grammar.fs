@@ -4,6 +4,7 @@ open System.Collections.Generic
 open System.Threading.Tasks
 
 open Fable.Core
+open Fable.Core.JS
 
 open Energy.Core.TreeSitter
 open Energy.Extension.Analysis
@@ -17,11 +18,9 @@ type GrammarContext =
 [<Import("join", "node:path")>]
 let private joinPath (left: string) (right: string) : string = nativeOnly
 
-[<Emit("console.log($0, $1)")>]
-let private logPath (message: string) (path: string) : unit = nativeOnly
+let private logPath (message: string) (path: string) : unit = console.log (message, path)
 
-[<Emit("console.log($0)")>]
-let private logSuccess (message: string) : unit = nativeOnly
+let private logSuccess (message: string) : unit = console.log (message)
 
 let initializeParser () = init parserCtor
 
