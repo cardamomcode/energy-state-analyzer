@@ -38,6 +38,8 @@
     <Compile Include="Core/Suppressions.fs" />
     <Compile Include="Core/Esaignore.fs" />
     <Compile Include="Core/Scan.fs" />
+    <Compile Include="Core/Report.fs" />
+    <Compile Include="Core/ReportDiff.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>

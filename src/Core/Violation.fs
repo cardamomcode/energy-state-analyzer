@@ -8,7 +8,10 @@ module Energy.Core.Violation
 // The CLI's JSON contract (src/cli.ts) maps these DUs back to the same wire strings in Phase 2;
 // for now the detectors only ever produce F# values, so no mapping exists here yet.
 
-type Severity = Low | Medium | High
+type Severity =
+    | Low
+    | Medium
+    | High
 
 type ViolationType =
     | Nesting
@@ -39,3 +42,26 @@ type EnergyViolation =
       // list, not array — no Option/empty-array ceremony (the coherence detector itself flags
       // the latter); a detector that emits no hotspots just passes [].
       Hotspots: Hotspot list }
+
+/// Stable JSON/report names retained from the public TypeScript CLI contract.
+let violationTypeName =
+    function
+    | Nesting -> "nesting"
+    | Complexity -> "complexity"
+    | Cognitive -> "cognitive"
+    | Naming -> "naming"
+    | Coherence -> "coherence"
+    | Magic -> "magic"
+    | Parameters -> "parameters"
+    | Inversion -> "inversion"
+    | PrimitiveObsession -> "primitive-obsession"
+    | MatchOpportunity -> "match-opportunity"
+    | LogicalControlFlow -> "logical-control-flow"
+    | OpaqueBoolean -> "opaque-boolean"
+    | Suppression -> "suppression"
+
+let severityName =
+    function
+    | Low -> "low"
+    | Medium -> "medium"
+    | High -> "high"
