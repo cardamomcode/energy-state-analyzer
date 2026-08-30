@@ -18,7 +18,9 @@ open Energy.Core.TreeSitter
 
 /// A boolean operator node: `and` or `or`. Grammars differ on whether these get their own node
 /// type (Python) or are just a binary/infix expression whose operator token is &&/|| (TS, F#).
-type BooleanOperator = And | Or
+type BooleanOperator =
+    | And
+    | Or
 
 /// A parameter's declared name + type text, when it carries an explicit annotation.
 type TypedParameter = { Name: string; Type: string }

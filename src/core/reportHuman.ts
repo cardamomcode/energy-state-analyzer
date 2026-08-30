@@ -148,7 +148,8 @@ const CATEGORY_BLURB: Record<string, string> = {
         'an if/elif chain on one variable that would read more clearly as a match/switch',
     [VIOLATION_TYPE.LOGICAL_CONTROL_FLOW]: '&&/|| used to hide an if statement',
     [VIOLATION_TYPE.OPAQUE_BOOLEAN]: 'a bare true/false at a call site that only makes sense by reading the callee',
-    [VIOLATION_TYPE.SUPPRESSION]: 'an esa-ignore comment that names an unknown violation type, or no longer matches any violation'
+    [VIOLATION_TYPE.SUPPRESSION]:
+        'an esa-ignore comment that names an unknown violation type, or no longer matches any violation'
 };
 
 const COMPLEXITY_VALUE_PATTERN = /complexity: (\d+)/i;

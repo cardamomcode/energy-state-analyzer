@@ -50,18 +50,23 @@ let tests =
 
                             // a single if/else (complexity 2) should not be flagged.
                             assertThat
-                                (List.length (violationsIn violations clean |> List.filter (fun v -> v.Type = Complexity)))
+                                (List.length (
+                                    violationsIn violations clean |> List.filter (fun v -> v.Type = Complexity)
+                                ))
                                 (isEqualTo 0)
 
-                            let complexHit = violationsIn violations complex |> List.filter (fun v -> v.Type = Complexity)
+                            let complexHit =
+                                violationsIn violations complex |> List.filter (fun v -> v.Type = Complexity)
+
                             assertThat (List.length complexHit > 0) isTrue
                             assertThat (List.head complexHit).Severity (isEqualTo Medium)
 
-                            let severeHit = violationsIn violations severe |> List.filter (fun v -> v.Type = Complexity)
+                            let severeHit =
+                                violationsIn violations severe |> List.filter (fun v -> v.Type = Complexity)
+
                             assertThat (List.length severeHit > 0) isTrue
                             assertThat (List.last severeHit).Severity (isEqualTo High)
                         }
                     ))
-            )
-        )
+            ))
     )

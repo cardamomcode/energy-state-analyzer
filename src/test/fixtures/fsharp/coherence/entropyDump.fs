@@ -7,11 +7,9 @@ module EntropyDump
 // not a case of a shared type family being missed and produces the stronger, more specific
 // message.
 
-let parseDate (value: string) : string =
-    value.Trim()
+let parseDate (value: string) : string = value.Trim()
 
-let resizeImage (image: byte[]) (width: int) : byte[] =
-    image
+let resizeImage (image: byte[]) (width: int) : byte[] = image
 
 let sendEmail (recipient: string) (body: string) : bool =
     printfn "%s %s" recipient body
@@ -20,32 +18,24 @@ let sendEmail (recipient: string) (body: string) : bool =
 let hashPassword (password: string) : string =
     System.String(Array.rev (password.ToCharArray()))
 
-let flatten (data: Map<string, int>) : int list =
-    data |> Map.toList |> List.map snd
+let flatten (data: Map<string, int>) : int list = data |> Map.toList |> List.map snd
 
-let retryCount (attempts: int) : bool =
-    attempts > 0
+let retryCount (attempts: int) : bool = attempts > 0
 
 let slugify (text: string) : string =
     text.ToLowerInvariant().Replace(" ", "-")
 
-let calculateTax (amount: float) : float =
-    amount * 0.2
+let calculateTax (amount: float) : float = amount * 0.2
 
-let validateEmail (email: string) : bool =
-    email.Contains("@")
+let validateEmail (email: string) : bool = email.Contains("@")
 
-let generateId (seed: int) : string =
-    string seed
+let generateId (seed: int) : string = string seed
 
-let compress (data: byte[]) : byte[] =
-    data
+let compress (data: byte[]) : byte[] = data
 
-let toUpper (text: string) : string =
-    text.ToUpperInvariant()
+let toUpper (text: string) : string = text.ToUpperInvariant()
 
-let clamp (value: float) (low: float) (high: float) : float =
-    max low (min value high)
+let clamp (value: float) (low: float) (high: float) : float = max low (min value high)
 
 // decision: tree-sitter-fsharp only parses a curried function's `: <type> =` return-type
 // annotation into a clean function_declaration_left shape when something follows it in the

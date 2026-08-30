@@ -12,5 +12,4 @@ open Mod8
 open Mod9
 open Mod10
 
-let doSomething () =
-    1
+let doSomething () = 1

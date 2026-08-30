@@ -31,73 +31,70 @@ let private functionDeclarationLeft = "function_declaration_left"
 // already named and not flagged as a magic value — broader than Python's module-only rule, since
 // function_or_value_defn -> declaration_expression looks identical at every scope, but still aligned
 // with the detector's intent that `let NAME = ...` IS F#'s idiomatic way to name a constant.
-let FSHARP : LanguageAdapter =
+let FSHARP: LanguageAdapter =
     { Id = "fsharp"
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
       NodeTypes =
-          { Block = None
-            Parameters = "argument_patterns"
-            IfStatement = Some "if_expression"
-            ElseClause = None
-            ForStatement = Some "for_expression"
-            WhileStatement = Some "while_expression"
-            // ternary-position `if` reuses if_expression, already covered.
-            ConditionalExpression = None
-            Lambda = Some "fun_expression"
-            // `open X`.
-            ImportStatement = Some "import_decl"
-            ImportFromStatement = None
-            // F# has no string-literal docstring convention.
-            ExpressionStatement = None
-            Assignment = Some "function_or_value_defn"
-            Module = Some "declaration_expression"
-            ExportStatement = None
-            Comment = Some "line_comment"
-            IntegerLiteral = Some "int"
-            FloatLiteral = Some "float"
-            StringLiteral = Some "string" }
+        { Block = None
+          Parameters = "argument_patterns"
+          IfStatement = Some "if_expression"
+          ElseClause = None
+          ForStatement = Some "for_expression"
+          WhileStatement = Some "while_expression"
+          // ternary-position `if` reuses if_expression, already covered.
+          ConditionalExpression = None
+          Lambda = Some "fun_expression"
+          // `open X`.
+          ImportStatement = Some "import_decl"
+          ImportFromStatement = None
+          // F# has no string-literal docstring convention.
+          ExpressionStatement = None
+          Assignment = Some "function_or_value_defn"
+          Module = Some "declaration_expression"
+          ExportStatement = None
+          Comment = Some "line_comment"
+          IntegerLiteral = Some "int"
+          FloatLiteral = Some "float"
+          StringLiteral = Some "string" }
       IsFunctionDefinition =
-          fun node ->
-              nodeType node = "function_or_value_defn"
-              && (nodeChildren node |> List.exists (fun c -> nodeType c = functionDeclarationLeft))
+        fun node ->
+            nodeType node = "function_or_value_defn"
+            && (nodeChildren node |> List.exists (fun c -> nodeType c = functionDeclarationLeft))
       ParameterChildTypes = [ "long_identifier"; "typed_pattern" ]
       DecisionNodeTypes =
-          [ "if_expression"
-            "elif_expression"
-            "for_expression"
-            "while_expression"
-            "try_expression"
-            "match_expression" ]
+        [ "if_expression"
+          "elif_expression"
+          "for_expression"
+          "while_expression"
+          "try_expression"
+          "match_expression" ]
       CognitiveNestedDecisionTypes =
-          [ "if_expression"
-            "elif_expression"
-            "for_expression"
-            "while_expression"
-            "try_expression"
-            "match_expression" ]
+        [ "if_expression"
+          "elif_expression"
+          "for_expression"
+          "while_expression"
+          "try_expression"
+          "match_expression" ]
       NestingControlTypes =
-          [ "if_expression"
-            "elif_expression"
-            "for_expression"
-            "while_expression"
-            "try_expression"
-            "match_expression" ]
+        [ "if_expression"
+          "elif_expression"
+          "for_expression"
+          "while_expression"
+          "try_expression"
+          "match_expression" ]
       GetBooleanOperator =
-          fun node ->
-              if nodeType node <> "infix_expression" then
-                  None
-              else
-                  match nodeChildren node |> List.tryFind (fun c -> nodeType c = "infix_op") with
-                  | Some op ->
-                      let t = nodeText op
+        fun node ->
+            if nodeType node <> "infix_expression" then
+                None
+            else
+                match nodeChildren node |> List.tryFind (fun c -> nodeType c = "infix_op") with
+                | Some op ->
+                    let t = nodeText op
 
-                      if t = "&&" then
-                          Some And
-                      elif t = "||" then
-                          Some Or
-                      else
-                          None
-                  | None -> None
+                    if t = "&&" then Some And
+                    elif t = "||" then Some Or
+                    else None
+                | None -> None
       // No block wrapper exists, so every child of a decision point is nested content.
       EntersNestedScope = fun _ -> true
       // F#'s try_expression has no else-branch construct.
@@ -106,49 +103,53 @@ let FSHARP : LanguageAdapter =
       // is rather than unwrapped down to a leaf identifier.
       VariableReferenceNodeTypes = [ "long_identifier_or_op" ]
       ExtractTypedParameter =
-          fun node ->
-              if nodeType node <> "typed_pattern" then
-                  None
-              else
-                  let patternNode = nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier_pattern")
-                  // decision: also matches generic_type (e.g. `xs: Iterable<'a>`), not just simple_type
-                  // (`x: int`) — a curried, generically-typed parameter is exactly the shape the
-                  // type-cohesion signal needs to see to recognize an F#-style single-type module.
-                  let typeNode =
-                      nodeChildren node
-                      |> List.tryFind (fun c -> nodeType c = "simple_type" || nodeType c = "generic_type")
+        fun node ->
+            if nodeType node <> "typed_pattern" then
+                None
+            else
+                let patternNode =
+                    nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier_pattern")
+                // decision: also matches generic_type (e.g. `xs: Iterable<'a>`), not just simple_type
+                // (`x: int`) — a curried, generically-typed parameter is exactly the shape the
+                // type-cohesion signal needs to see to recognize an F#-style single-type module.
+                let typeNode =
+                    nodeChildren node
+                    |> List.tryFind (fun c -> nodeType c = "simple_type" || nodeType c = "generic_type")
 
-                  match patternNode, typeNode with
-                  | Some p, Some t -> Some { Name = nodeText p; Type = nodeText t }
-                  | _ -> None
+                match patternNode, typeNode with
+                | Some p, Some t -> Some { Name = nodeText p; Type = nodeText t }
+                | _ -> None
       ExtractReturnType =
-          fun node ->
-              if nodeType node <> "function_or_value_defn" then
-                  None
-              else
-                  let declIndex = nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = functionDeclarationLeft)
-                  let equalsIndex = nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = "=")
+        fun node ->
+            if nodeType node <> "function_or_value_defn" then
+                None
+            else
+                let declIndex =
+                    nodeChildren node
+                    |> List.tryFindIndex (fun c -> nodeType c = functionDeclarationLeft)
 
-                  match declIndex, equalsIndex with
-                  | Some di, Some ei ->
-                      // decision: only trusts a `:` <type> pair sitting as a direct child strictly between
-                      // the declaration head and `=` — tree-sitter-fsharp has been observed to fold a
-                      // curried function's return-type annotation into its last parameter's typed_pattern
-                      // instead of producing this clean shape when the function is parsed as a file's only
-                      // statement. Returning null rather than reaching into a parameter node avoids
-                      // misattributing a parameter's type as the return type.
-                      let colonIndex =
-                          nodeChildren node
-                          |> List.tryFindIndex (fun c -> nodeType c = ":")
-                          |> Option.bind (fun i -> if i > di && i < ei then Some i else None)
+                let equalsIndex = nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = "=")
 
-                      match colonIndex with
-                      | Some ci when ci + 1 < List.length (nodeChildren node) ->
-                          let children = nodeChildren node
+                match declIndex, equalsIndex with
+                | Some di, Some ei ->
+                    // decision: only trusts a `:` <type> pair sitting as a direct child strictly between
+                    // the declaration head and `=` — tree-sitter-fsharp has been observed to fold a
+                    // curried function's return-type annotation into its last parameter's typed_pattern
+                    // instead of producing this clean shape when the function is parsed as a file's only
+                    // statement. Returning null rather than reaching into a parameter node avoids
+                    // misattributing a parameter's type as the return type.
+                    let colonIndex =
+                        nodeChildren node
+                        |> List.tryFindIndex (fun c -> nodeType c = ":")
+                        |> Option.bind (fun i -> if i > di && i < ei then Some i else None)
 
-                          Some (nodeText (List.item (ci + 1) children))
-                      | _ -> None
-                  | _ -> None
+                    match colonIndex with
+                    | Some ci when ci + 1 < List.length (nodeChildren node) ->
+                        let children = nodeChildren node
+
+                        Some(nodeText (List.item (ci + 1) children))
+                    | _ -> None
+                | _ -> None
       GenericBrackets = { Open = "<"; Close = ">" }
       PrimitiveTypeNames = Set.ofList [ "string"; "int"; "float"; "bool" ]
       // F#'s named-argument syntax is optional at the call site, so it doesn't prevent a future
@@ -156,32 +157,32 @@ let FSHARP : LanguageAdapter =
       KeywordOnlyBoundaryTypes = []
       DistinctTypeAdvice = "a single-case union type"
       GetEqualityComparisons =
-          fun node ->
-              if nodeType node <> "infix_expression" then
-                  []
-              else
-                  match nodeChildren node |> List.tryFind (fun c -> nodeType c = "infix_op") with
-                  | Some opToken when nodeText opToken = "=" ->
-                      let operands = nodeChildren node |> List.filter (fun c -> nodeId c <> nodeId opToken)
+        fun node ->
+            if nodeType node <> "infix_expression" then
+                []
+            else
+                match nodeChildren node |> List.tryFind (fun c -> nodeType c = "infix_op") with
+                | Some opToken when nodeText opToken = "=" ->
+                    let operands =
+                        nodeChildren node |> List.filter (fun c -> nodeId c <> nodeId opToken)
 
-                      match operands with
-                      | [ l; rawRight ] ->
-                          // Literals are wrapped in a `const` node; unwrap so callers can compare .type
-                          // against nodeTypes.stringLiteral directly, same as Python/TS.
-                          let right =
-                              if nodeType rawRight = "const" && (nodeChildren rawRight).Length = 1 then
-                                  List.head (nodeChildren rawRight)
-                              else
-                                  rawRight
+                    match operands with
+                    | [ l; rawRight ] ->
+                        // Literals are wrapped in a `const` node; unwrap so callers can compare .type
+                        // against nodeTypes.stringLiteral directly, same as Python/TS.
+                        let right =
+                            if nodeType rawRight = "const" && (nodeChildren rawRight).Length = 1 then
+                                List.head (nodeChildren rawRight)
+                            else
+                                rawRight
 
-                          [ { Left = l; Right = right } ]
-                      | _ -> []
-                  | _ -> []
+                        [ { Left = l; Right = right } ]
+                    | _ -> []
+                | _ -> []
       // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks (e.g. an elif
       // chain) still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
-      GetElseIfBranches =
-          fun node -> nodeChildren node |> List.filter (fun c -> nodeType c = "elif_expression")
+      GetElseIfBranches = fun node -> nodeChildren node |> List.filter (fun c -> nodeType c = "elif_expression")
       // F# indexes via `.[i]` rather than a dedicated subscript node — left unmodeled rather than
       // guessed at with a fragile node-type match.
       SubscriptNodeTypes = []
@@ -192,13 +193,13 @@ let FSHARP : LanguageAdapter =
       // A bool literal parses as a `const` node wrapping a `bool` child (its .text is already
       // "true"/"false", same as Python/TS's dedicated literal node types).
       IsBooleanLiteral =
-          fun node ->
-              if nodeType node <> "const" then
-                  false
-              else
-                  match nodeChildren node with
-                  | [ single ] -> nodeType single = "bool"
-                  | _ -> false
+        fun node ->
+            if nodeType node <> "const" then
+                false
+            else
+                match nodeChildren node with
+                | [ single ] -> nodeType single = "bool"
+                | _ -> false
       // F# has no dedicated call-expression or argument-list node — curried application (`f true`) and
       // paren-tuple application (`f(true, x)`) both parse as application_expression, and named-argument
       // syntax (`retries = true`) reuses the same infix_expression node the primitive-obsession
@@ -212,29 +213,29 @@ let FSHARP : LanguageAdapter =
       // application_expression child, or case 3's tuple_expression element) — never a direct child of
       // either, so it never matches below without a separate "is labeled" check.
       IsPositionalCallArgument =
-          fun node ->
-              match nodeParent node with
-              | Some parent when nodeType parent = "application_expression" ->
-                  // decision: guard against the literal being the callee itself — never true in practice
-                  // (a bool can't be applied to arguments), kept for safety. Compares by `.id`.
-                  match List.tryItem 0 (nodeChildren parent) with
-                  | Some first -> nodeId first <> nodeId node
-                  | None -> true
-              | Some parent when nodeType parent = "tuple_expression" ->
-                  match nodeParent parent with
-                  | Some gp -> nodeType gp = "application_expression"
-                  | None -> false
-              | _ -> false
+        fun node ->
+            match nodeParent node with
+            | Some parent when nodeType parent = "application_expression" ->
+                // decision: guard against the literal being the callee itself — never true in practice
+                // (a bool can't be applied to arguments), kept for safety. Compares by `.id`.
+                match List.tryItem 0 (nodeChildren parent) with
+                | Some first -> nodeId first <> nodeId node
+                | None -> true
+            | Some parent when nodeType parent = "tuple_expression" ->
+                match nodeParent parent with
+                | Some gp -> nodeType gp = "application_expression"
+                | None -> false
+            | _ -> false
       // F# has no compile-time-constant marker distinct from an ordinary `let` binding — module-scope
       // binding is the only signal here.
       IsExplicitConstant = fun _ -> false
       // `open X.Y` already names one whole module per line (F# has no per-symbol import), so the
       // long_identifier child is used as-is with no stripping.
       ImportSource =
-          fun node ->
-              match nodeChildren node |> List.tryFind (fun c -> nodeType c = "long_identifier") with
-              | Some li -> nodeText li
-              | None -> nodeText node
+        fun node ->
+            match nodeChildren node |> List.tryFind (fun c -> nodeType c = "long_identifier") with
+            | Some li -> nodeText li
+            | None -> nodeText node
       // F# has no idiomatic class-per-file OOP pattern the class-relatedness check targets — its
       // type_definition node also covers records/unions/modules, and distinguishing "this is a class
       // with methods" from those would need the same kind of grammar-shape disambiguation
@@ -244,4 +245,3 @@ let FSHARP : LanguageAdapter =
       ClassDefinitionNodeTypes = []
       GetClassName = fun _ -> None
       GetBaseClassNames = fun _ -> [] }
-

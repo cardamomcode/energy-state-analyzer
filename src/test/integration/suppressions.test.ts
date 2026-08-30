@@ -28,11 +28,7 @@ suite('Integration: esa-ignore suppressions', () => {
     });
 
     test('a standalone directive also covers the line below it', () => {
-        const source = [
-            '// esa-ignore: complexity',
-            'function reallyBigOne(a, b, c, d, e, f) {',
-            '}'
-        ].join('\n');
+        const source = ['// esa-ignore: complexity', 'function reallyBigOne(a, b, c, d, e, f) {', '}'].join('\n');
         const { violations } = applySuppressions([violation(1, VIOLATION_TYPE.COMPLEXITY)], source);
 
         assert.strictEqual(violations.length, 0);
@@ -46,7 +42,11 @@ suite('Integration: esa-ignore suppressions', () => {
         ].join('\n');
         const { violations } = applySuppressions([violation(1, VIOLATION_TYPE.COMPLEXITY)], source);
 
-        assert.strictEqual(violations.length, 1, 'the directive shares a line with code, so it should not reach downward');
+        assert.strictEqual(
+            violations.length,
+            1,
+            'the directive shares a line with code, so it should not reach downward'
+        );
     });
 
     test('esa-ignore-file suppresses a type anywhere in the file, e.g. file-scoped coherence violations', () => {
@@ -75,7 +75,7 @@ suite('Integration: esa-ignore suppressions', () => {
         const { suppressionNotes } = applySuppressions([violation(0, VIOLATION_TYPE.NESTING)], source);
 
         assert.strictEqual(suppressionNotes.length, 2, 'expect both an unknown-type note and an unused-directive note');
-        assert.ok(suppressionNotes.some(note => /unknown/i.test(note.message)));
+        assert.ok(suppressionNotes.some((note) => /unknown/i.test(note.message)));
     });
 
     test('parseSuppressions recognizes both // and # comment styles', () => {

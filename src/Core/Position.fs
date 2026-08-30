@@ -38,4 +38,5 @@ let createPositionLookup (sourceText: string) : PositionLookup =
                 else
                     high <- mid - 1
 
-            { Line = low; Column = offset - lineStartOffsets.[low] } }
+            { Line = low
+              Column = offset - lineStartOffsets.[low] } }

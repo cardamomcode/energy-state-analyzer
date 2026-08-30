@@ -20,12 +20,16 @@ open Energy.Core.Context
 //   - match/switch-like constructs and try/except are scored once as a whole, not per-case — see
 //     each LanguageAdapter for the exact node-type mapping (CognitiveNestedDecisionTypes).
 
-type CognitiveThresholds = { MediumThreshold: int; HighThreshold: int }
+type CognitiveThresholds =
+    { MediumThreshold: int
+      HighThreshold: int }
 
 // decision: medium 15 / high 25 — cognitive complexity weights nesting more heavily than cyclomatic,
 // so its thresholds sit higher (SonarSource's own defaults); a function that is only "medium" by
 // cyclomatic can legitimately be clean here.
-let defaultCognitiveThresholds : CognitiveThresholds = { MediumThreshold = 15; HighThreshold = 25 }
+let defaultCognitiveThresholds: CognitiveThresholds =
+    { MediumThreshold = 15
+      HighThreshold = 25 }
 
 // decision: compare a node against an optional grammar node type without leaking `option` into the
 // detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
@@ -39,7 +43,12 @@ let private hasNodeType (t: string option) (node: Node) : bool =
 // A `rec ... and` pair mirrors the TS `walk`/`walkNested`: `cognitiveWalk` handles one node (and its
 // own children), while `cognitiveWalkChild` wraps a single child by first deciding whether that child
 // enters nested scope — the only place depth is incremented for if/for/while bodies.
-let rec private cognitiveWalk (language: LanguageAdapter) (node: Node) (nesting: int) (contribute: Node -> int -> unit) : int =
+let rec private cognitiveWalk
+    (language: LanguageAdapter)
+    (node: Node)
+    (nesting: int)
+    (contribute: Node -> int -> unit)
+    : int =
     // boolean operator branch first: contributes 1 iff its operator differs from the immediate
     // parent's ("a && b" = one increment, "a && b || c" adds another at the ||), then always descends
     // into children at the same nesting and stops — a boolean node has no nested decisions of its own.
@@ -54,7 +63,10 @@ let rec private cognitiveWalk (language: LanguageAdapter) (node: Node) (nesting:
                 | _ -> 0
 
         contribute node contribution
-        contribution + (nodeChildren node |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute))
+
+        contribution
+        + (nodeChildren node
+           |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute))
     | None ->
         // a nested decision point (if/for/while/except/match-like): 1 + its own nesting, then walk its
         // children via cognitiveWalkChild, which increments depth only where a child enters nested scope.
@@ -62,19 +74,28 @@ let rec private cognitiveWalk (language: LanguageAdapter) (node: Node) (nesting:
             let contribution = 1 + nesting
 
             contribute node contribution
-            contribution + (nodeChildren node |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
+
+            contribution
+            + (nodeChildren node
+               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
         // an else clause: flat +1, no extra nesting increment for the else itself.
         elif hasNodeType language.NodeTypes.ElseClause node then
             let contribution = 1
 
             contribute node contribution
-            contribution + (nodeChildren node |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
+
+            contribution
+            + (nodeChildren node
+               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
         // a ternary ("a if cond else b"): 1 + nesting, and its operands are one level deeper.
         elif hasNodeType language.NodeTypes.ConditionalExpression node then
             let contribution = 1 + nesting
 
             contribute node contribution
-            contribution + (nodeChildren node |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute))
+
+            contribution
+            + (nodeChildren node
+               |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute))
         // a nested named function/method: only the structural nesting increment counts here — its body is
         // scored as its own separate violation by analyzeCognitiveComplexity's traversal, never folded
         // into the enclosing function's score.
@@ -90,15 +111,28 @@ let rec private cognitiveWalk (language: LanguageAdapter) (node: Node) (nesting:
             let contribution = 1 + nesting
 
             contribute node contribution
-            contribution + (nodeChildren node |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
+
+            contribution
+            + (nodeChildren node
+               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
         // otherwise: descend into every child at the same nesting.
         else
-            nodeChildren node |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute)
+            nodeChildren node
+            |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute)
 
-and private cognitiveWalkChild (language: LanguageAdapter) (child: Node) (nesting: int) (contribute: Node -> int -> unit) : int =
+and private cognitiveWalkChild
+    (language: LanguageAdapter)
+    (child: Node)
+    (nesting: int)
+    (contribute: Node -> int -> unit)
+    : int =
     // a child enters nested scope only where the language says so (Python/TS have an explicit body
     // node; F# has none, so every child is nested content). The increment applies to the walk's depth.
-    let nextNesting = if language.EntersNestedScope child then nesting + 1 else nesting
+    let nextNesting =
+        if language.EntersNestedScope child then
+            nesting + 1
+        else
+            nesting
 
     cognitiveWalk language child nextNesting contribute
 
@@ -112,21 +146,24 @@ let cognitiveScoreOf (language: LanguageAdapter) (functionNode: Node) : int =
 // decision: re-runs the same walk used for scoring, but records where each point of score comes from
 // so callers can render a per-line heatmap across the function body instead of a single flat highlight.
 let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (positions: PositionLookup) : Hotspot list =
-    let hotspots = ResizeArray ()
+    let hotspots = ResizeArray()
 
     nodeChildren functionNode
-    |> List.iter
-        (fun child ->
-            cognitiveWalk language child 0
-                (fun node amount ->
-                    let pos = positions.toPosition (nodeStartIndex node)
+    |> List.iter (fun child ->
+        cognitiveWalk language child 0 (fun node amount ->
+            let pos = positions.toPosition (nodeStartIndex node)
 
-                    hotspots.Add({ Line = pos.Line; Weight = amount }))
-            |> ignore)
+            hotspots.Add({ Line = pos.Line; Weight = amount }))
+        |> ignore)
 
     hotspots |> List.ofSeq
 
-let analyzeCognitiveComplexity (tree: Node) (positions: PositionLookup) (language: LanguageAdapter) (thresholds: CognitiveThresholds) : EnergyViolation list =
+let analyzeCognitiveComplexity
+    (tree: Node)
+    (positions: PositionLookup)
+    (language: LanguageAdapter)
+    (thresholds: CognitiveThresholds)
+    : EnergyViolation list =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
             if language.IsFunctionDefinition node then
@@ -145,7 +182,10 @@ let analyzeCognitiveComplexity (tree: Node) (positions: PositionLookup) (languag
                         Column = pos.Column
                         Type = Cognitive
                         Severity = severity
-                        Message = sprintf "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions." complexity
+                        Message =
+                          sprintf
+                              "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
+                              complexity
                         Hotspots = findCognitiveHotspots language node positions } ]
                 else
                     []
@@ -159,6 +199,6 @@ let analyzeCognitiveComplexity (tree: Node) (positions: PositionLookup) (languag
 
     traverse tree
 
-let detector : Detector =
+let detector: Detector =
     { Name = "cognitive"
       Run = fun ctx -> analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language defaultCognitiveThresholds }

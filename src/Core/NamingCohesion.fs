@@ -16,7 +16,8 @@ open Energy.Core.TreeSitter
 // decision: splits on underscores AND camelCase/acronym boundaries (extractFoo -> [extract, foo],
 // parse_json -> [parse, json], URLParser -> [url, parser]) rather than a plain leading `[a-z]+` run,
 // so a word boundary is recognized regardless of the file's naming convention.
-let private wordBoundaryPattern = Regex("[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|[0-9]+")
+let private wordBoundaryPattern =
+    Regex("[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|[0-9]+")
 
 let private splitIntoWords (text: string) : string list =
     let matches = wordBoundaryPattern.Matches text
@@ -29,7 +30,8 @@ let private splitIntoWords (text: string) : string list =
 // decision: splits the basename into words (on `_` and camelCase boundaries) and requires an exact
 // word match, rather than a substring `includes` check — `includes('common')` would also match an
 // unrelated file like `commonwealth.ts`, and `includes('util')` would match `futuleName.ts`.
-let private utilsFileWords = Set.ofList [ "util"; "utils"; "helper"; "helpers"; "common" ]
+let private utilsFileWords =
+    Set.ofList [ "util"; "utils"; "helper"; "helpers"; "common" ]
 
 let isUtilsFileName (fileName: string) : bool =
     let baseName = fileName.Split('/') |> Array.tryLast |> Option.defaultValue ""
@@ -39,7 +41,8 @@ let isUtilsFileName (fileName: string) : bool =
         | -1 -> baseName
         | idx -> baseName.Substring(0, idx)
 
-    splitIntoWords withoutExtension |> List.exists (fun w -> utilsFileWords.Contains w)
+    splitIntoWords withoutExtension
+    |> List.exists (fun w -> utilsFileWords.Contains w)
 
 // decision: a raw function name is a weak signal on its own, but a *dominant leading or trailing
 // word* shared across most of a file's functions (extractFoo/extractBar, or fooParser/barParser) is
@@ -47,10 +50,11 @@ let isUtilsFileName (fileName: string) : bool =
 // exactly the case a raw function-count sprawl check would otherwise misflag. Checking both ends also
 // catches naming conventions that put the domain word last (parseDate/formatDate), not just first.
 let private functionNameWords (node: Node) : string list =
-    let nameNode = nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier")
+    let nameNode =
+        nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier")
 
     match nameNode with
-    | Some n when not (String.IsNullOrEmpty (nodeText n)) -> splitIntoWords (nodeText n)
+    | Some n when not (String.IsNullOrEmpty(nodeText n)) -> splitIntoWords (nodeText n)
     | _ -> []
 
 let private dominantShare (words: string list) : float =
@@ -83,9 +87,11 @@ let looksLikeSingleDomainByNames (names: string list) (minShare: float) : bool =
     if leadingWords.Count = 0 then
         false
     else
-        dominantShare (List.ofSeq leadingWords) >= minShare || dominantShare (List.ofSeq trailingWords) >= minShare
+        dominantShare (List.ofSeq leadingWords) >= minShare
+        || dominantShare (List.ofSeq trailingWords) >= minShare
 
 let looksLikeSingleDomain (functions: Node list) (minShare: float) : bool =
-    let functionWordStrings = functions |> List.map (fun fn -> functionNameWords fn |> String.concat " ")
+    let functionWordStrings =
+        functions |> List.map (fun fn -> functionNameWords fn |> String.concat " ")
 
     looksLikeSingleDomainByNames functionWordStrings minShare

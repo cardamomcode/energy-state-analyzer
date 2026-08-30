@@ -27,4 +27,6 @@ type AnalysisContext =
 
 // A named detector pass over the shared context. The pipeline (Analyze.fs) is a list of these, so
 // adding a detector is one line — the "adding a new detector" rule in AGENTS.md becomes literally that.
-type Detector = { Name: string; Run: AnalysisContext -> EnergyViolation list }
+type Detector =
+    { Name: string
+      Run: AnalysisContext -> EnergyViolation list }

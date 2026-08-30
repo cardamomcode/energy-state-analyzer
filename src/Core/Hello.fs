@@ -8,12 +8,12 @@ open Fable.Core
 // discriminated union, and a `task { }` block awaiting a native JS promise (bound as
 // Task<'T>). Deleted in Phase 1 once the real Core modules replace it (or kept as a
 // canary if it stays useful).
-type Color = Red | Green | Blue
+type Color =
+    | Red
+    | Green
+    | Blue
 
-type Point =
-    { X: int
-      Y: int
-      Color: Color option }
+type Point = { X: int; Y: int; Color: Color option }
 
 // A promise-based JS API, bound as Task<'T> (native Promise). Fable maps Task<'T> to a
 // native Promise on the js/ts targets, so `let!` inside a task { } block is a native await.

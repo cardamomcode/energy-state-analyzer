@@ -12,11 +12,15 @@ open Energy.Core.Context
 // than the medium threshold; severity escalates to high past the high threshold. Each violation is
 // anchored at the control node's start position.
 
-type NestingThresholds = { MediumThreshold: int; HighThreshold: int }
+type NestingThresholds =
+    { MediumThreshold: int
+      HighThreshold: int }
 
 // decision: default medium threshold of 3 is the point where tracking active conditions starts to
 // strain working memory; high threshold of 5 escalates severity for the deepest offenders.
-let defaultNestingThresholds : NestingThresholds = { MediumThreshold = 3; HighThreshold = 5 }
+let defaultNestingThresholds: NestingThresholds =
+    { MediumThreshold = 3
+      HighThreshold = 5 }
 
 let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : EnergyViolation list =
     // Pure pre-order DFS that reproduces the TS algorithm's push-to-end ordering exactly: a control
@@ -35,12 +39,13 @@ let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : Ener
             let pos = ctx.Positions.toPosition (nodeStartIndex node)
             let severity = if depth > thresholds.HighThreshold then High else Medium
 
-            let v = { Line = pos.Line
-                      Column = pos.Column
-                      Type = Nesting
-                      Severity = severity
-                      Message = sprintf "Excessive nesting depth: %d. Consider extracting." depth
-                      Hotspots = [] }
+            let v =
+                { Line = pos.Line
+                  Column = pos.Column
+                  Type = Nesting
+                  Severity = severity
+                  Message = sprintf "Excessive nesting depth: %d. Consider extracting." depth
+                  Hotspots = [] }
 
             // decision: prepend this node's violation ahead of its subtree (v :: childResults == [ v ] @ childResults)
             // so a control node reports before descending — matching the TS push-to-end ordering, siblings left to right.
@@ -50,4 +55,6 @@ let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : Ener
 
     traverse ctx.Tree 0
 
-let detector : Detector = { Name = "nesting"; Run = fun ctx -> analyzeNesting ctx defaultNestingThresholds }
+let detector: Detector =
+    { Name = "nesting"
+      Run = fun ctx -> analyzeNesting ctx defaultNestingThresholds }

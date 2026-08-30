@@ -22,7 +22,8 @@ open Energy.Core.Detectors.ParameterCount
 // necessary empirically: running this detector against a real F#-style Python module initially still
 // misfired because ~45% of its functions take a Callable callback alongside their real domain type —
 // left uncounted, Callable would have out-voted the actual dominant type (Iterable).
-let private nonDomainBaseTypes = Set.ofList [ "Callable"; "Function"; "Any"; "None"; "Unit"; "void" ]
+let private nonDomainBaseTypes =
+    Set.ofList [ "Callable"; "Function"; "Any"; "None"; "Unit"; "void" ]
 
 let private singleUpperPattern = Regex("^[A-Z]$")
 let private genericTypeParameterPattern = Regex("^_?T([A-Z]\\w*|\\d*)$")
@@ -108,7 +109,9 @@ type TypeCohesionResult =
     // number of distinct base types observed, used by callers to report "spans N unrelated types".
     | Measured of MeasuredTypeCohesion
 
-type TypeCohesionThresholds = { MaxDiversityRatio: float; MinCoverage: float }
+type TypeCohesionThresholds =
+    { MaxDiversityRatio: float
+      MinCoverage: float }
 
 // decision: measures cohesion as a type-*diversity* ratio (distinct base types / typed functions), not
 // "does one type dominate" — a single-dominant-type check was tried first and rejected after testing
@@ -118,13 +121,24 @@ type TypeCohesionThresholds = { MaxDiversityRatio: float; MinCoverage: float }
 // type vocabulary. The diversity ratio captures that correctly (seq.py: 8 distinct types / 80 typed
 // functions = 0.10, clearly cohesive) without needing to know in advance how many "related" types a
 // cohesive module is allowed to use.
-let typeCohesionResult (functions: Node list) (language: LanguageAdapter) (thresholds: TypeCohesionThresholds) : TypeCohesionResult =
+let typeCohesionResult
+    (functions: Node list)
+    (language: LanguageAdapter)
+    (thresholds: TypeCohesionThresholds)
+    : TypeCohesionResult =
     let maxDiversityRatio = thresholds.MaxDiversityRatio
     let minCoverage = thresholds.MinCoverage
-    let perFunctionTypes = functions |> List.map (fun fn -> collectTypeSignals fn language)
+
+    let perFunctionTypes =
+        functions |> List.map (fun fn -> collectTypeSignals fn language)
+
     let typedFunctions = perFunctionTypes |> List.filter (fun s -> s.Count > 0)
 
-    let coverage = if functions.Length = 0 then 0.0 else float typedFunctions.Length / float functions.Length
+    let coverage =
+        if functions.Length = 0 then
+            0.0
+        else
+            float typedFunctions.Length / float functions.Length
 
     if coverage < minCoverage then
         InsufficientData
@@ -136,6 +150,9 @@ let typeCohesionResult (functions: Node list) (language: LanguageAdapter) (thres
                 distinctTypes.Add(t) |> ignore
 
         let diversityRatio = float distinctTypes.Count / float typedFunctions.Length
-        let measuredResult = { Result = diversityRatio <= maxDiversityRatio; DistinctTypes = distinctTypes.Count }
+
+        let measuredResult =
+            { Result = diversityRatio <= maxDiversityRatio
+              DistinctTypes = distinctTypes.Count }
 
         Measured measuredResult

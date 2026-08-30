@@ -31,9 +31,12 @@ function parseTypeList(raw: string | undefined): { types: string[] | 'all'; unkn
     if (!raw) {
         return { types: 'all', unknownTypes: [] };
     }
-    const tokens = raw.split(',').map(token => token.trim()).filter(Boolean);
-    const types = tokens.filter(token => KNOWN_TYPES.has(token));
-    const unknownTypes = tokens.filter(token => !KNOWN_TYPES.has(token));
+    const tokens = raw
+        .split(',')
+        .map((token) => token.trim())
+        .filter(Boolean);
+    const types = tokens.filter((token) => KNOWN_TYPES.has(token));
+    const unknownTypes = tokens.filter((token) => !KNOWN_TYPES.has(token));
     return { types, unknownTypes };
 }
 
@@ -92,10 +95,10 @@ export function applySuppressions(violations: EnergyViolation[], sourceText: str
         return { violations, suppressionNotes: [] };
     }
 
-    const suppressedCounts = new Map<Suppression, number>(suppressions.map(s => [s, 0]));
+    const suppressedCounts = new Map<Suppression, number>(suppressions.map((s) => [s, 0]));
 
-    const remaining = violations.filter(violation => {
-        const match = suppressions.find(s => coversLine(s, violation.line) && matchesType(s, violation.type));
+    const remaining = violations.filter((violation) => {
+        const match = suppressions.find((s) => coversLine(s, violation.line) && matchesType(s, violation.type));
         if (!match) {
             return true;
         }

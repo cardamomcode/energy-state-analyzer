@@ -77,9 +77,7 @@ function collectFunctionsClassesAndImports(
     // for its own leading keyword token.
     function isImportNode(node: any): boolean {
         const { nodeTypes } = language;
-        return (
-            node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement)
-        );
+        return node.isNamed && (node.type === nodeTypes.importStatement || node.type === nodeTypes.importFromStatement);
     }
 
     function traverseClass(node: any) {

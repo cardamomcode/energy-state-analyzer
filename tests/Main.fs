@@ -22,4 +22,5 @@ let main _ =
           OpaqueBooleanTests.tests
           ParameterCountTests.tests
           PrimitiveObsessionTests.tests
-          SuppressionsTests.tests ]
+          SuppressionsTests.tests
+          ReportTests.tests ]

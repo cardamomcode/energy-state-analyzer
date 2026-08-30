@@ -1,10 +1,8 @@
 module PrimitiveObsession
 
-let cleanDistinctTypes (name: string) (age: int) =
-    sprintf "%s:%d" name age
+let cleanDistinctTypes (name: string) (age: int) = sprintf "%s:%d" name age
 
-let flaggedSwapRisk (x: int) (y: int) =
-    x + y
+let flaggedSwapRisk (x: int) (y: int) = x + y
 
 let flaggedStringlyTyped (status: string) =
     if status = "pending" then 1

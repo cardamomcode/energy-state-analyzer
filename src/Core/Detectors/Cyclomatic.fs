@@ -15,11 +15,15 @@ open Energy.Core.Context
 // weighted by nesting depth so callers can paint a heatmap of where the complexity actually piles
 // up (the flat metric itself stays unweighted).
 
-type CyclomaticThresholds = { MediumThreshold: int; HighThreshold: int }
+type CyclomaticThresholds =
+    { MediumThreshold: int
+      HighThreshold: int }
 
 // decision: medium 10 / high 15 — the point where holding that many independent paths in working
 // memory degrades readability (medium), and deep branching genuinely demands extraction (high).
-let defaultCyclomaticThresholds : CyclomaticThresholds = { MediumThreshold = 10; HighThreshold = 15 }
+let defaultCyclomaticThresholds: CyclomaticThresholds =
+    { MediumThreshold = 10
+      HighThreshold = 15 }
 
 // A decision point is any of: a language-declared decision node type, a boolean operator (and/or —
 // matched separately since several grammars reuse one generic binary-expression node for every
@@ -45,7 +49,9 @@ let rec calculateCyclomaticComplexity (language: LanguageAdapter) (node: Node) (
     if not isRoot && language.IsFunctionDefinition node then
         ownPoint
     else
-        ownPoint + (nodeChildren node |> List.sumBy (fun child -> calculateCyclomaticComplexity language child false))
+        ownPoint
+        + (nodeChildren node
+           |> List.sumBy (fun child -> calculateCyclomaticComplexity language child false))
 
 // decision: the base complexity of 1 is added once here; calculateCyclomaticComplexity returns only
 // the decision-point count for the given subtree, so callers get the full score with one call.
@@ -54,10 +60,16 @@ let complexityOf (language: LanguageAdapter) (functionNode: Node) : int =
 
 // decision: locate every decision point and weight it by nesting depth so callers can render a
 // per-line heatmap of where complexity piles up; the flat complexity metric itself stays unweighted.
-let rec findCyclomaticHotspots (language: LanguageAdapter) (positions: PositionLookup) (node: Node) (depth: int) (isRoot: bool) : Hotspot list =
+let rec findCyclomaticHotspots
+    (language: LanguageAdapter)
+    (positions: PositionLookup)
+    (node: Node)
+    (depth: int)
+    (isRoot: bool)
+    : Hotspot list =
     let dp = isDecisionPoint language node
 
-    let thisHotspot : Hotspot list =
+    let thisHotspot: Hotspot list =
         if dp then
             let pos = positions.toPosition (nodeStartIndex node)
 
@@ -74,9 +86,16 @@ let rec findCyclomaticHotspots (language: LanguageAdapter) (positions: PositionL
 
         // decision: `thisHotspot @ children` preserves the TS pre-order push (parent before its
         // subtree) and left-to-right sibling order, with no accumulator to reverse.
-        thisHotspot @ (nodeChildren node |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth false))
+        thisHotspot
+        @ (nodeChildren node
+           |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth false))
 
-let analyzeFunctionComplexity (tree: Node) (positions: PositionLookup) (language: LanguageAdapter) (thresholds: CyclomaticThresholds) : EnergyViolation list =
+let analyzeFunctionComplexity
+    (tree: Node)
+    (positions: PositionLookup)
+    (language: LanguageAdapter)
+    (thresholds: CyclomaticThresholds)
+    : EnergyViolation list =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
             if language.IsFunctionDefinition node then
@@ -95,7 +114,8 @@ let analyzeFunctionComplexity (tree: Node) (positions: PositionLookup) (language
                         Column = pos.Column
                         Type = Complexity
                         Severity = severity
-                        Message = sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
+                        Message =
+                          sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
                         Hotspots = findCyclomaticHotspots language positions node 0 true } ]
                 else
                     []
@@ -109,6 +129,6 @@ let analyzeFunctionComplexity (tree: Node) (positions: PositionLookup) (language
 
     traverse tree
 
-let detector : Detector =
+let detector: Detector =
     { Name = "cyclomatic"
       Run = fun ctx -> analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language defaultCyclomaticThresholds }

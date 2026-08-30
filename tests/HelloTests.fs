@@ -15,28 +15,26 @@ open Energy.Core.Hello
 let tests =
     testList (
         "Hello",
-        [
-            test (
-                "sync greet renders the record and the DU",
-                (fun _ ->
-                    let p = { X = 1; Y = 2; Color = Some Green }
-                    assertThat (greet p) (isEqualTo "point 1,2 (Green)"))
-            )
-            test (
-                "sync greet with no color",
-                (fun _ ->
-                    let p = { X = 3; Y = 4; Color = None }
-                    assertThat (greet p) (isEqualTo "point 3,4 (none)"))
-            )
-            testAsync (
-                "async greet awaits a native promise",
-                (fun _ ->
-                    toAsync (
-                        task {
-                            let! g = asyncGreet { X = 5; Y = 6; Color = Some Red }
-                            assertThat g (isEqualTo "point 5,6 (Red) +5")
-                        }
-                    ))
-            )
-        ]
+        [ test (
+              "sync greet renders the record and the DU",
+              (fun _ ->
+                  let p = { X = 1; Y = 2; Color = Some Green }
+                  assertThat (greet p) (isEqualTo "point 1,2 (Green)"))
+          )
+          test (
+              "sync greet with no color",
+              (fun _ ->
+                  let p = { X = 3; Y = 4; Color = None }
+                  assertThat (greet p) (isEqualTo "point 3,4 (none)"))
+          )
+          testAsync (
+              "async greet awaits a native promise",
+              (fun _ ->
+                  toAsync (
+                      task {
+                          let! g = asyncGreet { X = 5; Y = 6; Color = Some Red }
+                          assertThat g (isEqualTo "point 5,6 (Red) +5")
+                      }
+                  ))
+          ) ]
     )

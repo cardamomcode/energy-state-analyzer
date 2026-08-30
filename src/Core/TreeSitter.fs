@@ -140,7 +140,8 @@ let nodeChildren (node: Node) : Node list = nodeChildrenRaw node |> Array.toList
 [<Emit("$0.namedChildren")>]
 let nodeNamedChildrenRaw (node: Node) : Node[] = nativeOnly
 
-let nodeNamedChildren (node: Node) : Node list = nodeNamedChildrenRaw node |> Array.toList
+let nodeNamedChildren (node: Node) : Node list =
+    nodeNamedChildrenRaw node |> Array.toList
 
 [<Emit("$0.child($1)")>]
 let nodeChild (node: Node) (index: int) : Node = nativeOnly
