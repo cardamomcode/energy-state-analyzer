@@ -1,10 +1,10 @@
 # Energy State Analyzer
 
-Visualizes "energy states" in Python, F#, and TypeScript code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
+Visualizes "energy states" in Python, F#, TypeScript, and Kotlin code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
 ## Features
 
-Real-time analysis of the active Python, F#, or TypeScript file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
+Real-time analysis of the active Python, F#, TypeScript, or Kotlin file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
 
 - [Cyclomatic complexity](docs/detectors/cyclomatic-complexity.md), too many independent execution paths.
 - [Cognitive complexity](docs/detectors/cognitive-complexity.md), too hard to read due to nesting.
@@ -36,14 +36,14 @@ The name is a deliberate analogy to thermodynamics: a function's "energy" is its
 The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean:
 
 ```bash
-npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt
 ```
 
 See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch.
 
 ## Requirements
 
-The extension activates automatically when you open a Python, F#, or TypeScript file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no external tools are required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text.
+The extension activates automatically when you open a Python, F#, TypeScript, or Kotlin file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no external tools are required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text.
 
 ## Extension Settings
 
