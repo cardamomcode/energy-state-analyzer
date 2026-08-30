@@ -32,9 +32,11 @@ type Grammar = obj
 /// A web-tree-sitter `Parser` instance (a JS object).
 type Parser = obj
 
-/// A zero-based source position (row, column). The kind of typed value the facade returns
-/// instead of raw JS numbers — detectors pattern-match on records, not on dynamic members.
-type Position = { Row: int; Column: int }
+/// A zero-based source position (row, column) as web-tree-sitter reports it for a node. The
+/// kind of typed value the facade returns instead of raw JS numbers — detectors pattern-match on
+/// records, not on dynamic members. Named `SourcePosition` (not just `Position`) to stay distinct
+/// from Core.Position ({ Line; Column }), the offset lookup result both share when opened together.
+type SourcePosition = { Row: int; Column: int }
 
 // ---------------------------------------------------------------------------
 // Module-level named imports (Parser and Language classes)
@@ -119,11 +121,11 @@ let nodeEndRow (node: Node) : int = nativeOnly
 [<Emit("$0.endPosition.column")>]
 let nodeEndColumn (node: Node) : int = nativeOnly
 
-let nodeStartPosition (node: Node) : Position =
+let nodeStartPosition (node: Node) : SourcePosition =
     { Row = nodeStartRow node
       Column = nodeStartColumn node }
 
-let nodeEndPosition (node: Node) : Position =
+let nodeEndPosition (node: Node) : SourcePosition =
     { Row = nodeEndRow node
       Column = nodeEndColumn node }
 

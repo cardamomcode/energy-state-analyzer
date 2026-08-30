@@ -10,6 +10,8 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="HelloTests.fs" />
     <Compile Include="SpikeTests.fs" />
+    <Compile Include="TestUtils.fs" />
+    <Compile Include="NestingTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

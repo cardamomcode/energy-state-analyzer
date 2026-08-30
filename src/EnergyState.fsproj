@@ -7,9 +7,17 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed. -->
+    <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
+         Order matters: dependencies first (TreeSitter facade before the modules that read it). -->
     <Compile Include="Core/Hello.fs" />
     <Compile Include="Core/TreeSitter.fs" />
+    <Compile Include="Core/Violation.fs" />
+    <Compile Include="Core/Position.fs" />
+    <Compile Include="Core/LanguageAdapter.fs" />
+    <Compile Include="Core/Context.fs" />
+    <Compile Include="Languages/Python.fs" />
+    <Compile Include="Core/Detectors/Nesting.fs" />
+    <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Fable.Core" Version="5.2.0" />
