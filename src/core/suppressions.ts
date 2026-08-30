@@ -4,7 +4,10 @@ import { EnergyViolation, VIOLATION_TYPE } from '../types';
 // AST — the comment node type differs per grammar (see LanguageAdapter.nodeTypes.comment) but the
 // esa-ignore marker text itself is identical across languages, so a text scan avoids needing a
 // per-language comment-node lookup just to find `//` and `#` comments.
-const DIRECTIVE_PATTERN = /(\/\/|#)\s*esa-ignore(-file)?(?::\s*([\w,\s-]+))?/;
+// decision: anchored with `\s*$` so the marker must be a complete token — bare at end-of-line or
+// followed by `:` + type list — not prose that merely mentions "esa-ignore" (a file whose own
+// comment starts "// esa-ignore ..." would otherwise parse as an unused bare directive).
+const DIRECTIVE_PATTERN = /(\/\/|#)\s*esa-ignore(-file)?(?::\s*([\w,\s-]+))?\s*$/;
 
 const KNOWN_TYPES: Set<string> = new Set(Object.values(VIOLATION_TYPE));
 

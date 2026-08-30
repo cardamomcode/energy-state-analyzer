@@ -86,4 +86,21 @@ suite('Integration: esa-ignore suppressions', () => {
         assert.strictEqual(suppressions[1].scope, 'file');
         assert.deepStrictEqual(suppressions[1].types, [VIOLATION_TYPE.MAGIC]);
     });
+
+    test('a comment that merely mentions esa-ignore is not parsed as a directive', () => {
+        const source = [
+            '//esa-ignore marker text itself is identical across languages',
+            'const x = 1;',
+            '#esa-ignore-file mechanism does the thing'
+        ].join('\n');
+
+        assert.strictEqual(parseSuppressions(source).length, 0, 'prose mentions must not read as directives');
+    });
+
+    test('a directive followed by trailing prose is not treated as a bare catch-all', () => {
+        const source = 'return 1;  //esa-ignore nesting extra words\n';
+        const { violations, suppressionNotes } = applySuppressions([violation(0, VIOLATION_TYPE.NESTING)], source);
+
+        assert.strictEqual(violations.length, 1, 'a malformed (space-separated) directive suppresses nothing');
+    });
 });
