@@ -2,7 +2,7 @@ module Energy.Core.LanguageAdapter
 
 open Energy.Core.TreeSitter
 
-// Per-grammar knowledge for the detectors (port of src/core/language.ts).
+// Per-grammar knowledge for the detectors.
 //
 // decision: the current 25-hook LanguageAdapter is a class-less interface of predicate callbacks;
 // the idiomatic F# shape is a record of functions — data + behavior, no interface ceremony. Each

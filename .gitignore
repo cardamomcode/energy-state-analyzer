@@ -6,9 +6,9 @@ obj/
 # Fable build output (JS target): the outDir holds our <name>.js + fable_modules/*.fs.js.
 fable_modules/
 spike-js/
+fable-out/
+fable-tests/
 *.vsix
 .vscode-test/
 *.log
 .DS_Store
-src/*.js
-src/*.js.map

@@ -8,7 +8,7 @@ open Fable.Core
 open Fable.Core.JsInterop
 
 // Scriptorium.Nib.Assertion supplies assertThat/satisfy/isGreaterOrEqual/isLessThan; the type alias
-// keeps them in scope alongside the assertion combinators (mirrors HelloTests/SpikeTests).
+// keeps them in scope alongside the assertion combinators (mirrors SpikeTests).
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
@@ -16,7 +16,7 @@ open Energy.Core.Violation
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// Shared integration-test harness (port of src/test/integration/testUtils.ts).
+// Shared integration-test harness.
 //
 // These helpers read fixtures from the source tree and drive the pipeline entry point
 // (analyzeSource) against real parsed trees — mirroring how the CLI/extension call analyzeSource,

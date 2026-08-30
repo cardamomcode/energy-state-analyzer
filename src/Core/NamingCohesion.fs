@@ -5,7 +5,7 @@ open System.Text.RegularExpressions
 
 open Energy.Core.TreeSitter
 
-// Port of src/core/namingCohesion.ts — the naming side of the file-coherence detector.
+// Naming side of the file-coherence detector.
 //
 // These helpers decide whether a set of functions (or class names) reads as "one coherent domain
 // factored into many small steps" rather than a grab-bag of unrelated helpers, by looking for a

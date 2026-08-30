@@ -6,7 +6,7 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Context
 
-// Nesting detector (port of src/core/detectors/nesting.ts).
+// Nesting detector.
 //
 // Flags control-flow nodes (if/for/while/with/try/match, per the language adapter) nested deeper
 // than the medium threshold; severity escalates to high past the high threshold. Each violation is

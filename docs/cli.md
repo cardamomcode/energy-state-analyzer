@@ -133,4 +133,7 @@ With no path arguments, changed files are discovered via `git diff --name-only <
 _2 files changed, 1 worsened, 1 improved, 1 new._
 ```
 
-The exit code in every mode (single-file, scan, or diff) follows the same rule: `1` if any medium/high-severity violation exists in the current (head) code, `0` otherwise, whether a diff made things better or worse is visible in the report, not encoded as a separate exit code. `energy-state-cli <single-file>` with no other flags keeps its original behavior (flat JSON violation array, same exit rule) unchanged.
+Single-file and scan modes exit `1` for any medium/high-severity violation (`0` otherwise).
+Diff mode exits `1` only when a changed file worsens relative to its base revision, so pre-existing
+debt and new files are reported without blocking the PR. `energy-state-cli <single-file>` with no
+other flags keeps its original flat JSON violation-array contract.

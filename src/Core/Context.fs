@@ -6,7 +6,7 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 
 // The shared immutable analysis context + the detector abstraction (port of the parameter
-// quadruple in src/core/analyze.ts, and §3.3).
+// repeated analysis parameters in the legacy implementation).
 //
 // decision: one immutable context replaces the repeated (tree, positions, language, fileName)
 // quadruple — which is exactly the swap-risk shape this repo's own primitive-obsession detector

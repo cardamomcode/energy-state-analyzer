@@ -4,7 +4,7 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// The Python LanguageAdapter (port of src/languages/python.ts).
+// The Python LanguageAdapter.
 //
 // Every hook operates on a raw `Node` (Fable dynamic `obj`) through the TreeSitter typed
 // accessors — matching how the TS reads `.type`/`.text`/`.children`/`.parent`/`.id` on `any`

@@ -8,7 +8,6 @@
     <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
          Order matters: dependencies first (Helpers before the test modules, Main last). -->
     <Compile Include="Helpers.fs" />
-    <Compile Include="HelloTests.fs" />
     <Compile Include="SpikeTests.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="NestingTests.fs" />
@@ -25,6 +24,7 @@
     <Compile Include="PrimitiveObsessionTests.fs" />
     <Compile Include="SuppressionsTests.fs" />
     <Compile Include="ReportTests.fs" />
+    <Compile Include="ExtensionPresentationTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

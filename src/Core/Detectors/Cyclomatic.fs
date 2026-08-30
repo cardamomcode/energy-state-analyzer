@@ -6,7 +6,7 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Context
 
-// Cyclomatic complexity detector (port of src/core/detectors/cyclomatic.ts).
+// Cyclomatic complexity detector.
 //
 // Flags functions whose cyclomatic complexity exceeds the medium threshold; severity escalates to
 // high past the high threshold. Complexity counts independent paths through a function — every

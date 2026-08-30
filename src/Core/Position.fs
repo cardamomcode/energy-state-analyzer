@@ -1,9 +1,9 @@
 module Energy.Core.Position
 
-// Offset-to-line/column conversion (port of src/core/position.ts).
+// Offset-to-line/column conversion.
 //
 // decision: host-independent — it reads nothing but the source string, so the same lookup drives
-// detectors inside the VS Code extension and in the headless CLI (src/cli.ts), which has no
+// detectors inside the VS Code extension and in the headless CLI, which has no
 // vscode.TextDocument to call positionAt on. It binary-searches precomputed line-start offsets
 // rather than delegating to a host API.
 //

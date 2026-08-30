@@ -8,8 +8,8 @@ open Energy.Core.Context
 
 // Shared parameter-node lookup for the coherence pipeline's type-cohesion signal.
 //
-// decision: this is `findParametersNode` extracted from src/core/detectors/parameterCount.ts, ported
-// early because typeCohesion.ts (a dependency of the coherence detector) needs it transitively.
+// decision: factors the parameter-node lookup out because the type-cohesion dependency needs it
+// transitively.
 
 // decision: searches direct children before descending — F#'s argument_patterns lives one level
 // below function_declaration_left, while direct lookup keeps the common grammars cheap. This matches

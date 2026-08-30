@@ -4,7 +4,7 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// The Kotlin LanguageAdapter (port of src/languages/kotlin.ts).
+// The Kotlin LanguageAdapter.
 //
 // tree-sitter-kotlin (v1.1.0) has a real block wrapper like Python/TS, but its `else` is a bare
 // keyword token with no wrapper node at all: an `else if` chain's next `if_expression` is a direct

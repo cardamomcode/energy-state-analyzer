@@ -8,8 +8,7 @@ open type Scriptorium.Quill.Runner
 [<EntryPoint>]
 let main _ =
     runTests
-        [ HelloTests.tests
-          SpikeTests.tests
+        [ SpikeTests.tests
           NestingTests.tests
           CyclomaticTests.tests
           CognitiveTests.tests
@@ -23,4 +22,5 @@ let main _ =
           ParameterCountTests.tests
           PrimitiveObsessionTests.tests
           SuppressionsTests.tests
-          ReportTests.tests ]
+          ReportTests.tests
+          ExtensionPresentationTests.tests ]

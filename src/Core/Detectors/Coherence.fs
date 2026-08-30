@@ -12,7 +12,7 @@ open Energy.Core.NamingCohesion
 open Energy.Core.TypeCohesion
 open Energy.Core.Detectors.ClassRelatedness
 
-// Port of src/core/detectors/coherence.ts — the "Utils/Helpers Sprawl" detector.
+// The "Utils/Helpers Sprawl" detector.
 //
 // Unlike every other detector here, coherence is a *whole-file* metric: it flags files that have lost
 // their cohesion by having too many unrelated functions, too many large functions, or too many

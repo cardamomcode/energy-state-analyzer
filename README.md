@@ -45,6 +45,23 @@ See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JS
 
 The extension activates automatically when you open a Python, F#, TypeScript, or Kotlin file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no external tools are required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text.
 
+## Development
+
+Product and test sources are F#. Install the pinned .NET tools (Fable and Fantomas) and npm
+dependencies, then use the wrapped commands:
+
+```bash
+just setup
+just install
+just build
+just test
+```
+
+Fable emits JavaScript with `--lang javascript --noCache` into ignored `fable-out/`; webpack then
+creates `dist/extension.js` and `dist/cli.js`. `just lint` checks F# formatting, `just format`
+formats it, and `just analyze` runs the built F# CLI against the production F# source. Press `F5`
+for the Extension Development Host.
+
 ## Extension Settings
 
 Detector thresholds are configurable under **Settings → Energy State Analyzer**. See each detector's doc (linked under Features above) for what a setting does; the keys and defaults are:
@@ -73,6 +90,5 @@ To exclude files/folders (e.g. test fixtures, generated code) from both the exte
 
 ## Known Issues
 
-- Nesting depth and parameter count thresholds are not yet configurable via VS Code settings, only cyclomatic complexity, cognitive complexity, the large-function coherence check, the match-opportunity branch count, and the magic-number/magic-string detectors are.
 - TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`), only named `function` declarations and class methods are.
 - Several detectors have per-language gaps beyond the above, see the "Known limitations" section of the relevant [detector doc](docs/detectors/README.md).

@@ -4,7 +4,7 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// The TypeScript LanguageAdapter (port of src/languages/typescript.ts).
+// The TypeScript LanguageAdapter.
 //
 // tree-sitter-typescript is structurally close to Python's grammar: real block/body nodes, a
 // distinct else_clause, and and/or (&&/||) each get their own node type as the operator-token child

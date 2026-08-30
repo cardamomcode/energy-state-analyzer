@@ -26,7 +26,7 @@ let defaultThresholds =
       MagicNumber = None
       MagicString = None }
 
-// The detector pipeline (port of src/core/analyze.ts).
+// The detector pipeline shared by the extension and CLI.
 //
 // decision: `allDetectors` is the single place new detectors are registered — adding one means
 // appending its `detector` value here, which is exactly the "adding a new detector" rule in

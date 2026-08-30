@@ -22,8 +22,16 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.x"
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Install F# tools
+        run: dotnet tool restore
 
       - name: Build CLI
         run: npm run compile

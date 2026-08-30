@@ -1,7 +1,0 @@
-node_modules/
-dist/
-out/
-grammars/
-*.vsix
-CHANGELOG.md
-src/test/fixtures/

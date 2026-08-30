@@ -8,7 +8,7 @@ open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 open Energy.Core.Detectors.ParameterCount
 
-// Port of src/core/typeCohesion.ts — the type side of the file-coherence detector.
+// Type side of the file-coherence detector.
 //
 // Whereas namingCohesion looks at function *names*, this measures cohesion as a type-*diversity*
 // ratio across a set of functions: few distinct base types reused across many typed functions means

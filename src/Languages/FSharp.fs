@@ -4,7 +4,7 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// The F# LanguageAdapter (port of src/languages/fsharp.ts).
+// The F# LanguageAdapter.
 //
 // tree-sitter-fsharp has no block/body wrapper node — an if/for/while's branches are direct
 // expression children of the construct itself (there's no equivalent of Python's `block` or

@@ -1,48 +1,35 @@
-//@ts-check
-
 'use strict';
 
 const path = require('path');
 const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 
-//@ts-check
-/** @typedef {import('webpack').Configuration} WebpackConfig **/
+/** @typedef {import('webpack').Configuration} WebpackConfig */
+
+// Fable emits ESM into fable-out. Webpack consumes those plain JS modules and produces the
+// CommonJS filenames that package.json exposes to VS Code and npm.
 
 /** @type WebpackConfig */
 const extensionConfig = {
-  target: 'node', // VS Code extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
-	mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
-
-  entry: './src/extension.ts', // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+  target: 'node',
+  mode: 'none',
+  entry: './fable-out/Extension/Extension.js',
   output: {
-    // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
     path: path.resolve(__dirname, 'dist'),
     filename: 'extension.js',
     libraryTarget: 'commonjs2'
   },
   externals: {
-    vscode: 'commonjs vscode' // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
-    // modules added here also need to be added in the .vscodeignore file
+    vscode: 'commonjs vscode'
   },
   experiments: {
     asyncWebAssembly: true
   },
   resolve: {
-    // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-    extensions: ['.ts', '.js']
+    extensions: ['.js']
   },
   module: {
     rules: [
-      {
-        test: /\.ts$/,
-        exclude: /node_modules/,
-        use: [
-          {
-            loader: 'ts-loader'
-          }
-        ]
-      },
       {
         test: /\.wasm$/,
         type: 'asset/resource',
@@ -54,7 +41,7 @@ const extensionConfig = {
   },
   devtool: 'nosources-source-map',
   infrastructureLogging: {
-    level: "log", // enables logging required for problem matchers
+    level: 'log'
   },
   plugins: [
     new CopyPlugin({
@@ -65,16 +52,14 @@ const extensionConfig = {
         }
       ]
     })
-  ],
+  ]
 };
 
 /** @type WebpackConfig */
 const cliConfig = {
   target: 'node',
   mode: 'none',
-
-  entry: './src/cli.ts', // headless entry point, no vscode dependency
-
+  entry: './fable-out/Main.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'cli.js',
@@ -84,29 +69,14 @@ const cliConfig = {
     asyncWebAssembly: true
   },
   resolve: {
-    extensions: ['.ts', '.js']
-  },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        exclude: /node_modules/,
-        use: [
-          {
-            loader: 'ts-loader'
-          }
-        ]
-      }
-    ]
+    extensions: ['.js']
   },
   plugins: [
-    // ADC: webpack/ts-loader strips the source shebang, and dist/cli.js is
-    // the npm "bin" entry run directly by a shell (not via `node dist/cli.js`),
-    // so it must start with one or `npx`/global installs fail with a shell
-    // syntax error instead of running as JS.
+    // ADC: webpack strips the source shebang, and dist/cli.js is the npm "bin" entry run
+    // directly by a shell, so it must start with one or `npx`/global installs fail.
     new webpack.BannerPlugin({ banner: '#!/usr/bin/env node', raw: true, entryOnly: true })
   ],
   devtool: 'nosources-source-map'
 };
 
-module.exports = [ extensionConfig, cliConfig ];
+module.exports = [extensionConfig, cliConfig];

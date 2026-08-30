@@ -9,7 +9,7 @@ open Energy.Core.Violation
 open Energy.Core.NamingCohesion
 open Energy.Core.TypeCohesion
 
-// Port of src/core/detectors/classRelatedness.ts — the class side of the file-coherence detector.
+// Class side of the file-coherence detector.
 //
 // checkFunctionCountSprawl's signal is "too many unrelated *functions* in one file"; this is its
 // class-level counterpart: "several small, internally-cohesive *classes* that don't belong together

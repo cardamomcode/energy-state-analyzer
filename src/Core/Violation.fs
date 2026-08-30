@@ -1,12 +1,11 @@
 module Energy.Core.Violation
 
-// Shared violation model for the detector pipeline (port of src/types.ts).
+// Shared violation model for the detector pipeline.
 //
 // decision: discriminated unions replace the string-literal unions of types.ts — the detectors
 // pattern-match on Severity/ViolationType instead of comparing wire strings, which deletes the
 // `as any` casts and makes an unknown type/severity a compile error rather than a runtime miss.
-// The CLI's JSON contract (src/cli.ts) maps these DUs back to the same wire strings in Phase 2;
-// for now the detectors only ever produce F# values, so no mapping exists here yet.
+// The CLI's JSON contract maps these DUs back to the established wire strings.
 
 type Severity =
     | Low

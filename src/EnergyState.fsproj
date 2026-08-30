@@ -9,10 +9,14 @@
   <ItemGroup>
     <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
          Order matters: dependencies first (TreeSitter facade before the modules that read it). -->
-    <Compile Include="Core/Hello.fs" />
     <Compile Include="Core/TreeSitter.fs" />
     <Compile Include="Core/Violation.fs" />
     <Compile Include="Core/Position.fs" />
+    <Compile Include="Core/PythonTypeInfo.fs" />
+    <Compile Include="Core/PythonTypeInfoFunctions.fs" />
+    <Compile Include="Core/PythonTypeInfoClasses.fs" />
+    <Compile Include="Core/PythonTypeInfoImports.fs" />
+    <Compile Include="Core/PythonTypeInfoExtraction.fs" />
     <Compile Include="Core/LanguageAdapter.fs" />
     <Compile Include="Core/Context.fs" />
     <Compile Include="Languages/Python.fs" />
@@ -43,6 +47,25 @@
     <Compile Include="Core/ReportDiff.fs" />
     <Compile Include="Core/ReportHuman.fs" />
     <Compile Include="Core/Analyze.fs" />
+    <Compile Include="Extension/VscodeHost.fs" />
+    <Compile Include="Extension/VscodeDocument.fs" />
+    <Compile Include="Extension/VscodeWorkspace.fs" />
+    <Compile Include="Extension/VscodePresentation.fs" />
+    <Compile Include="Extension/VscodeDiagnostics.fs" />
+    <Compile Include="Extension/VscodeDiagnosticValues.fs" />
+    <Compile Include="Extension/VscodeIdentity.fs" />
+    <Compile Include="Extension/ConfigurationValues.fs" />
+    <Compile Include="Extension/Configuration.fs" />
+    <Compile Include="Extension/Analysis.fs" />
+    <Compile Include="Extension/Grammar.fs" />
+    <Compile Include="Extension/DecorationModel.fs" />
+    <Compile Include="Extension/Decorations.fs" />
+    <Compile Include="Extension/DiagnosticModel.fs" />
+    <Compile Include="Extension/Diagnostics.fs" />
+    <Compile Include="Extension/Extension.fs" />
+    <Compile Include="CliNode.fs" />
+    <Compile Include="CliRuntime.fs" />
+    <Compile Include="CliModes.fs" />
     <Compile Include="Cli.fs" />
   </ItemGroup>
   <ItemGroup>

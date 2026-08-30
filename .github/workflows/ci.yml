@@ -20,16 +20,25 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.x"
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Compile and lint
-        run: npm run pretest
+      - name: Install F# tools
+        run: dotnet tool restore
+
+      - name: Check F# formatting
+        run: npm run lint
 
       - name: Check dependency licenses
         run: npm run license-check
 
-      - name: Run tests
-        uses: coactions/setup-xvfb@v1
-        with:
-          run: npm test
+      - name: Run F# Scriptorium tests
+        run: npm test
+
+      - name: Build extension and CLI
+        run: npm run compile
