@@ -63,7 +63,7 @@ let private isTestFile (fileName: string) : bool =
         | first :: _ when first = "test" -> true
         | words -> words |> List.tryLast = Some "test"
 
-let private isNodeType (expected: string option) (node: Node) : bool =
+let private isNodeType (expected: NodeType option) (node: Node) : bool =
     expected |> Option.exists ((=) (nodeType node))
 
 let private hasEnclosingFunction (language: LanguageAdapter) (assignmentNode: Node) : bool =

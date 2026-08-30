@@ -51,7 +51,7 @@ let isUtilsFileName (fileName: string) : bool =
 // catches naming conventions that put the domain word last (parseDate/formatDate), not just first.
 let private functionNameWords (node: Node) : string list =
     let nameNode =
-        nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier")
+        nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
 
     match nameNode with
     | Some n when not (String.IsNullOrEmpty(nodeText n)) -> splitIntoWords (nodeText n)

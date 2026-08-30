@@ -105,14 +105,19 @@ let private linkTypeCrossReference
     (uf: UnionFind)
     =
     classes
-    |> List.iteri (fun i cls ->
-        for method in cls.Methods do
-            let types = collectTypeSignals method language
-
-            for t in types do
-                match names |> List.tryFindIndex (fun n -> n |> Option.exists (fun nn -> nn = t)) with
-                | Some otherIndex when otherIndex <> i -> uf.Union i otherIndex
-                | _ -> ())
+    |> List.indexed
+    |> List.collect (fun (classIndex, cls) ->
+        cls.Methods
+        |> Seq.toList
+        |> List.collect (fun method ->
+            collectTypeSignals method language
+            |> Seq.toList
+            |> List.choose (fun typeName ->
+                names
+                |> List.tryFindIndex (fun name -> name |> Option.exists ((=) typeName))
+                |> Option.filter ((<>) classIndex)
+                |> Option.map (fun relatedIndex -> classIndex, relatedIndex))))
+    |> List.iter (fun (classIndex, relatedIndex) -> uf.Union classIndex relatedIndex)
 
 // Groups the file's classes into families using three independent signals, checked in this order
 // because each is progressively weaker evidence: (1) direct inheritance, (2) a shared base class,
@@ -125,24 +130,24 @@ let private groupClassesIntoFamilies (classes: ClassInfo list) (language: Langua
     linkSharedBase classes uf
     linkTypeCrossReference classes names language uf
 
-    let groups = Dictionary<int, ResizeArray<int>>()
-
     classes
-    |> List.iteri (fun i _ ->
-        let root = uf.Find i
+    |> List.indexed
+    |> List.groupBy (fun (index, _) -> uf.Find index)
+    |> List.map (fun (_, members) -> members |> List.map fst)
 
-        let group =
-            if groups.ContainsKey root then
-                groups.[root]
-            else
-                let newGroup = ResizeArray<int>()
+let private namesHaveSharedDomain (classes: ClassInfo list) (singleDomainNameShare: float) =
+    let names = classes |> List.map (fun c -> c.Name)
+    let definiteNames = names |> List.choose id
 
-                groups.[root] <- newGroup
-                newGroup
+    definiteNames.Length = names.Length
+    && looksLikeSingleDomainByNames definiteNames singleDomainNameShare
 
-        group.Add(i))
-
-    groups.Values |> Seq.map (Seq.toList) |> List.ofSeq
+let private groupDescription (groups: int list list) (names: string option list) =
+    groups
+    |> List.map (List.map (fun index -> Option.defaultValue "(anonymous)" names.[index]))
+    |> List.sortByDescending List.length
+    |> List.map (String.concat ", " >> sprintf "{%s}")
+    |> String.concat " vs "
 
 // Flag a file whose classes split into multiple families with no relationship to each other — the
 // class-level counterpart to checkFunctionCountSprawl's "unrelated types" message (coherence.ts), but
@@ -171,40 +176,23 @@ let checkClassRelatedness
         None
     else
         let groups = groupClassesIntoFamilies classes language
+        let names = classes |> List.map (fun c -> c.Name)
 
-        if groups.Length <= 1 then
-            None
-        else
-            let names = classes |> List.map (fun c -> c.Name)
-            // decision: narrows the class names to their definite (non-None) values — `List.filter`
-            // would keep the `string option list` type, but looksLikeSingleDomainByNames wants plain strings.
-            let definiteNames = names |> List.choose id
+        match groups with
+        | [ _ ] -> None
+        | _ when namesHaveSharedDomain classes singleDomainNameShare -> None
+        | _ ->
+            let position = positions.toPosition (nodeStartIndex classes.[0].Node)
 
-            if
-                definiteNames.Length = names.Length
-                && looksLikeSingleDomainByNames definiteNames singleDomainNameShare
-            then
-                None
-            else
-                let groupList =
-                    groups
-                    |> List.map (fun indices ->
-                        indices |> List.map (fun i -> Option.defaultValue "(anonymous)" names.[i]))
-                    |> List.sortWith (fun a b -> compare (List.length b) (List.length a))
-
-                let position = positions.toPosition (nodeStartIndex classes.[0].Node)
-
-                Some
-                    { Line = position.Line
-                      Column = position.Column
-                      Type = Coherence
-                      Severity = if groupList.Length > 2 then High else Medium
-                      Message =
-                        sprintf
-                            "File coherence warning: %d classes in one file split into %d unrelated groups: %s. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file."
-                            classes.Length
-                            groupList.Length
-                            (groupList
-                             |> List.map (fun g -> "{" + (String.concat ", " g) + "}")
-                             |> String.concat " vs ")
-                      Hotspots = [] }
+            Some
+                { Line = position.Line
+                  Column = position.Column
+                  Type = Coherence
+                  Severity = if groups.Length > 2 then High else Medium
+                  Message =
+                    sprintf
+                        "File coherence warning: %d classes in one file split into %d unrelated groups: %s. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file."
+                        classes.Length
+                        groups.Length
+                        (groupDescription groups names)
+                  Hotspots = [] }

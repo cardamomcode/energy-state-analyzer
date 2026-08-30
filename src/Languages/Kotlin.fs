@@ -17,15 +17,15 @@ open Energy.Core.LanguageAdapter
 // decision: split out of getBaseClassNames/getTypedParameter into their own function, rather than
 // several `c.type === '...'` comparisons inline — that shape is exactly what the primitive-obsession
 // detector's stringly-typed-control-flow check flags as a switch-like branch on an ad hoc string tag.
-let private isUserType (node: Node) : bool = nodeType node = "user_type"
+let private isUserType (node: Node) : bool = nodeType node = NodeType "user_type"
 
 let private isConstPropertyDeclaration (node: Node) : bool =
-    match nodeChildren node |> List.tryFind (fun c -> nodeType c = "modifiers") with
+    match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "modifiers") with
     | Some modifiers ->
         nodeChildren modifiers
         |> List.exists (fun modifier ->
-            nodeType modifier = "property_modifier"
-            && (nodeChildren modifier |> List.exists (fun c -> nodeType c = "const")))
+            nodeType modifier = NodeType "property_modifier"
+            && (nodeChildren modifier |> List.exists (fun c -> nodeType c = NodeType "const")))
     | None -> false
 
 // decision: a leading annotation (`@VisibleForTesting const val X = 5`) makes this grammar lose the
@@ -34,15 +34,18 @@ let private isConstPropertyDeclaration (node: Node) : bool =
 // `val`/the name as three bare identifier tokens (verified by dumping the parse tree) — recognize
 // that specific misparse shape so an annotated const val isn't wrongly flagged as magic.
 let private isAnnotatedConstValMisparse (node: Node) : bool =
-    match nodeChildren node |> List.tryFind (fun c -> nodeType c = "annotated_expression") with
+    match
+        nodeChildren node
+        |> List.tryFind (fun c -> nodeType c = NodeType "annotated_expression")
+    with
     | Some annotated ->
         match
             nodeChildren annotated
-            |> List.tryFind (fun c -> nodeType c = "infix_expression")
+            |> List.tryFind (fun c -> nodeType c = NodeType "infix_expression")
         with
         | Some infix ->
             let identifiers =
-                nodeChildren infix |> List.filter (fun c -> nodeType c = "identifier")
+                nodeChildren infix |> List.filter (fun c -> nodeType c = NodeType "identifier")
 
             if List.length identifiers <> 3 then
                 false
@@ -62,7 +65,7 @@ let private delegationSpecifierName (specifier: Node) : string option =
         | None ->
             match
                 nodeChildren specifier
-                |> List.tryFind (fun c -> nodeType c = "constructor_invocation")
+                |> List.tryFind (fun c -> nodeType c = NodeType "constructor_invocation")
             with
             | Some ci -> nodeChildren ci |> List.tryFind isUserType
             | None -> None
@@ -70,7 +73,7 @@ let private delegationSpecifierName (specifier: Node) : string option =
     match userType with
     | Some ut ->
         nodeChildren ut
-        |> List.tryFind (fun c -> nodeType c = "identifier")
+        |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
         |> Option.map nodeText
     | None -> None
 
@@ -82,69 +85,76 @@ let KOTLIN: LanguageAdapter =
     { Id = "kotlin"
       GrammarPath = "grammars/tree-sitter-kotlin.wasm"
       NodeTypes =
-        { Block = Some "block"
-          Parameters = "function_value_parameters"
-          IfStatement = Some "if_expression"
+        { Block = Some(NodeType "block")
+          Parameters = NodeType "function_value_parameters"
+          IfStatement = Some(NodeType "if_expression")
           ElseClause = None
-          ForStatement = Some "for_statement"
-          WhileStatement = Some "while_statement"
+          ForStatement = Some(NodeType "for_statement")
+          WhileStatement = Some(NodeType "while_statement")
           // if_expression already covers ternary-style use (Kotlin has no separate ternary node).
           ConditionalExpression = None
-          Lambda = Some "lambda_literal"
-          ImportStatement = Some "import"
+          Lambda = Some(NodeType "lambda_literal")
+          ImportStatement = Some(NodeType "import")
           ImportFromStatement = None
           ExpressionStatement = None
           // 'property_declaration' (val/var NAME = value), not 'assignment' (bare reassignment `x = 5`)
           // — the only consumer (magicNumber.ts's isInConstantContext) wants "is this literal the value
           // of a named declaration", which is what Python's `assignment`/TS's `lexical_declaration` mean there too.
-          Assignment = Some "property_declaration"
-          Module = Some "source_file"
+          Assignment = Some(NodeType "property_declaration")
+          Module = Some(NodeType "source_file")
           ExportStatement = None
           // grammar splits line_comment/block_comment; this single-string field can only name one —
           // block comments are a minor documented gap (inversion.ts's statement filter is the only
           // consumer, and only for a comment as literally the first line).
-          Comment = Some "line_comment"
-          IntegerLiteral = Some "number_literal"
-          FloatLiteral = Some "float_literal"
-          StringLiteral = Some "string_literal" }
-      IsFunctionDefinition = fun node -> nodeType node = "function_declaration"
-      ParameterChildTypes = [ "parameter" ]
+          Comment = Some(NodeType "line_comment")
+          IntegerLiteral = Some(NodeType "number_literal")
+          FloatLiteral = Some(NodeType "float_literal")
+          StringLiteral = Some(NodeType "string_literal") }
+      IsFunctionDefinition = fun node -> nodeType node = NodeType "function_declaration"
+      ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =
-        [ "if_expression"
-          "for_statement"
-          "while_statement"
-          "when_expression"
-          "catch_block" ]
+        [ NodeType "if_expression"
+          NodeType "for_statement"
+          NodeType "while_statement"
+          NodeType "when_expression"
+          NodeType "catch_block" ]
       CognitiveNestedDecisionTypes =
-        [ "if_expression"
-          "for_statement"
-          "while_statement"
-          "when_expression"
-          "catch_block" ]
-      NestingControlTypes = [ "if_expression"; "for_statement"; "while_statement"; "try_expression" ]
+        [ NodeType "if_expression"
+          NodeType "for_statement"
+          NodeType "while_statement"
+          NodeType "when_expression"
+          NodeType "catch_block" ]
+      NestingControlTypes =
+        [ NodeType "if_expression"
+          NodeType "for_statement"
+          NodeType "while_statement"
+          NodeType "try_expression" ]
       GetBooleanOperator =
         fun node ->
-            if nodeType node <> "binary_expression" then
+            if nodeType node <> NodeType "binary_expression" then
                 None
             else
                 nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = "&&" || nodeType c = "||")
-                |> Option.map (fun c -> if nodeType c = "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = "block"
+                |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
+                |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
+      EntersNestedScope = fun node -> nodeType node = NodeType "block"
       // Kotlin's try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
-      VariableReferenceNodeTypes = [ "identifier"; "navigation_expression" ]
+      VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "navigation_expression" ]
       ExtractTypedParameter =
         fun node ->
-            if nodeType node <> "parameter" then
+            if nodeType node <> NodeType "parameter" then
                 None
             else
                 match
-                    nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier"),
+                    nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier"),
                     nodeChildren node |> List.tryFind isUserType
                 with
                 | Some nameNode, Some typeNode ->
-                    match nodeChildren typeNode |> List.tryFind (fun c -> nodeType c = "identifier") with
+                    match
+                        nodeChildren typeNode
+                        |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
+                    with
                     | Some ti ->
                         Some
                             { Name = nodeText nameNode
@@ -157,7 +167,7 @@ let KOTLIN: LanguageAdapter =
             // return-type node, after function_value_parameters and before function_body) — a parameter's
             // own `:` and type live one level deeper, inside function_value_parameters, so this can't
             // accidentally pick up a parameter's type instead of the return type.
-            match nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = ":") with
+            match nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = NodeType ":") with
             | Some ci when ci + 1 < List.length (nodeChildren node) ->
                 let children = nodeChildren node
 
@@ -185,12 +195,12 @@ let KOTLIN: LanguageAdapter =
       DistinctTypeAdvice = "a value class (@JvmInline value class)"
       GetEqualityComparisons =
         fun node ->
-            if nodeType node <> "binary_expression" then
+            if nodeType node <> NodeType "binary_expression" then
                 []
             else
                 match
                     nodeChildren node
-                    |> List.tryFind (fun c -> nodeType c = "==" || nodeType c = "===")
+                    |> List.tryFind (fun c -> nodeType c = NodeType "==" || nodeType c = NodeType "===")
                 with
                 | Some opToken ->
                     // decision: compare operand identity by `.id`, not structural equality.
@@ -208,9 +218,11 @@ let KOTLIN: LanguageAdapter =
       // No flat elif node exists — Kotlin's chain is walked via the bare-nested-if fallback in
       // matchOpportunity.ts's collectChainBranches instead.
       GetElseIfBranches = fun _ -> []
-      SubscriptNodeTypes = [ "index_expression" ]
+      SubscriptNodeTypes = [ NodeType "index_expression" ]
       IsFormattedOrInterpolatedString =
-        fun node -> nodeChildren node |> List.exists (fun c -> nodeType c = "interpolation")
+        fun node ->
+            nodeChildren node
+            |> List.exists (fun c -> nodeType c = NodeType "interpolation")
       IsDefaultParameterValue =
         fun node ->
             // decision: compares node identity by `.id`, not reference equality — see the matching
@@ -219,13 +231,14 @@ let KOTLIN: LanguageAdapter =
             // function_value_parameters is a flat seq(parameter_modifiers?, parameter, ('=' expr)?), so
             // the default value's siblings (not ancestors) are the '=' token and the parameter.
             match nodeParent node with
-            | Some parent when nodeType parent = "function_value_parameters" ->
+            | Some parent when nodeType parent = NodeType "function_value_parameters" ->
                 let siblings = nodeChildren parent
 
                 match List.tryFindIndex (fun c -> nodeId c = nodeId node) siblings with
                 | Some index when index >= 2 ->
                     match List.tryItem (index - 1) siblings, List.tryItem (index - 2) siblings with
-                    | Some prev, Some prevPrev -> nodeType prev = "=" && nodeType prevPrev = "parameter"
+                    | Some prev, Some prevPrev ->
+                        nodeType prev = NodeType "=" && nodeType prevPrev = NodeType "parameter"
                     | _ -> false
                 | _ -> false
             | _ -> false
@@ -234,7 +247,7 @@ let KOTLIN: LanguageAdapter =
       // true/false are hard keywords in Kotlin, not shadowable identifiers.
       IsBooleanLiteral =
         fun node ->
-            if nodeType node <> "identifier" then
+            if nodeType node <> NodeType "identifier" then
                 false
             else
                 let t = nodeText node
@@ -247,11 +260,11 @@ let KOTLIN: LanguageAdapter =
       IsPositionalCallArgument =
         fun node ->
             match nodeParent node with
-            | Some valueArgument when nodeType valueArgument = "value_argument" ->
+            | Some valueArgument when nodeType valueArgument = NodeType "value_argument" ->
                 match nodeParent valueArgument with
-                | Some vaParents when nodeType vaParents = "value_arguments" ->
+                | Some vaParents when nodeType vaParents = NodeType "value_arguments" ->
                     match nodeParent vaParents with
-                    | Some callParent when nodeType callParent = "call_expression" ->
+                    | Some callParent when nodeType callParent = NodeType "call_expression" ->
                         match List.tryItem 0 (nodeChildren valueArgument) with
                         | Some first -> nodeId first = nodeId node
                         | None -> false
@@ -261,30 +274,33 @@ let KOTLIN: LanguageAdapter =
       IsExplicitConstant =
         fun node ->
             match nodeType node with
-            | "property_declaration" -> isConstPropertyDeclaration node
-            | "assignment" -> isAnnotatedConstValMisparse node
+            | NodeType "property_declaration" -> isConstPropertyDeclaration node
+            | NodeType "assignment" -> isAnnotatedConstValMisparse node
             | _ -> false
       // `import a.b.C` -> source 'a.b' (the package, one symbol per line here since Kotlin has no
       // brace-grouped import syntax); `import a.b.*` -> source 'a.b' as-is, the qualified_identifier
       // is already the package with no trailing symbol to strip.
       ImportSource =
         fun node ->
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = "qualified_identifier") with
+            match
+                nodeChildren node
+                |> List.tryFind (fun c -> nodeType c = NodeType "qualified_identifier")
+            with
             | Some qualified when nodeText qualified <> "" ->
                 let text = nodeText qualified
 
-                if nodeChildren node |> List.exists (fun c -> nodeType c = "*") then
+                if nodeChildren node |> List.exists (fun c -> nodeType c = NodeType "*") then
                     text
                 else
                     match text.LastIndexOf('.') with
                     | -1 -> text
                     | idx -> text.Substring(0, idx)
             | _ -> nodeText node
-      ClassDefinitionNodeTypes = [ "class_declaration" ]
+      ClassDefinitionNodeTypes = [ NodeType "class_declaration" ]
       GetClassName =
         fun node ->
             nodeChildren node
-            |> List.tryFind (fun c -> nodeType c = "identifier")
+            |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
             |> Option.map nodeText
       // `class Foo : Bar(), Baz` -> ['Bar', 'Baz']. Each delegation_specifier wraps either a
       // constructor_invocation (a superclass call, `Bar()`) or a bare user_type (an interface, `Baz`)
@@ -293,10 +309,10 @@ let KOTLIN: LanguageAdapter =
         fun node ->
             match
                 nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = "delegation_specifiers")
+                |> List.tryFind (fun c -> nodeType c = NodeType "delegation_specifiers")
             with
             | Some specifiers ->
                 nodeChildren specifiers
-                |> List.filter (fun s -> nodeType s = "delegation_specifier")
+                |> List.filter (fun s -> nodeType s = NodeType "delegation_specifier")
                 |> List.choose delegationSpecifierName
             | None -> [] }

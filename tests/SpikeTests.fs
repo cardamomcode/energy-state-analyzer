@@ -33,7 +33,7 @@ let tests =
                           let fixture = cwd () + "/src/test/fixtures/python/nesting.py"
                           let source = readFileSync fixture "utf8"
                           let! root = parseWith grammarPath source
-                          assertThat (nodeType root) (isEqualTo "module")
+                          assertThat (nodeType root) (isEqualTo (NodeType "module"))
                       }
                   ))
           )

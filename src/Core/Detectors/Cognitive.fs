@@ -34,10 +34,36 @@ let defaultCognitiveThresholds: CognitiveThresholds =
 // decision: compare a node against an optional grammar node type without leaking `option` into the
 // detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
 // simply never fires instead of needing a guard at every call site.
-let private hasNodeType (t: string option) (node: Node) : bool =
+let private hasNodeType (t: NodeType option) (node: Node) : bool =
     match t with
     | Some ty -> nodeType node = ty
     | None -> false
+
+type private CognitiveNodeKind =
+    | BooleanOperator of int
+    | NestedDecision
+    | ElseClause
+    | ConditionalExpression
+    | FunctionDefinition
+    | Lambda
+    | Other
+
+let private classifyNode (language: LanguageAdapter) (node: Node) : CognitiveNodeKind =
+    let operatorContribution operator =
+        nodeParent node
+        |> Option.bind language.GetBooleanOperator
+        |> Option.filter ((<>) operator)
+        |> Option.map (fun _ -> 1)
+        |> Option.defaultValue (if Option.isNone (nodeParent node) then 1 else 0)
+
+    match language.GetBooleanOperator node with
+    | Some operator -> BooleanOperator(operatorContribution operator)
+    | None when List.contains (nodeType node) language.CognitiveNestedDecisionTypes -> NestedDecision
+    | None when hasNodeType language.NodeTypes.ElseClause node -> ElseClause
+    | None when hasNodeType language.NodeTypes.ConditionalExpression node -> ConditionalExpression
+    | None when language.IsFunctionDefinition node -> FunctionDefinition
+    | None when hasNodeType language.NodeTypes.Lambda node -> Lambda
+    | None -> Other
 
 // decision: the cognitive walk scores a node and then descends, branching on what kind of node it is.
 // A `rec ... and` pair mirrors the TS `walk`/`walkNested`: `cognitiveWalk` handles one node (and its
@@ -49,76 +75,31 @@ let rec private cognitiveWalk
     (nesting: int)
     (contribute: Node -> int -> unit)
     : int =
-    // boolean operator branch first: contributes 1 iff its operator differs from the immediate
-    // parent's ("a && b" = one increment, "a && b || c" adds another at the ||), then always descends
-    // into children at the same nesting and stops — a boolean node has no nested decisions of its own.
-    match language.GetBooleanOperator node with
-    | Some operator ->
-        let contribution =
-            match nodeParent node with
-            | None -> 1
-            | Some parent ->
-                match language.GetBooleanOperator parent with
-                | Some parentOperator when parentOperator <> operator -> 1
-                | _ -> 0
+    let walkChildren walker =
+        nodeChildren node
+        |> List.sumBy (fun child -> walker language child nesting contribute)
 
+    let contributeAndWalk contribution walker =
         contribute node contribution
+        contribution + walkChildren walker
 
-        contribution
+    match classifyNode language node with
+    | BooleanOperator contribution -> contributeAndWalk contribution cognitiveWalk
+    | NestedDecision -> contributeAndWalk (1 + nesting) cognitiveWalkChild
+    | ElseClause -> contributeAndWalk 1 cognitiveWalkChild
+    | ConditionalExpression ->
+        contribute node (1 + nesting)
+
+        1
+        + nesting
         + (nodeChildren node
-           |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute))
-    | None ->
-        // a nested decision point (if/for/while/except/match-like): 1 + its own nesting, then walk its
-        // children via cognitiveWalkChild, which increments depth only where a child enters nested scope.
-        if List.contains (nodeType node) language.CognitiveNestedDecisionTypes then
-            let contribution = 1 + nesting
-
-            contribute node contribution
-
-            contribution
-            + (nodeChildren node
-               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
-        // an else clause: flat +1, no extra nesting increment for the else itself.
-        elif hasNodeType language.NodeTypes.ElseClause node then
-            let contribution = 1
-
-            contribute node contribution
-
-            contribution
-            + (nodeChildren node
-               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
-        // a ternary ("a if cond else b"): 1 + nesting, and its operands are one level deeper.
-        elif hasNodeType language.NodeTypes.ConditionalExpression node then
-            let contribution = 1 + nesting
-
-            contribute node contribution
-
-            contribution
-            + (nodeChildren node
-               |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute))
-        // a nested named function/method: only the structural nesting increment counts here — its body is
-        // scored as its own separate violation by analyzeCognitiveComplexity's traversal, never folded
-        // into the enclosing function's score.
-        elif language.IsFunctionDefinition node then
-            let contribution = 1 + nesting
-
-            contribute node contribution
-            contribution
-        // a lambda: attributes its body complexity to the enclosing function instead of scoring it
-        // separately (lambdas aren't analyzed as their own function — see LanguageAdapter docs), walking
-        // its children at the incremented depth.
-        elif hasNodeType language.NodeTypes.Lambda node then
-            let contribution = 1 + nesting
-
-            contribute node contribution
-
-            contribution
-            + (nodeChildren node
-               |> List.sumBy (fun child -> cognitiveWalkChild language child nesting contribute))
-        // otherwise: descend into every child at the same nesting.
-        else
-            nodeChildren node
-            |> List.sumBy (fun child -> cognitiveWalk language child nesting contribute)
+           |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute))
+    | FunctionDefinition ->
+        let contribution = 1 + nesting
+        contribute node contribution
+        contribution
+    | Lambda -> contributeAndWalk (1 + nesting) cognitiveWalkChild
+    | Other -> walkChildren cognitiveWalk
 
 and private cognitiveWalkChild
     (language: LanguageAdapter)

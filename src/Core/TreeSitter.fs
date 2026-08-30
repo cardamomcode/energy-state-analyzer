@@ -32,6 +32,18 @@ type Grammar = obj
 /// A web-tree-sitter `Parser` instance (a JS object).
 type Parser = obj
 
+/// A grammar node-type value returned by web-tree-sitter.
+///
+/// `NodeType` is erased to its backing string in generated JavaScript, so comparisons and adapter
+/// tables preserve the prior runtime representation while preventing grammar names from mixing with
+/// arbitrary source text in F#.
+///
+/// decision: uses an erased single-case union so grammar-specific names are type-safe in F# without
+/// changing web-tree-sitter's string-valued JavaScript API.
+/// invariant: every `NodeType` value has exactly its wrapped string as its JavaScript representation.
+[<Erase>]
+type NodeType = NodeType of string
+
 /// A zero-based source position (row, column) as web-tree-sitter reports it for a node. The
 /// kind of typed value the facade returns instead of raw JS numbers — detectors pattern-match on
 /// records, not on dynamic members. Named `SourcePosition` (not just `Position`) to stay distinct
@@ -85,7 +97,7 @@ let rootNode (tree: Tree) : Node = nativeOnly
 // ---------------------------------------------------------------------------
 
 [<Emit("$0.type")>]
-let nodeType (node: Node) : string = nativeOnly
+let nodeType (node: Node) : NodeType = nativeOnly
 
 [<Emit("$0.text")>]
 let nodeText (node: Node) : string = nativeOnly

@@ -14,7 +14,7 @@ open Energy.Core.Context
 // decision: searches direct children before descending — F#'s argument_patterns lives one level
 // below function_declaration_left, while direct lookup keeps the common grammars cheap. This matches
 // the existing detector and is shared with primitiveObsession's parameter-swap-risk check.
-let rec findParametersNode (node: Node) (parametersType: string) : Node option =
+let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option =
     // first look for a direct child of the exact parameters type ...
     match nodeChildren node |> List.tryFind (fun c -> nodeType c = parametersType) with
     | Some direct -> Some direct

@@ -18,13 +18,13 @@ open Energy.Core.LanguageAdapter
 // decision: shared by extractTypedParameter/extractReturnType below — both check for TS's
 // type-annotation grammar node (`: <type>`); a literal repeated across both would trip the
 // magic-string detector's own duplicate-string check.
-let private typeAnnotationNodeType = "type_annotation"
+let private typeAnnotationNodeType = NodeType "type_annotation"
 
 // decision: shared by getClassName/getBaseClassNames below — both check a node's type against TS's
 // grammar node-type name for a class's own name identifier (distinct from a plain `identifier`,
 // which lower-cased bindings use); a literal repeated across both would trip the magic-string
 // detector's own duplicate-string check.
-let private typeIdentifierNodeType = "type_identifier"
+let private typeIdentifierNodeType = NodeType "type_identifier"
 
 // decision: split out of getBaseClassNames into their own functions, each checking a single node
 // type, rather than several `c.type === '...'` comparisons against the same `heritage` subtree in
@@ -32,11 +32,12 @@ let private typeIdentifierNodeType = "type_identifier"
 // control-flow check flags as a switch-like branch on an ad hoc string tag.
 let private extendsTargetNames (heritage: Node) : string list =
     let extendsClause =
-        nodeChildren heritage |> List.tryFind (fun c -> nodeType c = "extends_clause")
+        nodeChildren heritage
+        |> List.tryFind (fun c -> nodeType c = NodeType "extends_clause")
 
     let extendsTarget =
         match extendsClause with
-        | Some ec -> nodeChildren ec |> List.tryFind (fun c -> nodeType c <> "extends")
+        | Some ec -> nodeChildren ec |> List.tryFind (fun c -> nodeType c <> NodeType "extends")
         | None -> None
 
     match extendsTarget with
@@ -46,7 +47,7 @@ let private extendsTargetNames (heritage: Node) : string list =
 let private implementsTargetNames (heritage: Node) : string list =
     let implementsClause =
         nodeChildren heritage
-        |> List.tryFind (fun c -> nodeType c = "implements_clause")
+        |> List.tryFind (fun c -> nodeType c = NodeType "implements_clause")
 
     match implementsClause with
     | Some ic ->
@@ -68,66 +69,72 @@ let TYPESCRIPT: LanguageAdapter =
     { Id = "typescript"
       GrammarPath = "grammars/tree-sitter-typescript.wasm"
       NodeTypes =
-        { Block = Some "statement_block"
-          Parameters = "formal_parameters"
-          IfStatement = Some "if_statement"
-          ElseClause = Some "else_clause"
-          ForStatement = Some "for_statement"
-          WhileStatement = Some "while_statement"
-          ConditionalExpression = Some "ternary_expression"
-          Lambda = Some "arrow_function"
-          ImportStatement = Some "import_statement"
+        { Block = Some(NodeType "statement_block")
+          Parameters = NodeType "formal_parameters"
+          IfStatement = Some(NodeType "if_statement")
+          ElseClause = Some(NodeType "else_clause")
+          ForStatement = Some(NodeType "for_statement")
+          WhileStatement = Some(NodeType "while_statement")
+          ConditionalExpression = Some(NodeType "ternary_expression")
+          Lambda = Some(NodeType "arrow_function")
+          ImportStatement = Some(NodeType "import_statement")
           // import_statement already covers every import form.
           ImportFromStatement = None
-          ExpressionStatement = Some "expression_statement"
-          Assignment = Some "lexical_declaration"
-          Module = Some "program"
-          ExportStatement = Some "export_statement"
-          Comment = Some "comment"
+          ExpressionStatement = Some(NodeType "expression_statement")
+          Assignment = Some(NodeType "lexical_declaration")
+          Module = Some(NodeType "program")
+          ExportStatement = Some(NodeType "export_statement")
+          Comment = Some(NodeType "comment")
           // TS doesn't distinguish int/float, both are "number".
-          IntegerLiteral = Some "number"
+          IntegerLiteral = Some(NodeType "number")
           FloatLiteral = None
-          StringLiteral = Some "string" }
-      IsFunctionDefinition = fun node -> nodeType node = "function_declaration" || nodeType node = "method_definition"
-      ParameterChildTypes = [ "required_parameter"; "optional_parameter" ]
+          StringLiteral = Some(NodeType "string") }
+      IsFunctionDefinition =
+        fun node ->
+            nodeType node = NodeType "function_declaration"
+            || nodeType node = NodeType "method_definition"
+      ParameterChildTypes = [ NodeType "required_parameter"; NodeType "optional_parameter" ]
       DecisionNodeTypes =
-        [ "if_statement"
-          "for_statement"
-          "for_in_statement"
-          "while_statement"
-          "catch_clause"
-          "ternary_expression" ]
+        [ NodeType "if_statement"
+          NodeType "for_statement"
+          NodeType "for_in_statement"
+          NodeType "while_statement"
+          NodeType "catch_clause"
+          NodeType "ternary_expression" ]
       CognitiveNestedDecisionTypes =
-        [ "if_statement"
-          "for_statement"
-          "for_in_statement"
-          "while_statement"
-          "catch_clause" ]
+        [ NodeType "if_statement"
+          NodeType "for_statement"
+          NodeType "for_in_statement"
+          NodeType "while_statement"
+          NodeType "catch_clause" ]
       NestingControlTypes =
-        [ "if_statement"
-          "for_statement"
-          "for_in_statement"
-          "while_statement"
-          "try_statement" ]
+        [ NodeType "if_statement"
+          NodeType "for_statement"
+          NodeType "for_in_statement"
+          NodeType "while_statement"
+          NodeType "try_statement" ]
       GetBooleanOperator =
         fun node ->
-            if nodeType node <> "binary_expression" then
+            if nodeType node <> NodeType "binary_expression" then
                 None
             else
                 nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = "&&" || nodeType c = "||")
-                |> Option.map (fun c -> if nodeType c = "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = "statement_block"
+                |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
+                |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
+      EntersNestedScope = fun node -> nodeType node = NodeType "statement_block"
       // JS/TS try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
-      VariableReferenceNodeTypes = [ "identifier"; "member_expression" ]
+      VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_expression" ]
       ExtractTypedParameter =
         fun node ->
-            if nodeType node <> "required_parameter" && nodeType node <> "optional_parameter" then
+            if
+                nodeType node <> NodeType "required_parameter"
+                && nodeType node <> NodeType "optional_parameter"
+            then
                 None
             else
                 let nameNode =
-                    nodeChildren node |> List.tryFind (fun c -> nodeType c = "identifier")
+                    nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
 
                 let typeAnnotation =
                     nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
@@ -135,7 +142,7 @@ let TYPESCRIPT: LanguageAdapter =
                 match nameNode, typeAnnotation with
                 | Some n, Some ta ->
                     // type_annotation's children are [':', <the actual type node>].
-                    match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> ":") with
+                    match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> NodeType ":") with
                     | Some tn ->
                         Some
                             { Name = nodeText n
@@ -149,7 +156,7 @@ let TYPESCRIPT: LanguageAdapter =
             // accidentally pick up a parameter's type instead of the return type.
             match nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType) with
             | Some ta ->
-                match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> ":") with
+                match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> NodeType ":") with
                 | Some tn -> Some(nodeText tn)
                 | None -> None
             | None -> None
@@ -160,12 +167,12 @@ let TYPESCRIPT: LanguageAdapter =
       DistinctTypeAdvice = "a branded/nominal type (e.g. a tagged type alias)"
       GetEqualityComparisons =
         fun node ->
-            if nodeType node <> "binary_expression" then
+            if nodeType node <> NodeType "binary_expression" then
                 []
             else
                 match
                     nodeChildren node
-                    |> List.tryFind (fun c -> nodeType c = "===" || nodeType c = "==")
+                    |> List.tryFind (fun c -> nodeType c = NodeType "===" || nodeType c = NodeType "==")
                 with
                 | Some opToken ->
                     // decision: compare operand identity by `.id`, not structural equality.
@@ -182,7 +189,7 @@ let TYPESCRIPT: LanguageAdapter =
       // `else if` has no flat elif node in this grammar — it's a nested if_statement one level inside
       // else_clause, which the match-opportunity detector walks itself.
       GetElseIfBranches = fun _ -> []
-      SubscriptNodeTypes = [ "subscript_expression" ]
+      SubscriptNodeTypes = [ NodeType "subscript_expression" ]
       // TS has no node type where an interpolated/formatted string still shares stringLiteral's node
       // type — template literals parse as `template_string`, which the traversal never visits as a
       // string literal in the first place.
@@ -197,15 +204,18 @@ let TYPESCRIPT: LanguageAdapter =
             // number`) — so this checks for the `=` child rather than trusting the parameter's own
             // node type to signal "has a default".
             match nodeParent node with
-            | Some parent when nodeType parent = "required_parameter" || nodeType parent = "optional_parameter" ->
+            | Some parent when
+                nodeType parent = NodeType "required_parameter"
+                || nodeType parent = NodeType "optional_parameter"
+                ->
                 let pc = nodeChildren parent
 
-                List.exists (fun c -> nodeType c = "=") pc
+                List.exists (fun c -> nodeType c = NodeType "=") pc
                 && (match List.tryItem (List.length pc - 1) pc with
                     | Some last -> nodeId last = nodeId node
                     | None -> false)
             | _ -> false
-      IsBooleanLiteral = fun node -> nodeType node = "true" || nodeType node = "false"
+      IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
       // An object-literal field (`{ retries: true }`) wraps the literal in `pair` inside `object`, so
       // a labeled boolean's parent is never `arguments` directly.
       IsPositionalCallArgument =
@@ -213,7 +223,9 @@ let TYPESCRIPT: LanguageAdapter =
             match nodeParent node with
             | Some parent ->
                 match nodeParent parent with
-                | Some gp -> nodeType parent = "arguments" && nodeType gp = "call_expression"
+                | Some gp ->
+                    nodeType parent = NodeType "arguments"
+                    && nodeType gp = NodeType "call_expression"
                 | None -> false
             | None -> false
       // TS's `const` is block-scoping, not a compile-time-constant marker (unlike Kotlin's `const val`)
@@ -223,11 +235,11 @@ let TYPESCRIPT: LanguageAdapter =
       // (named/default/namespace imports) is just which symbols come from it.
       ImportSource =
         fun node ->
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = "string") with
+            match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "string") with
             | Some s -> nodeText s
             | None -> nodeText node
       // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
-      ClassDefinitionNodeTypes = [ "class_declaration"; "abstract_class_declaration" ]
+      ClassDefinitionNodeTypes = [ NodeType "class_declaration"; NodeType "abstract_class_declaration" ]
       GetClassName =
         fun node ->
             nodeChildren node
@@ -238,6 +250,9 @@ let TYPESCRIPT: LanguageAdapter =
       // implements_clause lists one or more type_identifier siblings directly.
       GetBaseClassNames =
         fun node ->
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = "class_heritage") with
+            match
+                nodeChildren node
+                |> List.tryFind (fun c -> nodeType c = NodeType "class_heritage")
+            with
             | Some heritage -> extendsTargetNames heritage @ implementsTargetNames heritage
             | None -> [] }
