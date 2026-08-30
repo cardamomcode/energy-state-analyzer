@@ -41,6 +41,7 @@
     <Compile Include="Core/Report.fs" />
     <Compile Include="Core/ReportDiff.fs" />
     <Compile Include="Core/Analyze.fs" />
+    <Compile Include="Cli.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Fable.Core" Version="5.2.0" />
