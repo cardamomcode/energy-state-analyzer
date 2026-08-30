@@ -223,9 +223,9 @@ let KOTLIN : LanguageAdapter =
                           match List.tryItem 0 (nodeChildren valueArgument) with
                           | Some first -> nodeId first = nodeId node
                           | None -> false
-                      | None -> false
-                  | None -> false
-              | None -> false
+                      | _ -> false
+                  | _ -> false
+              | _ -> false
       IsExplicitConstant =
           fun node ->
               match nodeType node with
@@ -265,4 +265,3 @@ let KOTLIN : LanguageAdapter =
                   |> List.filter (fun s -> nodeType s = "delegation_specifier")
                   |> List.choose delegationSpecifierName
               | None -> [] }
-
