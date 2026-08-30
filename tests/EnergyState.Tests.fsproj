@@ -15,6 +15,7 @@
     <Compile Include="CyclomaticTests.fs" />
     <Compile Include="CognitiveTests.fs" />
     <Compile Include="CoherenceTests.fs" />
+    <Compile Include="ParameterCountTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

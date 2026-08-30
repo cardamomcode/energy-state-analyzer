@@ -15,14 +15,23 @@ open Energy.Core.Context
 // central Thresholds record lives on the context; runPipeline just composes each detector over the
 // shared AnalysisContext.
 
-let allDetectors : Detector list = [ Detectors.Nesting.detector; Detectors.Cyclomatic.detector; Detectors.Cognitive.detector; Detectors.Coherence.detector ]
+let allDetectors: Detector list =
+    [ Detectors.Nesting.detector
+      Detectors.Cyclomatic.detector
+      Detectors.Cognitive.detector
+      Detectors.Coherence.detector
+      Detectors.ParameterCount.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
-    allDetectors
-    |> List.collect (fun d -> d.Run ctx)
+    allDetectors |> List.collect (fun d -> d.Run ctx)
 
 // The pipeline entry point used by the CLI and tests — mirrors the TS `analyzeSource` signature.
-let analyzeSource (sourceText: string) (tree: Node) (language: LanguageAdapter) (fileName: string) : EnergyViolation list =
+let analyzeSource
+    (sourceText: string)
+    (tree: Node)
+    (language: LanguageAdapter)
+    (fileName: string)
+    : EnergyViolation list =
     let ctx =
         { Source = sourceText
           Tree = tree
