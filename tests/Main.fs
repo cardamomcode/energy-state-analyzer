@@ -19,4 +19,5 @@ let main _ =
           InversionTests.tests
           MatchOpportunityTests.tests
           LogicalControlFlowTests.tests
+          OpaqueBooleanTests.tests
           ParameterCountTests.tests ]
