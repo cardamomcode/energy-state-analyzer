@@ -16,4 +16,5 @@ let main _ =
           CoherenceTests.tests
           MagicNumberTests.tests
           MagicStringTests.tests
+          InversionTests.tests
           ParameterCountTests.tests ]
