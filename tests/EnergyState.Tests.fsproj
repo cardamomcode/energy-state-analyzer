@@ -22,6 +22,7 @@
     <Compile Include="LogicalControlFlowTests.fs" />
     <Compile Include="OpaqueBooleanTests.fs" />
     <Compile Include="ParameterCountTests.fs" />
+    <Compile Include="PrimitiveObsessionTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

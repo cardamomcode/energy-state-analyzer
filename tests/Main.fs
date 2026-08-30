@@ -20,4 +20,5 @@ let main _ =
           MatchOpportunityTests.tests
           LogicalControlFlowTests.tests
           OpaqueBooleanTests.tests
-          ParameterCountTests.tests ]
+          ParameterCountTests.tests
+          PrimitiveObsessionTests.tests ]

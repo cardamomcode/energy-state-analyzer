@@ -26,7 +26,8 @@ let allDetectors: Detector list =
       Detectors.Inversion.detector
       Detectors.MatchOpportunity.detector
       Detectors.LogicalControlFlow.detector
-      Detectors.OpaqueBoolean.detector ]
+      Detectors.OpaqueBoolean.detector
+      Detectors.PrimitiveObsession.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
     allDetectors |> List.collect (fun d -> d.Run ctx)

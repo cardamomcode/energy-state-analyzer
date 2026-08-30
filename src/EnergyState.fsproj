@@ -33,6 +33,7 @@
     <Compile Include="Core/Detectors/MatchOpportunity.fs" />
     <Compile Include="Core/Detectors/LogicalControlFlow.fs" />
     <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
+    <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>
