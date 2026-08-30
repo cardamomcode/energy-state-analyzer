@@ -7,4 +7,4 @@ open type Scriptorium.Quill.Runner
 // is ignored, and no wrapper script is needed. (Idiom from Fable.Giraffe test/js/Main.fs.)
 [<EntryPoint>]
 let main _ =
-    runTests [ HelloTests.tests; SpikeTests.tests; NestingTests.tests; CyclomaticTests.tests; CognitiveTests.tests ]
+    runTests [ HelloTests.tests; SpikeTests.tests; NestingTests.tests; CyclomaticTests.tests; CognitiveTests.tests; CoherenceTests.tests ]

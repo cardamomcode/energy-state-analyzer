@@ -22,6 +22,11 @@
     <Compile Include="Core/Detectors/Nesting.fs" />
     <Compile Include="Core/Detectors/Cyclomatic.fs" />
     <Compile Include="Core/Detectors/Cognitive.fs" />
+    <Compile Include="Core/NamingCohesion.fs" />
+    <Compile Include="Core/Detectors/ParameterCount.fs" />
+    <Compile Include="Core/TypeCohesion.fs" />
+    <Compile Include="Core/Detectors/ClassRelatedness.fs" />
+    <Compile Include="Core/Detectors/Coherence.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>
