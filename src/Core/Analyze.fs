@@ -20,6 +20,7 @@ let allDetectors: Detector list =
       Detectors.Cyclomatic.detector
       Detectors.Cognitive.detector
       Detectors.Coherence.detector
+      Detectors.MagicNumber.detector
       Detectors.ParameterCount.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =

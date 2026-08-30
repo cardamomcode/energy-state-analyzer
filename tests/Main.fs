@@ -14,4 +14,5 @@ let main _ =
           CyclomaticTests.tests
           CognitiveTests.tests
           CoherenceTests.tests
+          MagicNumberTests.tests
           ParameterCountTests.tests ]
