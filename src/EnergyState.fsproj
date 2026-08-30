@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <!-- Fable is the transpiler of record; the .NET target is only for type-checking and
+         for Fable to resolve F# sources. No .NET executable is ever produced from this project. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
+         Order matters: dependencies first (TreeSitter facade before the modules that read it). -->
+    <Compile Include="Core/TreeSitter.fs" />
+    <Compile Include="Core/Violation.fs" />
+    <Compile Include="Core/Position.fs" />
+    <Compile Include="Core/PythonTypeInfo.fs" />
+    <Compile Include="Core/PythonTypeInfoFunctions.fs" />
+    <Compile Include="Core/PythonTypeInfoClasses.fs" />
+    <Compile Include="Core/PythonTypeInfoImports.fs" />
+    <Compile Include="Core/PythonTypeInfoExtraction.fs" />
+    <Compile Include="Core/LanguageAdapter.fs" />
+    <Compile Include="Core/Context.fs" />
+    <Compile Include="Languages/Python.fs" />
+    <Compile Include="Languages/TypeScript.fs" />
+    <Compile Include="Languages/FSharp.fs" />
+    <Compile Include="Languages/Kotlin.fs" />
+    <Compile Include="Languages/Registry.fs" />
+    <Compile Include="Core/Detectors/Nesting.fs" />
+    <Compile Include="Core/Detectors/Cyclomatic.fs" />
+    <Compile Include="Core/Detectors/Cognitive.fs" />
+    <Compile Include="Core/NamingCohesion.fs" />
+    <Compile Include="Core/Detectors/ParameterCount.fs" />
+    <Compile Include="Core/TypeCohesion.fs" />
+    <Compile Include="Core/Detectors/ClassRelatedness.fs" />
+    <Compile Include="Core/Detectors/Coherence.fs" />
+    <Compile Include="Core/Detectors/MagicNumber.fs" />
+    <Compile Include="Core/Detectors/MagicString.fs" />
+    <Compile Include="Core/Detectors/Inversion.fs" />
+    <Compile Include="Core/Detectors/MatchOpportunitySupport.fs" />
+    <Compile Include="Core/Detectors/MatchOpportunity.fs" />
+    <Compile Include="Core/Detectors/LogicalControlFlow.fs" />
+    <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
+    <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
+    <Compile Include="Core/Suppressions.fs" />
+    <Compile Include="Core/FsPath.fs" />
+    <Compile Include="Core/Esaignore.fs" />
+    <Compile Include="Core/Scan.fs" />
+    <Compile Include="Core/Report.fs" />
+    <Compile Include="Core/ReportDiff.fs" />
+    <Compile Include="Core/ReportHuman.fs" />
+    <Compile Include="Core/Analyze.fs" />
+    <Compile Include="Extension/VscodeHost.fs" />
+    <Compile Include="Extension/VscodeDocument.fs" />
+    <Compile Include="Extension/VscodeWorkspace.fs" />
+    <Compile Include="Extension/VscodePresentation.fs" />
+    <Compile Include="Extension/VscodeDiagnostics.fs" />
+    <Compile Include="Extension/VscodeDiagnosticValues.fs" />
+    <Compile Include="Extension/VscodeIdentity.fs" />
+    <Compile Include="Extension/ConfigurationValues.fs" />
+    <Compile Include="Extension/Configuration.fs" />
+    <Compile Include="Extension/Analysis.fs" />
+    <Compile Include="Extension/Grammar.fs" />
+    <Compile Include="Extension/DecorationModel.fs" />
+    <Compile Include="Extension/Decorations.fs" />
+    <Compile Include="Extension/DiagnosticModel.fs" />
+    <Compile Include="Extension/Diagnostics.fs" />
+    <Compile Include="Extension/Extension.fs" />
+    <Compile Include="CliNode.fs" />
+    <Compile Include="CliRuntime.fs" />
+    <Compile Include="CliModes.fs" />
+    <Compile Include="Cli.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="5.2.0" />
+  </ItemGroup>
+</Project>

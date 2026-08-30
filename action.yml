@@ -7,7 +7,7 @@ branding:
 
 # Requires the caller's checkout step to use `fetch-depth: 0` when base-ref is
 # set, so both the head and base commits are present locally for `git diff`/
-# `git show` (see src/cliModes.ts's changedFilesFromGit/readAtRef).
+# `git show` (see src/CliModes.fs's changedFilesFromGit/readAtRef).
 
 inputs:
   path:

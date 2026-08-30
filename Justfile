@@ -7,33 +7,37 @@ default:
 install:
     npm install
 
-# Build the extension bundle (dev mode)
+# Transpile the F# extension and CLI entries with Fable's JavaScript target
+fable:
+    npm run fable
+
+# Build the extension and CLI bundles (dev mode)
 build:
     npm run compile
 
-# Rebuild on file changes
+# Rebuild the webpack bundles after an F# transpilation
 watch:
     npm run watch
 
-# Lint src/**/*.ts
+# Check F# formatting
 lint:
     npm run lint
 
-# Format src/**/*.ts in place with Prettier
+# Format F# source and tests in place
 format:
     npm run format
 
-# Check formatting without writing changes (used by CI)
+# Check F# formatting without writing changes (used by CI)
 format-check:
     npm run format-check
 
-# Run the energy-state-analyzer CLI against local file(s)/dir(s), e.g. `just analyze src/extension.ts`
+# Run the F# analyzer against local file(s)/dir(s), e.g. `just analyze src`
 analyze *paths="src":
+    npm run compile
     npm run analyze -- {{paths}}
 
-# Compile tests, compile, lint, then run the VS Code extension test host
+# Transpile and run the F# Scriptorium suite
 test:
-    npm run pretest
     npm test
 
 # Production build + package into a .vsix via vsce
@@ -41,7 +45,7 @@ pack:
     npm run package
     npx @vscode/vsce package
 
-# Install .NET tools (ShipIt)
+# Install .NET tools (ShipIt, Fable, Fantomas)
 setup:
     dotnet tool restore
 
@@ -49,6 +53,6 @@ setup:
 shipit *args:
     dotnet shipit --allow-branch main --skip-invalid-commit {{args}}
 
-# Remove build artifacts
+# Remove generated bundles, Fable output, and package artifacts
 clean:
-    rm -rf dist out *.vsix
+    rm -rf dist fable-out fable-tests *.vsix

@@ -1,8 +1,6 @@
 module CyclomaticComplexity
 
-let cleanSimpleFunction (x: int) =
-    if x > 0 then 1
-    else 0
+let cleanSimpleFunction (x: int) = if x > 0 then 1 else 0
 
 let flaggedComplexFunction (status: string) =
     if status = "a" then 1

@@ -8,10 +8,6 @@ let cleanCommonValues (x: float) =
 
 let flaggedMagicNumbers (price: float) =
     let total = price * 1.08
-    if total > 50.0 then
-        total + 15.75
-    else
-        total
+    if total > 50.0 then total + 15.75 else total
 
-let cleanNegativeValue (flag: bool) =
-    if flag then -1 else 1
+let cleanNegativeValue (flag: bool) = if flag then -1 else 1

@@ -1,6 +1,6 @@
 # Paths the energy-state analyzer itself should not scan.
 # One pattern per line — a literal path/directory (also matches at any depth if it has no
-# '/'), or a single '*' basename glob. See src/core/esaignore.ts for the exact rules.
+# '/'), or a single '*' basename glob. See src/Core/Esaignore.fs for the exact rules.
 
 # Deliberately bad/deeply-nested code used only to exercise the detectors themselves.
 src/test/fixtures

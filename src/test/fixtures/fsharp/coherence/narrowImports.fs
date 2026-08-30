@@ -16,5 +16,4 @@ open Pkg
 open Pkg
 open Pkg
 
-let doSomething () =
-    1
+let doSomething () = 1

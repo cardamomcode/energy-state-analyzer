@@ -4,7 +4,7 @@ A comment directive for silencing a specific violation you've reviewed and decid
 
 ## Syntax
 
-```
+```text
 // esa-ignore
 // esa-ignore: nesting
 // esa-ignore: nesting, complexity
