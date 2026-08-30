@@ -43,29 +43,29 @@ let private isCurrentDocument document =
 // the promise is pending; decorations must never be written onto the newly active document.
 let private analyzeActiveEditor () : Task<unit> =
     task {
-        console.log("🔍 Analyzing active editor...")
+        console.log ("🔍 Analyzing active editor...")
 
         match state, activeTextEditor window with
-        | _, null -> console.log("❌ No active editor found")
+        | _, null -> console.log ("❌ No active editor found")
         | None, _ -> ()
         | Some current, editor ->
             let document = editorDocument editor
 
             if isDocumentIgnored document then
-                console.log("🚫 Ignored by .esaignore: " + documentFileName document)
+                console.log ("🚫 Ignored by .esaignore: " + documentFileName document)
                 clearIgnored editor current
             else
                 let! loaded = getOrLoadLanguage (documentLanguageId document) current.Grammar
 
                 match loaded with
                 | None ->
-                    console.log("⚠️ Unsupported language: " + documentLanguageId document)
+                    console.log ("⚠️ Unsupported language: " + documentLanguageId document)
                     clearDiagnostics current.Diagnostics
                 | Some _ when not (isCurrentDocument document) -> ()
                 | Some loaded ->
-                    console.log("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
+                    console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document
-                    console.log("🔍 Found " + string violations.Length + " energy violations")
+                    console.log ("🔍 Found " + string violations.Length + " energy violations")
                     applyDecorations editor current.Decorations violations
                     updateProblemsPanel current.Diagnostics document violations
     }
@@ -101,12 +101,12 @@ let private subscribeEvents context =
 
 let activate (context: obj) : Task<unit> =
     task {
-        console.log("🚀 Activating Energy State Analyzer...")
+        console.log ("🚀 Activating Energy State Analyzer...")
 
         try
-            console.log("🔧 Initializing Parser...")
+            console.log ("🔧 Initializing Parser...")
             do! initializeParser ()
-            console.log("✅ Parser initialized")
+            console.log ("✅ Parser initialized")
 
             let grammar =
                 { ExtensionPath = extensionPath context
@@ -123,8 +123,8 @@ let activate (context: obj) : Task<unit> =
                       Decorations = decorations }
 
             addSubscription context diagnostics
-            console.log("🎨 Decoration types created")
-            console.log("📋 Diagnostics collection created")
+            console.log ("🎨 Decoration types created")
+            console.log ("📋 Diagnostics collection created")
 
             registerCommand commands "energy-state-analyzer.analyze" (fun () ->
                 showInformationMessage window "Energy State Analyzer: Manual analysis triggered!"
@@ -133,9 +133,9 @@ let activate (context: obj) : Task<unit> =
 
             subscribeEvents context
             requestAnalysis ()
-            console.log("✅ Energy State Analyzer activated successfully!")
+            console.log ("✅ Energy State Analyzer activated successfully!")
         with error ->
-            console.error("Failed to activate Energy State Analyzer:", box error)
+            console.error ("Failed to activate Energy State Analyzer:", box error)
             showErrorMessage window ("Energy State Analyzer failed to activate: " + string error)
     }
 

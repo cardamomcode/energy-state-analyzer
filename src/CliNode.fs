@@ -42,9 +42,9 @@ let bundleDirectory: string = nativeOnly
 [<Emit("process.exit($0)")>]
 let exit (code: int) : unit = nativeOnly
 
-let error (message: string) : unit = console.error(message)
+let error (message: string) : unit = console.error (message)
 
-let output (message: string) : unit = console.log(message)
+let output (message: string) : unit = console.log (message)
 
 [<Emit("JSON.stringify($0, null, 2)")>]
 let stringify (value: obj) : string = nativeOnly

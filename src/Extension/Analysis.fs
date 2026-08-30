@@ -18,9 +18,9 @@ type LoadedLanguage =
     { Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
       Parser: Parser }
 
-let private logError (message: string) (error: obj) : unit = console.error(message, error)
+let private logError (message: string) (error: obj) : unit = console.error (message, error)
 
-let private logValue (message: string) (value: obj) : unit = console.log(message, value)
+let private logValue (message: string) (value: obj) : unit = console.log (message, value)
 
 // A standalone document has no workspace root from which an .esaignore can be read, so it is
 // intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.

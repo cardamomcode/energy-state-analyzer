@@ -18,9 +18,9 @@ type GrammarContext =
 [<Import("join", "node:path")>]
 let private joinPath (left: string) (right: string) : string = nativeOnly
 
-let private logPath (message: string) (path: string) : unit = console.log(message, path)
+let private logPath (message: string) (path: string) : unit = console.log (message, path)
 
-let private logSuccess (message: string) : unit = console.log(message)
+let private logSuccess (message: string) : unit = console.log (message)
 
 let initializeParser () = init parserCtor
 
