@@ -13,23 +13,28 @@ open Fable.Core.JsInterop
 // decision: promise-based entry points (Parser.init, Language.load) are bound as Task<'T>
 // (Fable maps Task<'T> to a native Promise on the JS target), so they are awaited with plain
 // let!/do! inside task { } blocks. The synchronous API (new Parser, setLanguage, parse, and
-// every Node/Tree member) is bound as ordinary values — no Task wrapper.
-// invariant: this module is the only place that touches web-tree-sitter; the detectors and
-// languages see only the typed Node/Tree accessors below, never the raw JS object.
+// every Node member) is bound as ordinary values — no Task wrapper.
+// invariant: this module is the only place that touches web-tree-sitter; detectors and
+// languages see only the typed accessors below, never the raw JS object. Nodes stay Fable
+// dynamic (`obj`) with a typed accessor layer — mirrors the current TS, which reads `.type`/
+// `.text`/`.children`/... on `any` nodes — so detectors get pure F# signatures with no `any`.
 
 /// A live web-tree-sitter `Node` (a JS object). Kept as `obj` (Fable dynamic) with the typed
-/// accessors below — mirrors the current TS code, which treats nodes as `any` and reads
-/// `.type`/`.text`/`.children`/... directly.
+/// accessors below; never constructed by our code, only returned from the bindings.
 type Node = obj
 
 /// A live web-tree-sitter `Tree` (a JS object).
 type Tree = obj
 
-/// A loaded web-tree-sitter `Language` (a JS object).
+/// A loaded web-tree-sitter `Language`/grammar (a JS object).
 type Grammar = obj
 
 /// A web-tree-sitter `Parser` instance (a JS object).
 type Parser = obj
+
+/// A zero-based source position (row, column). The kind of typed value the facade returns
+/// instead of raw JS numbers — detectors pattern-match on records, not on dynamic members.
+type Position = { Row: int; Column: int }
 
 // ---------------------------------------------------------------------------
 // Module-level named imports (Parser and Language classes)
@@ -42,7 +47,7 @@ let parserCtor: obj = nativeOnly
 let languageCtor: obj = nativeOnly
 
 // ---------------------------------------------------------------------------
-// Async entry points (promise-based → Task<'T> = native Promise)
+// Async entry points (promise-based -> Task<'T> = native Promise)
 // ---------------------------------------------------------------------------
 
 /// `Parser.init()` — one-time WASM bootstrap. Promise<void>.
@@ -74,7 +79,7 @@ let parse (parser: Parser) (text: string) : Tree = nativeOnly
 let rootNode (tree: Tree) : Node = nativeOnly
 
 // ---------------------------------------------------------------------------
-// Node accessors (live JS object members, surfaced as typed values)
+// Typed node accessors (live JS object members, surfaced as typed F# values)
 // ---------------------------------------------------------------------------
 
 [<Emit("$0.type")>]
@@ -83,56 +88,79 @@ let nodeType (node: Node) : string = nativeOnly
 [<Emit("$0.text")>]
 let nodeText (node: Node) : string = nativeOnly
 
+/// Literal text of a leaf/terminal node (`undefined` on internal nodes — read only on leaves).
+[<Emit("$0.value")>]
+let nodeValue (node: Node) : string = nativeOnly
+
 [<Emit("$0.isNamed")>]
 let nodeIsNamed (node: Node) : bool = nativeOnly
 
+/// Stable node id (used by the position lookup to map nodes back to source ranges).
+[<Emit("$0.id")>]
+let nodeId (node: Node) : int = nativeOnly
+
+[<Emit("$0.startIndex")>]
+let nodeStartIndex (node: Node) : int = nativeOnly
+
+[<Emit("$0.endIndex")>]
+let nodeEndIndex (node: Node) : int = nativeOnly
+
+// Positions surfaced as typed records. The raw row/column accessors below are the individual
+// `<Emit>` reads; the record builders compose them so callers see a `Position`.
+[<Emit("$0.startPosition.row")>]
+let nodeStartRow (node: Node) : int = nativeOnly
+
+[<Emit("$0.startPosition.column")>]
+let nodeStartColumn (node: Node) : int = nativeOnly
+
+[<Emit("$0.endPosition.row")>]
+let nodeEndRow (node: Node) : int = nativeOnly
+
+[<Emit("$0.endPosition.column")>]
+let nodeEndColumn (node: Node) : int = nativeOnly
+
+let nodeStartPosition (node: Node) : Position =
+    { Row = nodeStartRow node
+      Column = nodeStartColumn node }
+
+let nodeEndPosition (node: Node) : Position =
+    { Row = nodeEndRow node
+      Column = nodeEndColumn node }
+
+// Children surfaced as F# lists — idiomatic for the detectors' List folds/patterns, and it
+// avoids the "empty-array ceremony" the coherence detector itself flags (§3.2). The JS
+// `.children`/`.namedChildren` are arrays; convert once at the accessor boundary.
 [<Emit("$0.children")>]
-let nodeChildren (node: Node) : Node [] = nativeOnly
+let nodeChildrenRaw (node: Node) : Node[] = nativeOnly
+
+let nodeChildren (node: Node) : Node list = nodeChildrenRaw node |> Array.toList
 
 [<Emit("$0.namedChildren")>]
-let nodeNamedChildren (node: Node) : Node [] = nativeOnly
+let nodeNamedChildrenRaw (node: Node) : Node[] = nativeOnly
+
+let nodeNamedChildren (node: Node) : Node list = nodeNamedChildrenRaw node |> Array.toList
 
 [<Emit("$0.child($1)")>]
 let nodeChild (node: Node) (index: int) : Node = nativeOnly
 
+// Parent as an Option: the root node's parent is null, which becomes None. Reads the member
+// once and maps null -> None at the boundary.
 [<Emit("$0.parent")>]
-let nodeParent (node: Node) : Node = nativeOnly
+let nodeParentRaw (node: Node) : obj = nativeOnly
 
-[<Emit("$0.id")>]
-let nodeId (node: Node) : int = nativeOnly
-
-/// Byte offset of the node start (used with the position lookup, mirroring TS `.startIndex`).
-[<Emit("$0.startIndex")>]
-let nodeStartIndex (node: Node) : int = nativeOnly
-
-/// Byte offset of the node end (mirroring TS `.endIndex`).
-[<Emit("$0.endIndex")>]
-let nodeEndIndex (node: Node) : int = nativeOnly
-
-/// Zero-based row of the node start.
-[<Emit("$0.startPosition.row")>]
-let nodeStartRow (node: Node) : int = nativeOnly
-
-/// Zero-based column of the node start.
-[<Emit("$0.startPosition.column")>]
-let nodeStartColumn (node: Node) : int = nativeOnly
-
-/// Zero-based row of the node end.
-[<Emit("$0.endPosition.row")>]
-let nodeEndRow (node: Node) : int = nativeOnly
-
-/// Zero-based column of the node end.
-[<Emit("$0.endPosition.column")>]
-let nodeEndColumn (node: Node) : int = nativeOnly
+let nodeParent (node: Node) : Node option =
+    match nodeParentRaw node with
+    | null -> None
+    | p -> Some p
 
 // ---------------------------------------------------------------------------
 // Convenience: load a grammar and parse in one promise chain
 // ---------------------------------------------------------------------------
 
-// decision: convenience for the CLI and the Phase 0 spike — inits the parser, loads the
-// grammar, and parses, all in one task { } block (each step really awaits, so the task block
-// is warranted). The extension uses the low-level bindings directly so it can cache the
-// loaded grammar/parser across documents (see Grammar.fs in Phase 3).
+// decision: convenience for the CLI and tests — inits the parser, loads the grammar, and
+// parses, all in one task { } block (each step really awaits, so the task block is warranted).
+// The extension uses the low-level bindings directly so it can cache the loaded grammar/parser
+// across documents (see Grammar.fs in Phase 3).
 let parseWith (grammarPath: string) (source: string) : Task<Node> =
     task {
         do! init parserCtor
