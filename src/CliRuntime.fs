@@ -15,7 +15,8 @@ open Energy.Languages.Registry
 
 let private parserCache = Dictionary<string, Parser>()
 
-let private grammarPath relative = joinPath (joinPath bundleDirectory "..") relative
+let private grammarPath relative =
+    joinPath (joinPath bundleDirectory "..") relative
 
 let loadParser (adapter: LanguageAdapter) : Task<Parser> =
     task {

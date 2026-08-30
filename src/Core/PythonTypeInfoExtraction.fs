@@ -21,7 +21,9 @@ let extractTypeInformation (tree: Tree) (positions: PositionLookup) : TypeInfo =
                     Classes = info.Classes @ [ extractClassTypeInfo positions node ] }
             | NodeType "assignment" ->
                 match extractVariableTypeInfo positions node with
-                | Some variable -> { info with Variables = info.Variables @ [ variable ] }
+                | Some variable ->
+                    { info with
+                        Variables = info.Variables @ [ variable ] }
                 | None -> info
             | NodeType "import_statement"
             | NodeType "import_from_statement" ->

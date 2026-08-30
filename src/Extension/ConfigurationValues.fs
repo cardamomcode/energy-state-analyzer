@@ -34,28 +34,19 @@ let defaultEnergyColors =
 let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
     { Nesting =
         Some
-            { MediumThreshold =
-                reader.Int "nesting" "mediumThreshold" defaultNestingThresholds.MediumThreshold
-              HighThreshold =
-                reader.Int "nesting" "highThreshold" defaultNestingThresholds.HighThreshold }
+            { MediumThreshold = reader.Int "nesting" "mediumThreshold" defaultNestingThresholds.MediumThreshold
+              HighThreshold = reader.Int "nesting" "highThreshold" defaultNestingThresholds.HighThreshold }
       Cyclomatic =
         Some
             { MediumThreshold =
-                reader.Int
-                    "cyclomaticComplexity"
-                    "mediumThreshold"
-                    defaultCyclomaticThresholds.MediumThreshold
+                reader.Int "cyclomaticComplexity" "mediumThreshold" defaultCyclomaticThresholds.MediumThreshold
               HighThreshold =
-                reader.Int
-                    "cyclomaticComplexity"
-                    "highThreshold"
-                    defaultCyclomaticThresholds.HighThreshold }
+                reader.Int "cyclomaticComplexity" "highThreshold" defaultCyclomaticThresholds.HighThreshold }
       Cognitive =
         Some
             { MediumThreshold =
                 reader.Int "cognitiveComplexity" "mediumThreshold" defaultCognitiveThresholds.MediumThreshold
-              HighThreshold =
-                reader.Int "cognitiveComplexity" "highThreshold" defaultCognitiveThresholds.HighThreshold }
+              HighThreshold = reader.Int "cognitiveComplexity" "highThreshold" defaultCognitiveThresholds.HighThreshold }
       Coherence =
         Some
             { LargeFunctionLines =
@@ -66,8 +57,7 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
                 reader.Float "coherence" "singleDomainNameShare" defaultCoherenceThresholds.SingleDomainNameShare
               MaxTypeDiversityRatio =
                 reader.Float "coherence" "maxTypeDiversityRatio" defaultCoherenceThresholds.MaxTypeDiversityRatio
-              MinTypedCoverage =
-                reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage }
+              MinTypedCoverage = reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage }
       MatchOpportunity =
         Some
             { MinBranches =
@@ -79,23 +69,14 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
         Some
             { Enabled = reader.Bool "magicNumber" "enabled" Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
               Allowlist =
-                reader.Floats
-                    "magicNumber"
-                    "allowlist"
-                    Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist }
+                reader.Floats "magicNumber" "allowlist" Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist }
       MagicString =
         Some
             { Enabled = reader.Bool "magicString" "enabled" Energy.Core.Detectors.MagicString.defaultOptions.Enabled
               MinDuplicates =
-                reader.Int
-                    "magicString"
-                    "minDuplicates"
-                    Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
+                reader.Int "magicString" "minDuplicates" Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
               Allowlist =
-                reader.Strings
-                    "magicString"
-                    "allowlist"
-                    Energy.Core.Detectors.MagicString.defaultOptions.Allowlist } }
+                reader.Strings "magicString" "allowlist" Energy.Core.Detectors.MagicString.defaultOptions.Allowlist } }
 
 let readEnergyColors (reader: SettingReader) : EnergyColors =
     { HighEnergy = reader.String "colors" "highEnergy" defaultEnergyColors.HighEnergy

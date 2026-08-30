@@ -30,7 +30,9 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
         else
             fallback.TrimStart('#')
 
-    let channel index = Convert.ToInt32(digits.Substring(index * 2, 2), 16)
+    let channel index =
+        Convert.ToInt32(digits.Substring(index * 2, 2), 16)
+
     sprintf "rgba(%d, %d, %d, %g)" (channel 0) (channel 1) (channel 2) alpha
 
 let private firstNonWhitespace (text: string) =
@@ -44,7 +46,11 @@ let rangeFor (lineText: string) (violation: EnergyViolation) =
           StartColumn = 0
           EndLine = violation.Line
           EndColumn = lineText.Length }
-    elif violation.Type = Nesting || violation.Type = Complexity || violation.Type = Cognitive then
+    elif
+        violation.Type = Nesting
+        || violation.Type = Complexity
+        || violation.Type = Cognitive
+    then
         { StartLine = violation.Line
           StartColumn = firstNonWhitespace lineText
           EndLine = violation.Line
@@ -69,10 +75,7 @@ let heatRanges (lineCount: int) (lineText: int -> string) (bandCount: int) (viol
         |> List.fold
             (fun current (line, intensity) ->
                 let strongest =
-                    current
-                    |> Map.tryFind line
-                    |> Option.defaultValue 0.0
-                    |> max intensity
+                    current |> Map.tryFind line |> Option.defaultValue 0.0 |> max intensity
 
                 Map.add line strongest current)
             Map.empty

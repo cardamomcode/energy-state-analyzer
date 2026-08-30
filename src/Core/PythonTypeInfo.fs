@@ -16,7 +16,10 @@ type FunctionTypeInfo =
       Parameters: ParameterTypeInfo list
       ReturnType: string option }
 
-type VariableTypeInfo = { Name: string; Type: string; Line: int }
+type VariableTypeInfo =
+    { Name: string
+      Type: string
+      Line: int }
 
 type ClassTypeInfo =
     { Name: string
@@ -25,7 +28,10 @@ type ClassTypeInfo =
       IsTypedDict: bool
       Fields: VariableTypeInfo list }
 
-type ImportInfo = { Module: string; Items: string list; Line: int }
+type ImportInfo =
+    { Module: string
+      Items: string list
+      Line: int }
 
 type TypeInfo =
     { Functions: FunctionTypeInfo list
@@ -44,7 +50,11 @@ let rec extractTypeString node =
 
         let parameters =
             childOfType "type_parameter" node
-            |> Option.map (nodeChildren >> List.filter (fun child -> nodeType child = NodeType "type") >> List.map extractTypeString)
+            |> Option.map (
+                nodeChildren
+                >> List.filter (fun child -> nodeType child = NodeType "type")
+                >> List.map extractTypeString
+            )
             |> Option.defaultValue []
 
         match baseType with

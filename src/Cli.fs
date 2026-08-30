@@ -38,7 +38,11 @@ let private parseValues (arguments: string array) : string list * Map<string, st
         else
             let argument = arguments.[index]
 
-            if argument.StartsWith "--" && valueFlags.Contains(argument.Substring 2) && index + 1 < arguments.Length then
+            if
+                argument.StartsWith "--"
+                && valueFlags.Contains(argument.Substring 2)
+                && index + 1 < arguments.Length
+            then
                 loop (index + 2) paths (Map.add (argument.Substring 2) arguments.[index + 1] flags)
             elif argument.StartsWith "--" then
                 loop (index + 1) paths flags
@@ -68,12 +72,7 @@ let private parseArguments arguments =
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     match medium, high with
     | None, None -> None
-    | _ ->
-        Some(
-            constructor
-                (Option.defaultValue defaultMedium medium)
-                (Option.defaultValue defaultHigh high)
-        )
+    | _ -> Some(constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high))
 
 let private buildThresholds parsed =
     { defaultThresholds with
@@ -104,7 +103,15 @@ let runCli () : Task<unit> =
         try
             let parsed = parseArguments (argv ())
             let thresholds = buildThresholds parsed
-            let report = parsed.Report |> Option.defaultValue (if parsed.BaseRef.IsSome || parsed.Paths.Length <> 1 then "md" else "json")
+
+            let report =
+                parsed.Report
+                |> Option.defaultValue (
+                    if parsed.BaseRef.IsSome || parsed.Paths.Length <> 1 then
+                        "md"
+                    else
+                        "json"
+                )
 
             match parsed.BaseRef, parsed.Paths with
             | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report

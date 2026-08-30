@@ -38,10 +38,14 @@ let private analyze loaded document =
         let source = documentText document
         let tree = parse loaded.Parser source
         let root = rootNode tree
-        let violations = analyzeSourceWith (readAnalyzeThresholds ()) source root loaded.Adapter (documentFileName document)
+
+        let violations =
+            analyzeSourceWith (readAnalyzeThresholds ()) source root loaded.Adapter (documentFileName document)
 
         if loaded.Adapter.Id = "python" then
-            extractTypeInformation tree (createPositionLookup source) |> box |> logValue "🔍 Found types:"
+            extractTypeInformation tree (createPositionLookup source)
+            |> box
+            |> logValue "🔍 Found types:"
 
         Ok violations
     with error ->

@@ -8,7 +8,8 @@ let private plainImport children =
     let items =
         children
         |> List.filter (fun child ->
-            nodeType child = NodeType "dotted_name" || nodeType child = NodeType "identifier")
+            nodeType child = NodeType "dotted_name"
+            || nodeType child = NodeType "identifier")
         |> List.map nodeText
 
     { Module = items |> List.tryHead |> Option.defaultValue ""
@@ -25,7 +26,8 @@ let private fromImport children =
     let moduleName =
         beforeImport
         |> List.tryFind (fun child ->
-            nodeType child = NodeType "dotted_name" || nodeType child = NodeType "identifier")
+            nodeType child = NodeType "dotted_name"
+            || nodeType child = NodeType "identifier")
         |> Option.map nodeText
         |> Option.defaultValue ""
 
@@ -36,7 +38,9 @@ let private fromImport children =
         |> List.filter (fun child -> nodeType child = NodeType "identifier")
         |> List.map nodeText
 
-    { Module = moduleName; Items = items; Line = 0 }
+    { Module = moduleName
+      Items = items
+      Line = 0 }
 
 let extractImportInfo (positions: PositionLookup) node =
     let position = positions.toPosition (nodeStartIndex node)
@@ -45,9 +49,6 @@ let extractImportInfo (positions: PositionLookup) node =
         match nodeType node with
         | NodeType "import_statement" -> plainImport (nodeChildren node)
         | NodeType "import_from_statement" -> fromImport (nodeChildren node)
-        | _ ->
-            { Module = ""
-              Items = []
-              Line = 0 }
+        | _ -> { Module = ""; Items = []; Line = 0 }
 
     { result with Line = position.Line }

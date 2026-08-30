@@ -51,7 +51,8 @@ let createDecorations (colors: EnergyColors) : DecorationSet =
             createTextEditorDecorationType
                 window
                 (createObj
-                    [ "backgroundColor" ==> hexToRgba colors.HighEnergy alpha defaultEnergyColors.HighEnergy ]))
+                    [ "backgroundColor"
+                      ==> hexToRgba colors.HighEnergy alpha defaultEnergyColors.HighEnergy ]))
 
     { HighEnergy = create colors.HighEnergy defaultEnergyColors.HighEnergy
       MediumEnergy = create colors.MediumEnergy defaultEnergyColors.MediumEnergy
@@ -68,7 +69,8 @@ let private makeDecorationOption violation lineText =
     let range = rangeFor lineText violation
 
     createObj
-        [ "range" ==> makeRange range.StartLine range.StartColumn range.EndLine range.EndColumn
+        [ "range"
+          ==> makeRange range.StartLine range.StartColumn range.EndLine range.EndColumn
           "hoverMessage" ==> "🔋 Energy Violation: " + violation.Message ]
 
 let applyDecorations (editor: obj) (decorations: DecorationSet) (violations: EnergyViolation list) =
@@ -84,14 +86,9 @@ let applyDecorations (editor: obj) (decorations: DecorationSet) (violations: Ene
     setDecorations editor decorations.MediumEnergy (rangesFor Medium)
     setDecorations editor decorations.LowEnergy (rangesFor Low)
 
-    heatRanges
-        (documentLineCount document)
-        (documentLineText document)
-        decorations.ComplexityHeat.Length
-        violations
+    heatRanges (documentLineCount document) (documentLineText document) decorations.ComplexityHeat.Length violations
     |> Array.iteri (fun index ranges ->
         ranges
-        |> List.map (fun range ->
-            makeRange range.StartLine range.StartColumn range.EndLine range.EndColumn)
+        |> List.map (fun range -> makeRange range.StartLine range.StartColumn range.EndLine range.EndColumn)
         |> List.toArray
         |> setDecorations editor decorations.ComplexityHeat.[index])

@@ -34,26 +34,35 @@ let tests =
                   let reader =
                       { defaults with
                           Int =
-                            fun section key fallback ->
-                                match section, key with
-                                | "nesting", "mediumThreshold" -> 4
-                                | "matchOpportunity", "minBranches" -> 5
-                                | _ -> fallback
+                              fun section key fallback ->
+                                  match section, key with
+                                  | "nesting", "mediumThreshold" -> 4
+                                  | "matchOpportunity", "minBranches" -> 5
+                                  | _ -> fallback
                           Float =
-                            fun section key fallback ->
-                                match section, key with
-                                | "coherence", "singleDomainNameShare" -> 0.8
-                                | "colors", "backgroundOpacity" -> 0.25
-                                | _ -> fallback
+                              fun section key fallback ->
+                                  match section, key with
+                                  | "coherence", "singleDomainNameShare" -> 0.8
+                                  | "colors", "backgroundOpacity" -> 0.25
+                                  | _ -> fallback
                           Bool =
-                            fun section key fallback ->
-                                if section = "magicNumber" && key = "enabled" then false else fallback
+                              fun section key fallback ->
+                                  if section = "magicNumber" && key = "enabled" then
+                                      false
+                                  else
+                                      fallback
                           Floats =
-                            fun section key fallback ->
-                                if section = "magicNumber" && key = "allowlist" then [ 3.0 ] else fallback
+                              fun section key fallback ->
+                                  if section = "magicNumber" && key = "allowlist" then
+                                      [ 3.0 ]
+                                  else
+                                      fallback
                           String =
-                            fun section key fallback ->
-                                if section = "colors" && key = "highEnergy" then "#112233" else fallback }
+                              fun section key fallback ->
+                                  if section = "colors" && key = "highEnergy" then
+                                      "#112233"
+                                  else
+                                      fallback }
 
                   let thresholds = readAnalyzeThresholds reader
                   let colors = readEnergyColors reader
@@ -113,11 +122,10 @@ let tests =
                           Medium
                           Complexity
                           "complex"
-                          [ { Line = 1; Weight = 1 }
-                            { Line = 2; Weight = 4 }
-                            { Line = 9; Weight = 4 } ]
+                          [ { Line = 1; Weight = 1 }; { Line = 2; Weight = 4 }; { Line = 9; Weight = 4 } ]
 
-                  let ranges = heatRanges 4 (fun line -> [| "zero"; "one"; "two"; "three" |].[line]) 4 [ complex ]
+                  let ranges =
+                      heatRanges 4 (fun line -> [| "zero"; "one"; "two"; "three" |].[line]) 4 [ complex ]
 
                   assertThat ranges.[1].Length (isEqualTo 1)
                   assertThat ranges.[1].[0].StartLine (isEqualTo 1)
@@ -138,5 +146,6 @@ let tests =
                   assertThat spec.Range.StartColumn (isEqualTo 4)
                   assertThat spec.Message (isEqualTo "complex | nested | magic")
                   assertThat spec.Code (isEqualTo "energy-complexity,energy-nesting,energy-magic")
-                  assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ]) ) ]
+                  assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ])
+          ) ]
     )

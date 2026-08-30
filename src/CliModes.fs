@@ -19,9 +19,15 @@ type ReportFormat = string
 
 let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"
-    error "       energy-state-cli <path...> [--report json|md|human] [thresholds...]              (scan a directory/subtree)"
-    error "       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)"
-    error "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N"
+
+    error
+        "       energy-state-cli <path...> [--report json|md|human] [thresholds...]              (scan a directory/subtree)"
+
+    error
+        "       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)"
+
+    error
+        "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N"
 
 let private violationJson violation =
     let hotspots =
@@ -95,7 +101,10 @@ let runLegacySingleFile (filePath: string) (thresholds: AnalyzeThresholds) : Tas
             output (stringify (violations |> List.map violationJson |> List.toArray |> box))
 
             exit (
-                if violations |> List.exists (fun violation -> violation.Severity = Medium || violation.Severity = High) then
+                if
+                    violations
+                    |> List.exists (fun violation -> violation.Severity = Medium || violation.Severity = High)
+                then
                     1
                 else
                     0
@@ -122,7 +131,11 @@ let private changedFilesFromGit baseRef =
         "git"
         [| "diff"; "--name-only"; "--diff-filter=d"; baseRef + "...HEAD" |]
         (createObj [ "encoding" ==> "utf8" ])
-    |> fun result -> result.Split('\n') |> Array.map _.Trim() |> Array.filter ((<>) "") |> Array.toList
+    |> fun result ->
+        result.Split('\n')
+        |> Array.map _.Trim()
+        |> Array.filter ((<>) "")
+        |> Array.toList
 
 // decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
 // git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
@@ -142,6 +155,7 @@ let private readAtRef reference filePath =
             + reference
             + " (new file or rename) — treating as new"
         )
+
         None
 
 let runDiff
@@ -155,7 +169,10 @@ let runDiff
         let patterns = loadIgnorePatterns rootDir
 
         let changed =
-            (if explicitPaths.IsEmpty then changedFilesFromGit baseRef else explicitPaths)
+            (if explicitPaths.IsEmpty then
+                 changedFilesFromGit baseRef
+             else
+                 explicitPaths)
             |> List.filter (fun filePath -> resolveLanguageForFile filePath |> Option.isSome && existsSync filePath)
             |> List.filter (fun filePath -> not (isIgnored (resolvePath filePath) rootDir patterns))
 
@@ -165,13 +182,22 @@ let runDiff
                 | [] -> return List.rev bases, List.rev heads
                 | filePath :: remaining ->
                     let! headViolations = analyzeFile filePath (readFileSync filePath "utf8") thresholds
-                    let head = summarizeFile { FilePath = filePath; Violations = headViolations }
+
+                    let head =
+                        summarizeFile
+                            { FilePath = filePath
+                              Violations = headViolations }
 
                     match readAtRef baseRef filePath with
                     | None -> return! analyzeChanged remaining bases (head :: heads)
                     | Some baseSource ->
                         let! baseViolations = analyzeFile filePath baseSource thresholds
-                        let baseSummary = summarizeFile { FilePath = filePath; Violations = baseViolations }
+
+                        let baseSummary =
+                            summarizeFile
+                                { FilePath = filePath
+                                  Violations = baseViolations }
+
                         return! analyzeChanged remaining (baseSummary :: bases) (head :: heads)
             }
 
@@ -187,5 +213,10 @@ let runDiff
 
         // invariant: diff mode blocks only regressions; existing debt and newly added files are
         // reported but do not fail a PR until their score worsens relative to the base revision.
-        exit (if entries |> List.exists (fun entry -> entry.Status = Worsened) then 1 else 0)
+        exit (
+            if entries |> List.exists (fun entry -> entry.Status = Worsened) then
+                1
+            else
+                0
+        )
     }

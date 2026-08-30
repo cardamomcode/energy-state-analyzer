@@ -5,7 +5,10 @@ open Energy.Core.PythonTypeInfo
 open Energy.Core.TreeSitter
 
 let private parameterInfo hasDefault node =
-    { Name = childOfType "identifier" node |> Option.map nodeText |> Option.defaultValue "unknown"
+    { Name =
+        childOfType "identifier" node
+        |> Option.map nodeText
+        |> Option.defaultValue "unknown"
       Type = childOfType "type" node |> Option.map extractTypeString
       HasDefault = hasDefault }
 
@@ -33,9 +36,15 @@ let private returnType node =
 let extractFunctionTypeInfo (positions: PositionLookup) node =
     let position = positions.toPosition (nodeStartIndex node)
 
-    { Name = childOfType "identifier" node |> Option.map nodeText |> Option.defaultValue "unknown"
+    { Name =
+        childOfType "identifier" node
+        |> Option.map nodeText
+        |> Option.defaultValue "unknown"
       Line = position.Line
-      Parameters = childOfType "parameters" node |> Option.map extractParameters |> Option.defaultValue []
+      Parameters =
+        childOfType "parameters" node
+        |> Option.map extractParameters
+        |> Option.defaultValue []
       ReturnType = returnType node }
 
 let extractVariableTypeInfo (positions: PositionLookup) node =

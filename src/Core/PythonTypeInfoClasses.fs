@@ -7,7 +7,11 @@ open Energy.Core.TreeSitter
 
 let private baseClasses node =
     childOfType "argument_list" node
-    |> Option.map (nodeChildren >> List.filter (fun child -> nodeType child = NodeType "identifier") >> List.map nodeText)
+    |> Option.map (
+        nodeChildren
+        >> List.filter (fun child -> nodeType child = NodeType "identifier")
+        >> List.map nodeText
+    )
     |> Option.defaultValue []
 
 let private typedDictFields positions node =
@@ -26,8 +30,15 @@ let extractClassTypeInfo (positions: PositionLookup) node =
     let isTypedDict = List.contains "TypedDict" bases
     let position = positions.toPosition (nodeStartIndex node)
 
-    { Name = childOfType "identifier" node |> Option.map nodeText |> Option.defaultValue "unknown"
+    { Name =
+        childOfType "identifier" node
+        |> Option.map nodeText
+        |> Option.defaultValue "unknown"
       Line = position.Line
       BaseClasses = bases
       IsTypedDict = isTypedDict
-      Fields = if isTypedDict then typedDictFields positions (childOfType "block" node) else [] }
+      Fields =
+        if isTypedDict then
+            typedDictFields positions (childOfType "block" node)
+        else
+            [] }

@@ -16,9 +16,11 @@ let private reader =
       String = setting
       Strings = setting }
 
-let readAnalyzeThresholds () = ConfigurationValues.readAnalyzeThresholds reader
+let readAnalyzeThresholds () =
+    ConfigurationValues.readAnalyzeThresholds reader
 
-let getEnergyColors () = ConfigurationValues.readEnergyColors reader
+let getEnergyColors () =
+    ConfigurationValues.readEnergyColors reader
 
 let includeFixtures () =
     getConfiguration workspace "energyStateAnalyzer"

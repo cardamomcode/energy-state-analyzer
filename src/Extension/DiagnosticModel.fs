@@ -65,5 +65,8 @@ let diagnosticSpecs (violations: EnergyViolation list) : DiagnosticSpec list =
               EndColumn = lead.Column + diagnosticRangeWidth }
           Message = ordered |> List.map _.Message |> String.concat " | "
           Severity = severityFor lead.Severity
-          Code = ordered |> List.map (fun violation -> "energy-" + violationTypeName violation.Type) |> String.concat ","
+          Code =
+            ordered
+            |> List.map (fun violation -> "energy-" + violationTypeName violation.Type)
+            |> String.concat ","
           Tags = ordered |> List.collect (fun violation -> tagsFor violation.Type) })

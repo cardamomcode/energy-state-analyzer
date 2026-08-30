@@ -77,7 +77,8 @@ let private analyzeActiveEditor () : Task<unit> =
 let private requestAnalysis () = analyzeActiveEditor () |> ignore
 
 let private subscribeEvents context =
-    onDidChangeActiveTextEditor window (fun _ -> requestAnalysis ()) |> addSubscription context
+    onDidChangeActiveTextEditor window (fun _ -> requestAnalysis ())
+    |> addSubscription context
 
     onDidChangeTextDocument workspace (fun event ->
         match activeTextEditor window with
@@ -98,7 +99,8 @@ let private subscribeEvents context =
 
     onDidCloseTextDocument workspace (fun document ->
         if Map.containsKey (documentLanguageId document) Energy.Languages.Registry.languages then
-            state |> Option.iter (fun current -> deleteDiagnostics current.Diagnostics (documentUri document)))
+            state
+            |> Option.iter (fun current -> deleteDiagnostics current.Diagnostics (documentUri document)))
     |> addSubscription context
 
 let activate (context: obj) : Task<unit> =
@@ -117,7 +119,13 @@ let activate (context: obj) : Task<unit> =
 
             let decorations = createDecorations (getEnergyColors ())
             let diagnostics = createDiagnosticCollection VscodeHost.languages "energyState"
-            state <- Some { Grammar = grammar; Diagnostics = diagnostics; Decorations = decorations }
+
+            state <-
+                Some
+                    { Grammar = grammar
+                      Diagnostics = diagnostics
+                      Decorations = decorations }
+
             addSubscription context diagnostics
             log "🎨 Decoration types created"
             log "📋 Diagnostics collection created"
