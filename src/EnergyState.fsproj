@@ -19,6 +19,7 @@
     <Compile Include="Languages/TypeScript.fs" />
     <Compile Include="Languages/FSharp.fs" />
     <Compile Include="Languages/Kotlin.fs" />
+    <Compile Include="Languages/Registry.fs" />
     <Compile Include="Core/Detectors/Nesting.fs" />
     <Compile Include="Core/Detectors/Cyclomatic.fs" />
     <Compile Include="Core/Detectors/Cognitive.fs" />
@@ -35,6 +36,8 @@
     <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
     <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
     <Compile Include="Core/Suppressions.fs" />
+    <Compile Include="Core/Esaignore.fs" />
+    <Compile Include="Core/Scan.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>
