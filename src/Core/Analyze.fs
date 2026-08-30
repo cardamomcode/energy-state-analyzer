@@ -23,7 +23,8 @@ let allDetectors: Detector list =
       Detectors.MagicNumber.detector
       Detectors.MagicString.detector
       Detectors.ParameterCount.detector
-      Detectors.Inversion.detector ]
+      Detectors.Inversion.detector
+      Detectors.MatchOpportunity.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
     allDetectors |> List.collect (fun d -> d.Run ctx)
