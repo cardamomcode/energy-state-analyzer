@@ -1,6 +1,7 @@
 module Energy.Extension.Analysis
 
 open Fable.Core
+open Fable.Core.JS
 
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
@@ -17,11 +18,9 @@ type LoadedLanguage =
     { Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
       Parser: Parser }
 
-[<Emit("console.error($0, $1)")>]
-let private logError (message: string) (error: obj) : unit = nativeOnly
+let private logError (message: string) (error: obj) : unit = console.error(message, error)
 
-[<Emit("console.log($0, $1)")>]
-let private logValue (message: string) (value: obj) : unit = nativeOnly
+let private logValue (message: string) (value: obj) : unit = console.log(message, value)
 
 // A standalone document has no workspace root from which an .esaignore can be read, so it is
 // intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
