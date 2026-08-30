@@ -162,7 +162,11 @@ let PYTHON : LanguageAdapter =
                               let step (failed: bool) (acc: string list) (child: Node) =
                                   if failed then
                                       (true, acc)
-                                  elif not (nodeIsNamed child) || nodeType child <> "string" then
+                                  // decision: skips unnamed punctuation before checking literal shape — tuple
+                                  // commas and brackets are structural tokens, not membership values.
+                                  elif not (nodeIsNamed child) then
+                                      (false, acc)
+                                  elif nodeType child <> "string" then
                                       (true, acc)
                                   else
                                       (false, acc @ [ unquote (nodeText child) ])

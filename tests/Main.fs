@@ -15,4 +15,5 @@ let main _ =
           CognitiveTests.tests
           CoherenceTests.tests
           MagicNumberTests.tests
+          MagicStringTests.tests
           ParameterCountTests.tests ]
