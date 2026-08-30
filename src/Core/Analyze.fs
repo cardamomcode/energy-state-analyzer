@@ -6,6 +6,7 @@ open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Context
+open Energy.Core.Suppressions
 
 // The detector pipeline (port of src/core/analyze.ts).
 //
@@ -30,7 +31,9 @@ let allDetectors: Detector list =
       Detectors.PrimitiveObsession.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
-    allDetectors |> List.collect (fun d -> d.Run ctx)
+    let result = allDetectors |> List.collect (fun d -> d.Run ctx)
+    let suppressed = applySuppressions result ctx.Source
+    suppressed.Violations @ suppressed.SuppressionNotes
 
 // The pipeline entry point used by the CLI and tests — mirrors the TS `analyzeSource` signature.
 let analyzeSource

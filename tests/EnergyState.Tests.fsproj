@@ -23,6 +23,7 @@
     <Compile Include="OpaqueBooleanTests.fs" />
     <Compile Include="ParameterCountTests.fs" />
     <Compile Include="PrimitiveObsessionTests.fs" />
+    <Compile Include="SuppressionsTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

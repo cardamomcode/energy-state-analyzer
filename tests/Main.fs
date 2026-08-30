@@ -21,4 +21,5 @@ let main _ =
           LogicalControlFlowTests.tests
           OpaqueBooleanTests.tests
           ParameterCountTests.tests
-          PrimitiveObsessionTests.tests ]
+          PrimitiveObsessionTests.tests
+          SuppressionsTests.tests ]
