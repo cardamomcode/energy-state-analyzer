@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
+         Order matters: dependencies first (Helpers before the test modules, Main last). -->
+    <Compile Include="Helpers.fs" />
+    <Compile Include="HelloTests.fs" />
+    <Compile Include="SpikeTests.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="5.2.0" />
+    <PackageReference Include="Scriptorium.Quill" Version="0.5.1" />
+    <PackageReference Include="Scriptorium.Nib" Version="0.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../src/EnergyState.fsproj" />
+  </ItemGroup>
+</Project>

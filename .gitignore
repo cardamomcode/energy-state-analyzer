@@ -1,6 +1,11 @@
 node_modules/
 dist/
 out/
+bin/
+obj/
+# Fable build output (JS target): the outDir holds our <name>.js + fable_modules/*.fs.js.
+fable_modules/
+spike-js/
 *.vsix
 .vscode-test/
 *.log

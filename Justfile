@@ -45,6 +45,16 @@ pack:
 setup:
     dotnet tool restore
 
+# Phase 0 spike: fable (JS target) -> node ESM shim -> run the Scriptorium suite under Node.
+# Green means Fable emits JS, Node consumes it with a correct exit code on BOTH the pass and
+# fail paths (see docs/fable-rewrite-plan.md). `--noCache` sidesteps the documented Fable
+# `[<Emit>]` cache-instability gotcha; the {"type":"module"} shim makes Node treat the ESM
+# output as a module (avoids ERR_REQUIRE_ESM).
+spike:
+    dotnet fable tests/EnergyState.Tests.fsproj --lang javascript --outDir spike-js --noCache
+    echo '{"type":"module"}' > spike-js/package.json
+    node spike-js/Main.js
+
 # Preview the release PR ShipIt would open/update for commits since the last release
 shipit *args:
     dotnet shipit --allow-branch main --skip-invalid-commit {{args}}
