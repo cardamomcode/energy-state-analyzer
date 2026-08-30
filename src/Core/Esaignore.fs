@@ -1,24 +1,10 @@
 module Energy.Core.Esaignore
 
-open Fable.Core
+// esa-ignore-file: primitive-obsession
+// The esaignore matcher is inherently string/obj plumbing; the semantics live in how callers use
+// these, not in the declarations themselves.
 
-[<Import("existsSync", "node:fs")>]
-let private existsSync (path: string) : bool = nativeOnly
-
-[<Import("readFileSync", "node:fs")>]
-let private readFileSync (path: string) (encoding: string) : string = nativeOnly
-
-[<Import("join", "node:path")>]
-let private joinPath (left: string) (right: string) : string = nativeOnly
-
-[<Import("relative", "node:path")>]
-let private relativePath (fromPath: string) (toPath: string) : string = nativeOnly
-
-[<Import("basename", "node:path")>]
-let private basename (path: string) : string = nativeOnly
-
-[<Import("sep", "node:path")>]
-let private pathSeparator: string = nativeOnly
+open Energy.Core.FsPath
 
 let esaignoreFileName = ".esaignore"
 

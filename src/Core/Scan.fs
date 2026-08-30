@@ -2,26 +2,12 @@ module Energy.Core.Scan
 
 open Fable.Core
 open Energy.Core.Esaignore
+open Energy.Core.FsPath
 open Energy.Languages.Registry
 
-[<Import("existsSync", "node:fs")>]
-let private existsSync (path: string) : bool = nativeOnly
-
-[<Import("statSync", "node:fs")>]
-let private statSync (path: string) : obj = nativeOnly
-
-[<Import("readdirSync", "node:fs")>]
-let private readdirSync: obj = nativeOnly
-
-[<Import("join", "node:path")>]
-let private joinPath (left: string) (right: string) : string = nativeOnly
-
-[<Import("resolve", "node:path")>]
-let private resolvePath (path: string) : string = nativeOnly
-
-[<Import("sep", "node:path")>]
-let private pathSeparator: string = nativeOnly
-
+// decision: the dirent helpers below stay local — they are specific to reading a directory with
+// `{ withFileTypes: true }`, which the shared FsPath facade does not model. The plain fs/path
+// functions live in FsPath, where Scan and Esaignore already share them.
 [<Emit("$0($1, { withFileTypes: true })")>]
 let private readDirectory (reader: obj) (directory: string) : obj[] = nativeOnly
 
@@ -113,24 +99,23 @@ let resolveSupportedFiles (inputs: string list) (rootDir: string) =
 
     inputs
     |> List.collect (fun input ->
-        if input.Contains "*" then
-            expandGlobLike input ignore
-        elif not (existsSync input) then
-            []
-        else
-            let stat = statSync input
+        match input with
+        | pattern when pattern.Contains "*" -> expandGlobLike pattern ignore
+        | path when not (existsSync path) -> []
+        | path ->
+            let stat = statSync path
 
             if statIsDirectory stat then
-                if isPathIgnored input ignore then
+                if isPathIgnored path ignore then
                     []
                 else
-                    walkDirectory input ignore []
+                    walkDirectory path ignore []
             elif
                 statIsFile stat
-                && resolveLanguageForFile input |> Option.isSome
-                && not (isPathIgnored input ignore)
+                && resolveLanguageForFile path |> Option.isSome
+                && not (isPathIgnored path ignore)
             then
-                [ input ]
+                [ path ]
             else
                 [])
     |> List.map resolvePath

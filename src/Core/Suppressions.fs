@@ -22,6 +22,9 @@ type ApplySuppressionsResult =
 let private directivePattern =
     Regex("(//|#)\\s*esa-ignore(-file)?(?::\\s*([\\w,\\s-]+))?\\s*$")
 
+// decision: directive type names mirror `violationTypeName` (the JSON/report contract) rather than
+// the detector's internal `Name`, so a user copies the exact string from any report. Multi-word
+// types are kebab-case (`primitive-obsession`), matching docs and CLI output.
 let private knownTypes =
     [ "nesting", Nesting
       "complexity", Complexity
@@ -31,10 +34,10 @@ let private knownTypes =
       "magic", Magic
       "parameters", Parameters
       "inversion", Inversion
-      "primitiveObsession", PrimitiveObsession
-      "matchOpportunity", MatchOpportunity
-      "logicalControlFlow", LogicalControlFlow
-      "opaqueBoolean", OpaqueBoolean
+      "primitive-obsession", PrimitiveObsession
+      "match-opportunity", MatchOpportunity
+      "logical-control-flow", LogicalControlFlow
+      "opaque-boolean", OpaqueBoolean
       "suppression", Suppression ]
     |> Map.ofList
 
