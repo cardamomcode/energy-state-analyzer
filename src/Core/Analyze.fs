@@ -15,7 +15,7 @@ open Energy.Core.Context
 // central Thresholds record lives on the context; runPipeline just composes each detector over the
 // shared AnalysisContext.
 
-let allDetectors : Detector list = [ Detectors.Nesting.detector ]
+let allDetectors : Detector list = [ Detectors.Nesting.detector; Detectors.Cyclomatic.detector ]
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
     allDetectors

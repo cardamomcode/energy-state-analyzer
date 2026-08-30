@@ -16,7 +16,11 @@
     <Compile Include="Core/LanguageAdapter.fs" />
     <Compile Include="Core/Context.fs" />
     <Compile Include="Languages/Python.fs" />
+    <Compile Include="Languages/TypeScript.fs" />
+    <Compile Include="Languages/FSharp.fs" />
+    <Compile Include="Languages/Kotlin.fs" />
     <Compile Include="Core/Detectors/Nesting.fs" />
+    <Compile Include="Core/Detectors/Cyclomatic.fs" />
     <Compile Include="Core/Analyze.fs" />
   </ItemGroup>
   <ItemGroup>

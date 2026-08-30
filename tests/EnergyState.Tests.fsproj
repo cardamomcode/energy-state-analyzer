@@ -12,6 +12,7 @@
     <Compile Include="SpikeTests.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="NestingTests.fs" />
+    <Compile Include="CyclomaticTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
