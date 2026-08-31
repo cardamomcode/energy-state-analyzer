@@ -11,6 +11,8 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Analyze
+open Energy.Core.Detectors.Cyclomatic
+open Energy.Core.LanguageAdapter
 open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
@@ -23,6 +25,12 @@ open Energy.Tests.TestUtils
 // never flagged), an 11-way branch (medium), and a 16-way branch (high). TypeScript/F#/Kotlin are
 // exercised here as their language adapters were ported alongside the detector.
 
+let rec private functionNodes (language: LanguageAdapter) (node: Node) : Node list =
+    if language.IsFunctionDefinition node then
+        [ node ]
+    else
+        nodeChildren node |> List.collect (functionNodes language)
+
 let tests =
     let cases =
         [ "Python", PYTHON, "python/cyclomaticComplexity.py"
@@ -30,8 +38,13 @@ let tests =
           "F#", FSHARP, "fsharp/cyclomaticComplexity.fs"
           "Kotlin", KOTLIN, "kotlin/cyclomaticComplexity.kt" ]
 
-    testList (
-        "Integration: cyclomatic complexity (real code examples)",
+    let branchCases =
+        [ "Python", PYTHON, "python/cyclomaticBranches.py"
+          "TypeScript", TYPESCRIPT, "typescript/cyclomaticBranches.ts"
+          "F#", FSHARP, "fsharp/cyclomaticBranches.fs"
+          "Kotlin", KOTLIN, "kotlin/cyclomaticBranches.kt" ]
+
+    let regressionTests =
         cases
         |> List.map (fun (label, language, fixture) ->
             testAsync (
@@ -69,4 +82,21 @@ let tests =
                         }
                     ))
             ))
-    )
+
+    let branchTests =
+        branchCases
+        |> List.map (fun (label, language, fixture) ->
+            testAsync (
+                (sprintf "%s: explicit and implicit third paths have McCabe complexity 3" label),
+                (fun _ ->
+                    toAsync (
+                        task {
+                            let! (_, tree) = parseFixture language fixture
+
+                            let complexities = functionNodes language tree |> List.map (complexityOf language)
+                            assertThat complexities (isEqualTo [ 3; 3 ])
+                        }
+                    ))
+            ))
+
+    testList ("Integration: cyclomatic complexity (real code examples)", regressionTests @ branchTests)

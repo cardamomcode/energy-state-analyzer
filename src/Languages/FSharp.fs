@@ -68,6 +68,20 @@ let FSHARP: LanguageAdapter =
           NodeType "while_expression"
           NodeType "try_expression"
           NodeType "match_expression" ]
+      CyclomaticBranchCount =
+        fun node ->
+            if nodeType node <> NodeType "match_expression" then
+                None
+            else
+                let rules =
+                    nodeNamedChildren node
+                    |> List.collect nodeNamedChildren
+                    |> List.filter (fun child -> nodeType child = NodeType "rule")
+
+                let hasFallback =
+                    rules |> List.exists (fun rule -> nodeText rule |> _.Contains("_ ->"))
+
+                Some(rules.Length + if hasFallback then 0 else 1)
       CognitiveNestedDecisionTypes =
         [ NodeType "if_expression"
           NodeType "elif_expression"

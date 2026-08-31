@@ -100,7 +100,25 @@ let TYPESCRIPT: LanguageAdapter =
           NodeType "for_in_statement"
           NodeType "while_statement"
           NodeType "catch_clause"
-          NodeType "ternary_expression" ]
+          NodeType "ternary_expression"
+          NodeType "switch_statement" ]
+      CyclomaticBranchCount =
+        fun node ->
+            if nodeType node <> NodeType "switch_statement" then
+                None
+            else
+                let cases =
+                    nodeNamedChildren node
+                    |> List.collect nodeNamedChildren
+                    |> List.filter (fun child ->
+                        nodeType child = NodeType "switch_case"
+                        || nodeType child = NodeType "switch_default")
+
+                let hasFallback =
+                    cases
+                    |> List.exists (fun caseClause -> nodeType caseClause = NodeType "switch_default")
+
+                Some(cases.Length + if hasFallback then 0 else 1)
       CognitiveNestedDecisionTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
