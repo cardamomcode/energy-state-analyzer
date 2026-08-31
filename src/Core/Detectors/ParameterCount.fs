@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.ParameterCount
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -64,3 +65,6 @@ let analyzeParameterCount (tree: Node) (positions: PositionLookup) (language: La
 let detector: Detector =
     { Name = "parameterCount"
       Run = fun ctx -> analyzeParameterCount ctx.Tree ctx.Positions ctx.Language }
+
+let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

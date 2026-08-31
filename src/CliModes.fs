@@ -99,33 +99,45 @@ let runLegacySingleFile (filePath: string) (thresholds: AnalyzeThresholds) : Tas
             printUsage ()
             exit 2
         else
-            let! violations = analyzeFile filePath (readFileSync filePath "utf8") thresholds
-            output (stringify (violations |> List.map violationJson |> List.toArray |> box))
+            let! analysis = analyzePath filePath thresholds
 
-            exit (
-                if
-                    violations
-                    |> List.exists (fun violation -> violation.Severity = Medium || violation.Severity = High)
-                then
-                    1
-                else
-                    0
-            )
+            match analysis with
+            | Error analysisError ->
+                error ("energy-state-cli failed: " + analysisErrorMessage analysisError)
+                exit 1
+            | Ok violations ->
+                output (stringify (violations |> List.map violationJson |> List.toArray |> box))
+
+                exit (
+                    if
+                        violations
+                        |> List.exists (fun violation -> violation.Severity = Medium || violation.Severity = High)
+                    then
+                        1
+                    else
+                        0
+                )
     }
 
 let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: ReportFormat) : Task<unit> =
     task {
-        let! results = analyzeFiles (resolveSupportedFiles paths (cwd ())) thresholds
-        let summary = summarize results
+        let! analysis = analyzeFiles (resolveSupportedFiles paths (cwd ())) thresholds
 
-        output (
-            match reportFormat with
-            | "human" -> renderHumanReport results
-            | "md" -> renderMarkdownReport summary
-            | _ -> stringify (summaryJson summary)
-        )
+        match analysis with
+        | Error analysisError ->
+            error ("energy-state-cli failed: " + analysisErrorMessage analysisError)
+            exit 1
+        | Ok results ->
+            let summary = summarize results
 
-        exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
+            output (
+                match reportFormat with
+                | "human" -> renderHumanReport results
+                | "md" -> renderMarkdownReport summary
+                | _ -> stringify (summaryJson summary)
+            )
+
+            exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
     }
 
 let private changedFilesFromGit baseRef =
@@ -181,44 +193,56 @@ let runDiff
         let rec analyzeChanged files bases heads =
             task {
                 match files with
-                | [] -> return List.rev bases, List.rev heads
+                | [] -> return Ok(List.rev bases, List.rev heads)
                 | filePath :: remaining ->
-                    let! headViolations = analyzeFile filePath (readFileSync filePath "utf8") thresholds
+                    let! headAnalysis = analyzePath filePath thresholds
 
-                    let head =
-                        summarizeFile
-                            { FilePath = filePath
-                              Violations = headViolations }
-
-                    match readAtRef baseRef filePath with
-                    | None -> return! analyzeChanged remaining bases (head :: heads)
-                    | Some baseSource ->
-                        let! baseViolations = analyzeFile filePath baseSource thresholds
-
-                        let baseSummary =
+                    match headAnalysis with
+                    | Error analysisError -> return Error analysisError
+                    | Ok headViolations ->
+                        let head =
                             summarizeFile
                                 { FilePath = filePath
-                                  Violations = baseViolations }
+                                  Violations = headViolations }
 
-                        return! analyzeChanged remaining (baseSummary :: bases) (head :: heads)
+                        match readAtRef baseRef filePath with
+                        | None -> return! analyzeChanged remaining bases (head :: heads)
+                        | Some baseSource ->
+                            let! baseAnalysis = analyzeFile filePath baseSource thresholds
+
+                            match baseAnalysis with
+                            | Error analysisError -> return Error analysisError
+                            | Ok baseViolations ->
+                                let baseSummary =
+                                    summarizeFile
+                                        { FilePath = filePath
+                                          Violations = baseViolations }
+
+                                return! analyzeChanged remaining (baseSummary :: bases) (head :: heads)
             }
 
-        let! bases, heads = analyzeChanged changed [] []
-        let entries = diffSummaries bases heads
+        let! analysis = analyzeChanged changed [] []
 
-        output (
-            if reportFormat = "md" then
-                renderDiffMarkdown entries baseRef
-            else
-                stringify (diffJson entries)
-        )
+        match analysis with
+        | Error analysisError ->
+            error ("energy-state-cli failed: " + analysisErrorMessage analysisError)
+            exit 1
+        | Ok(bases, heads) ->
+            let entries = diffSummaries bases heads
 
-        // invariant: diff mode blocks only regressions; existing debt and newly added files are
-        // reported but do not fail a PR until their score worsens relative to the base revision.
-        exit (
-            if entries |> List.exists (fun entry -> entry.Status = Worsened) then
-                1
-            else
-                0
-        )
+            output (
+                if reportFormat = "md" then
+                    renderDiffMarkdown entries baseRef
+                else
+                    stringify (diffJson entries)
+            )
+
+            // invariant: diff mode blocks only regressions; existing debt and newly added files are
+            // reported but do not fail a PR until their score worsens relative to the base revision.
+            exit (
+                if entries |> List.exists (fun entry -> entry.Status = Worsened) then
+                    1
+                else
+                    0
+            )
     }

@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.LogicalControlFlow
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -37,3 +38,6 @@ let analyzeLogicalControlFlow (tree: Node) (positions: PositionLookup) (language
 let detector: Detector =
     { Name = "logicalControlFlow"
       Run = fun ctx -> analyzeLogicalControlFlow ctx.Tree ctx.Positions ctx.Language }
+
+let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

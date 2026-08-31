@@ -20,7 +20,7 @@ open Energy.Languages.Kotlin
 open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
-// decision: runs the full detector pipeline (analyzeSource, the same entry point the CLI and the
+// decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
 // extension use) against realistic multi-function files in every ported language — mirrors
 // cyclomaticComplexity.test.ts. Each fixture carries a clean single-branch function (complexity 2,
 // never flagged), an 11-way branch (medium), and a 16-way branch (high). TypeScript/F#/Kotlin are
@@ -57,7 +57,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
 
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
                             let clean = findFunctionRange sourceCode "cleanSimpleFunction"

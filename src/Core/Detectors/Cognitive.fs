@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.Cognitive
 
+
 open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
@@ -191,3 +192,10 @@ let analyzeCognitiveComplexity
 let detector: Detector =
     { Name = "cognitive"
       Run = fun ctx -> analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language defaultCognitiveThresholds }
+
+let handler (thresholds: CognitiveThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language thresholds)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

@@ -31,7 +31,7 @@ let tests =
                           toAsync (
                               task {
                                   let! (source, tree) = parseFixture language fixture
-                                  let violations = analyzeSource source tree language fixture
+                                  let violations = analyzeFixture source tree language fixture
                                   assertValidPositions violations source
                                   let clean = findFunctionRange source "cleanDistinctTypes"
                                   let swapRisk = findFunctionRange source "flaggedSwapRisk"
@@ -63,7 +63,7 @@ let tests =
                   toAsync (
                       task {
                           let! (source, tree) = parseFixture PYTHON "python/primitiveObsession.py"
-                          let violations = analyzeSource source tree PYTHON "python/primitiveObsession.py"
+                          let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
                           let membership = findFunctionRange source "flaggedMembershipCheck"
 
                           assertThat
@@ -81,7 +81,7 @@ let tests =
                   toAsync (
                       task {
                           let! (source, tree) = parseFixture PYTHON "python/primitiveObsession.py"
-                          let violations = analyzeSource source tree PYTHON "python/primitiveObsession.py"
+                          let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
 
                           let hits name =
                               violationsIn violations (findFunctionRange source name)

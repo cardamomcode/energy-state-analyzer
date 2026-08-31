@@ -29,7 +29,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
-                            let violations = analyzeSource source tree language fixture
+                            let violations = analyzeFixture source tree language fixture
                             assertValidPositions violations source
                             let clean = findFunctionRange source "cleanEarlyReturn"
                             let dominant = findFunctionRange source "flaggedDominantIf"
@@ -61,7 +61,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture FSHARP "fsharp/inversion.fs"
-                            let violations = analyzeSource source tree FSHARP "inversion.fs"
+                            let violations = analyzeFixture source tree FSHARP "inversion.fs"
 
                             assertThat
                                 (violations |> List.filter (fun v -> v.Type = Inversion) |> List.length)

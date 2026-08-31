@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MagicString
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -115,3 +116,10 @@ let analyzeMagicStrings
 let detector: Detector =
     { Name = "magicString"
       Run = fun ctx -> analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
+
+let handler (options: MagicStringOptions) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName options)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

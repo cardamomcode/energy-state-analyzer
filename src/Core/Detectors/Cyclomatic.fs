@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.Cyclomatic
 
+
 open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
@@ -192,3 +193,10 @@ let analyzeFunctionComplexity
 let detector: Detector =
     { Name = "cyclomatic"
       Run = fun ctx -> analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language defaultCyclomaticThresholds }
+
+let handler (thresholds: CyclomaticThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language thresholds)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

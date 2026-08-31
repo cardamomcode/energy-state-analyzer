@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.PrimitiveObsession
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -167,3 +168,6 @@ let analyzePrimitiveObsession
 let detector: Detector =
     { Name = "primitiveObsession"
       Run = fun ctx -> analyzePrimitiveObsession ctx.Tree ctx.Positions ctx.Language }
+
+let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

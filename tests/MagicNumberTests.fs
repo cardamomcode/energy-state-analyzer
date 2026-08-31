@@ -34,7 +34,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
                             let clean = findFunctionRange sourceCode "cleanCommonValues"
@@ -71,7 +71,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicNumber.py"
-                            let violations = analyzeSource sourceCode tree PYTHON "magicNumber.py"
+                            let violations = analyzeFixture sourceCode tree PYTHON "magicNumber.py"
                             let exempt = findFunctionRange sourceCode "exemptIndexAndDefault"
 
                             assertThat
@@ -92,7 +92,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
-                            let violations = analyzeSource sourceCode tree KOTLIN "magicNumber.kt"
+                            let violations = analyzeFixture sourceCode tree KOTLIN "magicNumber.kt"
                             let limits = findFunctionRange sourceCode "Limits"
 
                             assertThat
@@ -126,11 +126,17 @@ let tests =
                     toAsync (
                         task {
                             let! (fsharpSource, fsharpTree) = parseFixture FSHARP "fsharp/magicNumber.fs"
-                            let fsharpViolations = analyzeSource fsharpSource fsharpTree FSHARP "magicNumber.fs"
+
+                            let fsharpViolations =
+                                analyzeFixture fsharpSource fsharpTree FSHARP "magicNumber.fs"
+
                             let maxRetries = findFunctionRange fsharpSource "maxRetries"
 
                             let! (kotlinSource, kotlinTree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
-                            let kotlinViolations = analyzeSource kotlinSource kotlinTree KOTLIN "magicNumber.kt"
+
+                            let kotlinViolations =
+                                analyzeFixture kotlinSource kotlinTree KOTLIN "magicNumber.kt"
+
                             let annotatedRetries = findFunctionRange kotlinSource "MAX_ANNOTATED_RETRIES"
 
                             assertThat
@@ -176,8 +182,8 @@ let tests =
                                       Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
                                       IncludeTestFiles = false }
 
-                            let testFile = analyzeSource sourceCode tree PYTHON "PricingTest.py"
-                            let latestFile = analyzeSource sourceCode tree PYTHON "latest_pricing.py"
+                            let testFile = analyzeFixture sourceCode tree PYTHON "PricingTest.py"
+                            let latestFile = analyzeFixture sourceCode tree PYTHON "latest_pricing.py"
 
                             // decision: the includeTestFiles flag re-enables findings in test-named files,
                             // which is how fixtures under a test/ directory get audited.

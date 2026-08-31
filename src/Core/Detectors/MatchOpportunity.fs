@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MatchOpportunity
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -73,3 +74,10 @@ let analyzeMatchOpportunities
 let detector: Detector =
     { Name = "matchOpportunity"
       Run = fun ctx -> analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language defaultThresholds }
+
+let handler (thresholds: MatchOpportunityThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language thresholds)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

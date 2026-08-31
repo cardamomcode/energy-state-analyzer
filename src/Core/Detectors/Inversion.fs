@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.Inversion
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -170,3 +171,6 @@ let analyzeInversionOpportunities (tree: Node) (positions: PositionLookup) (lang
 let detector: Detector =
     { Name = "inversion"
       Run = fun ctx -> analyzeInversionOpportunities ctx.Tree ctx.Positions ctx.Language }
+
+let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

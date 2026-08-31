@@ -58,3 +58,9 @@ let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : Ener
 let detector: Detector =
     { Name = "nesting"
       Run = fun ctx -> analyzeNesting ctx defaultNestingThresholds }
+
+let handler (thresholds: NestingThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx -> analyzeNesting ctx thresholds)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

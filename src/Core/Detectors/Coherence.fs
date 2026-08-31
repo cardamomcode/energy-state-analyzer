@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.Coherence
 
+
 open System
 open System.Collections.Generic
 
@@ -333,3 +334,10 @@ let analyzeFileCoherence
 let detector: Detector =
     { Name = "coherence"
       Run = fun ctx -> analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions defaultCoherenceThresholds }
+
+let handler (thresholds: CoherenceThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions thresholds)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

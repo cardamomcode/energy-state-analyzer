@@ -31,3 +31,6 @@ let analyzeOpaqueBooleanLiteral (tree: Node) (positions: PositionLookup) (langua
 let detector: Detector =
     { Name = "opaqueBoolean"
       Run = fun ctx -> analyzeOpaqueBooleanLiteral ctx.Tree ctx.Positions ctx.Language }
+
+let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MagicNumber
 
+
 open System
 
 open Energy.Core.TreeSitter
@@ -123,3 +124,10 @@ let analyzeMagicNumbers
 let detector: Detector =
     { Name = "magicNumber"
       Run = fun ctx -> analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
+
+let handler (options: MagicNumberOptions) : Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector (fun ctx ->
+        analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName options)
+
+let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
+    Energy.Core.AnalysisPipeline.detector detector.Run

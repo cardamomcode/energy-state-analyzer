@@ -29,7 +29,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
-                            let violations = analyzeSource source tree language fixture
+                            let violations = analyzeFixture source tree language fixture
                             assertValidPositions violations source
                             let clean = findFunctionRange source "cleanMixedConditions"
                             let chain = findFunctionRange source "flaggedThreeWayChain"

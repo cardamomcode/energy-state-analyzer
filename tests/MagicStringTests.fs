@@ -34,7 +34,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
                             let clean = findFunctionRange sourceCode "cleanValues"
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
@@ -61,7 +61,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
-                            let violations = analyzeSource sourceCode tree PYTHON "magicString.py"
+                            let violations = analyzeFixture sourceCode tree PYTHON "magicString.py"
                             let membership = findFunctionRange sourceCode "flaggedMembership"
                             let dictKey = findFunctionRange sourceCode "flaggedDictKey"
 
