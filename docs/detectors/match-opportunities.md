@@ -1,12 +1,12 @@
 # Match Opportunities
 
-Flags an `if`/`elif`/`elif` chain (or TypeScript's nested `else if`) that's really a dispatch on one variable, and would read better as a `match`/`switch` statement.
+Flags an `if`/`elif`/`elif` chain (or a nested `else if` in TypeScript, Kotlin, or C++) that's really a dispatch on one variable, and would read better as a `match`/`switch` statement.
 
 ## What it flags
 
 A chain of 3 or more branches (configurable), all discriminating via equality or membership checks against the *same single variable*, is flagged. An unconditional catch-all `else` at the end still qualifies, since it contributes no discriminant and isn't itself a "branch" for this check, but a chain mixing unrelated conditions across branches does not qualify, since a `match`/`switch` can't express that kind of dispatch anyway.
 
-Runs on Python, F#, and TypeScript.
+Runs on Python, F#, TypeScript, Kotlin, and C++.
 
 ## Example
 

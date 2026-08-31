@@ -9,6 +9,7 @@ open type Scriptorium.Quill.Runner
 let main _ =
     runTests
         [ SpikeTests.tests
+          CPlusPlusTests.tests
           NestingTests.tests
           CyclomaticTests.tests
           CognitiveTests.tests

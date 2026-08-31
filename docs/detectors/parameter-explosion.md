@@ -18,4 +18,4 @@ The usual fix is grouping related parameters into an object, or a builder patter
 
 ## Known limitations
 
-The threshold is not yet configurable via VS Code settings; it's fixed at >5 (medium) / >8 (high). TypeScript arrow functions aren't analyzed by this detector, only named `function` declarations and class methods; Python's `lambda` has the same gap.
+The threshold is not yet configurable via VS Code settings; it's fixed at >5 (medium) / >8 (high). TypeScript arrow functions and C++ lambdas aren't analyzed by this detector, only named functions and methods; Python's `lambda` has the same gap. C++ parameter packs count when the grammar exposes them as parameter declarations, but macro-generated parameters are invisible without preprocessing.

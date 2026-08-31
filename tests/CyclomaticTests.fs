@@ -17,6 +17,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: runs the full detector pipeline (analyzeSource, the same entry point the CLI and the
@@ -36,13 +37,15 @@ let tests =
         [ "Python", PYTHON, "python/cyclomaticComplexity.py"
           "TypeScript", TYPESCRIPT, "typescript/cyclomaticComplexity.ts"
           "F#", FSHARP, "fsharp/cyclomaticComplexity.fs"
-          "Kotlin", KOTLIN, "kotlin/cyclomaticComplexity.kt" ]
+          "Kotlin", KOTLIN, "kotlin/cyclomaticComplexity.kt"
+          "C++", CPP, "cpp/cyclomaticComplexity.cpp" ]
 
     let branchCases =
         [ "Python", PYTHON, "python/cyclomaticBranches.py"
           "TypeScript", TYPESCRIPT, "typescript/cyclomaticBranches.ts"
           "F#", FSHARP, "fsharp/cyclomaticBranches.fs"
-          "Kotlin", KOTLIN, "kotlin/cyclomaticBranches.kt" ]
+          "Kotlin", KOTLIN, "kotlin/cyclomaticBranches.kt"
+          "C++", CPP, "cpp/cyclomaticBranches.cpp" ]
 
     let regressionTests =
         cases

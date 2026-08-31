@@ -9,6 +9,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 let tests =
@@ -16,7 +17,8 @@ let tests =
         [ "Python", PYTHON, "python/matchOpportunity.py"
           "TypeScript", TYPESCRIPT, "typescript/matchOpportunity.ts"
           "F#", FSHARP, "fsharp/matchOpportunity.fs"
-          "Kotlin", KOTLIN, "kotlin/matchOpportunity.kt" ]
+          "Kotlin", KOTLIN, "kotlin/matchOpportunity.kt"
+          "C++", CPP, "cpp/matchOpportunity.cpp" ]
 
     testList (
         "Integration: match opportunities (real code examples)",

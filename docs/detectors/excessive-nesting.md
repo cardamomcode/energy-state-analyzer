@@ -4,7 +4,7 @@ Flags control-flow blocks nested deeper than a reader can comfortably track.
 
 ## What it flags
 
-`if` / `for` / `while` / `with` blocks (whichever of these a language's grammar has) nested more than 3 levels deep are flagged as medium severity; past 5 levels deep, severity escalates to high. The default medium threshold of 3 is the point where tracking active conditions starts to strain working memory.
+Control-flow blocks (`if`, loops, `try`, and match/switch-like constructs, whichever a language's grammar has) nested more than 3 levels deep are flagged as medium severity; past 5 levels deep, severity escalates to high. C++ includes classic and range `for`, `while`, `do`, `try`, and `switch`. The default medium threshold of 3 is the point where tracking active conditions starts to strain working memory.
 
 ## Example
 
@@ -21,3 +21,6 @@ def process(orders):
 ## Known limitations
 
 Thresholds are not yet exposed as VS Code settings, unlike most other detectors. The medium/high thresholds (3/5) are currently fixed; they can only be overridden when using the [CLI](../cli.md) directly (`--medium-nesting`, `--high-nesting`).
+
+C++ code produced by macro expansion is not present in the syntax tree and therefore cannot add to
+the measured depth.
