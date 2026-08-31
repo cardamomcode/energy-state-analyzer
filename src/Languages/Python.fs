@@ -92,6 +92,21 @@ let PYTHON: LanguageAdapter =
           NodeType "except_clause"
           NodeType "conditional_expression"
           NodeType "match_statement" ]
+      CyclomaticBranchCount =
+        fun node ->
+            if nodeType node <> NodeType "match_statement" then
+                None
+            else
+                let cases =
+                    nodeNamedChildren node
+                    |> List.collect nodeNamedChildren
+                    |> List.filter (fun child -> nodeType child = NodeType "case_clause")
+
+                let hasFallback =
+                    cases
+                    |> List.exists (fun caseClause -> nodeText caseClause |> _.Contains("case _"))
+
+                Some(cases.Length + if hasFallback then 0 else 1)
       CognitiveNestedDecisionTypes =
         [ NodeType "if_statement"
           NodeType "elif_clause"

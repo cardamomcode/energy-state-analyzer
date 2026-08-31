@@ -9,11 +9,10 @@ open Energy.Core.Context
 // Cyclomatic complexity detector.
 //
 // Flags functions whose cyclomatic complexity exceeds the medium threshold; severity escalates to
-// high past the high threshold. Complexity counts independent paths through a function — every
-// decision point (if/loop/except/boolean operator/ternary) adds 1, regardless of how deeply it is
-// nested. A violation is anchored at the function's start position and carries per-line hotspots
-// weighted by nesting depth so callers can paint a heatmap of where the complexity actually piles
-// up (the flat metric itself stays unweighted).
+// high past the high threshold. Complexity is McCabe's V(G) = E - N + 2P over a reduced control-
+// flow graph: non-branching code is collapsed, while every control-flow alternative remains an
+// edge. A violation is anchored at the function's start position and carries per-line hotspots
+// weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
 type CyclomaticThresholds =
     { MediumThreshold: int
@@ -25,47 +24,105 @@ let defaultCyclomaticThresholds: CyclomaticThresholds =
     { MediumThreshold = 10
       HighThreshold = 15 }
 
+type private FlowNode =
+    | Entry
+    | Exit
+    | Decision of int
+
+type private FunctionScope =
+    | RootFunction
+    | NestedFunction
+
+type private FlowEdge = { From: FlowNode; To: FlowNode }
+
+type private ControlFlowGraph =
+    { Nodes: FlowNode list
+      Edges: FlowEdge list
+      ExitPredecessors: FlowNode list }
+
+// decision: represents a reduced control-flow multigraph so the reported value remains McCabe's
+// E - N + 2P while irrelevant straight-line statements do not inflate the graph.
+// invariant: every current path to Exit appears once in ExitPredecessors and has one matching edge.
+let private initialGraph =
+    { Nodes = [ Entry; Exit ]
+      Edges = [ { From = Entry; To = Exit } ]
+      ExitPredecessors = [ Entry ] }
+
+// decision: names the fixed terms in McCabe's E - N + 2P so the calculation stays recognisable
+// without treating its mathematical constants as unexplained literals.
+// invariant: every function graph is connected, so P is exactly one.
+let private connectedComponents = 1
+let private mccabeComponentMultiplier = 2
+
+let private addDecision (outcomes: int) (graph: ControlFlowGraph) : ControlFlowGraph =
+    let decision = Decision graph.Nodes.Length
+
+    let continuingEdges =
+        graph.ExitPredecessors
+        |> List.map (fun predecessor -> { From = predecessor; To = decision })
+
+    let outcomeEdges = List.replicate outcomes { From = decision; To = Exit }
+
+    { Nodes = decision :: graph.Nodes
+      Edges =
+        (graph.Edges |> List.filter (fun edge -> edge.To <> Exit))
+        @ continuingEdges
+        @ outcomeEdges
+      ExitPredecessors = List.replicate outcomes decision }
+
 // A decision point is any of: a language-declared decision node type, a boolean operator (and/or —
 // matched separately since several grammars reuse one generic binary-expression node for every
 // infix operator instead of giving and/or their own), or a try-statement's else clause. Factored
-// into one predicate so the complexity count and the hotspot walk agree on exactly what counts; if
-// they ever diverged, the two would report different numbers for the same function.
+// into one predicate so graph construction and the hotspot walk agree on exactly what counts.
 let private isDecisionPoint (language: LanguageAdapter) (node: Node) : bool =
     language.DecisionNodeTypes |> List.contains (nodeType node)
     || language.GetBooleanOperator node |> Option.isSome
     || language.IsTryElseClause node
 
-// decision: complexity is the base 1 plus the number of decision points in the function's subtree.
-// A nested named function/method's decision points are never counted toward the enclosing function
-// — it is scored as its own separate violation by analyzeFunctionComplexity's traversal, so we stop
-// descending into one (the `isRoot` flag keeps the top-level function itself always descending).
-// Pure fold of the TS running-counter: this node contributes 1 iff it is a decision point, and every
-// child subtree contributes its own count; stopping at a nested function definition drops exactly
-// that subtree's children from the sum.
-let rec calculateCyclomaticComplexity (language: LanguageAdapter) (node: Node) (isRoot: bool) : int =
-    let ownPoint = if isDecisionPoint language node then 1 else 0
+let private decisionOutcomes (language: LanguageAdapter) (node: Node) : int =
+    if language.GetBooleanOperator node |> Option.isSome then
+        2
+    else
+        language.CyclomaticBranchCount node |> Option.defaultValue 2
+
+// A nested named function/method's graph is never folded into its parent: it is scored separately
+// by analyzeFunctionComplexity's traversal. Each decision replaces the graph's current Exit edges
+// with its outcomes, which preserves a connected graph and makes multi-way branches explicit.
+let rec private buildControlFlowGraph
+    (language: LanguageAdapter)
+    (node: Node)
+    (scope: FunctionScope)
+    (graph: ControlFlowGraph)
+    : ControlFlowGraph =
+    let nextGraph =
+        if isDecisionPoint language node then
+            addDecision (decisionOutcomes language node) graph
+        else
+            graph
 
     // invariant: a nested named function/method is scored separately, never folded into its parent.
-    if not isRoot && language.IsFunctionDefinition node then
-        ownPoint
+    if scope = NestedFunction && language.IsFunctionDefinition node then
+        nextGraph
     else
-        ownPoint
-        + (nodeChildren node
-           |> List.sumBy (fun child -> calculateCyclomaticComplexity language child false))
+        nodeChildren node
+        |> List.fold (fun current child -> buildControlFlowGraph language child NestedFunction current) nextGraph
 
-// decision: the base complexity of 1 is added once here; calculateCyclomaticComplexity returns only
-// the decision-point count for the given subtree, so callers get the full score with one call.
+// decision: calculates McCabe complexity from the explicit reduced graph rather than treating an
+// AST decision count as the metric. Each function graph has one connected component (P = 1).
 let complexityOf (language: LanguageAdapter) (functionNode: Node) : int =
-    1 + calculateCyclomaticComplexity language functionNode true
+    let graph = buildControlFlowGraph language functionNode RootFunction initialGraph
+
+    graph.Edges.Length - graph.Nodes.Length
+    + mccabeComponentMultiplier * connectedComponents
 
 // decision: locate every decision point and weight it by nesting depth so callers can render a
-// per-line heatmap of where complexity piles up; the flat complexity metric itself stays unweighted.
-let rec findCyclomaticHotspots
+// per-line heatmap of where complexity piles up; multi-way branches carry their full contribution.
+let rec private findCyclomaticHotspots
     (language: LanguageAdapter)
     (positions: PositionLookup)
     (node: Node)
     (depth: int)
-    (isRoot: bool)
+    (scope: FunctionScope)
     : Hotspot list =
     let dp = isDecisionPoint language node
 
@@ -73,13 +130,16 @@ let rec findCyclomaticHotspots
         if dp then
             let pos = positions.toPosition (nodeStartIndex node)
 
-            [ { Line = pos.Line; Weight = 1 + depth } ]
+            let contribution = decisionOutcomes language node - 1
+
+            [ { Line = pos.Line
+                Weight = contribution * (1 + depth) } ]
         else
             []
 
-    // invariant: mirrors calculateCyclomaticComplexity's traversal exactly — a nested named
+    // invariant: mirrors buildControlFlowGraph's traversal exactly — a nested named
     // function/method is hotspotted separately as its own violation, never folded into this one.
-    if not isRoot && language.IsFunctionDefinition node then
+    if scope = NestedFunction && language.IsFunctionDefinition node then
         thisHotspot
     else
         let nextDepth = if dp then depth + 1 else depth
@@ -88,7 +148,7 @@ let rec findCyclomaticHotspots
         // subtree) and left-to-right sibling order, with no accumulator to reverse.
         thisHotspot
         @ (nodeChildren node
-           |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth false))
+           |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth NestedFunction))
 
 let analyzeFunctionComplexity
     (tree: Node)
@@ -116,7 +176,7 @@ let analyzeFunctionComplexity
                         Severity = severity
                         Message =
                           sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
-                        Hotspots = findCyclomaticHotspots language positions node 0 true } ]
+                        Hotspots = findCyclomaticHotspots language positions node 0 RootFunction } ]
                 else
                     []
             else

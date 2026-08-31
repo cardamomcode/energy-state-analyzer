@@ -118,6 +118,19 @@ let KOTLIN: LanguageAdapter =
           NodeType "while_statement"
           NodeType "when_expression"
           NodeType "catch_block" ]
+      CyclomaticBranchCount =
+        fun node ->
+            if nodeType node <> NodeType "when_expression" then
+                None
+            else
+                let entries =
+                    nodeNamedChildren node
+                    |> List.filter (fun child -> nodeType child = NodeType "when_entry")
+
+                let hasFallback =
+                    entries |> List.exists (fun entry -> nodeText entry |> _.Contains("else ->"))
+
+                Some(entries.Length + if hasFallback then 0 else 1)
       CognitiveNestedDecisionTypes =
         [ NodeType "if_expression"
           NodeType "for_statement"

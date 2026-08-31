@@ -83,6 +83,11 @@ type LanguageAdapter =
       // (matched via GetBooleanOperator, since several grammars reuse one generic binary-expression
       // node type for every infix operator instead of giving and/or their own node type).
       DecisionNodeTypes: NodeType list
+      // Number of mutually exclusive control-flow outcomes for a multi-way decision node, including
+      // an implicit unmatched path where it has no fallback arm. Returns None for ordinary binary
+      // decisions, which therefore have two outcomes. This makes match/switch/when use their real
+      // branch count for McCabe complexity instead of contributing one unconditionally.
+      CyclomaticBranchCount: Node -> int option
       // Node types that add "1 + current nesting depth" to cognitive complexity AND descend into
       // nested scope (if/elif/for/while/except/match-like).
       CognitiveNestedDecisionTypes: NodeType list
