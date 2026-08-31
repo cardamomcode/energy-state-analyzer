@@ -76,7 +76,7 @@ runs:
 
     - name: Comment on PR
       if: ${{ inputs.post-comment == 'true' && github.event_name == 'pull_request' }}
-      uses: marocchino/sticky-pull-request-comment@v2
+      uses: marocchino/sticky-pull-request-comment@v3
       with:
         header: ${{ inputs.comment-header }}
         path: ${{ steps.run.outputs.report-path }}
