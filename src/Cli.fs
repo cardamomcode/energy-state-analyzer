@@ -16,7 +16,8 @@ type private ParsedArguments =
       Report: ReportFormat option
       Nesting: int option * int option
       Cyclomatic: int option * int option
-      Cognitive: int option * int option }
+      Cognitive: int option * int option
+      IncludeTestFiles: bool }
 
 let private valueFlags =
     Set.ofList
@@ -32,13 +33,19 @@ let private valueFlags =
 // decision: recognized flags consume exactly one following value, leaving all other positional
 // arguments untouched so the CLI retains its intentionally small dependency-free parser.
 let private parseValues (arguments: string array) : string list * Map<string, string> =
+    // decision: boolean flags are recognized by name and consume no value, so they can appear
+    // anywhere in the argument list without shifting the positional paths.
+    let booleanFlags = Set.ofList [ "include-test-files" ]
+
     let rec loop (index: int) (paths: string list) (flags: Map<string, string>) =
         if index >= arguments.Length then
             List.rev paths, flags
         else
             let argument = arguments.[index]
 
-            if
+            if argument.StartsWith "--" && booleanFlags.Contains(argument.Substring 2) then
+                loop (index + 1) paths (Map.add (argument.Substring 2) "true" flags)
+            elif
                 argument.StartsWith "--"
                 && valueFlags.Contains(argument.Substring 2)
                 && index + 1 < arguments.Length
@@ -67,7 +74,8 @@ let private parseArguments arguments =
       Report = Map.tryFind "report" flags
       Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
-      Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive" }
+      Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
+      IncludeTestFiles = Map.containsKey "include-test-files" flags }
 
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     match medium, high with
@@ -76,6 +84,17 @@ let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, 
 
 let private buildThresholds parsed =
     { defaultThresholds with
+        MagicNumber =
+            Some
+                { Enabled = Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
+                  Allowlist = Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
+                  IncludeTestFiles = parsed.IncludeTestFiles }
+        MagicString =
+            Some
+                { Enabled = Energy.Core.Detectors.MagicString.defaultOptions.Enabled
+                  MinDuplicates = Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
+                  Allowlist = Energy.Core.Detectors.MagicString.defaultOptions.Allowlist
+                  IncludeTestFiles = parsed.IncludeTestFiles }
         Nesting =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)

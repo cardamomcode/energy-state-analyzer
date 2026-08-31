@@ -23,7 +23,8 @@ let private defaults =
       Float = fun _ _ fallback -> fallback
       Floats = fun _ _ fallback -> fallback
       String = fun _ _ fallback -> fallback
-      Strings = fun _ _ fallback -> fallback }
+      Strings = fun _ _ fallback -> fallback
+      GlobalBool = fun _ fallback -> fallback }
 
 let tests =
     testList (
@@ -47,10 +48,14 @@ let tests =
                                   | _ -> fallback
                           Bool =
                               fun section key fallback ->
-                                  if section = "magicNumber" && key = "enabled" then
-                                      false
-                                  else
-                                      fallback
+                                  match section, key with
+                                  | "magicNumber", "enabled" -> false
+                                  | _ -> fallback
+                          GlobalBool =
+                              fun key fallback ->
+                                  match key with
+                                  | "includeTestFiles" -> true
+                                  | _ -> fallback
                           Floats =
                               fun section key fallback ->
                                   if section = "magicNumber" && key = "allowlist" then
@@ -69,12 +74,15 @@ let tests =
                   let nesting = thresholds.Nesting |> Option.get
                   let coherence = thresholds.Coherence |> Option.get
                   let magicNumber = thresholds.MagicNumber |> Option.get
+                  let magicString = thresholds.MagicString |> Option.get
                   let matchOpportunity = thresholds.MatchOpportunity |> Option.get
 
                   assertThat nesting.MediumThreshold (isEqualTo 4)
                   assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
                   assertThat magicNumber.Enabled isFalse
                   assertThat magicNumber.Allowlist (isEqualTo [ 3.0 ])
+                  assertThat magicNumber.IncludeTestFiles isTrue
+                  assertThat magicString.IncludeTestFiles isTrue
                   assertThat matchOpportunity.MinBranches (isEqualTo 5)
                   assertThat colors.HighEnergy (isEqualTo "#112233")
                   assertThat colors.BackgroundOpacity (isEqualTo 0.25)

@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin)",
-  "version": "0.7.0",
+  "version": "0.7.2",
   "publisher": "cardamom-code",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -51,6 +51,11 @@
     "configuration": {
       "title": "Energy State Analyzer",
       "properties": {
+        "energyStateAnalyzer.includeTestFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also flag magic numbers and magic strings in test files (test_*.py, *_test.py, *Test.py, *.test.ts, etc.). Off by default because test code is full of intentional literals."
+        },
         "energyStateAnalyzer.nesting.mediumThreshold": {
           "type": "number",
           "default": 3,

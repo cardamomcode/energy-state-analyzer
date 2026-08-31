@@ -143,7 +143,9 @@ let tests =
                                     positions
                                     PYTHON
                                     "magicNumber.py"
-                                    { Enabled = false; Allowlist = [] }
+                                    { Enabled = false
+                                      Allowlist = []
+                                      IncludeTestFiles = false }
 
                             let customAllowlist =
                                 analyzeMagicNumbers
@@ -152,10 +154,23 @@ let tests =
                                     PYTHON
                                     "magicNumber.py"
                                     { Enabled = true
-                                      Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ] }
+                                      Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
+                                      IncludeTestFiles = false }
 
                             let testFile = analyzeSource sourceCode tree PYTHON "PricingTest.py"
                             let latestFile = analyzeSource sourceCode tree PYTHON "latest_pricing.py"
+
+                            // decision: the includeTestFiles flag re-enables findings in test-named files,
+                            // which is how fixtures under a test/ directory get audited.
+                            let testFileIncluded =
+                                analyzeMagicNumbers
+                                    tree
+                                    positions
+                                    PYTHON
+                                    "PricingTest.py"
+                                    { Enabled = true
+                                      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
+                                      IncludeTestFiles = true }
 
                             assertThat (disabled |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
 
@@ -167,6 +182,12 @@ let tests =
 
                             assertThat (testFile |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
                             assertThat (latestFile |> List.exists (fun v -> v.Type = Magic)) isTrue
+
+                            assertThat
+                                (violationsIn testFileIncluded numbers
+                                 |> List.filter (fun v -> v.Type = Magic)
+                                 |> List.length)
+                                (isEqualTo 3)
                         }
                     ))
             ) ]

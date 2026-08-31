@@ -7,62 +7,23 @@ open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
+open Energy.Core.Detectors.TestFile
 
 type MagicNumberOptions =
-    { Enabled: bool; Allowlist: float list }
+    { Enabled: bool
+      Allowlist: float list
+      // decision: test files are exempt by default because throwaway test code is full of
+      // intentional literals; the flag lets a user opt back in (e.g. to audit fixtures that live
+      // under a test/ directory) without weakening the default.
+      IncludeTestFiles: bool }
 
 let defaultOptions =
     { Enabled = true
-      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ] }
+      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
+      IncludeTestFiles = false }
 
 // The "Magic Number" detector exempts the small set of structural idioms where a literal is
 // self-explanatory, while keeping significant values outside named bindings visible.
-//
-// decision: recognizes test-file names by path segment and camel-case word boundaries rather than
-// a substring search — names such as latest_pricing.py must still be analyzed.
-let private splitIntoWords (text: string) : string list =
-    let _, separated =
-        text
-        |> Seq.fold
-            (fun (previous, result) current ->
-                let isCamelCaseBoundary =
-                    previous
-                    |> Option.exists (fun previous ->
-                        (Char.IsLower previous || Char.IsDigit previous) && Char.IsUpper current)
-
-                let separator = if isCamelCaseBoundary then " " else ""
-                Some current, result + separator + string current)
-            (None, "")
-
-    separated.Split([| ' '; '_'; '-'; '.' |])
-    |> Array.filter (String.IsNullOrWhiteSpace >> not)
-    |> Array.toList
-
-let private isTestFile (fileName: string) : bool =
-    let segments =
-        fileName.Replace("\\", "/").Split('/')
-        |> Array.filter (String.IsNullOrWhiteSpace >> not)
-
-    let isTestDirectory (segment: string) =
-        let normalized = segment.ToLowerInvariant()
-        normalized = "test" || normalized = "tests"
-
-    if segments |> Array.exists isTestDirectory then
-        true
-    else
-        let baseName = segments |> Array.tryLast |> Option.defaultValue ""
-        let extensionStart = baseName.LastIndexOf('.')
-
-        let stem =
-            if extensionStart > 0 then
-                baseName.Substring(0, extensionStart)
-            else
-                baseName
-
-        match splitIntoWords stem |> List.map _.ToLowerInvariant() with
-        | first :: _ when first = "test" -> true
-        | words -> words |> List.tryLast = Some "test"
-
 let private isNodeType (expected: NodeType option) (node: Node) : bool =
     expected |> Option.exists ((=) (nodeType node))
 
@@ -117,7 +78,7 @@ let analyzeMagicNumbers
     (fileName: string)
     (options: MagicNumberOptions)
     : EnergyViolation list =
-    if not options.Enabled || isTestFile fileName then
+    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
         []
     else
         let isLiteral node =

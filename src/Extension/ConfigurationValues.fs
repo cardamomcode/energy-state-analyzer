@@ -21,7 +21,10 @@ type SettingReader =
       Float: string -> string -> float -> float
       Floats: string -> string -> float list -> float list
       String: string -> string -> string -> string
-      Strings: string -> string -> string list -> string list }
+      Strings: string -> string -> string list -> string list
+      // decision: a top-level (non-namespaced) boolean reader for settings that apply across
+      // detectors, e.g. includeTestFiles, which now governs both magic detectors.
+      GlobalBool: string -> bool -> bool }
 
 let defaultEnergyColors =
     { HighEnergy = "#fb8500"
@@ -69,14 +72,18 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
         Some
             { Enabled = reader.Bool "magicNumber" "enabled" Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
               Allowlist =
-                reader.Floats "magicNumber" "allowlist" Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist }
+                reader.Floats "magicNumber" "allowlist" Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
+              IncludeTestFiles =
+                reader.GlobalBool "includeTestFiles" Energy.Core.Detectors.MagicNumber.defaultOptions.IncludeTestFiles }
       MagicString =
         Some
             { Enabled = reader.Bool "magicString" "enabled" Energy.Core.Detectors.MagicString.defaultOptions.Enabled
               MinDuplicates =
                 reader.Int "magicString" "minDuplicates" Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
               Allowlist =
-                reader.Strings "magicString" "allowlist" Energy.Core.Detectors.MagicString.defaultOptions.Allowlist } }
+                reader.Strings "magicString" "allowlist" Energy.Core.Detectors.MagicString.defaultOptions.Allowlist
+              IncludeTestFiles =
+                reader.GlobalBool "includeTestFiles" Energy.Core.Detectors.MagicString.defaultOptions.IncludeTestFiles } }
 
 let readEnergyColors (reader: SettingReader) : EnergyColors =
     { HighEnergy = reader.String "colors" "highEnergy" defaultEnergyColors.HighEnergy

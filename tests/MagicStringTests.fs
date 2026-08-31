@@ -94,27 +94,33 @@ let tests =
                                     tree
                                     positions
                                     PYTHON
+                                    "magicString.py"
                                     { Enabled = false
                                       MinDuplicates = 2
-                                      Allowlist = [] }
+                                      Allowlist = []
+                                      IncludeTestFiles = false }
 
                             let singleUse =
                                 analyzeMagicStrings
                                     tree
                                     positions
                                     PYTHON
+                                    "magicString.py"
                                     { Enabled = true
                                       MinDuplicates = 1
-                                      Allowlist = [ ""; "utf-8"; "__main__" ] }
+                                      Allowlist = [ ""; "utf-8"; "__main__" ]
+                                      IncludeTestFiles = false }
 
                             let customAllowlist =
                                 analyzeMagicStrings
                                     tree
                                     positions
                                     PYTHON
+                                    "magicString.py"
                                     { Enabled = true
                                       MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__"; "pending" ] }
+                                      Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
+                                      IncludeTestFiles = false }
 
                             assertThat (disabled |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
 
@@ -129,6 +135,51 @@ let tests =
                                  |> List.filter (fun v -> v.Type = Magic)
                                  |> List.length)
                                 (isEqualTo 0)
+                        }
+                    ))
+            )
+            testAsync (
+                "test files are exempt unless includeTestFiles is set",
+                (fun _ ->
+                    toAsync (
+                        task {
+                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
+                            let positions = createPositionLookup sourceCode
+                            let strings = findFunctionRange sourceCode "flaggedMagicString"
+
+                            let testFileExempt =
+                                analyzeMagicStrings
+                                    tree
+                                    positions
+                                    PYTHON
+                                    "src/test/magicString.py"
+                                    { Enabled = true
+                                      MinDuplicates = 2
+                                      Allowlist = [ ""; "utf-8"; "__main__" ]
+                                      IncludeTestFiles = false }
+
+                            let testFileIncluded =
+                                analyzeMagicStrings
+                                    tree
+                                    positions
+                                    PYTHON
+                                    "src/test/magicString.py"
+                                    { Enabled = true
+                                      MinDuplicates = 2
+                                      Allowlist = [ ""; "utf-8"; "__main__" ]
+                                      IncludeTestFiles = true }
+
+                            assertThat
+                                (violationsIn testFileExempt strings
+                                 |> List.filter (fun v -> v.Type = Magic)
+                                 |> List.length)
+                                (isEqualTo 0)
+
+                            assertThat
+                                (violationsIn testFileIncluded strings
+                                 |> List.filter (fun v -> v.Type = Magic)
+                                 |> List.length)
+                                (isEqualTo 1)
                         }
                     ))
             ) ]

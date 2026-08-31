@@ -1,6 +1,5 @@
 module Energy.Extension.Analysis
 
-open Fable.Core
 open Fable.Core.JS
 
 open Energy.Core.Analyze
@@ -12,7 +11,6 @@ open Energy.Extension.Configuration
 open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Workspace
-open Energy.Languages.Registry
 
 type LoadedLanguage =
     { Adapter: Energy.Core.LanguageAdapter.LanguageAdapter

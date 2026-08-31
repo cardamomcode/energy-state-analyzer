@@ -92,6 +92,7 @@ let runPipelineWith (thresholds: AnalyzeThresholds) (ctx: AnalysisContext) : Ene
               ctx.Tree
               ctx.Positions
               ctx.Language
+              ctx.FileName
               (thresholds.MagicString
                |> Option.defaultValue Detectors.MagicString.defaultOptions)
           Detectors.ParameterCount.analyzeParameterCount ctx.Tree ctx.Positions ctx.Language

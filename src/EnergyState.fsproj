@@ -32,6 +32,7 @@
     <Compile Include="Core/TypeCohesion.fs" />
     <Compile Include="Core/Detectors/ClassRelatedness.fs" />
     <Compile Include="Core/Detectors/Coherence.fs" />
+    <Compile Include="Core/Detectors/TestFile.fs" />
     <Compile Include="Core/Detectors/MagicNumber.fs" />
     <Compile Include="Core/Detectors/MagicString.fs" />
     <Compile Include="Core/Detectors/Inversion.fs" />
