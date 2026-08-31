@@ -73,12 +73,10 @@ type private Collected =
       ImportSources: Set<string>
       FirstImportNode: Node option }
 
+// decision: the traversal accumulates into an immutable Collected record threaded through the
+// recursion (merge keeps the earliest first-import node, since children are processed in source
+// order), instead of mutating captured state — same result, no shared mutable buffers.
 let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAdapter) : Collected =
-    let freeFunctions = ResizeArray<Node>()
-    let classes = ResizeArray<ClassInfo>()
-    let importSources = HashSet<string>()
-    let mutable firstImportNode = None
-
     // decision: requires isNamed, not just a type match — Kotlin's import rule is literally named `import`,
     // which collides with the anonymous `import` keyword token that is itself a child of every import node
     // (node.type for an anonymous node is its literal text). Without this guard, every Kotlin import is
@@ -89,26 +87,44 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
         language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
         || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
 
-    let rec traverseClass (node: Node) =
+    let empty: Collected =
+        { FreeFunctions = []
+          Classes = []
+          ImportSources = Set.empty
+          FirstImportNode = None }
+
+    let merge (left: Collected) (right: Collected) : Collected =
+        { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
+          Classes = left.Classes @ right.Classes
+          ImportSources = Set.union left.ImportSources right.ImportSources
+          FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
+
+    let rec traverseClass (node: Node) : Collected =
         let classInfo =
             { Name = language.GetClassName node
               Node = node
               BaseNames = language.GetBaseClassNames node
               Methods = ResizeArray<Node>() }
 
-        classes.Add(classInfo)
+        nodeChildren node
+        |> List.map (fun child -> traverse child (Some classInfo))
+        |> List.fold
+            merge
+            { FreeFunctions = []
+              Classes = [ classInfo ]
+              ImportSources = Set.empty
+              FirstImportNode = None }
 
-        for child in nodeChildren node do
-            traverse child (Some classInfo)
-
-    and traverse (node: Node) (enclosingClass: ClassInfo option) =
-        if language.ClassDefinitionNodeTypes |> List.contains (nodeType node) then
-            traverseClass node
-        else
-            if language.IsFunctionDefinition node then
+    and traverse (node: Node) (enclosingClass: ClassInfo option) : Collected =
+        let own =
+            if language.ClassDefinitionNodeTypes |> List.contains (nodeType node) then
+                traverseClass node
+            elif language.IsFunctionDefinition node then
                 match enclosingClass with
-                | Some cls -> cls.Methods.Add(node)
-                | None -> freeFunctions.Add(node)
+                | Some cls ->
+                    cls.Methods.Add(node) |> ignore
+                    empty
+                | None -> { empty with FreeFunctions = [ node ] }
             elif isImportNode node then
                 // decision: counts distinct import *sources* (modules/packages), not raw import lines/symbols —
                 // see LanguageAdapter.importSource's doc for why raw-line counting isn't comparable across
@@ -121,20 +137,17 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
                     else
                         imported
 
-                importSources.Add(value) |> ignore
-                // decision: anchor on the first import statement in source order (nullish-assign keeps the earliest).
-                if Option.isNone firstImportNode then
-                    firstImportNode <- Some node
+                { empty with
+                    ImportSources = Set.singleton value
+                    FirstImportNode = Some node }
+            else
+                empty
 
-            for child in nodeChildren node do
-                traverse child enclosingClass
+        nodeChildren node
+        |> List.map (fun child -> traverse child enclosingClass)
+        |> List.fold merge own
 
     traverse tree None
-
-    { FreeFunctions = List.ofSeq freeFunctions
-      Classes = List.ofSeq classes
-      ImportSources = importSources |> Set.ofSeq
-      FirstImportNode = firstImportNode }
 
 // decision: a confirmed type signal (result is Measured, not InsufficientData) is authoritative and
 // short-circuits the naming heuristic entirely — both for a confirmed shared type (Result === true, e.g.
