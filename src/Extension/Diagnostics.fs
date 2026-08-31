@@ -2,10 +2,10 @@ module Energy.Extension.Diagnostics
 
 open Energy.Core.Violation
 open Energy.Extension.DiagnosticModel
-open Energy.Extension.VscodeDiagnosticValues
-open Energy.Extension.VscodeDiagnostics
-open Energy.Extension.VscodeDocument
-open Energy.Extension.VscodePresentation
+open Energy.Extension.Vscode.DiagnosticValues
+open Energy.Extension.Vscode.Diagnostics
+open Energy.Extension.Vscode.Document
+open Energy.Extension.Vscode.Presentation
 
 let private vscodeSeverity =
     function

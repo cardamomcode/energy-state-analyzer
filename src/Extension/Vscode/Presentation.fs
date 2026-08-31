@@ -1,4 +1,4 @@
-module Energy.Extension.VscodePresentation
+module Energy.Extension.Vscode.Presentation
 
 open Fable.Core
 
