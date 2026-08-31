@@ -29,6 +29,8 @@ let printUsage () =
     error
         "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N"
 
+    error "Flags: --include-test-files (also flag magic numbers and magic strings in test files)"
+
 let private violationJson violation =
     let hotspots =
         violation.Hotspots

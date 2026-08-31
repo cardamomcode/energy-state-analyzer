@@ -5,16 +5,22 @@ open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
+open Energy.Core.Detectors.TestFile
 
 type MagicStringOptions =
     { Enabled: bool
       MinDuplicates: int
-      Allowlist: string list }
+      Allowlist: string list
+      // decision: test files are exempt by default because tests intentionally compare against
+      // literal values (using a constant would hide a wrong constant); the flag lets a user opt
+      // back in (e.g. to audit fixtures that live under a test/ directory).
+      IncludeTestFiles: bool }
 
 let defaultOptions =
     { Enabled = true
       MinDuplicates = 2
-      Allowlist = [ ""; "utf-8"; "__main__" ] }
+      Allowlist = [ ""; "utf-8"; "__main__" ]
+      IncludeTestFiles = false }
 
 let private stripQuotes (text: string) =
     if text.Length >= 2 then
@@ -51,9 +57,10 @@ let analyzeMagicStrings
     (tree: Node)
     (positions: PositionLookup)
     (language: LanguageAdapter)
+    (fileName: string)
     (options: MagicStringOptions)
     : EnergyViolation list =
-    if not options.Enabled then
+    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
         []
     else
         let isLiteral node =
@@ -107,4 +114,4 @@ let analyzeMagicStrings
 
 let detector: Detector =
     { Name = "magicString"
-      Run = fun ctx -> analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language defaultOptions }
+      Run = fun ctx -> analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
