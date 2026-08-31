@@ -14,11 +14,21 @@ let private globalSetting key fallback =
     getConfiguration workspace "energyStateAnalyzer"
     |> fun configuration -> getConfigurationValue configuration key fallback
 
+let private magicNumberAllowlist fallback =
+    getConfiguration workspace "energyStateAnalyzer.magicNumber"
+    |> fun configuration -> getConfigurationValue configuration "allowlist" (fallback |> List.toArray)
+    |> floatsFromConfiguration
+
 let private reader =
     { Bool = setting
       Int = setting
       Float = setting
-      Floats = setting
+      Floats =
+        fun section key fallback ->
+            if section = "magicNumber" && key = "allowlist" then
+                magicNumberAllowlist fallback
+            else
+                setting section key fallback
       String = setting
       Strings = setting
       GlobalBool = globalSetting }

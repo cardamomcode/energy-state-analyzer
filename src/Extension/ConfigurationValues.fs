@@ -32,6 +32,19 @@ let defaultEnergyColors =
       LowEnergy = "#99dd99"
       BackgroundOpacity = 0.1 }
 
+// decision: converts host configuration arrays at the extension boundary because Fable's list
+// helpers require FSharpList values; passing VS Code's native arrays silently drops their values.
+let floatsFromConfiguration (values: float array) : float list = values |> Seq.toList
+
+let private magicNumberAllowlist (reader: SettingReader) =
+    let defaults = Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
+    let configured = reader.Floats "magicNumber" "allowlist" defaults
+
+    // decision: keeps the small structural literals exempt even when VS Code supplies an empty
+    // configuration array; the setting extends the baseline policy with domain-specific values.
+    defaults
+    @ (configured |> List.filter (fun value -> not (List.contains value defaults)))
+
 // decision: keeps the setting-name-to-core-options mapping pure and injectable so F# tests verify
 // the public configuration contract without loading the VS Code host module.
 let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
@@ -71,8 +84,7 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
       MagicNumber =
         Some
             { Enabled = reader.Bool "magicNumber" "enabled" Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
-              Allowlist =
-                reader.Floats "magicNumber" "allowlist" Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
+              Allowlist = magicNumberAllowlist reader
               IncludeTestFiles =
                 reader.GlobalBool "includeTestFiles" Energy.Core.Detectors.MagicNumber.defaultOptions.IncludeTestFiles }
       MagicString =

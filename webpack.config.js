@@ -8,12 +8,14 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 // Fable emits ESM into fable-out. Webpack consumes those plain JS modules and produces the
 // CommonJS filenames that package.json exposes to VS Code and npm.
+// decision: the extension and CLI have separate Fable output roots because their watchers copy
+// runtime modules non-atomically; webpack must never resolve an entry from a partial shared tree.
 
 /** @type WebpackConfig */
 const extensionConfig = {
   target: 'node',
   mode: 'none',
-  entry: './fable-out/Extension/Extension.js',
+  entry: './fable-out/extension/Extension/Extension.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'extension.js',
@@ -28,6 +30,7 @@ const extensionConfig = {
   resolve: {
     extensions: ['.js']
   },
+  bail: true,
   module: {
     rules: [
       {
@@ -59,7 +62,7 @@ const extensionConfig = {
 const cliConfig = {
   target: 'node',
   mode: 'none',
-  entry: './fable-out/Main.js',
+  entry: './fable-out/cli/Main.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'cli.js',
@@ -71,6 +74,7 @@ const cliConfig = {
   resolve: {
     extensions: ['.js']
   },
+  bail: true,
   plugins: [
     // ADC: webpack strips the source shebang, and dist/cli.js is the npm "bin" entry run
     // directly by a shell, so it must start with one or `npx`/global installs fail.

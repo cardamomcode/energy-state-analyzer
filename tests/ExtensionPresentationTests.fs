@@ -77,10 +77,36 @@ let tests =
                   let magicString = thresholds.MagicString |> Option.get
                   let matchOpportunity = thresholds.MatchOpportunity |> Option.get
 
+                  let emptyMagicNumberAllowlist =
+                      readAnalyzeThresholds
+                          { defaults with
+                              Floats =
+                                  fun section key fallback ->
+                                      if section = "magicNumber" && key = "allowlist" then
+                                          []
+                                      else
+                                          fallback }
+                      |> _.MagicNumber
+                      |> Option.get
+
+                  let hostArrayMagicNumberAllowlist =
+                      readAnalyzeThresholds
+                          { defaults with
+                              Floats =
+                                  fun section key fallback ->
+                                      if section = "magicNumber" && key = "allowlist" then
+                                          floatsFromConfiguration [| 0.0; 1.0; -1.0; 2.0; 3.0 |]
+                                      else
+                                          fallback }
+                      |> _.MagicNumber
+                      |> Option.get
+
                   assertThat nesting.MediumThreshold (isEqualTo 4)
                   assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
                   assertThat magicNumber.Enabled isFalse
-                  assertThat magicNumber.Allowlist (isEqualTo [ 3.0 ])
+                  assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
+                  assertThat emptyMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0 ])
+                  assertThat hostArrayMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
                   assertThat magicNumber.IncludeTestFiles isTrue
                   assertThat magicString.IncludeTestFiles isTrue
                   assertThat matchOpportunity.MinBranches (isEqualTo 5)

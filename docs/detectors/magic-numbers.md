@@ -36,4 +36,4 @@ TAX_RATE_STANDARD = 1.05   # not flagged: module-level named constant
 ## Configuration
 
 - `energyStateAnalyzer.magicNumber.enabled` (default `true`)
-- `energyStateAnalyzer.magicNumber.allowlist` (default `[0, 1, -1, 2]`), values exempt from findings regardless of context. Add domain-specific structural literals here when their meaning is already clear to the team.
+- `energyStateAnalyzer.magicNumber.allowlist` (default `[0, 1, -1, 2]`), additional values exempt from findings regardless of context. The built-in structural values remain exempt; add domain-specific literals here when their meaning is already clear to the team.
