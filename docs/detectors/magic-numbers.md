@@ -14,6 +14,12 @@ Numbers get no free pass for "looking like prose" the way strings do, so this st
 
 Negative literals are recognized by structural shape (a unary `-` immediately preceding the literal), so `-1` and `1` are both checked against the allowlist correctly.
 
+### Default allowlist policy
+
+The default allowlist is `[0, 1, -1, 2]`. These are common structural idioms—such as an empty count, a first item, a not-found sentinel, a boolean-like increment, or a two-way choice—where replacing the literal with a named constant usually adds noise rather than clarifying intent.
+
+This is a deliberate usability policy, not a universal definition of a magic number: static-analysis tools and teams choose different exceptions. Values outside this small set remain visible unless they are in an exempt context or a workspace adds them to the allowlist. Configure the allowlist when a domain has additional well-understood literals.
+
 ## Example
 
 ```python
@@ -30,4 +36,4 @@ TAX_RATE_STANDARD = 1.05   # not flagged: module-level named constant
 ## Configuration
 
 - `energyStateAnalyzer.magicNumber.enabled` (default `true`)
-- `energyStateAnalyzer.magicNumber.allowlist` (default `[0, 1, -1, 2]`), values that recur constantly without carrying hidden meaning and are never flagged regardless of context.
+- `energyStateAnalyzer.magicNumber.allowlist` (default `[0, 1, -1, 2]`), values exempt from findings regardless of context. Add domain-specific structural literals here when their meaning is already clear to the team.
