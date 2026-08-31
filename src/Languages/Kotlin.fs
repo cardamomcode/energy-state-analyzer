@@ -228,6 +228,11 @@ let KOTLIN: LanguageAdapter =
       // normally a call_expression, not a literal collection — not modeled here, same precedent as
       // typescript.ts. Repeated equality checks still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
+      IsMatchCaseLiteral =
+        fun node ->
+            nodeType node = NodeType "string_literal"
+            || nodeType node = NodeType "number_literal"
+            || nodeType node = NodeType "float_literal"
       // No flat elif node exists — Kotlin's chain is walked via the bare-nested-if fallback in
       // matchOpportunity.ts's collectChainBranches instead.
       GetElseIfBranches = fun _ -> []
@@ -309,7 +314,7 @@ let KOTLIN: LanguageAdapter =
                     | -1 -> text
                     | idx -> text.Substring(0, idx)
             | _ -> nodeText node
-      ClassDefinitionNodeTypes = [ NodeType "class_declaration" ]
+      IsClassDefinition = fun node -> nodeType node = NodeType "class_declaration"
       GetClassName =
         fun node ->
             nodeChildren node

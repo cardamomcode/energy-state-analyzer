@@ -7,6 +7,7 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Analyze
+open Energy.Core.Scan
 open Energy.Core.TypeCohesion
 open Energy.Languages.CPlusPlus
 open Energy.Languages.Registry
@@ -53,6 +54,14 @@ let tests =
                       assertThat resolved (isEqualTo (Some "cpp"))
 
                   assertThat (resolveLanguageForFile "Widget.HPP.IN" |> Option.map _.Id) (isEqualTo (Some "cpp"))
+          )
+          test (
+              "keeps compound glob suffixes exact",
+              fun _ ->
+                  let resolved = resolveSupportedFiles [ "tests/scan-fixtures/**/*.hpp.in" ] (cwd ())
+
+                  assertThat resolved.Length (isEqualTo 1)
+                  assertThat ((List.head resolved).EndsWith("widget.hpp.in")) isTrue
           )
           test (
               "does not claim C, CUDA, or Objective-C++ suffixes",
@@ -143,6 +152,22 @@ let tests =
                                |> List.isEmpty
                                |> not)
                               isTrue
+                      }
+                  )
+          )
+          testAsync (
+              "ignores forward declarations and keeps class methods out of free-function sprawl",
+              fun _ ->
+                  toAsync (
+                      task {
+                          let! (source, tree) = parseFixture CPP "cpp/coherence/classBoundaries.cpp"
+                          let violations = analyzeSource source tree CPP "classBoundaries.hpp"
+
+                          assertThat
+                              (violations
+                               |> List.filter (fun violation -> violation.Type = Coherence)
+                               |> List.length)
+                              (isEqualTo 0)
                       }
                   )
           )

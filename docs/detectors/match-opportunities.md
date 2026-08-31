@@ -8,6 +8,9 @@ A chain of 3 or more branches (configurable), all discriminating via equality or
 
 Runs on Python, F#, TypeScript, Kotlin, and C++.
 
+For C++, only character and integral literals qualify because `switch` does not accept string or
+floating-point case values.
+
 ## Example
 
 ```python

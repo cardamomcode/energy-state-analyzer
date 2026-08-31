@@ -99,33 +99,29 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
           ImportSources = Set.union left.ImportSources right.ImportSources
           FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
 
-    let rec traverseClass (node: Node) : Collected =
-        let classInfo =
-            { Name = language.GetClassName node
-              Node = node
-              BaseNames = language.GetBaseClassNames node
-              Methods = ResizeArray<Node>() }
+    // invariant: every syntax node is traversed exactly once; a class replaces the inherited class
+    // context for its subtree so its methods never leak into FreeFunctions.
+    let rec traverse (node: Node) (enclosingClass: ClassInfo option) : Collected =
+        let currentClass =
+            if language.IsClassDefinition node then
+                Some
+                    { Name = language.GetClassName node
+                      Node = node
+                      BaseNames = language.GetBaseClassNames node
+                      Methods = ResizeArray<Node>() }
+            else
+                None
 
-        nodeChildren node
-        |> List.map (fun child -> traverse child (Some classInfo))
-        |> List.fold
-            merge
-            { FreeFunctions = []
-              Classes = [ classInfo ]
-              ImportSources = Set.empty
-              FirstImportNode = None }
-
-    and traverse (node: Node) (enclosingClass: ClassInfo option) : Collected =
         let own =
-            if language.ClassDefinitionNodeTypes |> List.contains (nodeType node) then
-                traverseClass node
-            elif language.IsFunctionDefinition node then
+            match currentClass with
+            | Some cls -> { empty with Classes = [ cls ] }
+            | None when language.IsFunctionDefinition node ->
                 match enclosingClass with
                 | Some cls ->
                     cls.Methods.Add(node) |> ignore
                     empty
                 | None -> { empty with FreeFunctions = [ node ] }
-            elif isImportNode node then
+            | None when isImportNode node ->
                 // decision: counts distinct import *sources* (modules/packages), not raw import lines/symbols —
                 // see LanguageAdapter.importSource's doc for why raw-line counting isn't comparable across
                 // languages. Prefer the adapter's normalized source, falling back to the node's own text.
@@ -140,11 +136,12 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
                 { empty with
                     ImportSources = Set.singleton value
                     FirstImportNode = Some node }
-            else
-                empty
+            | None -> empty
+
+        let childClass = Option.orElse currentClass enclosingClass
 
         nodeChildren node
-        |> List.map (fun child -> traverse child enclosingClass)
+        |> List.map (fun child -> traverse child childClass)
         |> List.fold merge own
 
     traverse tree None

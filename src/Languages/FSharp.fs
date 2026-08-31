@@ -199,6 +199,11 @@ let FSHARP: LanguageAdapter =
       // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks (e.g. an elif
       // chain) still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
+      IsMatchCaseLiteral =
+        fun node ->
+            nodeType node = NodeType "string"
+            || nodeType node = NodeType "int"
+            || nodeType node = NodeType "float"
       GetElseIfBranches =
         fun node ->
             nodeChildren node
@@ -265,6 +270,6 @@ let FSHARP: LanguageAdapter =
       // isFunctionDefinition already does for function_or_value_defn, for a construct this codebase's
       // F# usage rarely reaches for. Left unmodeled; every method-bearing F# file is still covered by
       // the free-function checks above, unaffected by this gap.
-      ClassDefinitionNodeTypes = []
+      IsClassDefinition = fun _ -> false
       GetClassName = fun _ -> None
       GetBaseClassNames = fun _ -> [] }

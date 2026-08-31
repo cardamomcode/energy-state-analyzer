@@ -145,6 +145,28 @@ let private baseClassNames (node: Node) : string list =
     | Some clause -> nodeNamedChildren clause |> List.filter isTypeNode |> List.map nodeText
     | None -> []
 
+// decision: tree-sitter-cpp uses number_literal for both integral and floating literals; lexical
+// float markers are sufficient here because the parser has already validated the token. Hexadecimal
+// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
+let private isMatchCaseLiteral (node: Node) : bool =
+    if nodeType node = NodeType "char_literal" then
+        true
+    elif nodeType node <> NodeType "number_literal" then
+        false
+    else
+        let text = (nodeText node).ToLowerInvariant()
+
+        if text.StartsWith("0x", StringComparison.Ordinal) then
+            not (text.Contains('.') || text.Contains('p'))
+        else
+            not (text.Contains('.') || text.Contains('e'))
+
+let private isClassDefinition (node: Node) : bool =
+    (nodeType node = NodeType "class_specifier"
+     || nodeType node = NodeType "struct_specifier")
+    && (nodeChildren node
+        |> List.exists (fun child -> nodeType child = NodeType "field_declaration_list"))
+
 let CPP: LanguageAdapter =
     { Id = "cpp"
       GrammarPath = "grammars/tree-sitter-cpp.wasm"
@@ -268,6 +290,7 @@ let CPP: LanguageAdapter =
       DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
       GetEqualityComparisons = equalityComparisons
       GetMembershipComparisons = fun _ -> []
+      IsMatchCaseLiteral = isMatchCaseLiteral
       GetElseIfBranches = fun _ -> []
       SubscriptNodeTypes = [ NodeType "subscript_expression" ]
       // Prefixed literals (u8"...", L"...", etc.) carry encoding semantics; raw strings use a
@@ -294,7 +317,7 @@ let CPP: LanguageAdapter =
             with
             | Some path -> (nodeText path).Trim([| '<'; '>'; '\"' |])
             | None -> nodeText node
-      ClassDefinitionNodeTypes = [ NodeType "class_specifier"; NodeType "struct_specifier" ]
+      IsClassDefinition = isClassDefinition
       GetClassName =
         fun node ->
             nodeChildren node

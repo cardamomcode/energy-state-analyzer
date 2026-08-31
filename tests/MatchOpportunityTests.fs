@@ -20,8 +20,7 @@ let tests =
           "Kotlin", KOTLIN, "kotlin/matchOpportunity.kt"
           "C++", CPP, "cpp/matchOpportunity.cpp" ]
 
-    testList (
-        "Integration: match opportunities (real code examples)",
+    let languageCases =
         cases
         |> List.map (fun (label, language, fixture) ->
             testAsync (
@@ -48,4 +47,25 @@ let tests =
                         }
                     )
             ))
+
+    testList (
+        "Integration: match opportunities (real code examples)",
+        languageCases
+        @ [ testAsync (
+                "C++: string and floating-point equality chains stay quiet",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) = parseFixture CPP "cpp/matchOpportunity.cpp"
+                            let violations = analyzeSource source tree CPP "cpp/matchOpportunity.cpp"
+
+                            for name in [ "cleanStringChain"; "cleanFloatingChain" ] do
+                                assertThat
+                                    (violationsIn violations (findFunctionRange source name)
+                                     |> List.filter (fun violation -> violation.Type = MatchOpportunity)
+                                     |> List.length)
+                                    (isEqualTo 0)
+                        }
+                    )
+            ) ]
     )
