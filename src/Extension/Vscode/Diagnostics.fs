@@ -17,5 +17,10 @@ let deleteDiagnostics (collection: obj) (uri: obj) : unit = nativeOnly
 [<Emit("$0.clear()")>]
 let clearDiagnostics (collection: obj) : unit = nativeOnly
 
+// decision: passes the imported constructor explicitly because Fable substitutes Emit placeholders
+// positionally; otherwise `$0` would become the range and compile to `new range(...)`.
 [<Emit("new $0($1, $2, $3)")>]
-let makeDiagnostic (range: obj) (message: string) (severity: int) : obj = nativeOnly
+let private constructDiagnostic (constructor: obj) (range: obj) (message: string) (severity: int) : obj = nativeOnly
+
+let makeDiagnostic range message severity =
+    constructDiagnostic diagnosticConstructor range message severity
