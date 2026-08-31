@@ -1,4 +1,4 @@
-module Energy.Extension.VscodeDiagnosticValues
+module Energy.Extension.Vscode.DiagnosticValues
 
 open Fable.Core
 

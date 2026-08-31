@@ -46,9 +46,12 @@ order.
 - **`src/Languages/`**: grammar-specific `LanguageAdapter` records for the four supported
   analyzed languages.
 - **`src/Extension/`**: VS Code Fable facade, configuration boundary, grammar cache, analysis
-  orchestration, editor/Problems presentation, and `Extension.fs` composition root.
-  `DecorationModel.fs`, `DiagnosticModel.fs`, and `ConfigurationValues.fs` remain pure and have
-  direct Scriptorium coverage.
+  orchestration, editor/Problems presentation, and `Extension.fs` composition root. The narrow
+  VS Code bindings (`Host`, `Document`, `Workspace`, `Presentation`, `Diagnostics`,
+  `DiagnosticValues`, `Identity`) live in the `src/Extension/Vscode/` subfolder with their
+  `Vscode*` prefix dropped from both path and module name. `DecorationModel.fs`,
+  `DiagnosticModel.fs`, and `ConfigurationValues.fs` remain pure and have direct Scriptorium
+  coverage.
 - **`src/Cli*.fs` and `cli/Main.fs`**: CLI argument parsing, modes, runtime, narrow Node
   bindings, and Fable entry point. Scan, legacy single-file, `--report`, `--base-ref`, and
   thresholds share the Core pipeline.

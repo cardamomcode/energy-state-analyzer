@@ -10,11 +10,11 @@ open Energy.Extension.Configuration
 open Energy.Extension.Decorations
 open Energy.Extension.Diagnostics
 open Energy.Extension.Grammar
-open Energy.Extension.VscodeDiagnostics
-open Energy.Extension.VscodeDocument
-open Energy.Extension.VscodeHost
-open Energy.Extension.VscodeIdentity
-open Energy.Extension.VscodeWorkspace
+open Energy.Extension.Vscode.Diagnostics
+open Energy.Extension.Vscode.Document
+open Energy.Extension.Vscode.Host
+open Energy.Extension.Vscode.Identity
+open Energy.Extension.Vscode.Workspace
 open Energy.Languages.Registry
 
 // Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
@@ -114,7 +114,7 @@ let activate (context: obj) : Task<unit> =
                   InFlightLoads = Dictionary() }
 
             let decorations = createDecorations (getEnergyColors ())
-            let diagnostics = createDiagnosticCollection VscodeHost.languages "energyState"
+            let diagnostics = createDiagnosticCollection Vscode.Host.languages "energyState"
 
             state <-
                 Some

@@ -1,8 +1,8 @@
 module Energy.Extension.Configuration
 
 open Energy.Extension.ConfigurationValues
-open Energy.Extension.VscodeHost
-open Energy.Extension.VscodeWorkspace
+open Energy.Extension.Vscode.Host
+open Energy.Extension.Vscode.Workspace
 
 let private setting section key fallback =
     getConfiguration workspace ("energyStateAnalyzer." + section)

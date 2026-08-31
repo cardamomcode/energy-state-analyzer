@@ -6,9 +6,9 @@ open Fable.Core.JsInterop
 open Energy.Core.Violation
 open Energy.Extension.ConfigurationValues
 open Energy.Extension.DecorationModel
-open Energy.Extension.VscodeDocument
-open Energy.Extension.VscodeHost
-open Energy.Extension.VscodePresentation
+open Energy.Extension.Vscode.Document
+open Energy.Extension.Vscode.Host
+open Energy.Extension.Vscode.Presentation
 
 type DecorationSet =
     { HighEnergy: obj

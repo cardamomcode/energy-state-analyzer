@@ -9,9 +9,9 @@ open Energy.Core.PythonTypeInfoExtraction
 open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Extension.Configuration
-open Energy.Extension.VscodeDocument
-open Energy.Extension.VscodeHost
-open Energy.Extension.VscodeWorkspace
+open Energy.Extension.Vscode.Document
+open Energy.Extension.Vscode.Host
+open Energy.Extension.Vscode.Workspace
 open Energy.Languages.Registry
 
 type LoadedLanguage =
