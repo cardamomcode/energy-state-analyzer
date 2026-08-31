@@ -141,7 +141,7 @@
             -1,
             2
           ],
-          "description": "Numeric literals that are never flagged as magic numbers, regardless of context."
+          "description": "Additional numeric literals to exempt alongside the built-in structural values 0, 1, -1, and 2."
         },
         "energyStateAnalyzer.magicString.enabled": {
           "type": "boolean",
@@ -205,10 +205,10 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "prepublishOnly": "npm run package",
-    "fable": "rm -rf fable-out && dotnet fable src/EnergyState.fsproj --lang javascript --outDir fable-out --noCache && dotnet fable cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out --noCache",
+    "fable": "rm -rf fable-out && dotnet fable src/EnergyState.fsproj --lang javascript --outDir fable-out/extension --noCache && dotnet fable cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out/cli --noCache",
     "fable-tests": "rm -rf fable-tests && dotnet fable tests/EnergyState.Tests.fsproj --lang javascript --outDir fable-tests --noCache && echo '{\"type\":\"module\"}' > fable-tests/package.json",
     "compile": "npm run fable && webpack",
-    "watch": "npm run fable && (dotnet fable watch src/EnergyState.fsproj --lang javascript --outDir fable-out --noCache & dotnet fable watch cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out --noCache & webpack --watch)",
+    "watch": "npm run compile && (dotnet fable watch src/EnergyState.fsproj --lang javascript --outDir fable-out/extension --noCache --runWatch npx webpack & dotnet fable watch cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out/cli --noCache)",
     "package": "npm run fable && webpack --mode production --devtool hidden-source-map",
     "lint": "dotnet fantomas src tests cli --check",
     "format": "dotnet fantomas src tests cli",

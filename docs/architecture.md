@@ -53,8 +53,8 @@ one Problems entry, preserving severity ordering, tags, codes, and combined mess
 `npm run fable` invokes Fable with `--lang javascript --noCache`, emitting ignored ESM into
 `fable-out/`. `webpack.config.js` consumes:
 
-- `fable-out/Extension/Extension.js` → `dist/extension.js`
-- `fable-out/Main.js` → `dist/cli.js`
+- `fable-out/extension/Extension/Extension.js` → `dist/extension.js`
+- `fable-out/cli/Main.js` → `dist/cli.js`
 
 Webpack keeps `vscode` external, bundles `web-tree-sitter`, copies `web-tree-sitter.wasm`, and
 adds the CLI shebang. Per-language grammar WASMs remain runtime files in `grammars/`. There is no

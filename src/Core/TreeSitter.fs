@@ -3,7 +3,9 @@ module Energy.Core.TreeSitter
 open System.Threading.Tasks
 
 open Fable.Core
-open Fable.Core.JsInterop
+
+// esa-ignore-file: coherence
+// Binding facade.
 
 // web-tree-sitter (0.26) is an ES module (with a CJS build for `require`) that exposes the
 // named exports `Parser` and `Language`. Named imports resolve under both Node ESM and

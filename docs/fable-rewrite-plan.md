@@ -29,7 +29,7 @@ src/EnergyState.fsproj                     cli/EnergyState.Cli.fsproj
                                                     fable-out/ (ESM)
                                       ┌───────────────────────┴──────────────────────┐
                                       ▼                                              ▼
-                    fable-out/Extension/Extension.js                    fable-out/Main.js
+       fable-out/extension/Extension/Extension.js              fable-out/cli/Main.js
                                       │                                              │
                                       └────────── webpack (target: node) ────────────┘
                                                               │
@@ -42,8 +42,11 @@ Webpack consumes Fable's ESM directly—there is no `tsc` or `ts-loader`. It kee
 CommonJS external, bundles `web-tree-sitter`, copies `web-tree-sitter.wasm`, and applies the
 shebang banner to `dist/cli.js`. The public `package.json` main/bin contracts remain unchanged.
 
-`npm run fable` builds both entries to ignored `fable-out/`; the CLI project emits `Main.js` and
-referenced source under `fable-out/src/`. `npm run fable-tests` emits Scriptorium tests to ignored
+`npm run fable` builds both entries into isolated ignored `fable-out/extension/` and
+`fable-out/cli/` directories, so their Fable runtime modules cannot race during watch mode.
+`npm run watch` first builds both bundles, then runs webpack after each completed extension
+recompilation rather than while Fable is copying its runtime files.
+`npm run fable-tests` emits Scriptorium tests to ignored
 `fable-tests/` and writes its `{"type":"module"}` ESM shim before Node runs `Main.js`.
 
 ## Extension implementation

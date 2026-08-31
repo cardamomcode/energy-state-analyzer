@@ -15,7 +15,6 @@ open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Identity
 open Energy.Extension.Vscode.Workspace
-open Energy.Languages.Registry
 
 // Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
 // in their domain modules, and the grammar caches are reset for every activation.
