@@ -98,7 +98,15 @@ let rec private cognitiveWalk
         let contribution = 1 + nesting
         contribute node contribution
         contribution
-    | Lambda -> contributeAndWalk (1 + nesting) cognitiveWalkChild
+    | Lambda ->
+        // decision: unlike NestedDecision, a lambda/closure is not itself a scored decision point
+        // (SonarSource's spec only scores if/for/while/switch/catch/logical chains) — it only raises
+        // the nesting level for whatever decision points live inside it. Nesting bumps unconditionally
+        // here (rather than via cognitiveWalkChild's EntersNestedScope gate) because several grammars
+        // (Kotlin's lambda_literal, Python's lambda, TS's expression-bodied arrow) hold their body as
+        // direct children with no wrapping block node, so the gate would never fire for them.
+        nodeChildren node
+        |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute)
     | Other -> walkChildren cognitiveWalk
 
 and private cognitiveWalkChild
