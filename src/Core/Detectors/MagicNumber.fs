@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MagicNumber
 
+
 open System
 
 open Energy.Core.TreeSitter
@@ -9,18 +10,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-type MagicNumberOptions =
-    { Enabled: bool
-      Allowlist: float list
-      // decision: test files are exempt by default because throwaway test code is full of
-      // intentional literals; the flag lets a user opt back in (e.g. to audit fixtures that live
-      // under a test/ directory) without weakening the default.
-      IncludeTestFiles: bool }
+type MagicNumberOptions = Energy.Core.Context.MagicNumberOptions
 
-let defaultOptions =
-    { Enabled = true
-      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
-      IncludeTestFiles = false }
+let defaultOptions = defaultAnalyzeOptions.MagicNumber
 
 // The "Magic Number" detector exempts the small set of structural idioms where a literal is
 // self-explanatory, while keeping significant values outside named bindings visible.
@@ -71,55 +63,55 @@ let private signedValue (node: Node) (rawValue: float) : float =
         | _ -> rawValue
     | None -> rawValue
 
-let analyzeMagicNumbers
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (fileName: string)
-    (options: MagicNumberOptions)
-    : EnergyViolation list =
-    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
-        []
+let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
+    let isLiteral node =
+        isNodeType ctx.Language.NodeTypes.IntegerLiteral node
+        || isNodeType ctx.Language.NodeTypes.FloatLiteral node
+
+    let rec traverse (node: Node) : EnergyViolation list =
+        if isLiteral node then
+            // decision: parses every numeric literal as float because TypeScript uses one node
+            // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
+            match Double.TryParse(nodeText node) with
+            | true, rawValue ->
+                let value = signedValue node rawValue
+
+                let isExempt =
+                    List.contains value ctx.Options.MagicNumber.Allowlist
+                    || isInConstantContext ctx.Language node
+                    || (nodeParent node
+                        |> Option.exists (fun parent -> List.contains (nodeType parent) ctx.Language.SubscriptNodeTypes))
+                    || ctx.Language.IsDefaultParameterValue node
+
+                if isExempt then
+                    []
+                else
+                    let position = ctx.Positions.toPosition (nodeStartIndex node)
+
+                    [ { Line = position.Line
+                        Column = position.Column
+                        Type = Magic
+                        Severity = Low
+                        Message = sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
+                        Hotspots = [] } ]
+            | false, _ -> []
+        // A literal's children are fragments of the same value in some grammars, not separate
+        // values; never descend after evaluating one.
+        else
+            nodeChildren node |> List.collect traverse
+
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
+
+let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
+    if
+        not ctx.Options.MagicNumber.Enabled
+        || (not ctx.Options.MagicNumber.IncludeTestFiles && isTestFile ctx.FileName)
+    then
+        ctx
     else
-        let isLiteral node =
-            isNodeType language.NodeTypes.IntegerLiteral node
-            || isNodeType language.NodeTypes.FloatLiteral node
-
-        let rec traverse (node: Node) : EnergyViolation list =
-            if isLiteral node then
-                // decision: parses every numeric literal as float because TypeScript uses one node
-                // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
-                match Double.TryParse(nodeText node) with
-                | true, rawValue ->
-                    let value = signedValue node rawValue
-
-                    let isExempt =
-                        List.contains value options.Allowlist
-                        || isInConstantContext language node
-                        || (nodeParent node
-                            |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes))
-                        || language.IsDefaultParameterValue node
-
-                    if isExempt then
-                        []
-                    else
-                        let position = positions.toPosition (nodeStartIndex node)
-
-                        [ { Line = position.Line
-                            Column = position.Column
-                            Type = Magic
-                            Severity = Low
-                            Message =
-                              sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
-                            Hotspots = [] } ]
-                | false, _ -> []
-            // A literal's children are fragments of the same value in some grammars, not separate
-            // values; never descend after evaluating one.
-            else
-                nodeChildren node |> List.collect traverse
-
-        traverse tree
+        analyzeEnabledMagicNumbers ctx
 
 let detector: Detector =
     { Name = "magicNumber"
-      Run = fun ctx -> analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
+      Run = analyzeMagicNumbers }

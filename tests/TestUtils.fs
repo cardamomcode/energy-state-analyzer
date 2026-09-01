@@ -13,14 +13,17 @@ open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
+open Energy.Core.Analyze
+open Energy.Core.Context
+open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
 // Shared integration-test harness.
 //
-// These helpers read fixtures from the source tree and drive the pipeline entry point
-// (analyzeSource) against real parsed trees — mirroring how the CLI/extension call analyzeSource,
-// rather than exercising a detector in isolation. The pure helpers below are reused by every
+// These helpers read fixtures from the source tree and drive the AnalysisInput pipeline against
+// real parsed trees — mirroring how the CLI/extension call analyzeWith, rather than exercising a
+// detector in isolation. The pure helpers below are reused by every
 // language's integration suite; only parseFixture is language-specific.
 
 [<Emit("process.cwd()")>]
@@ -43,6 +46,24 @@ let parseFixture (language: LanguageAdapter) (relativePath: string) : Task<strin
 
         return (sourceCode, tree)
     }
+
+let analyzeFixture sourceCode tree language fileName =
+    { Source = sourceCode
+      Tree = tree
+      Language = language
+      FileName = fileName }
+    |> analyze
+    |> _.Violations
+
+/// Build a detector context for tests that exercise one detector with custom options.
+let createTestContext sourceCode tree language fileName options : AnalysisContext =
+    { Source = sourceCode
+      Tree = tree
+      Positions = createPositionLookup sourceCode
+      Language = language
+      FileName = fileName
+      Options = options
+      Violations = [] }
 
 // A line range (inclusive, 0-indexed like tree-sitter/EnergyViolation.line) that a named function
 // occupies within a fixture, so tests can assert a violation belongs to a specific example function

@@ -29,7 +29,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
-                            let violations = analyzeSource source tree language fixture
+                            let violations = analyzeFixture source tree language fixture
                             assertValidPositions violations source
                             let clean = findFunctionRange source "cleanMixedConditions"
                             let chain = findFunctionRange source "flaggedThreeWayChain"
@@ -57,7 +57,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture CPP "cpp/matchOpportunity.cpp"
-                            let violations = analyzeSource source tree CPP "cpp/matchOpportunity.cpp"
+                            let violations = analyzeFixture source tree CPP "cpp/matchOpportunity.cpp"
 
                             for name in [ "cleanStringChain"; "cleanFloatingChain" ] do
                                 assertThat

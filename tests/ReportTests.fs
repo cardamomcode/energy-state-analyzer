@@ -1,8 +1,12 @@
 module Energy.Tests.ReportTests
 
+open System.Threading.Tasks
+
 open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
+open Energy.CliRuntime
+open Energy.Core.Analyze
 open Energy.Core.Report
 open Energy.Core.ReportDiff
 open Energy.Core.ReportHuman
@@ -116,5 +120,16 @@ let tests =
                   assertThat (complexityToScore 20) (isEqualTo 6.9)
                   assertThat (classifyComplexityScore 34) (isEqualTo HighRisk)
                   assertThat (classifyComplexityScore 60) (isEqualTo Critical)
+          )
+          testAsync (
+              "unsupported CLI input becomes a typed analysis error",
+              fun _ ->
+                  toAsync (
+                      task {
+                          let! result = analyzeFile "unsupported.txt" "" defaultThresholds
+
+                          assertThat result (isEqualTo (Error(UnsupportedLanguage "unsupported.txt")))
+                      }
+                  )
           ) ]
     )

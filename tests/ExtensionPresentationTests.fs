@@ -71,11 +71,11 @@ let tests =
 
                   let thresholds = readAnalyzeThresholds reader
                   let colors = readEnergyColors reader
-                  let nesting = thresholds.Nesting |> Option.get
-                  let coherence = thresholds.Coherence |> Option.get
-                  let magicNumber = thresholds.MagicNumber |> Option.get
-                  let magicString = thresholds.MagicString |> Option.get
-                  let matchOpportunity = thresholds.MatchOpportunity |> Option.get
+                  let nesting = thresholds.Nesting
+                  let coherence = thresholds.Coherence
+                  let magicNumber = thresholds.MagicNumber
+                  let magicString = thresholds.MagicString
+                  let matchOpportunity = thresholds.MatchOpportunity
 
                   let emptyMagicNumberAllowlist =
                       readAnalyzeThresholds
@@ -87,7 +87,6 @@ let tests =
                                       else
                                           fallback }
                       |> _.MagicNumber
-                      |> Option.get
 
                   let hostArrayMagicNumberAllowlist =
                       readAnalyzeThresholds
@@ -99,7 +98,6 @@ let tests =
                                       else
                                           fallback }
                       |> _.MagicNumber
-                      |> Option.get
 
                   assertThat nesting.MediumThreshold (isEqualTo 4)
                   assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)

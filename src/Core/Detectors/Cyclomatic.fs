@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.Cyclomatic
 
+
 open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
@@ -14,15 +15,12 @@ open Energy.Core.Context
 // edge. A violation is anchored at the function's start position and carries per-line hotspots
 // weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
-type CyclomaticThresholds =
-    { MediumThreshold: int
-      HighThreshold: int }
+type CyclomaticThresholds = Energy.Core.Context.CyclomaticThresholds
 
 // decision: medium 10 / high 15 — the point where holding that many independent paths in working
 // memory degrades readability (medium), and deep branching genuinely demands extraction (high).
 let defaultCyclomaticThresholds: CyclomaticThresholds =
-    { MediumThreshold = 10
-      HighThreshold = 15 }
+    defaultAnalyzeOptions.Cyclomatic
 
 type private FlowNode =
     | Entry
@@ -150,22 +148,17 @@ let rec private findCyclomaticHotspots
         @ (nodeChildren node
            |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth NestedFunction))
 
-let analyzeFunctionComplexity
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (thresholds: CyclomaticThresholds)
-    : EnergyViolation list =
+let analyzeFunctionComplexity (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
-            if language.IsFunctionDefinition node then
-                let complexity = complexityOf language node
+            if ctx.Language.IsFunctionDefinition node then
+                let complexity = complexityOf ctx.Language node
 
-                if complexity > thresholds.MediumThreshold then
-                    let pos = positions.toPosition (nodeStartIndex node)
+                if complexity > ctx.Options.Cyclomatic.MediumThreshold then
+                    let pos = ctx.Positions.toPosition (nodeStartIndex node)
 
                     let severity =
-                        if complexity > thresholds.HighThreshold then
+                        if complexity > ctx.Options.Cyclomatic.HighThreshold then
                             High
                         else
                             Medium
@@ -176,7 +169,7 @@ let analyzeFunctionComplexity
                         Severity = severity
                         Message =
                           sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
-                        Hotspots = findCyclomaticHotspots language positions node 0 RootFunction } ]
+                        Hotspots = findCyclomaticHotspots ctx.Language ctx.Positions node 0 RootFunction } ]
                 else
                     []
             else
@@ -187,8 +180,9 @@ let analyzeFunctionComplexity
         // siblings left to right.
         ownViolations @ (nodeChildren node |> List.collect traverse)
 
-    traverse tree
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "cyclomatic"
-      Run = fun ctx -> analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language defaultCyclomaticThresholds }
+      Run = analyzeFunctionComplexity }

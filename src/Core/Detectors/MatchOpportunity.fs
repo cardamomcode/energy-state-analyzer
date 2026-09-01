@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MatchOpportunity
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -7,9 +8,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.MatchOpportunitySupport
 
-type MatchOpportunityThresholds = { MinBranches: int }
+type MatchOpportunityThresholds = Energy.Core.Context.MatchOpportunityThresholds
 
-let defaultThresholds = { MinBranches = 3 }
+let defaultThresholds = defaultAnalyzeOptions.MatchOpportunity
 
 let private matchOpportunityViolation
     (positions: PositionLookup)
@@ -30,19 +31,14 @@ let private matchOpportunityViolation
             variable
       Hotspots = [] }
 
-let analyzeMatchOpportunities
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (thresholds: MatchOpportunityThresholds)
-    =
+let analyzeMatchOpportunities (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (consumed: Set<int>) (node: Node) : EnergyViolation list =
         let own, consumed =
             if
-                hasType language.NodeTypes.IfStatement node
+                hasType ctx.Language.NodeTypes.IfStatement node
                 && not (consumed.Contains(nodeId node))
             then
-                let branches = collectChainBranches language node
+                let branches = collectChainBranches ctx.Language node
 
                 let updated =
                     branches
@@ -51,15 +47,16 @@ let analyzeMatchOpportunities
 
                 let discriminants =
                     branches
-                    |> List.map (fun branch -> collectDiscriminants language (otherBranchIds branch branches) branch)
+                    |> List.map (fun branch ->
+                        collectDiscriminants ctx.Language (otherBranchIds branch branches) branch)
 
                 let violation =
                     discriminants
                     |> List.forall (List.isEmpty >> not)
                     |> function
-                        | true when branches.Length >= thresholds.MinBranches ->
+                        | true when branches.Length >= ctx.Options.MatchOpportunity.MinBranches ->
                             commonDiscriminant discriminants
-                            |> Option.map (matchOpportunityViolation positions node branches)
+                            |> Option.map (matchOpportunityViolation ctx.Positions node branches)
                         | _ -> None
 
                 violation |> Option.toList, updated
@@ -68,8 +65,9 @@ let analyzeMatchOpportunities
 
         own @ (nodeChildren node |> List.collect (traverse consumed))
 
-    traverse Set.empty tree
+    let findings = traverse Set.empty ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "matchOpportunity"
-      Run = fun ctx -> analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language defaultThresholds }
+      Run = analyzeMatchOpportunities }

@@ -80,7 +80,7 @@ let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: 
                 task {
                     let! (sourceCode, tree) = parseFixture language fixture
 
-                    let violations = analyzeSource sourceCode tree language fixture
+                    let violations = analyzeFixture sourceCode tree language fixture
                     assertValidPositions violations sourceCode
 
                     scenario.Assert sourceCode violations

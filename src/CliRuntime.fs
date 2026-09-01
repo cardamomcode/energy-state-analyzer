@@ -18,27 +18,58 @@ let private parserCache = Dictionary<string, Parser>()
 let private grammarPath relative =
     joinPath (joinPath bundleDirectory "..") relative
 
-let loadParser (adapter: LanguageAdapter) : Task<Parser> =
+let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
         match parserCache.TryGetValue adapter.Id with
-        | true, parser -> return parser
+        | true, parser -> return Ok parser
         | false, _ ->
-            do! init parserCtor
-            let! grammar = load languageCtor (grammarPath adapter.GrammarPath)
-            let parser = makeParser parserCtor
-            setLanguage parser grammar |> ignore
-            parserCache.Add(adapter.Id, parser)
-            return parser
+            try
+                do! init parserCtor
+                let! grammar = load languageCtor (grammarPath adapter.GrammarPath)
+                let parser = makeParser parserCtor
+                setLanguage parser grammar |> ignore
+                parserCache.Add(adapter.Id, parser)
+                return Ok parser
+            with error ->
+                return Error(GrammarLoadFailed(adapter.Id, string error))
     }
+
+let private parseSource (filePath: string) (parser: Parser) (sourceText: string) =
+    try
+        parse parser sourceText |> rootNode |> Ok
+    with error ->
+        Error(ParseFailed(filePath, string error))
 
 let analyzeFile (filePath: string) (sourceText: string) (thresholds: AnalyzeThresholds) =
     task {
         match resolveLanguageForFile filePath with
-        | None -> return []
+        | None -> return Error(UnsupportedLanguage filePath)
         | Some adapter ->
-            let! parser = loadParser adapter
-            let tree = parse parser sourceText |> rootNode
-            return analyzeSourceWith thresholds sourceText tree adapter filePath
+            let! parserResult = loadParser adapter
+
+            return
+                parserResult
+                |> Result.bind (fun parser -> parseSource filePath parser sourceText)
+                |> Result.map (fun tree ->
+                    { Source = sourceText
+                      Tree = tree
+                      Language = adapter
+                      FileName = filePath }
+                    |> analyzeWith thresholds
+                    |> _.Violations)
+    }
+
+let private readSource (filePath: string) =
+    try
+        readFileSync filePath "utf8" |> Ok
+    with error ->
+        Error(SourceReadFailed(filePath, string error))
+
+let analyzePath (filePath: string) (thresholds: AnalyzeThresholds) =
+    task {
+        match readSource filePath with
+        | Error error -> return Error error
+        | Ok sourceText -> return! analyzeFile filePath sourceText thresholds
     }
 
 // decision: analyzes files sequentially — grammar loads are cached and report rows retain source
@@ -46,13 +77,19 @@ let analyzeFile (filePath: string) (sourceText: string) (thresholds: AnalyzeThre
 let rec analyzeFiles (files: string list) (thresholds: AnalyzeThresholds) =
     task {
         match files with
-        | [] -> return []
+        | [] -> return Ok []
         | file :: rest ->
-            let! violations = analyzeFile file (readFileSync file "utf8") thresholds
-            let! remaining = analyzeFiles rest thresholds
+            let! analysis = analyzePath file thresholds
 
-            return
-                { FilePath = relativePath (cwd ()) file
-                  Violations = violations }
-                :: remaining
+            match analysis with
+            | Error error -> return Error error
+            | Ok violations ->
+                let! remaining = analyzeFiles rest thresholds
+
+                return
+                    remaining
+                    |> Result.map (fun results ->
+                        { FilePath = relativePath (cwd ()) file
+                          Violations = violations }
+                        :: results)
     }

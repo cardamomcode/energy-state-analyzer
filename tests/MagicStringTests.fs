@@ -34,7 +34,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
                             let clean = findFunctionRange sourceCode "cleanValues"
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
@@ -61,7 +61,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
-                            let violations = analyzeSource sourceCode tree PYTHON "magicString.py"
+                            let violations = analyzeFixture sourceCode tree PYTHON "magicString.py"
                             let membership = findFunctionRange sourceCode "flaggedMembership"
                             let dictKey = findFunctionRange sourceCode "flaggedDictKey"
 
@@ -92,37 +92,49 @@ let tests =
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
 
                             let disabled =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = false
-                                      MinDuplicates = 2
-                                      Allowlist = []
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = false
+                                              MinDuplicates = 2
+                                              Allowlist = []
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let singleUse =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 1
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 1
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let customAllowlist =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             assertThat (disabled |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
 
@@ -150,26 +162,34 @@ let tests =
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
 
                             let testFileExempt =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "src/test/magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let testFileIncluded =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "src/test/magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = true }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = true } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             assertThat
                                 (violationsIn testFileExempt strings

@@ -49,6 +49,7 @@
     <Compile Include="Core/Report.fs" />
     <Compile Include="Core/ReportDiff.fs" />
     <Compile Include="Core/ReportHuman.fs" />
+    <Compile Include="Core/DetectorPipeline.fs" />
     <Compile Include="Core/Analyze.fs" />
     <Compile Include="Extension/Vscode/Host.fs" />
     <Compile Include="Extension/Vscode/Document.fs" />

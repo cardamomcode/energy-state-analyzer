@@ -16,7 +16,8 @@ type LoadedLanguage =
     { Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
       Parser: Parser }
 
-let private logError (message: string) (error: obj) : unit = console.error (message, error)
+let private logError (message: string) (analysisError: AnalysisError) : unit =
+    console.error (message, analysisErrorMessage analysisError)
 
 let private logValue (message: string) (value: obj) : unit = console.log (message, value)
 
@@ -30,29 +31,46 @@ let isDocumentIgnored (document: obj) =
         let rootDir = workspaceFolderUri folder |> uriFsPath
         loadIgnorePatterns rootDir |> isIgnored (documentFileName document) rootDir
 
-let private analyze loaded document =
+let private parseDocument fileName parser source =
     try
-        let source = documentText document
-        let tree = parse loaded.Parser source
-        let root = rootNode tree
+        parse parser source |> rootNode |> Ok
+    with error ->
+        Error(ParseFailed(fileName, string error))
 
-        let violations =
-            analyzeSourceWith (readAnalyzeThresholds ()) source root loaded.Adapter (documentFileName document)
-
-        if loaded.Adapter.Id = "python" then
+let private logPythonTypeInformation fileName source (adapter: Energy.Core.LanguageAdapter.LanguageAdapter) tree =
+    if adapter.Id <> "python" then
+        Ok()
+    else
+        try
             extractTypeInformation tree (createPositionLookup source)
             |> box
             |> logValue "🔍 Found types:"
 
-        Ok violations
-    with error ->
-        Error error
+            Ok()
+        with error ->
+            Error(AnalysisFailed(fileName, string error))
 
-// decision: catches parsing/analyzer failures at the document boundary to retain the extension's
+let private analyze loaded document =
+    let source = documentText document
+    let fileName = documentFileName document
+
+    parseDocument fileName loaded.Parser source
+    |> Result.bind (fun root ->
+        let result =
+            { Source = source
+              Tree = root
+              Language = loaded.Adapter
+              FileName = fileName }
+            |> analyzeWith (readAnalyzeThresholds ())
+
+        logPythonTypeInformation fileName source loaded.Adapter root
+        |> Result.map (fun () -> result))
+
+// decision: handles typed boundary failures at the document boundary to retain the extension's
 // existing UX: report the error but clear decorations rather than leave stale findings visible.
 let analyzeDocument loaded document =
     match analyze loaded document with
-    | Ok violations -> violations
-    | Error error ->
-        logError "Error analyzing document:" (box error)
+    | Ok result -> result.Violations
+    | Error analysisError ->
+        logError "Error analyzing document:" analysisError
         []

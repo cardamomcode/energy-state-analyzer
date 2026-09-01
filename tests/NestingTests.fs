@@ -18,7 +18,7 @@ open Energy.Languages.Kotlin
 open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
-// decision: runs the full detector pipeline (analyzeSource, the same entry point the CLI and the
+// decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
 // extension use) against a realistic multi-function file, rather than calling analyzeNesting in
 // isolation — mirrors nesting.test.ts, whose unit suite already covers the detector's internals with
 // single-line synthetic snippets.
@@ -41,7 +41,15 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
-                            let violations = analyzeSource source tree language fixture
+
+                            let violations =
+                                analyze
+                                    { Source = source
+                                      Tree = tree
+                                      Language = language
+                                      FileName = fixture }
+                                |> _.Violations
+
                             assertValidPositions violations source
 
                             let nestingHits name =

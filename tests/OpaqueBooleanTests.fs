@@ -30,7 +30,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
-                            let violations = analyzeSource source tree language fixture
+                            let violations = analyzeFixture source tree language fixture
                             let one = findFunctionRange source "flaggedPositionalBoolean"
                             let many = findFunctionRange source "flaggedPositionalBooleanAmongOthers"
                             let named = findFunctionRange source labeled

@@ -1,5 +1,6 @@
 module Energy.Core.Detectors.MagicString
 
+
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -7,20 +8,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-type MagicStringOptions =
-    { Enabled: bool
-      MinDuplicates: int
-      Allowlist: string list
-      // decision: test files are exempt by default because tests intentionally compare against
-      // literal values (using a constant would hide a wrong constant); the flag lets a user opt
-      // back in (e.g. to audit fixtures that live under a test/ directory).
-      IncludeTestFiles: bool }
+type MagicStringOptions = Energy.Core.Context.MagicStringOptions
 
-let defaultOptions =
-    { Enabled = true
-      MinDuplicates = 2
-      Allowlist = [ ""; "utf-8"; "__main__" ]
-      IncludeTestFiles = false }
+let defaultOptions = defaultAnalyzeOptions.MagicString
 
 let private stripQuotes (text: string) =
     if text.Length >= 2 then
@@ -53,52 +43,44 @@ let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
-let analyzeMagicStrings
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (fileName: string)
-    (options: MagicStringOptions)
-    : EnergyViolation list =
-    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
-        []
-    else
-        let isLiteral node =
-            language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
+let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext =
+    let isLiteral node =
+        ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
 
-        let rec traverse (node: Node) : (Node * string) list =
-            let ownCandidate =
-                if isLiteral node then
-                    let content = stripQuotes (nodeText node)
+    let rec traverse (node: Node) : (Node * string) list =
+        let ownCandidate =
+            if isLiteral node then
+                let content = stripQuotes (nodeText node)
 
-                    let isDecisionPoint =
-                        isEqualityComparisonOperand language node
-                        || isMembershipOperand language node content
-                        || isKeyOrIndexPosition language node
+                let isDecisionPoint =
+                    isEqualityComparisonOperand ctx.Language node
+                    || isMembershipOperand ctx.Language node content
+                    || isKeyOrIndexPosition ctx.Language node
 
-                    let isExempt =
-                        isDocstring language node
-                        || language.IsFormattedOrInterpolatedString node
-                        || List.contains content options.Allowlist
-                        || content.Length <= 1
+                let isExempt =
+                    isDocstring ctx.Language node
+                    || ctx.Language.IsFormattedOrInterpolatedString node
+                    || List.contains content ctx.Options.MagicString.Allowlist
+                    || content.Length <= 1
 
-                    if isDecisionPoint && not isExempt then
-                        [ node, content ]
-                    else
-                        []
+                if isDecisionPoint && not isExempt then
+                    [ node, content ]
                 else
                     []
+            else
+                []
 
-            ownCandidate @ (nodeChildren node |> List.collect traverse)
+        ownCandidate @ (nodeChildren node |> List.collect traverse)
 
-        traverse tree
+    let findings =
+        traverse ctx.Tree
         |> List.groupBy snd
         |> List.choose (fun (content, group) ->
-            if group.Length < options.MinDuplicates then
+            if group.Length < ctx.Options.MagicString.MinDuplicates then
                 None
             else
                 let first, _ = List.head group
-                let position = positions.toPosition (nodeStartIndex first)
+                let position = ctx.Positions.toPosition (nodeStartIndex first)
 
                 Some
                     { Line = position.Line
@@ -112,6 +94,17 @@ let analyzeMagicStrings
                             group.Length
                       Hotspots = [] })
 
+    addViolations findings ctx
+
+let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
+    if
+        not ctx.Options.MagicString.Enabled
+        || (not ctx.Options.MagicString.IncludeTestFiles && isTestFile ctx.FileName)
+    then
+        ctx
+    else
+        analyzeEnabledMagicStrings ctx
+
 let detector: Detector =
     { Name = "magicString"
-      Run = fun ctx -> analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
+      Run = analyzeMagicStrings }

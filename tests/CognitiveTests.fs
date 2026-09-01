@@ -18,7 +18,7 @@ open Energy.Languages.Kotlin
 open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
-// decision: runs the full detector pipeline (analyzeSource, the same entry point the CLI and the
+// decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
 // extension use) against realistic multi-function files in every ported language — mirrors
 // cognitiveComplexity.test.ts. Each fixture carries a clean single-flat-if function (cognitive 1,
 // never flagged), a 6-deep nesting (medium), and a 7-deep nesting (high). TypeScript/F#/Kotlin are
@@ -43,7 +43,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
 
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
                             let clean = findFunctionRange sourceCode "cleanSimpleFunction"

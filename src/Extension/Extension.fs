@@ -5,6 +5,7 @@ open System.Threading.Tasks
 
 open Fable.Core
 
+open Energy.Core.Analyze
 open Energy.Extension.Analysis
 open Energy.Extension.Configuration
 open Energy.Extension.Decorations
@@ -57,11 +58,15 @@ let private analyzeActiveEditor () : Task<unit> =
                 let! loaded = getOrLoadLanguage (documentLanguageId document) current.Grammar
 
                 match loaded with
-                | None ->
+                | Error analysisError ->
+                    console.error ("Error loading grammar:", analysisErrorMessage analysisError)
+                    applyDecorations editor current.Decorations []
+                    updateProblemsPanel current.Diagnostics document []
+                | Ok None ->
                     console.log ("⚠️ Unsupported language: " + documentLanguageId document)
                     clearDiagnostics current.Diagnostics
-                | Some _ when not (isCurrentDocument document) -> ()
-                | Some loaded ->
+                | Ok(Some _) when not (isCurrentDocument document) -> ()
+                | Ok(Some loaded) ->
                     console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document
                     console.log ("🔍 Found " + string violations.Length + " energy violations")

@@ -35,7 +35,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture language fixture
 
-                            let violations = analyzeSource sourceCode tree language fixture
+                            let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
                             let clean = findFunctionRange sourceCode "cleanFewParams"
