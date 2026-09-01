@@ -5,7 +5,7 @@ open Energy.Core.Context
 // decision: each detector transforms one immutable context, keeping the pipeline's data flow
 // explicit instead of encoding it in continuation handlers.
 // invariant: violations accumulate in reverse order until Analyze reverses them before suppression.
-let runDefault (ctx: AnalysisContext) : AnalysisContext =
+let detectorPipeline (ctx: AnalysisContext) : AnalysisContext =
     ctx
     |> Detectors.PrimitiveObsession.detector.Run
     |> Detectors.OpaqueBoolean.detector.Run
