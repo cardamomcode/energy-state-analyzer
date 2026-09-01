@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++)",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "publisher": "cardamom-code",
   "license": "MIT",
   "icon": "images/icon.png",
