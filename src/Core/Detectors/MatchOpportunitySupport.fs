@@ -38,10 +38,7 @@ let collectDiscriminants (language: LanguageAdapter) (otherBranchIds: Set<int>) 
     let isVariable node =
         List.contains (nodeType node) language.VariableReferenceNodeTypes
 
-    let isLiteral node =
-        hasType language.NodeTypes.StringLiteral node
-        || hasType language.NodeTypes.IntegerLiteral node
-        || hasType language.NodeTypes.FloatLiteral node
+    let isLiteral node = language.IsMatchCaseLiteral node
 
     let literalValue node =
         if hasType language.NodeTypes.StringLiteral node then

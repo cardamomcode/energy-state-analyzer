@@ -6,9 +6,11 @@ Counts the number of independent paths through a function. Flags functions that 
 
 Starting from a base of **1**, every decision point adds **+1**, no matter how deeply it's nested:
 
-- `if` / `elif` / `while` / `for` / `except`
+- `if` / `elif` / `while` / `for` / `except`/`catch` (including C++ range loops and `do`)
 - `and` / `or` (a chain of the same operator still counts once per operator here, unlike cognitive complexity's chain merging)
 - ternary (`a if cond else b`)
+- match/switch-like constructs, using their actual arm count rather than a flat `+1`; a switch with
+  no fallback also includes its implicit unmatched path
 
 A nested named function or method is scored separately, as its own violation, never folded into the enclosing function's count.
 
@@ -48,3 +50,6 @@ McCabe's original 1976 paper proposed risk bands that are still the closest thin
 - `energyStateAnalyzer.cyclomaticComplexity.highThreshold` (default `15`)
 
 A progressive heatmap is also painted across a flagged function's body: each contributing line is shaded by how much it drives up the score relative to that function's own worst line, so you can see which branches to break apart first.
+
+For C++, this is a syntax metric: preprocessor branches and control flow introduced by macro
+expansion are not counted.

@@ -243,6 +243,11 @@ let PYTHON: LanguageAdapter =
                         None)
             else
                 []
+      IsMatchCaseLiteral =
+        fun node ->
+            nodeType node = NodeType "string"
+            || nodeType node = NodeType "integer"
+            || nodeType node = NodeType "float"
       GetElseIfBranches = fun node -> nodeChildren node |> List.filter (fun c -> nodeType c = NodeType "elif_clause")
       SubscriptNodeTypes = [ NodeType "subscript" ]
       // decision: compares node identity by `.id`, not reference equality — web-tree-sitter mints a
@@ -298,7 +303,7 @@ let PYTHON: LanguageAdapter =
                 match children |> List.tryFind (fun c -> nodeType c = NodeType "dotted_name") with
                 | Some d -> nodeText d
                 | None -> nodeText node
-      ClassDefinitionNodeTypes = [ NodeType "class_definition" ]
+      IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
       GetClassName =
         fun node ->
             nodeChildren node

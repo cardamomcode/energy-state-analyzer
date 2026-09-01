@@ -9,14 +9,15 @@ F# source is the only implementation source:
 
 ```text
 src/Core/          host-independent detector pipeline and reports
-src/Languages/     Python, F#, TypeScript, and Kotlin grammar adapters
+src/Languages/     Python, F#, TypeScript, Kotlin, and C++ grammar adapters
 src/Extension/     VS Code facade, presentation, grammar lifecycle, and entry point
 src/Cli*.fs        CLI Node boundary, runtime, argument parser, and modes
 cli/Main.fs        Fable CLI entry point
 tests/             Scriptorium test suite
 ```
 
-`src/test/fixtures/**/*.ts` remain analysis inputs. They are not TypeScript product or test code.
+`src/test/fixtures/**/*.ts` and `src/test/fixtures/**/*.cpp` remain analysis inputs. They are not
+product or test implementation source in those languages.
 Every F# file is explicitly ordered in its `.fsproj`, as required by the F# SDK.
 
 ## Final JavaScript build graph

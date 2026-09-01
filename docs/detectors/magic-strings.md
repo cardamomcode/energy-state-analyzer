@@ -32,6 +32,6 @@ def route(status):
 
 ## Known limitations
 
-The decision-point scan (equality/membership/dict-key) and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet) and F# (no dict/subscript node, no interpolated-string exemption). See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
+The decision-point scan (equality/membership/dict-key) and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
 
 It also doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point, only equality, membership, and dict/index-key positions count.

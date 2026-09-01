@@ -2,8 +2,8 @@
 
 ## Project overview
 
-Energy State Analyzer is a VS Code extension and CLI that analyze Python, F#, TypeScript, and
-Kotlin through `web-tree-sitter` grammars in `grammars/`. Product source is F# and is compiled
+Energy State Analyzer is a VS Code extension and CLI that analyze Python, F#, TypeScript, Kotlin,
+and C++ through `web-tree-sitter` grammars in `grammars/`. Product source is F# and is compiled
 by Fable 5 to JavaScript before webpack packages the extension and CLI.
 
 See `energy-state.md` for the original design rationale and `docs/fable-rewrite-plan.md` for the
@@ -43,7 +43,7 @@ order.
 - **`src/Core/`**: host-independent synchronous detector pipeline, tree-sitter facade,
   suppression, scanning, and report rendering. `Analyze.fs` is the one detector composition
   point shared by extension and CLI.
-- **`src/Languages/`**: grammar-specific `LanguageAdapter` records for the four supported
+- **`src/Languages/`**: grammar-specific `LanguageAdapter` records for the five supported
   analyzed languages.
 - **`src/Extension/`**: VS Code Fable facade, configuration boundary, grammar cache, analysis
   orchestration, editor/Problems presentation, and `Extension.fs` composition root. The narrow
@@ -56,7 +56,8 @@ order.
   bindings, and Fable entry point. Scan, legacy single-file, `--report`, `--base-ref`, and
   thresholds share the Core pipeline.
 - **`tests/`**: F# Scriptorium suites. `src/test/fixtures/` is retained only as multi-language
-  analyzer input, including `.ts` fixtures; it is not TypeScript product or test code.
+  analyzer input, including `.ts` and `.cpp` fixtures; it is not product or test implementation
+  source in those languages.
 
 The extension composition root owns lifecycle state, grammar caches, decorations, diagnostics,
 commands, and editor/document/configuration event subscriptions. Presentation never leaks into

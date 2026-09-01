@@ -18,6 +18,8 @@ vsc-extension-quickstart.md
 **/obj/**
 **/fable_modules/**
 **/.vscode-test.*
+*.tgz
+*.vsix
 .claude/**
 CLAUDE.md
 energy-state.md

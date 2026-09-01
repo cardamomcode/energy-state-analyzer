@@ -61,8 +61,9 @@ let rec private walkDirectory directory ignore results =
                 files)
         results
 
-// decision: supports only a trailing `**/*.ext`-style suffix; this intentionally remains a
-// lightweight CLI convenience rather than importing a full glob engine with divergent semantics.
+// decision: supports only a trailing `**/*.suffix`-style literal tail; preserving everything after
+// the final wildcard keeps compound suffixes such as `.hpp.in` exact without importing a full glob
+// engine with divergent semantics.
 let private expandGlobLike (pattern: string) ignore =
     let starIndex = pattern.IndexOf('*')
     let prefixEnd = pattern.LastIndexOf(pathSeparator.[0], starIndex)
@@ -73,7 +74,7 @@ let private expandGlobLike (pattern: string) ignore =
         else
             pattern.Substring(0, prefixEnd)
 
-    let suffix = pattern.Substring(pattern.LastIndexOf('.'))
+    let suffix = pattern.Substring(pattern.LastIndexOf('*') + 1)
 
     let extension =
         if suffix.StartsWith "." && not (suffix.Contains "*") then

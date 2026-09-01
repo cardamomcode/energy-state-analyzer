@@ -10,17 +10,19 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: runs the complete pipeline against the existing real-code fixtures, rather than calling
 // the detector in isolation. This preserves the integration contract shared by the CLI and extension
-// while proving parameter shapes are recognized consistently in all four supported grammars.
+// while proving parameter shapes are recognized consistently in every supported grammar.
 let tests =
     let cases =
         [ "Python", PYTHON, "python/parameterCount.py"
           "TypeScript", TYPESCRIPT, "typescript/parameterCount.ts"
           "F#", FSHARP, "fsharp/parameterCount.fs"
-          "Kotlin", KOTLIN, "kotlin/parameterCount.kt" ]
+          "Kotlin", KOTLIN, "kotlin/parameterCount.kt"
+          "C++", CPP, "cpp/parameterCount.cpp" ]
 
     testList (
         "Integration: parameter count (real code examples)",

@@ -9,6 +9,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 let tests =
@@ -16,7 +17,8 @@ let tests =
         [ "Python", PYTHON, "python/opaqueBoolean.py", "suppressedKeywordArgument"
           "TypeScript", TYPESCRIPT, "typescript/opaqueBoolean.ts", "suppressedObjectLiteralField"
           "F#", FSHARP, "fsharp/opaqueBoolean.fs", "suppressedNamedArgument"
-          "Kotlin", KOTLIN, "kotlin/opaqueBoolean.kt", "suppressedNamedArgument" ]
+          "Kotlin", KOTLIN, "kotlin/opaqueBoolean.kt", "suppressedNamedArgument"
+          "C++", CPP, "cpp/opaqueBoolean.cpp", "suppressedLabeledAggregateField" ]
 
     testList (
         "Integration: opaque booleans",

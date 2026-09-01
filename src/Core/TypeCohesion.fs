@@ -60,10 +60,10 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
             else
                 trimmed.Substring(0, openIndex).Trim()
 
-        // decision: requires the head to look like a single (possibly dotted/qualified) identifier —
-        // rejects function types and tuple types, which contain spaces/parens/`*` and would otherwise be
-        // misread as a "domain type" they don't represent.
-        if not (Regex.IsMatch(head, "^[A-Za-z_][A-Za-z0-9_.]*$")) then
+        // decision: accepts both dotted qualifiers (Python/TS/Kotlin) and C++ namespace qualifiers,
+        // while requiring an identifier on both sides of every separator. Function types, tuples,
+        // pointers, and stray punctuation still fail rather than becoming noisy domain signals.
+        if not (Regex.IsMatch(head, "^[A-Za-z_][A-Za-z0-9_]*(?:(?:\\.|::)[A-Za-z_][A-Za-z0-9_]*)*$")) then
             None
         elif nonDomainBaseTypes.Contains head || isTypeParameterName head then
             None

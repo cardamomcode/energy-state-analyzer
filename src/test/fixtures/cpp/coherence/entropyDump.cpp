@@ -1,0 +1,13 @@
+Date parseDate(Date value) { return value; }
+Image resizeImage(Image value) { return value; }
+Email sendEmail(Email value) { return value; }
+Password hashPassword(Password value) { return value; }
+Table flatten(Table value) { return value; }
+Retry retry(Retry value) { return value; }
+Slug slugify(Slug value) { return value; }
+Tax calculateTax(Tax value) { return value; }
+Address validateEmail(Address value) { return value; }
+Identifier generateId(Identifier value) { return value; }
+Archive compress(Archive value) { return value; }
+Uppercase toUpper(Uppercase value) { return value; }
+Range clamp(Range value) { return value; }

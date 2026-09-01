@@ -10,13 +10,15 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
         [ "Python", PYTHON, "python/inversion.py"
           "TypeScript", TYPESCRIPT, "typescript/inversion.ts"
-          "Kotlin", KOTLIN, "kotlin/inversion.kt" ]
+          "Kotlin", KOTLIN, "kotlin/inversion.kt"
+          "C++", CPP, "cpp/inversion.cpp" ]
 
     let fixtureTests =
         cases
