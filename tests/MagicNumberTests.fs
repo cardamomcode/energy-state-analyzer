@@ -37,9 +37,9 @@ let tests =
                             let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
-                            let clean = findFunctionRange sourceCode "cleanCommonValues"
-                            let numbers = findFunctionRange sourceCode "flaggedMagicNumbers"
-                            let negative = findFunctionRange sourceCode "cleanNegativeValue"
+                            let clean = findFunctionRange sourceCode (FunctionName "cleanCommonValues")
+                            let numbers = findFunctionRange sourceCode (FunctionName "flaggedMagicNumbers")
+                            let negative = findFunctionRange sourceCode (FunctionName "cleanNegativeValue")
 
                             assertThat
                                 (violationsIn violations clean
@@ -72,7 +72,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicNumber.py"
                             let violations = analyzeFixture sourceCode tree PYTHON "magicNumber.py"
-                            let exempt = findFunctionRange sourceCode "exemptIndexAndDefault"
+                            let exempt = findFunctionRange sourceCode (FunctionName "exemptIndexAndDefault")
 
                             assertThat
                                 (violations |> List.filter (fun v -> v.Line = 0 && v.Type = Magic) |> List.length)
@@ -93,7 +93,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
                             let violations = analyzeFixture sourceCode tree KOTLIN "magicNumber.kt"
-                            let limits = findFunctionRange sourceCode "Limits"
+                            let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
                             assertThat
                                 (violationsIn violations limits
@@ -110,7 +110,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture CPP "cpp/magicNumber.cpp"
                             let violations = analyzeFixture sourceCode tree CPP "magicNumber.cpp"
-                            let limits = findFunctionRange sourceCode "Limits"
+                            let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
                             assertThat
                                 (violationsIn violations limits
@@ -130,14 +130,15 @@ let tests =
                             let fsharpViolations =
                                 analyzeFixture fsharpSource fsharpTree FSHARP "magicNumber.fs"
 
-                            let maxRetries = findFunctionRange fsharpSource "maxRetries"
+                            let maxRetries = findFunctionRange fsharpSource (FunctionName "maxRetries")
 
                             let! (kotlinSource, kotlinTree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
 
                             let kotlinViolations =
                                 analyzeFixture kotlinSource kotlinTree KOTLIN "magicNumber.kt"
 
-                            let annotatedRetries = findFunctionRange kotlinSource "MAX_ANNOTATED_RETRIES"
+                            let annotatedRetries =
+                                findFunctionRange kotlinSource (FunctionName "MAX_ANNOTATED_RETRIES")
 
                             assertThat
                                 (violationsIn fsharpViolations maxRetries
@@ -160,7 +161,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicNumber.py"
                             let positions = createPositionLookup sourceCode
-                            let numbers = findFunctionRange sourceCode "flaggedMagicNumbers"
+                            let numbers = findFunctionRange sourceCode (FunctionName "flaggedMagicNumbers")
 
                             let disabled =
                                 createTestContext

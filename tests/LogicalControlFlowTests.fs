@@ -27,9 +27,9 @@ let tests =
                         task {
                             let! (source, tree) = parseFixture language fixture
                             let violations = analyzeFixture source tree language fixture
-                            let clean = findFunctionRange source "cleanExplicitIf"
-                            let andIf = findFunctionRange source "flaggedAndAsIf"
-                            let orIf = findFunctionRange source "flaggedOrAsUnless"
+                            let clean = findFunctionRange source (FunctionName "cleanExplicitIf")
+                            let andIf = findFunctionRange source (FunctionName "flaggedAndAsIf")
+                            let orIf = findFunctionRange source (FunctionName "flaggedOrAsUnless")
 
                             assertThat
                                 (violationsIn violations clean

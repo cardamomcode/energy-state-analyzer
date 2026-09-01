@@ -1,34 +1,41 @@
 module Energy.Core.Esaignore
 
-// esa-ignore-file: primitive-obsession
-// The esaignore matcher is inherently string/obj plumbing; the semantics live in how callers use
-// these, not in the declarations themselves.
-
+open Fable.Core
 open Energy.Core.FsPath
+open Energy.Core.Paths
+
+// A `.esaignore` pattern: a literal path or a single-segment basename glob.
+//
+// decision: typed rather than left as a raw string so a pattern can no longer be transposed with
+// the path it is matched against.
+// invariant: every `IgnorePattern` value has exactly its wrapped string as its JavaScript
+// representation.
+[<Erase>]
+type IgnorePattern = IgnorePattern of string
 
 let esaignoreFileName = ".esaignore"
 
 // decision: deliberately supports only literal paths and single-segment basename globs; matching
 // scan's intentionally small glob surface avoids silently claiming full gitignore semantics.
 let loadIgnorePatterns (rootDir: string) : string list =
-    let ignorePath = joinPath rootDir esaignoreFileName
+    let ignorePath = joinPath (Path rootDir) (Path esaignoreFileName)
 
     if not (existsSync ignorePath) then
         []
     else
-        (readFileSync ignorePath "utf8").Split('\n')
+        (readFileSync ignorePath (Encoding "utf8")).Split('\n')
         |> Array.map _.Trim()
         |> Array.filter (fun line -> line <> "" && not (line.StartsWith "#"))
         |> Array.map (fun line -> line.TrimEnd('/'))
         |> Array.toList
 
-let private matchesLiteralPattern (relative: string) (pattern: string) =
+let private matchesLiteralPattern (relative: string) (IgnorePattern pattern) =
     if pattern.Contains "/" then
         relative = pattern || relative.StartsWith(pattern + "/")
     else
         relative.Split('/') |> Array.contains pattern
 
-let private matchesBasenameGlob (pattern: string) (name: string) =
+let private matchesBasenameGlob (IgnorePattern pattern) (name: string) =
     let pieces = pattern.Split('*')
 
     let rec loop (remaining: string list) (position: int) =
@@ -45,7 +52,9 @@ let private matchesBasenameGlob (pattern: string) (name: string) =
 
     loop (pieces |> Array.toList) 0
 
-let isIgnored (absolutePath: string) (rootDir: string) (patterns: string list) =
+// decision: keeps its Path values unwrapped — they flow straight into the fs/path bindings
+// (relativePath/basename) rather than round-tripping through a destructured string.
+let isIgnored (absolutePath: Path) (rootDir: Path) (patterns: string list) =
     if patterns.IsEmpty then
         false
     else
@@ -57,7 +66,9 @@ let isIgnored (absolutePath: string) (rootDir: string) (patterns: string list) =
 
         patterns
         |> List.exists (fun pattern ->
+            let typedPattern = IgnorePattern pattern
+
             if pattern.Contains "*" then
-                matchesBasenameGlob pattern name
+                matchesBasenameGlob typedPattern name
             else
-                matchesLiteralPattern relative pattern)
+                matchesLiteralPattern relative typedPattern)

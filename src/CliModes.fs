@@ -8,6 +8,7 @@ open Energy.CliNode
 open Energy.CliRuntime
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
+open Energy.Core.Paths
 open Energy.Core.Report
 open Energy.Core.ReportDiff
 open Energy.Core.ReportHuman
@@ -99,7 +100,7 @@ let runLegacySingleFile (filePath: string) (thresholds: AnalyzeThresholds) : Tas
             printUsage ()
             exit 2
         else
-            let! analysis = analyzePath filePath thresholds
+            let! analysis = analyzePath (Path filePath) thresholds
 
             match analysis with
             | Error analysisError ->
@@ -187,15 +188,16 @@ let runDiff
                  changedFilesFromGit baseRef
              else
                  explicitPaths)
-            |> List.filter (fun filePath -> resolveLanguageForFile filePath |> Option.isSome && existsSync filePath)
-            |> List.filter (fun filePath -> not (isIgnored (resolvePath filePath) rootDir patterns))
+            |> List.filter (fun filePath ->
+                resolveLanguageForFile filePath |> Option.isSome && existsSync (Path filePath))
+            |> List.filter (fun filePath -> not (isIgnored (resolvePath (Path filePath)) (Path rootDir) patterns))
 
         let rec analyzeChanged files bases heads =
             task {
                 match files with
                 | [] -> return Ok(List.rev bases, List.rev heads)
                 | filePath :: remaining ->
-                    let! headAnalysis = analyzePath filePath thresholds
+                    let! headAnalysis = analyzePath (Path filePath) thresholds
 
                     match headAnalysis with
                     | Error analysisError -> return Error analysisError
@@ -208,7 +210,7 @@ let runDiff
                         match readAtRef baseRef filePath with
                         | None -> return! analyzeChanged remaining bases (head :: heads)
                         | Some baseSource ->
-                            let! baseAnalysis = analyzeFile filePath baseSource thresholds
+                            let! baseAnalysis = analyzeFile (Path filePath) baseSource thresholds
 
                             match baseAnalysis with
                             | Error analysisError -> return Error analysisError

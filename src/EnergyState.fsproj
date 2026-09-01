@@ -9,6 +9,7 @@
   <ItemGroup>
     <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
          Order matters: dependencies first (TreeSitter facade before the modules that read it). -->
+    <Compile Include="Core/Paths.fs" />
     <Compile Include="Core/TreeSitter.fs" />
     <Compile Include="Core/Violation.fs" />
     <Compile Include="Core/Position.fs" />

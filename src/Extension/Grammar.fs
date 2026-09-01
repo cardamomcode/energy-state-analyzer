@@ -7,6 +7,7 @@ open Fable.Core
 open Fable.Core.JS
 
 open Energy.Core.Analyze
+open Energy.Core.Paths
 open Energy.Core.TreeSitter
 open Energy.Extension.Analysis
 open Energy.Languages.Registry
@@ -16,10 +17,13 @@ type GrammarContext =
       LoadedLanguages: Dictionary<string, LoadedLanguage>
       InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>> }
 
+// decision: path arguments and the Path result are Core.Paths.Path (erased to their backing
+// strings) so the message/path string pair can no longer be transposed and the result flows
+// straight into load/logPath without a string round-trip.
 [<Import("join", "node:path")>]
-let private joinPath (left: string) (right: string) : string = nativeOnly
+let private joinPath (left: Path) (right: Path) : Path = nativeOnly
 
-let private logPath (message: string) (path: string) : unit = console.log (message, path)
+let private logPath (message: string) (path: Path) : unit = console.log (message, path)
 
 let private logSuccess (message: string) : unit = console.log (message)
 
@@ -43,7 +47,7 @@ let getOrLoadLanguage
                 | false, _ ->
                     task {
                         try
-                            let grammarPath = joinPath context.ExtensionPath adapter.GrammarPath
+                            let grammarPath = joinPath (Path context.ExtensionPath) (Path adapter.GrammarPath)
                             logPath ("📁 Loading " + adapter.Id + " grammar:") grammarPath
                             let! grammar = load languageCtor grammarPath
                             let parser = makeParser parserCtor

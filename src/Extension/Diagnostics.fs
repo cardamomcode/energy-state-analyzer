@@ -20,7 +20,11 @@ let private vscodeTag =
 
 let private makeVscodeDiagnostic (spec: DiagnosticSpec) =
     let range =
-        makeRange spec.Range.Line spec.Range.StartColumn spec.Range.Line spec.Range.EndColumn
+        makeRange
+            (Line spec.Range.Line)
+            (Column spec.Range.StartColumn)
+            (Line spec.Range.Line)
+            (Column spec.Range.EndColumn)
 
     let diagnostic = makeDiagnostic range spec.Message (vscodeSeverity spec.Severity)
     setDiagnosticSource diagnostic "Energy State Analyzer"

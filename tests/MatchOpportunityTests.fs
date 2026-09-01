@@ -31,8 +31,8 @@ let tests =
                             let! (source, tree) = parseFixture language fixture
                             let violations = analyzeFixture source tree language fixture
                             assertValidPositions violations source
-                            let clean = findFunctionRange source "cleanMixedConditions"
-                            let chain = findFunctionRange source "flaggedThreeWayChain"
+                            let clean = findFunctionRange source (FunctionName "cleanMixedConditions")
+                            let chain = findFunctionRange source (FunctionName "flaggedThreeWayChain")
 
                             assertThat
                                 (violationsIn violations clean
@@ -61,7 +61,7 @@ let tests =
 
                             for name in [ "cleanStringChain"; "cleanFloatingChain" ] do
                                 assertThat
-                                    (violationsIn violations (findFunctionRange source name)
+                                    (violationsIn violations (findFunctionRange source (FunctionName name))
                                      |> List.filter (fun violation -> violation.Type = MatchOpportunity)
                                      |> List.length)
                                     (isEqualTo 0)

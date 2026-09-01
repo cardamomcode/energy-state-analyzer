@@ -3,6 +3,7 @@ module Energy.Core.TreeSitter
 open System.Threading.Tasks
 
 open Fable.Core
+open Energy.Core.Paths
 
 // esa-ignore-file: coherence
 // Binding facade.
@@ -71,8 +72,10 @@ let languageCtor: obj = nativeOnly
 let init (ctor: obj) : Task<unit> = nativeOnly
 
 /// `Language.load(path)` — load a grammar WASM from a path. Promise<Language>.
+///
+/// decision: the WASM path is a Core.Paths.Path like every other host-filesystem path binding.
 [<Emit("$0.load($1)")>]
-let load (ctor: obj) (path: string) : Task<Grammar> = nativeOnly
+let load (ctor: obj) (path: Path) : Task<Grammar> = nativeOnly
 
 // ---------------------------------------------------------------------------
 // Synchronous parser lifecycle
@@ -178,7 +181,9 @@ let nodeParent (node: Node) : Node option =
 // parses, all in one task { } block (each step really awaits, so the task block is warranted).
 // The extension uses the low-level bindings directly so it can cache the loaded grammar/parser
 // across documents (see Grammar.fs in Phase 3).
-let parseWith (grammarPath: string) (source: string) : Task<Node> =
+// decision: the grammar path is a Core.Paths.Path, so this no longer presents a
+// swappable string/string parameter pair.
+let parseWith (grammarPath: Path) (source: string) : Task<Node> =
     task {
         do! init parserCtor
         let! grammar = load languageCtor grammarPath

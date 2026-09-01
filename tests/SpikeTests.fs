@@ -9,6 +9,7 @@ open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
+open Energy.Core.Paths
 open Energy.Core.TreeSitter
 
 // Node-only plumbing for the Phase 0 spike (cwd + file read). Reorganized into the CLI's
@@ -17,7 +18,7 @@ open Energy.Core.TreeSitter
 let cwd () : string = nativeOnly
 
 [<Import("readFileSync", "node:fs")>]
-let readFileSync (path: string) (encoding: string) : string = nativeOnly
+let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
 
 // Phase 0 spike — proves the web-tree-sitter Fable binding end to end, and that the typed
 // facade (Position records, Node lists, Parent option) surfaces the tree as pure F# values.
@@ -31,8 +32,8 @@ let tests =
                       task {
                           let grammarPath = cwd () + "/grammars/tree-sitter-python.wasm"
                           let fixture = cwd () + "/src/test/fixtures/python/nesting.py"
-                          let source = readFileSync fixture "utf8"
-                          let! root = parseWith grammarPath source
+                          let source = readFileSync (Path fixture) (Encoding "utf8")
+                          let! root = parseWith (Path grammarPath) source
                           assertThat (nodeType root) (isEqualTo (NodeType "module"))
                       }
                   ))
@@ -44,8 +45,8 @@ let tests =
                       task {
                           let grammarPath = cwd () + "/grammars/tree-sitter-python.wasm"
                           let fixture = cwd () + "/src/test/fixtures/python/nesting.py"
-                          let source = readFileSync fixture "utf8"
-                          let! root = parseWith grammarPath source
+                          let source = readFileSync (Path fixture) (Encoding "utf8")
+                          let! root = parseWith (Path grammarPath) source
                           // The root sits at the origin; asserting fields proves the Position
                           // record is built from the raw row/column reads.
                           assertThat (nodeStartPosition root).Row (isEqualTo 0)
@@ -61,8 +62,8 @@ let tests =
                       task {
                           let grammarPath = cwd () + "/grammars/tree-sitter-python.wasm"
                           let fixture = cwd () + "/src/test/fixtures/python/nesting.py"
-                          let source = readFileSync fixture "utf8"
-                          let! root = parseWith grammarPath source
+                          let source = readFileSync (Path fixture) (Encoding "utf8")
+                          let! root = parseWith (Path grammarPath) source
                           // Lists, not arrays — idiomatic for the detectors' List folds.
                           assertThat (List.length (nodeChildren root)) (isGreaterOrEqual 2)
                           assertThat (List.length (nodeNamedChildren root)) (isGreaterOrEqual 2)

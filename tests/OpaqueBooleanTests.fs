@@ -31,10 +31,13 @@ let tests =
                         task {
                             let! (source, tree) = parseFixture language fixture
                             let violations = analyzeFixture source tree language fixture
-                            let one = findFunctionRange source "flaggedPositionalBoolean"
-                            let many = findFunctionRange source "flaggedPositionalBooleanAmongOthers"
-                            let named = findFunctionRange source labeled
-                            let nonCall = findFunctionRange source "suppressedNonCallUsage"
+                            let one = findFunctionRange source (FunctionName "flaggedPositionalBoolean")
+
+                            let many =
+                                findFunctionRange source (FunctionName "flaggedPositionalBooleanAmongOthers")
+
+                            let named = findFunctionRange source (FunctionName labeled)
+                            let nonCall = findFunctionRange source (FunctionName "suppressedNonCallUsage")
 
                             let hits range =
                                 violationsIn violations range
