@@ -33,9 +33,9 @@ let tests =
                                   let! (source, tree) = parseFixture language fixture
                                   let violations = analyzeFixture source tree language fixture
                                   assertValidPositions violations source
-                                  let clean = findFunctionRange source "cleanDistinctTypes"
-                                  let swapRisk = findFunctionRange source "flaggedSwapRisk"
-                                  let stringly = findFunctionRange source "flaggedStringlyTyped"
+                                  let clean = findFunctionRange source (FunctionName "cleanDistinctTypes")
+                                  let swapRisk = findFunctionRange source (FunctionName "flaggedSwapRisk")
+                                  let stringly = findFunctionRange source (FunctionName "flaggedStringlyTyped")
 
                                   let primitiveHits range =
                                       violationsIn violations range
@@ -64,7 +64,7 @@ let tests =
                       task {
                           let! (source, tree) = parseFixture PYTHON "python/primitiveObsession.py"
                           let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
-                          let membership = findFunctionRange source "flaggedMembershipCheck"
+                          let membership = findFunctionRange source (FunctionName "flaggedMembershipCheck")
 
                           assertThat
                               (violationsIn violations membership
@@ -84,7 +84,7 @@ let tests =
                           let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
 
                           let hits name =
-                              violationsIn violations (findFunctionRange source name)
+                              violationsIn violations (findFunctionRange source (FunctionName name))
                               |> List.filter (fun violation -> violation.Type = PrimitiveObsession)
                               |> List.length
 
@@ -92,7 +92,9 @@ let tests =
                           assertThat (hits "suppressedAfterStarArgs") (isEqualTo 0)
 
                           assertThat
-                              (violationsIn violations (findFunctionRange source "flaggedPartiallyKeywordOnly")
+                              (violationsIn
+                                  violations
+                                  (findFunctionRange source (FunctionName "flaggedPartiallyKeywordOnly"))
                                |> List.exists (fun violation ->
                                    violation.Type = PrimitiveObsession && violation.Message.Contains("swap")))
                               isTrue

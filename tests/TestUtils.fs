@@ -16,6 +16,7 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Context
 open Energy.Core.Position
+open Energy.Core.Paths
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -30,7 +31,16 @@ open Energy.Core.LanguageAdapter
 let cwd () : string = nativeOnly
 
 [<Import("readFileSync", "node:fs")>]
-let readFileSync (path: string) (encoding: string) : string = nativeOnly
+let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
+
+// A function identifier searched for within a fixture's source text.
+//
+// decision: typed rather than left as a raw string so it can no longer be transposed with the
+// source text it is searched in.
+// invariant: every `FunctionName` value has exactly its wrapped string as its JavaScript
+// representation.
+[<Erase>]
+type FunctionName = FunctionName of string
 
 // Parse a fixture file with the given language adapter's grammar. Returns (sourceCode, tree).
 // Async because web-tree-sitter's Parser.init + Language.load are promises — parseWith bridges them
@@ -41,8 +51,8 @@ let parseFixture (language: LanguageAdapter) (relativePath: string) : Task<strin
         // decision: read fixtures from the source tree, not out/ — compiled JS never copies fixture
         // files verbatim, so the .py/.fs sources would be missing under out/.
         let sourcePath = cwd () + "/src/test/fixtures/" + relativePath
-        let sourceCode = readFileSync sourcePath "utf8"
-        let! tree = parseWith grammarPath sourceCode
+        let sourceCode = readFileSync (Path sourcePath) (Encoding "utf8")
+        let! tree = parseWith (Path grammarPath) sourceCode
 
         return (sourceCode, tree)
     }
@@ -71,7 +81,7 @@ let createTestContext sourceCode tree language fileName options : AnalysisContex
 // parses ambiguously in this position.
 type LineRange = { Start: int; End: int }
 
-let findFunctionRange (sourceCode: string) (functionName: string) : LineRange =
+let findFunctionRange (sourceCode: string) (FunctionName functionName) : LineRange =
     let lines = sourceCode.Split('\n')
 
     let start =

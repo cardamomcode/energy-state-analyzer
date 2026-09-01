@@ -36,8 +36,8 @@ let tests =
                             let! (sourceCode, tree) = parseFixture language fixture
                             let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
-                            let clean = findFunctionRange sourceCode "cleanValues"
-                            let strings = findFunctionRange sourceCode "flaggedMagicString"
+                            let clean = findFunctionRange sourceCode (FunctionName "cleanValues")
+                            let strings = findFunctionRange sourceCode (FunctionName "flaggedMagicString")
 
                             assertThat
                                 (violationsIn violations clean
@@ -62,8 +62,8 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
                             let violations = analyzeFixture sourceCode tree PYTHON "magicString.py"
-                            let membership = findFunctionRange sourceCode "flaggedMembership"
-                            let dictKey = findFunctionRange sourceCode "flaggedDictKey"
+                            let membership = findFunctionRange sourceCode (FunctionName "flaggedMembership")
+                            let dictKey = findFunctionRange sourceCode (FunctionName "flaggedDictKey")
 
                             let membershipHits =
                                 violationsIn violations membership |> List.filter (fun v -> v.Type = Magic)
@@ -88,8 +88,8 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
                             let positions = createPositionLookup sourceCode
-                            let clean = findFunctionRange sourceCode "cleanValues"
-                            let strings = findFunctionRange sourceCode "flaggedMagicString"
+                            let clean = findFunctionRange sourceCode (FunctionName "cleanValues")
+                            let strings = findFunctionRange sourceCode (FunctionName "flaggedMagicString")
 
                             let disabled =
                                 createTestContext
@@ -159,7 +159,7 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
                             let positions = createPositionLookup sourceCode
-                            let strings = findFunctionRange sourceCode "flaggedMagicString"
+                            let strings = findFunctionRange sourceCode (FunctionName "flaggedMagicString")
 
                             let testFileExempt =
                                 createTestContext

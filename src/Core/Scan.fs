@@ -3,13 +3,14 @@ module Energy.Core.Scan
 open Fable.Core
 open Energy.Core.Esaignore
 open Energy.Core.FsPath
+open Energy.Core.Paths
 open Energy.Languages.Registry
 
 // decision: the dirent helpers below stay local — they are specific to reading a directory with
 // `{ withFileTypes: true }`, which the shared FsPath facade does not model. The plain fs/path
 // functions live in FsPath, where Scan and Esaignore already share them.
 [<Emit("$0($1, { withFileTypes: true })")>]
-let private readDirectory (reader: obj) (directory: string) : obj[] = nativeOnly
+let private readDirectory (reader: obj) (directory: Path) : obj[] = nativeOnly
 
 [<Emit("$0.isDirectory()")>]
 let private isDirectory (entry: obj) : bool = nativeOnly
@@ -37,19 +38,21 @@ let private ignoredDirectoryNames =
           "coverage"
           ".vscode-test" ]
 
+// decision: the walked file set stays a Path list end to end — joinPath's Path results flow
+// straight into isIgnored/recursive walks without string round-trips; the string world is only
+// reached at the input edge (argv) and in resolvePath's output.
 type private IgnoreContext =
-    { RootDir: string
-      Patterns: string list }
+    { RootDir: Path; Patterns: string list }
 
-let private isPathIgnored path ignore =
+let private isPathIgnored (path: Path) (ignore: IgnoreContext) =
     isIgnored path ignore.RootDir ignore.Patterns
 
-let rec private walkDirectory directory ignore results =
+let rec private walkDirectory (directory: Path) ignore results =
     readDirectory readdirSync directory
     |> Array.fold
         (fun files entry ->
             let name = entryName entry
-            let fullPath = joinPath directory name
+            let fullPath = joinPath directory (Path name)
 
             if Set.contains name ignoredDirectoryNames || isPathIgnored fullPath ignore then
                 files
@@ -82,41 +85,44 @@ let private expandGlobLike (pattern: string) ignore =
         else
             None
 
-    if not (existsSync prefixDir) || not (statIsDirectory (statSync prefixDir)) then
+    if
+        not (existsSync (Path prefixDir))
+        || not (statIsDirectory (statSync (Path prefixDir)))
+    then
         []
     else
-        let files = walkDirectory prefixDir ignore []
+        let files = walkDirectory (Path prefixDir) ignore []
 
         extension
         |> Option.map (fun ext ->
             files
-            |> List.filter (fun file -> file.EndsWith(ext, System.StringComparison.OrdinalIgnoreCase)))
+            |> List.filter (fun (Path file) -> file.EndsWith(ext, System.StringComparison.OrdinalIgnoreCase)))
         |> Option.defaultValue files
 
-let resolveSupportedFiles (inputs: string list) (rootDir: string) =
+let resolveSupportedFiles (inputs: string list) (rootDir: string) : Path list =
     let ignore =
-        { RootDir = rootDir
+        { RootDir = Path rootDir
           Patterns = loadIgnorePatterns rootDir }
 
     inputs
     |> List.collect (fun input ->
         match input with
         | pattern when pattern.Contains "*" -> expandGlobLike pattern ignore
-        | path when not (existsSync path) -> []
+        | path when not (existsSync (Path path)) -> []
         | path ->
-            let stat = statSync path
+            let stat = statSync (Path path)
 
             if statIsDirectory stat then
-                if isPathIgnored path ignore then
+                if isPathIgnored (Path path) ignore then
                     []
                 else
-                    walkDirectory path ignore []
+                    walkDirectory (Path path) ignore []
             elif
                 statIsFile stat
                 && resolveLanguageForFile path |> Option.isSome
-                && not (isPathIgnored path ignore)
+                && not (isPathIgnored (Path path) ignore)
             then
-                [ path ]
+                [ Path path ]
             else
                 [])
     |> List.map resolvePath

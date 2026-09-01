@@ -6,6 +6,7 @@ open System.Threading.Tasks
 open Energy.CliModes
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.Paths
 open Energy.Core.Detectors.Cognitive
 open Energy.Core.Detectors.Cyclomatic
 open Energy.Core.Detectors.Nesting
@@ -133,7 +134,7 @@ let runCli () : Task<unit> =
             | None, [] ->
                 printUsage ()
                 exit 2
-            | None, [ path ] when existsSync path && isFile (statSync path) && parsed.Report.IsNone ->
+            | None, [ path ] when existsSync (Path path) && isFile (statSync (Path path)) && parsed.Report.IsNone ->
                 do! runLegacySingleFile path thresholds
             | None, _ -> do! runScan parsed.Paths thresholds report
         with error ->

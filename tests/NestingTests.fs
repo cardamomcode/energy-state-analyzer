@@ -53,7 +53,7 @@ let tests =
                             assertValidPositions violations source
 
                             let nestingHits name =
-                                violationsIn violations (findFunctionRange source name)
+                                violationsIn violations (findFunctionRange source (FunctionName name))
                                 |> List.filter (fun v -> v.Type = Nesting)
 
                             assertThat (nestingHits "cleanShallowNesting" |> List.length) (isEqualTo 0)

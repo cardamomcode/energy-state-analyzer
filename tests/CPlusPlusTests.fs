@@ -60,8 +60,12 @@ let tests =
               fun _ ->
                   let resolved = resolveSupportedFiles [ "tests/scan-fixtures/**/*.hpp.in" ] (cwd ())
 
+                  // decision: fully qualified instead of an `open` — this file sits at the coherence
+                  // detector's 10-import threshold, and Paths is needed at exactly this one assertion.
+                  let (Energy.Core.Paths.Path file) = List.head resolved
+
                   assertThat resolved.Length (isEqualTo 1)
-                  assertThat ((List.head resolved).EndsWith("widget.hpp.in")) isTrue
+                  assertThat (file.EndsWith("widget.hpp.in")) isTrue
           )
           test (
               "does not claim C, CUDA, or Objective-C++ suffixes",

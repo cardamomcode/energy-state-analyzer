@@ -31,9 +31,9 @@ let tests =
                             let! (source, tree) = parseFixture language fixture
                             let violations = analyzeFixture source tree language fixture
                             assertValidPositions violations source
-                            let clean = findFunctionRange source "cleanEarlyReturn"
-                            let dominant = findFunctionRange source "flaggedDominantIf"
-                            let chain = findFunctionRange source "flaggedValidationChain"
+                            let clean = findFunctionRange source (FunctionName "cleanEarlyReturn")
+                            let dominant = findFunctionRange source (FunctionName "flaggedDominantIf")
+                            let chain = findFunctionRange source (FunctionName "flaggedValidationChain")
 
                             assertThat
                                 (violationsIn violations clean

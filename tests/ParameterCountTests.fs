@@ -38,9 +38,9 @@ let tests =
                             let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
-                            let clean = findFunctionRange sourceCode "cleanFewParams"
-                            let many = findFunctionRange sourceCode "flaggedManyParams"
-                            let tooMany = findFunctionRange sourceCode "flaggedTooManyParams"
+                            let clean = findFunctionRange sourceCode (FunctionName "cleanFewParams")
+                            let many = findFunctionRange sourceCode (FunctionName "flaggedManyParams")
+                            let tooMany = findFunctionRange sourceCode (FunctionName "flaggedTooManyParams")
 
                             assertThat
                                 (violationsIn violations clean

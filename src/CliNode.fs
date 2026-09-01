@@ -5,24 +5,29 @@ open Fable.Core.JS
 open Fable.Core.JsInterop
 
 // Narrow Node interop surface shared by CLI mode modules.
+//
+// decision: path and encoding arguments are Core.Paths newtypes (erased to their backing strings)
+// so callers can no longer transpose a path with another string at the binding boundary.
+
+open Energy.Core.Paths
 
 [<Import("readFileSync", "node:fs")>]
-let readFileSync (path: string) (encoding: string) : string = nativeOnly
+let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
 
 [<Import("existsSync", "node:fs")>]
-let existsSync (path: string) : bool = nativeOnly
+let existsSync (path: Path) : bool = nativeOnly
 
 [<Import("statSync", "node:fs")>]
-let statSync (path: string) : obj = nativeOnly
+let statSync (path: Path) : obj = nativeOnly
 
 [<Import("relative", "node:path")>]
-let relativePath (fromPath: string) (toPath: string) : string = nativeOnly
+let relativePath (fromPath: Path) (toPath: Path) : string = nativeOnly
 
 [<Import("resolve", "node:path")>]
-let resolvePath (path: string) : string = nativeOnly
+let resolvePath (path: Path) : Path = nativeOnly
 
 [<Import("join", "node:path")>]
-let joinPath (left: string) (right: string) : string = nativeOnly
+let joinPath (left: Path) (right: Path) : Path = nativeOnly
 
 [<Import("execFileSync", "node:child_process")>]
 let execFileSync (command: string) (arguments: string array) (options: obj) : string = nativeOnly
@@ -37,7 +42,7 @@ let argv () : string array = nativeOnly
 let cwd () : string = nativeOnly
 
 [<Emit("__dirname")>]
-let bundleDirectory: string = nativeOnly
+let bundleDirectory: Path = nativeOnly
 
 [<Emit("process.exit($0)")>]
 let exit (code: int) : unit = nativeOnly

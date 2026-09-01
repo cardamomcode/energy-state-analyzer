@@ -2,6 +2,8 @@ module Energy.Extension.DecorationModel
 
 open System
 
+open Fable.Core
+
 open Energy.Core.Violation
 
 // Pure editor-decoration calculations. They intentionally know nothing about VS Code objects so
@@ -12,6 +14,20 @@ type RangeSpec =
       StartColumn: int
       EndLine: int
       EndColumn: int }
+
+// The number of lines in a document.
+//
+// decision: erased to its backing int (the Core.TreeSitter.NodeType pattern) so `heatRanges`'
+// line/band counts keep their prior runtime shape while F# can no longer transpose them.
+// invariant: every `LineCount` value has exactly its wrapped int as its JavaScript representation.
+[<Erase>]
+type LineCount = LineCount of int
+
+// The number of complexity-heat bands to render.
+//
+// invariant: every `BandCount` value has exactly its wrapped int as its JavaScript representation.
+[<Erase>]
+type BandCount = BandCount of int
 
 let private elementHighlightWidth = 15
 
@@ -63,7 +79,12 @@ let rangeFor (lineText: string) (violation: EnergyViolation) =
 
 // invariant: heat is normalized per violation, so each flagged function's worst contributing line
 // gets the darkest band independently of other functions in the file.
-let heatRanges (lineCount: int) (lineText: int -> string) (bandCount: int) (violations: EnergyViolation list) =
+let heatRanges
+    (LineCount lineCount)
+    (lineText: int -> string)
+    (BandCount bandCount)
+    (violations: EnergyViolation list)
+    =
     let heatByLine =
         violations
         |> List.collect (fun violation ->

@@ -60,9 +60,9 @@ let tests =
                             let violations = analyzeFixture sourceCode tree language fixture
                             assertValidPositions violations sourceCode
 
-                            let clean = findFunctionRange sourceCode "cleanSimpleFunction"
-                            let complex = findFunctionRange sourceCode "flaggedComplexFunction"
-                            let severe = findFunctionRange sourceCode "flaggedSevereFunction"
+                            let clean = findFunctionRange sourceCode (FunctionName "cleanSimpleFunction")
+                            let complex = findFunctionRange sourceCode (FunctionName "flaggedComplexFunction")
+                            let severe = findFunctionRange sourceCode (FunctionName "flaggedSevereFunction")
 
                             // a single if/else (complexity 2) should not be flagged.
                             assertThat

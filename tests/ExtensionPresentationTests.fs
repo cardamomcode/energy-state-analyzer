@@ -157,7 +157,11 @@ let tests =
                           [ { Line = 1; Weight = 1 }; { Line = 2; Weight = 4 }; { Line = 9; Weight = 4 } ]
 
                   let ranges =
-                      heatRanges 4 (fun line -> [| "zero"; "one"; "two"; "three" |].[line]) 4 [ complex ]
+                      heatRanges
+                          (LineCount 4)
+                          (fun line -> [| "zero"; "one"; "two"; "three" |].[line])
+                          (BandCount 4)
+                          [ complex ]
 
                   assertThat ranges.[1].Length (isEqualTo 1)
                   assertThat ranges.[1].[0].StartLine (isEqualTo 1)

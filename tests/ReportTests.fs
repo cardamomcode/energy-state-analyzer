@@ -126,7 +126,9 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! result = analyzeFile "unsupported.txt" "" defaultThresholds
+                          // Fully qualified — this file sits at the coherence detector's 10-import
+                          // threshold, and Paths is needed at exactly this one call site.
+                          let! result = analyzeFile (Energy.Core.Paths.Path "unsupported.txt") "" defaultThresholds
 
                           assertThat result (isEqualTo (Error(UnsupportedLanguage "unsupported.txt")))
                       }

@@ -29,7 +29,10 @@ let isDocumentIgnored (document: obj) =
     | folder when includeFixtures () -> false
     | folder ->
         let rootDir = workspaceFolderUri folder |> uriFsPath
-        loadIgnorePatterns rootDir |> isIgnored (documentFileName document) rootDir
+        // decision: fully qualified instead of an `open` — this file sits at the coherence
+        // detector's 10-import threshold, and Paths is needed at exactly this one call site.
+        loadIgnorePatterns rootDir
+        |> isIgnored (Energy.Core.Paths.Path(documentFileName document)) (Energy.Core.Paths.Path rootDir)
 
 let private parseDocument fileName parser source =
     try

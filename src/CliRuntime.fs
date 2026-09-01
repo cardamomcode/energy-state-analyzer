@@ -5,6 +5,7 @@ open System.Threading.Tasks
 
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.Paths
 open Energy.Core.LanguageAdapter
 open Energy.Core.Report
 open Energy.Core.TreeSitter
@@ -16,7 +17,7 @@ open Energy.Languages.Registry
 let private parserCache = Dictionary<string, Parser>()
 
 let private grammarPath relative =
-    joinPath (joinPath bundleDirectory "..") relative
+    joinPath (joinPath bundleDirectory (Path "..")) (Path relative)
 
 let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
@@ -40,7 +41,10 @@ let private parseSource (filePath: string) (parser: Parser) (sourceText: string)
     with error ->
         Error(ParseFailed(filePath, string error))
 
-let analyzeFile (filePath: string) (sourceText: string) (thresholds: AnalyzeThresholds) =
+// decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
+// `sourceText` stays a raw string (it feeds AnalysisInput.Source) — the distinct types remove
+// the swap risk the string/string pair had.
+let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresholds) =
     task {
         match resolveLanguageForFile filePath with
         | None -> return Error(UnsupportedLanguage filePath)
@@ -59,13 +63,16 @@ let analyzeFile (filePath: string) (sourceText: string) (thresholds: AnalyzeThre
                     |> _.Violations)
     }
 
-let private readSource (filePath: string) =
+let private readSource (filePath: Path) =
     try
-        readFileSync filePath "utf8" |> Ok
+        readFileSync filePath (Encoding "utf8") |> Ok
     with error ->
-        Error(SourceReadFailed(filePath, string error))
+        // decision: the error payload is the string edge of this module — unwrap once here for
+        // the message rather than threading a Path through AnalysisError.
+        let (Path file) = filePath
+        Error(SourceReadFailed(file, string error))
 
-let analyzePath (filePath: string) (thresholds: AnalyzeThresholds) =
+let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
     task {
         match readSource filePath with
         | Error error -> return Error error
@@ -74,7 +81,7 @@ let analyzePath (filePath: string) (thresholds: AnalyzeThresholds) =
 
 // decision: analyzes files sequentially — grammar loads are cached and report rows retain source
 // order without relying on Fable Task.WhenAll support.
-let rec analyzeFiles (files: string list) (thresholds: AnalyzeThresholds) =
+let rec analyzeFiles (files: Path list) (thresholds: AnalyzeThresholds) =
     task {
         match files with
         | [] -> return Ok []
@@ -89,7 +96,7 @@ let rec analyzeFiles (files: string list) (thresholds: AnalyzeThresholds) =
                 return
                     remaining
                     |> Result.map (fun results ->
-                        { FilePath = relativePath (cwd ()) file
+                        { FilePath = relativePath (Path(cwd ())) file
                           Violations = violations }
                         :: results)
     }
