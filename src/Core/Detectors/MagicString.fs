@@ -43,6 +43,59 @@ let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
+let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext =
+    let isLiteral node =
+        ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
+
+    let rec traverse (node: Node) : (Node * string) list =
+        let ownCandidate =
+            if isLiteral node then
+                let content = stripQuotes (nodeText node)
+
+                let isDecisionPoint =
+                    isEqualityComparisonOperand ctx.Language node
+                    || isMembershipOperand ctx.Language node content
+                    || isKeyOrIndexPosition ctx.Language node
+
+                let isExempt =
+                    isDocstring ctx.Language node
+                    || ctx.Language.IsFormattedOrInterpolatedString node
+                    || List.contains content ctx.Options.MagicString.Allowlist
+                    || content.Length <= 1
+
+                if isDecisionPoint && not isExempt then
+                    [ node, content ]
+                else
+                    []
+            else
+                []
+
+        ownCandidate @ (nodeChildren node |> List.collect traverse)
+
+    let findings =
+        traverse ctx.Tree
+        |> List.groupBy snd
+        |> List.choose (fun (content, group) ->
+            if group.Length < ctx.Options.MagicString.MinDuplicates then
+                None
+            else
+                let first, _ = List.head group
+                let position = ctx.Positions.toPosition (nodeStartIndex first)
+
+                Some
+                    { Line = position.Line
+                      Column = position.Column
+                      Type = Magic
+                      Severity = Low
+                      Message =
+                        sprintf
+                            "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
+                            content
+                            group.Length
+                      Hotspots = [] })
+
+    addViolations findings ctx
+
 let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
     if
         not ctx.Options.MagicString.Enabled
@@ -50,57 +103,7 @@ let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
     then
         ctx
     else
-        let isLiteral node =
-            ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
-
-        let rec traverse (node: Node) : (Node * string) list =
-            let ownCandidate =
-                if isLiteral node then
-                    let content = stripQuotes (nodeText node)
-
-                    let isDecisionPoint =
-                        isEqualityComparisonOperand ctx.Language node
-                        || isMembershipOperand ctx.Language node content
-                        || isKeyOrIndexPosition ctx.Language node
-
-                    let isExempt =
-                        isDocstring ctx.Language node
-                        || ctx.Language.IsFormattedOrInterpolatedString node
-                        || List.contains content ctx.Options.MagicString.Allowlist
-                        || content.Length <= 1
-
-                    if isDecisionPoint && not isExempt then
-                        [ node, content ]
-                    else
-                        []
-                else
-                    []
-
-            ownCandidate @ (nodeChildren node |> List.collect traverse)
-
-        let findings =
-            traverse ctx.Tree
-            |> List.groupBy snd
-            |> List.choose (fun (content, group) ->
-                if group.Length < ctx.Options.MagicString.MinDuplicates then
-                    None
-                else
-                    let first, _ = List.head group
-                    let position = ctx.Positions.toPosition (nodeStartIndex first)
-
-                    Some
-                        { Line = position.Line
-                          Column = position.Column
-                          Type = Magic
-                          Severity = Low
-                          Message =
-                            sprintf
-                                "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
-                                content
-                                group.Length
-                          Hotspots = [] })
-
-        addViolations findings ctx
+        analyzeEnabledMagicStrings ctx
 
 let detector: Detector =
     { Name = "magicString"

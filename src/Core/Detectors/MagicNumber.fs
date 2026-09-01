@@ -63,6 +63,46 @@ let private signedValue (node: Node) (rawValue: float) : float =
         | _ -> rawValue
     | None -> rawValue
 
+let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
+    let isLiteral node =
+        isNodeType ctx.Language.NodeTypes.IntegerLiteral node
+        || isNodeType ctx.Language.NodeTypes.FloatLiteral node
+
+    let rec traverse (node: Node) : EnergyViolation list =
+        if isLiteral node then
+            // decision: parses every numeric literal as float because TypeScript uses one node
+            // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
+            match Double.TryParse(nodeText node) with
+            | true, rawValue ->
+                let value = signedValue node rawValue
+
+                let isExempt =
+                    List.contains value ctx.Options.MagicNumber.Allowlist
+                    || isInConstantContext ctx.Language node
+                    || (nodeParent node
+                        |> Option.exists (fun parent -> List.contains (nodeType parent) ctx.Language.SubscriptNodeTypes))
+                    || ctx.Language.IsDefaultParameterValue node
+
+                if isExempt then
+                    []
+                else
+                    let position = ctx.Positions.toPosition (nodeStartIndex node)
+
+                    [ { Line = position.Line
+                        Column = position.Column
+                        Type = Magic
+                        Severity = Low
+                        Message = sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
+                        Hotspots = [] } ]
+            | false, _ -> []
+        // A literal's children are fragments of the same value in some grammars, not separate
+        // values; never descend after evaluating one.
+        else
+            nodeChildren node |> List.collect traverse
+
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
+
 let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
     if
         not ctx.Options.MagicNumber.Enabled
@@ -70,46 +110,7 @@ let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
     then
         ctx
     else
-        let isLiteral node =
-            isNodeType ctx.Language.NodeTypes.IntegerLiteral node
-            || isNodeType ctx.Language.NodeTypes.FloatLiteral node
-
-        let rec traverse (node: Node) : EnergyViolation list =
-            if isLiteral node then
-                // decision: parses every numeric literal as float because TypeScript uses one node
-                // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
-                match Double.TryParse(nodeText node) with
-                | true, rawValue ->
-                    let value = signedValue node rawValue
-
-                    let isExempt =
-                        List.contains value ctx.Options.MagicNumber.Allowlist
-                        || isInConstantContext ctx.Language node
-                        || (nodeParent node
-                            |> Option.exists (fun parent ->
-                                List.contains (nodeType parent) ctx.Language.SubscriptNodeTypes))
-                        || ctx.Language.IsDefaultParameterValue node
-
-                    if isExempt then
-                        []
-                    else
-                        let position = ctx.Positions.toPosition (nodeStartIndex node)
-
-                        [ { Line = position.Line
-                            Column = position.Column
-                            Type = Magic
-                            Severity = Low
-                            Message =
-                              sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
-                            Hotspots = [] } ]
-                | false, _ -> []
-            // A literal's children are fragments of the same value in some grammars, not separate
-            // values; never descend after evaluating one.
-            else
-                nodeChildren node |> List.collect traverse
-
-        let findings = traverse ctx.Tree
-        addViolations findings ctx
+        analyzeEnabledMagicNumbers ctx
 
 let detector: Detector =
     { Name = "magicNumber"
