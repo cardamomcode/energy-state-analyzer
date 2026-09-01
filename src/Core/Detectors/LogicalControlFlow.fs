@@ -37,7 +37,7 @@ let analyzeLogicalControlFlow (tree: Node) (positions: PositionLookup) (language
 
 let detector: Detector =
     { Name = "logicalControlFlow"
-      Run = fun ctx -> analyzeLogicalControlFlow ctx.Tree ctx.Positions ctx.Language }
-
-let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeLogicalControlFlow ctx.Tree ctx.Positions ctx.Language |> addViolations
+            <| ctx }

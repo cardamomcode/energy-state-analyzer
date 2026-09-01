@@ -8,20 +8,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-type MagicStringOptions =
-    { Enabled: bool
-      MinDuplicates: int
-      Allowlist: string list
-      // decision: test files are exempt by default because tests intentionally compare against
-      // literal values (using a constant would hide a wrong constant); the flag lets a user opt
-      // back in (e.g. to audit fixtures that live under a test/ directory).
-      IncludeTestFiles: bool }
+type MagicStringOptions = Energy.Core.Context.MagicStringOptions
 
-let defaultOptions =
-    { Enabled = true
-      MinDuplicates = 2
-      Allowlist = [ ""; "utf-8"; "__main__" ]
-      IncludeTestFiles = false }
+let defaultOptions = defaultAnalyzeOptions.MagicString
 
 let private stripQuotes (text: string) =
     if text.Length >= 2 then
@@ -115,11 +104,8 @@ let analyzeMagicStrings
 
 let detector: Detector =
     { Name = "magicString"
-      Run = fun ctx -> analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
-
-let handler (options: MagicStringOptions) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName options)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName ctx.Options.MagicString
+            |> addViolations
+            <| ctx }

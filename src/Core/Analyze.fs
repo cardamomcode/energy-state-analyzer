@@ -9,9 +9,9 @@ open Energy.Core.Context
 open Energy.Core.DetectorPipeline
 open Energy.Core.Suppressions
 
-type AnalyzeThresholds = DetectorPipeline.AnalyzeThresholds
+type AnalyzeThresholds = AnalyzeOptions
 
-let defaultThresholds = DetectorPipeline.defaultThresholds
+let defaultThresholds = defaultAnalyzeOptions
 
 /// Everything the synchronous analyzer needs after a host has parsed a document.
 ///
@@ -54,19 +54,17 @@ let private applySuppressionStage (ctx: AnalysisContext) (violations: EnergyViol
     suppressed.Violations @ suppressed.SuppressionNotes
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
-    ctx |> runDefault |> applySuppressionStage ctx
+    let completed = ctx |> runDefault
+    completed.Violations |> List.rev |> applySuppressionStage completed
 
-let runPipelineWith (thresholds: AnalyzeThresholds) (ctx: AnalysisContext) : EnergyViolation list =
-    ctx
-    |> DetectorPipelineConfigured.runWith thresholds
-    |> applySuppressionStage ctx
-
-let private createContext (input: AnalysisInput) : AnalysisContext =
+let private createContext (options: AnalyzeOptions) (input: AnalysisInput) : AnalysisContext =
     { Source = input.Source
       Tree = input.Tree
       Positions = createPositionLookup input.Source
       Language = input.Language
-      FileName = input.FileName }
+      FileName = input.FileName
+      Options = options
+      Violations = [] }
 
 let private toResult violations : AnalysisResult = { Violations = violations }
 
@@ -76,8 +74,8 @@ let private toResult violations : AnalysisResult = { Violations = violations }
 /// and presentation remain host adapters instead of becoming dependencies of Core.
 /// invariant: detector ordering and suppression application remain stable across host adapters.
 let analyze (input: AnalysisInput) : AnalysisResult =
-    input |> createContext |> runPipeline |> toResult
+    input |> createContext defaultAnalyzeOptions |> runPipeline |> toResult
 
 /// Analyze a parsed document with caller-supplied detector thresholds.
 let analyzeWith (thresholds: AnalyzeThresholds) (input: AnalysisInput) : AnalysisResult =
-    input |> createContext |> runPipelineWith thresholds |> toResult
+    input |> createContext thresholds |> runPipeline |> toResult

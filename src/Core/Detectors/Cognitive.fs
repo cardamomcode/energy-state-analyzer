@@ -21,16 +21,13 @@ open Energy.Core.Context
 //   - match/switch-like constructs and try/except are scored once as a whole, not per-case — see
 //     each LanguageAdapter for the exact node-type mapping (CognitiveNestedDecisionTypes).
 
-type CognitiveThresholds =
-    { MediumThreshold: int
-      HighThreshold: int }
+type CognitiveThresholds = Energy.Core.Context.CognitiveThresholds
 
 // decision: medium 15 / high 25 — cognitive complexity weights nesting more heavily than cyclomatic,
 // so its thresholds sit higher (SonarSource's own defaults); a function that is only "medium" by
 // cyclomatic can legitimately be clean here.
 let defaultCognitiveThresholds: CognitiveThresholds =
-    { MediumThreshold = 15
-      HighThreshold = 25 }
+    defaultAnalyzeOptions.Cognitive
 
 // decision: compare a node against an optional grammar node type without leaking `option` into the
 // detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
@@ -191,11 +188,8 @@ let analyzeCognitiveComplexity
 
 let detector: Detector =
     { Name = "cognitive"
-      Run = fun ctx -> analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language defaultCognitiveThresholds }
-
-let handler (thresholds: CognitiveThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language thresholds)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language ctx.Options.Cognitive
+            |> addViolations
+            <| ctx }

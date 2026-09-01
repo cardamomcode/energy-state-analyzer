@@ -21,40 +21,13 @@ open Energy.Core.Detectors.ClassRelatedness
 // each violation is anchored at the most directly actionable position (first function / first import /
 // first large function) rather than line 0.
 
-type CoherenceThresholds =
-    { // decision: gates file-coherence sprawl detection on large-function count, not raw function count —
-      // languages like F# idiomatically have many small functions per module, so what matters is
-      // functions large enough to carry real complexity.
-      LargeFunctionLines: int
-      // Number of large functions (per LargeFunctionLines) a file can contain before it's flagged.
-      MaxLargeFunctions: int
-      // Share (0-1) of a file's functions that must share a leading name word for the file to be treated
-      // as one coherent domain broken into many small steps, rather than a grab-bag of unrelated
-      // helpers — and skip the raw function-count sprawl check below. Only consulted when there isn't
-      // enough type-annotation coverage to trust maxTypeDiversityRatio instead (see checkFunctionCountSprawl).
-      SingleDomainNameShare: float
-      // Maximum allowed ratio (0-1) of distinct base types to typed functions for the file to be treated
-      // as one type-cohesive module, skipping the function-count sprawl check outright. A stronger signal
-      // than singleDomainNameShare when available, since it isn't vulnerable to name-prefix coincidence:
-      // an F#-style module exposing one verb per operation (map/filter/fold/zip/scan/...) shares no name
-      // prefix at all, but reuses a small type vocabulary throughout. Measures reuse (few distinct types
-      // across many functions) rather than one type dominating. Only ever evaluated once a file already
-      // crosses the existing function-count thresholds below (see checkFunctionCountSprawl).
-      MaxTypeDiversityRatio: float
-      // Minimum share (0-1) of a file's functions that must carry at least one typed parameter or
-      // return-type annotation before maxTypeDiversityRatio is trusted at all. Below this, the detector
-      // falls back to singleDomainNameShare instead — avoids false confidence on largely-untyped files.
-      MinTypedCoverage: float }
+type CoherenceThresholds = Energy.Core.Context.CoherenceThresholds
 
 // decision: medium 15 / high 25 for large-function count; the raw function-count trigger (8/12) and its
 // severity escalation (15) are deliberately NOT part of CoherenceThresholds — they're secondary heuristics
 // tuned around the utils-file naming proxy, not thresholds users are expected to retune independently.
 let defaultCoherenceThresholds: CoherenceThresholds =
-    { LargeFunctionLines = 20
-      MaxLargeFunctions = 5
-      SingleDomainNameShare = 0.7
-      MaxTypeDiversityRatio = 0.4
-      MinTypedCoverage = 0.5 }
+    defaultAnalyzeOptions.Coherence
 
 let private utilsFileFunctionThreshold = 8
 let private genericFunctionCountThreshold = 12
@@ -333,11 +306,8 @@ let analyzeFileCoherence
 
 let detector: Detector =
     { Name = "coherence"
-      Run = fun ctx -> analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions defaultCoherenceThresholds }
-
-let handler (thresholds: CoherenceThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions thresholds)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions ctx.Options.Coherence
+            |> addViolations
+            <| ctx }

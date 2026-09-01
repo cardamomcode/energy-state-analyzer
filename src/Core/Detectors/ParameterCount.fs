@@ -64,7 +64,7 @@ let analyzeParameterCount (tree: Node) (positions: PositionLookup) (language: La
 
 let detector: Detector =
     { Name = "parameterCount"
-      Run = fun ctx -> analyzeParameterCount ctx.Tree ctx.Positions ctx.Language }
-
-let handler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeParameterCount ctx.Tree ctx.Positions ctx.Language |> addViolations
+            <| ctx }

@@ -8,9 +8,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.MatchOpportunitySupport
 
-type MatchOpportunityThresholds = { MinBranches: int }
+type MatchOpportunityThresholds = Energy.Core.Context.MatchOpportunityThresholds
 
-let defaultThresholds = { MinBranches = 3 }
+let defaultThresholds = defaultAnalyzeOptions.MatchOpportunity
 
 let private matchOpportunityViolation
     (positions: PositionLookup)
@@ -73,11 +73,8 @@ let analyzeMatchOpportunities
 
 let detector: Detector =
     { Name = "matchOpportunity"
-      Run = fun ctx -> analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language defaultThresholds }
-
-let handler (thresholds: MatchOpportunityThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language thresholds)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeMatchOpportunities ctx.Tree ctx.Positions ctx.Language ctx.Options.MatchOpportunity
+            |> addViolations
+            <| ctx }

@@ -12,15 +12,11 @@ open Energy.Core.Context
 // than the medium threshold; severity escalates to high past the high threshold. Each violation is
 // anchored at the control node's start position.
 
-type NestingThresholds =
-    { MediumThreshold: int
-      HighThreshold: int }
+type NestingThresholds = Energy.Core.Context.NestingThresholds
 
 // decision: default medium threshold of 3 is the point where tracking active conditions starts to
 // strain working memory; high threshold of 5 escalates severity for the deepest offenders.
-let defaultNestingThresholds: NestingThresholds =
-    { MediumThreshold = 3
-      HighThreshold = 5 }
+let defaultNestingThresholds: NestingThresholds = defaultAnalyzeOptions.Nesting
 
 let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : EnergyViolation list =
     // Pure pre-order DFS that reproduces the TS algorithm's push-to-end ordering exactly: a control
@@ -57,10 +53,4 @@ let analyzeNesting (ctx: AnalysisContext) (thresholds: NestingThresholds) : Ener
 
 let detector: Detector =
     { Name = "nesting"
-      Run = fun ctx -> analyzeNesting ctx defaultNestingThresholds }
-
-let handler (thresholds: NestingThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx -> analyzeNesting ctx thresholds)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run = fun ctx -> analyzeNesting ctx ctx.Options.Nesting |> addViolations <| ctx }

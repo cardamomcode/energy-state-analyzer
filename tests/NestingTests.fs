@@ -41,6 +41,7 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) = parseFixture language fixture
+
                             let violations =
                                 analyze
                                     { Source = source

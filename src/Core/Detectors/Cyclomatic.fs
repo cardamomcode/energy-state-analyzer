@@ -15,15 +15,12 @@ open Energy.Core.Context
 // edge. A violation is anchored at the function's start position and carries per-line hotspots
 // weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
-type CyclomaticThresholds =
-    { MediumThreshold: int
-      HighThreshold: int }
+type CyclomaticThresholds = Energy.Core.Context.CyclomaticThresholds
 
 // decision: medium 10 / high 15 — the point where holding that many independent paths in working
 // memory degrades readability (medium), and deep branching genuinely demands extraction (high).
 let defaultCyclomaticThresholds: CyclomaticThresholds =
-    { MediumThreshold = 10
-      HighThreshold = 15 }
+    defaultAnalyzeOptions.Cyclomatic
 
 type private FlowNode =
     | Entry
@@ -192,11 +189,8 @@ let analyzeFunctionComplexity
 
 let detector: Detector =
     { Name = "cyclomatic"
-      Run = fun ctx -> analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language defaultCyclomaticThresholds }
-
-let handler (thresholds: CyclomaticThresholds) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language thresholds)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeFunctionComplexity ctx.Tree ctx.Positions ctx.Language ctx.Options.Cyclomatic
+            |> addViolations
+            <| ctx }

@@ -78,23 +78,19 @@ let private parseArguments arguments =
       IncludeTestFiles = Map.containsKey "include-test-files" flags }
 
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
-    match medium, high with
-    | None, None -> None
-    | _ -> Some(constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high))
+    constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
 
 let private buildThresholds parsed =
     { defaultThresholds with
         MagicNumber =
-            Some
-                { Enabled = Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
-                  Allowlist = Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
-                  IncludeTestFiles = parsed.IncludeTestFiles }
+            { Enabled = Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
+              Allowlist = Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
+              IncludeTestFiles = parsed.IncludeTestFiles }
         MagicString =
-            Some
-                { Enabled = Energy.Core.Detectors.MagicString.defaultOptions.Enabled
-                  MinDuplicates = Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
-                  Allowlist = Energy.Core.Detectors.MagicString.defaultOptions.Allowlist
-                  IncludeTestFiles = parsed.IncludeTestFiles }
+            { Enabled = Energy.Core.Detectors.MagicString.defaultOptions.Enabled
+              MinDuplicates = Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
+              Allowlist = Energy.Core.Detectors.MagicString.defaultOptions.Allowlist
+              IncludeTestFiles = parsed.IncludeTestFiles }
         Nesting =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)

@@ -10,18 +10,9 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-type MagicNumberOptions =
-    { Enabled: bool
-      Allowlist: float list
-      // decision: test files are exempt by default because throwaway test code is full of
-      // intentional literals; the flag lets a user opt back in (e.g. to audit fixtures that live
-      // under a test/ directory) without weakening the default.
-      IncludeTestFiles: bool }
+type MagicNumberOptions = Energy.Core.Context.MagicNumberOptions
 
-let defaultOptions =
-    { Enabled = true
-      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
-      IncludeTestFiles = false }
+let defaultOptions = defaultAnalyzeOptions.MagicNumber
 
 // The "Magic Number" detector exempts the small set of structural idioms where a literal is
 // self-explanatory, while keeping significant values outside named bindings visible.
@@ -123,11 +114,8 @@ let analyzeMagicNumbers
 
 let detector: Detector =
     { Name = "magicNumber"
-      Run = fun ctx -> analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName defaultOptions }
-
-let handler (options: MagicNumberOptions) : Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector (fun ctx ->
-        analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName options)
-
-let defaultHandler: Energy.Core.AnalysisPipeline.AnalysisHandler =
-    Energy.Core.AnalysisPipeline.detector detector.Run
+      Run =
+        fun ctx ->
+            analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName ctx.Options.MagicNumber
+            |> addViolations
+            <| ctx }

@@ -109,7 +109,7 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) = parseFixture CPP "cpp/magicNumber.cpp"
-                            let violations = analyzeSource sourceCode tree CPP "magicNumber.cpp"
+                            let violations = analyzeFixture sourceCode tree CPP "magicNumber.cpp"
                             let limits = findFunctionRange sourceCode "Limits"
 
                             assertThat

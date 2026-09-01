@@ -161,7 +161,7 @@ let tests =
                   toAsync (
                       task {
                           let! (source, tree) = parseFixture CPP "cpp/coherence/classBoundaries.cpp"
-                          let violations = analyzeSource source tree CPP "classBoundaries.hpp"
+                          let violations = analyzeFixture source tree CPP "classBoundaries.hpp"
 
                           assertThat
                               (violations
@@ -177,7 +177,7 @@ let tests =
                   toAsync (
                       task {
                           let! (source, tree) = parseFixture CPP "cpp/suppressions.cpp"
-                          let violations = analyzeSource source tree CPP "suppressions.cpp"
+                          let violations = analyzeFixture source tree CPP "suppressions.cpp"
 
                           assertThat
                               (violations |> List.exists (fun violation -> violation.Type = PrimitiveObsession))
