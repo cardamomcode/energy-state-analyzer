@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      pull-requests: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -39,9 +39,24 @@ jobs:
       - name: Run energy state diff
         run: node dist/cli.js --base-ref "origin/${{ github.base_ref }}" --report md > energy-diff.md
 
-      - name: Comment on PR
+      - name: Prepare energy state diff artifact
         if: always()
-        uses: marocchino/sticky-pull-request-comment@v3
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          artifact_dir="$RUNNER_TEMP/energy-state-diff"
+          mkdir -p "$artifact_dir"
+          printf '%s\n' "$PR_NUMBER" > "$artifact_dir/pr-number"
+          if [ -f energy-diff.md ]; then
+            cp energy-diff.md "$artifact_dir/energy-diff.md"
+          else
+            printf '# Energy State Report\n\nThe report could not be generated. See the workflow logs.\n' > "$artifact_dir/energy-diff.md"
+          fi
+
+      - name: Upload energy state diff
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          header: energy-state-diff
-          path: energy-diff.md
+          name: energy-state-diff
+          path: ${{ runner.temp }}/energy-state-diff
+          if-no-files-found: error
