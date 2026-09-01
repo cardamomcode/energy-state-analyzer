@@ -182,7 +182,7 @@ let TYPESCRIPT: LanguageAdapter =
       PrimitiveTypeNames = Set.ofList [ "string"; "number"; "boolean" ]
       // TS has no enforced-keyword-only parameter syntax — see language.ts's field doc.
       KeywordOnlyBoundaryTypes = []
-      DistinctTypeAdvice = "a branded/nominal type (e.g. a tagged type alias)"
+      DistinctTypeAdvice = "a branded type (a nominal/opaque type with zero runtime overhead)"
       GetEqualityComparisons =
         fun node ->
             if nodeType node <> NodeType "binary_expression" then
