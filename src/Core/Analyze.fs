@@ -54,7 +54,7 @@ let private applySuppressionStage (ctx: AnalysisContext) (violations: EnergyViol
     suppressed.Violations @ suppressed.SuppressionNotes
 
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
-    let completed = ctx |> runDefault
+    let completed = ctx |> detectorPipeline
     completed.Violations |> List.rev |> applySuppressionStage completed
 
 let private createContext (options: AnalyzeOptions) (input: AnalysisInput) : AnalysisContext =
