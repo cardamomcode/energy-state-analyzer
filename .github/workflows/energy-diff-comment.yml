@@ -1,0 +1,41 @@
+name: Comment energy state diff
+
+on:
+  workflow_run:
+    workflows: [Energy state diff]
+    types: [completed]
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Download energy state diff
+        uses: actions/download-artifact@v5
+        with:
+          name: energy-state-diff
+          path: ${{ runner.temp }}/energy-state-diff
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read pull request number
+        id: pull-request
+        run: |
+          number="$(tr -d '\n' < "$RUNNER_TEMP/energy-state-diff/pr-number")"
+          case "$number" in
+            '' | *[!0-9]*) exit 1 ;;
+          esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        # decision: keeps write credentials in a workflow that only reads a report artifact and
+        # never checks out or runs untrusted pull-request code.
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: energy-state-diff
+          number_force: ${{ steps.pull-request.outputs.number }}
+          path: ${{ runner.temp }}/energy-state-diff/energy-diff.md
