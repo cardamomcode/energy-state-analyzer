@@ -15,6 +15,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: runs the full detector pipeline (analyzeSource, the same entry point the CLI and the
@@ -28,7 +29,8 @@ let tests =
         [ "Python", PYTHON, "python/cognitiveComplexity.py"
           "TypeScript", TYPESCRIPT, "typescript/cognitiveComplexity.ts"
           "F#", FSHARP, "fsharp/cognitiveComplexity.fs"
-          "Kotlin", KOTLIN, "kotlin/cognitiveComplexity.kt" ]
+          "Kotlin", KOTLIN, "kotlin/cognitiveComplexity.kt"
+          "C++", CPP, "cpp/cognitiveComplexity.cpp" ]
 
     testList (
         "Integration: cognitive complexity (real code examples)",

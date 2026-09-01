@@ -16,15 +16,15 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: coherence is a whole-file metric (function count, large-function count, import count),
 // unlike every other detector here — it can't be exercised with a "clean version + flagged version in
 // one file" fixture, so each scenario gets its own file instead. This mirrors coherence.test.ts: two
-// language blocks, one over all four ported languages and one (class-relatedness only) over the three
+// language blocks, one over every supported language and one (class-relatedness only) over those
 // that have a real class construct — F# has no classDefinitionNodeTypes, so it's excluded rather than
-// given empty fixtures. The Python/TS/F#/Kotlin adapters are exercised here as they were ported
-// alongside the detector.
+// given empty fixtures.
 
 let private coherenceHits (violations: EnergyViolation list) : EnergyViolation list =
     violations |> List.filter (fun v -> v.Type = Coherence)
@@ -94,16 +94,18 @@ let tests =
     // naming cohesion at all, well past the generic 12-function threshold. Confirmed to misfire under
     // the naming-only heuristic before the type-cohesion signal existed (see coherence.ts's decision
     // comments). The relatedClasses/exceptionFamily fixtures guard class-grouping false positives.
-    let languages4 =
+    let functionLanguages =
         [ "Python", PYTHON, "py"
           "TypeScript", TYPESCRIPT, "ts"
           "F#", FSHARP, "fs"
-          "Kotlin", KOTLIN, "kt" ]
+          "Kotlin", KOTLIN, "kt"
+          "C++", CPP, "cpp" ]
 
-    let languages3 =
+    let classLanguages =
         [ "Python", PYTHON, "py"
           "TypeScript", TYPESCRIPT, "ts"
-          "Kotlin", KOTLIN, "kt" ]
+          "Kotlin", KOTLIN, "kt"
+          "C++", CPP, "cpp" ]
 
     let block1Scenarios: Scenario list =
         [ { Name = "too many large functions is flagged"
@@ -142,7 +144,7 @@ let tests =
         langCases
         |> List.collect (fun (label, language, ext) -> scenarios |> List.map (fun s -> buildTest label language ext s))
 
-    let block1 = buildBlock languages4 block1Scenarios
-    let block2 = buildBlock languages3 block2Scenarios
+    let block1 = buildBlock functionLanguages block1Scenarios
+    let block2 = buildBlock classLanguages block2Scenarios
 
     testList ("Integration: file coherence (real code examples)", block1 @ block2)

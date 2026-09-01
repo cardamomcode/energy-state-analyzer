@@ -204,6 +204,7 @@ let TYPESCRIPT: LanguageAdapter =
       // TS's set-membership idiom is `[...].includes(x)`, a call_expression rather than a comparison
       // node — not modeled here; repeated equality checks still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
+      IsMatchCaseLiteral = fun node -> nodeType node = NodeType "string" || nodeType node = NodeType "number"
       // `else if` has no flat elif node in this grammar — it's a nested if_statement one level inside
       // else_clause, which the match-opportunity detector walks itself.
       GetElseIfBranches = fun _ -> []
@@ -257,7 +258,10 @@ let TYPESCRIPT: LanguageAdapter =
             | Some s -> nodeText s
             | None -> nodeText node
       // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
-      ClassDefinitionNodeTypes = [ NodeType "class_declaration"; NodeType "abstract_class_declaration" ]
+      IsClassDefinition =
+        fun node ->
+            nodeType node = NodeType "class_declaration"
+            || nodeType node = NodeType "abstract_class_declaration"
       GetClassName =
         fun node ->
             nodeChildren node

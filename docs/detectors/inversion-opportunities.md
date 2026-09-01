@@ -36,4 +36,4 @@ def handle(request):
 
 ## Known limitations
 
-Only fires for Python and TypeScript. F#'s grammar has no block-boundary node to anchor this heuristic on.
+Runs for Python, TypeScript, Kotlin, and C++. F#'s grammar has no block-boundary node to anchor this heuristic on. In C++, only explicit syntax is considered; macro-expanded guard chains are not visible.

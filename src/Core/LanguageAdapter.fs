@@ -4,7 +4,7 @@ open Energy.Core.TreeSitter
 
 // Per-grammar knowledge for the detectors.
 //
-// decision: the current 25-hook LanguageAdapter is a class-less interface of predicate callbacks;
+// decision: the current 26-hook LanguageAdapter is a class-less interface of predicate callbacks;
 // the idiomatic F# shape is a record of functions — data + behavior, no interface ceremony. Each
 // hook becomes one record field with a pure signature.
 //
@@ -132,6 +132,10 @@ type LanguageAdapter =
       // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
       // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.
       GetMembershipComparisons: Node -> MembershipComparison list
+      // Whether this literal can be used as a case/pattern value by the language's match-like
+      // construct. This is narrower than the detector-wide literal types: C++ equality checks can
+      // compare strings and floats even though neither is valid in a switch case.
+      IsMatchCaseLiteral: Node -> bool
       // Given an if-statement/if-expression node, returns the elif-like nodes chained directly onto it
       // (Python's elif_clause, F#'s elif_expression, both flat siblings of the top if-node) — empty for
       // grammars with no flat elif node (TypeScript, where `else if` parses as an if_statement nested in
@@ -172,12 +176,13 @@ type LanguageAdapter =
       // detector's import-sprawl check. Grammars differ in how many lines one dependency costs: TS's and
       // Python's bundle many symbols into one line; Kotlin has no grouping syntax.
       ImportSource: Node -> string
-      // Node types that introduce a class-like scope for the file-coherence detector's class-relatedness
-      // check — methods nested inside one are grouped by their enclosing class instead of counted as
-      // free-standing functions. Empty for F#, which has no idiomatic class-per-file OOP pattern this targets.
-      ClassDefinitionNodeTypes: NodeType list
+      // Whether a node introduces a class-like scope for the file-coherence detector's
+      // class-relatedness check — methods nested inside one are grouped by their enclosing class
+      // instead of counted as free-standing functions. A predicate is required because C++ uses the
+      // same class_specifier/struct_specifier node types for definitions and forward declarations.
+      IsClassDefinition: Node -> bool
       // Given a class-definition node, returns its declared name, or None if it can't be determined. Always
-      // called with a node whose type is one of ClassDefinitionNodeTypes.
+      // called with a node for which IsClassDefinition returns true.
       GetClassName: Node -> string option
       // Given a class-definition node, returns the names of every class it directly extends/implements, as
       // written in source (not resolved against imports). Used two ways by checkClassRelatedness: linked

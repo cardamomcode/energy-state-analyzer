@@ -2,6 +2,12 @@
 
 Each detector is documented in its own file: what it flags, an example, its configuration, and known limitations.
 
+All twelve detector categories run for C++. Coverage includes functions and methods, typed
+declarators, classes and structs, inheritance, includes, literals and constants, boolean operators,
+subscripts, `if`/loops/`try`/`catch`, ternaries, and branch-aware `switch` statements. Analysis is
+syntax-only: preprocessing, include resolution, template instantiation, overload resolution, and
+type checking remain the compiler's job.
+
 ## Complexity and structure
 
 - [Cyclomatic complexity](cyclomatic-complexity.md), too many independent execution paths.

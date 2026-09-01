@@ -15,7 +15,7 @@ one past its responsibility.
 | Area | Owns | State |
 | --- | --- | --- |
 | `src/Core/` | Violation model, parser facade, detector pipeline, suppressions, scanning and reports | No host state |
-| `src/Languages/` | Per-grammar `LanguageAdapter` records | Static registry |
+| `src/Languages/` | Python, F#, TypeScript, Kotlin, and C++ `LanguageAdapter` records | Static registry |
 | `src/Extension/Vscode*.fs` | Narrow Fable facade over VS Code | No |
 | `src/Extension/Configuration*.fs` | VS Code settings and pure settings-to-threshold mapping | No |
 | `src/Extension/Grammar.fs` | Parser initialization, loaded grammar cache, in-flight load cache | Cache supplied by root |
@@ -59,3 +59,8 @@ one Problems entry, preserving severity ordering, tags, codes, and combined mess
 Webpack keeps `vscode` external, bundles `web-tree-sitter`, copies `web-tree-sitter.wasm`, and
 adds the CLI shebang. Per-language grammar WASMs remain runtime files in `grammars/`. There is no
 TypeScript compiler or loader in the product build.
+
+The registry is keyed by VS Code language ID. CLI filenames are matched against a longest-first,
+case-insensitive suffix table, which is required for compound C++ suffixes such as `.hpp.in` and
+keeps C, CUDA, and Objective-C++ outside the C++ adapter. Bundled third-party grammar artifacts keep
+their provenance, checksum, and license notice beside the WASM.

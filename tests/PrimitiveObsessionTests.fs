@@ -9,6 +9,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 let tests =
@@ -16,7 +17,8 @@ let tests =
         [ "Python", PYTHON, "python/primitiveObsession.py"
           "TypeScript", TYPESCRIPT, "typescript/primitiveObsession.ts"
           "F#", FSHARP, "fsharp/primitiveObsession.fs"
-          "Kotlin", KOTLIN, "kotlin/primitiveObsession.kt" ]
+          "Kotlin", KOTLIN, "kotlin/primitiveObsession.kt"
+          "C++", CPP, "cpp/primitiveObsession.cpp" ]
 
     testList (
         "Integration: primitive obsession",

@@ -10,6 +10,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="SpikeTests.fs" />
     <Compile Include="TestUtils.fs" />
+    <Compile Include="CPlusPlusTests.fs" />
     <Compile Include="NestingTests.fs" />
     <Compile Include="CyclomaticTests.fs" />
     <Compile Include="CognitiveTests.fs" />

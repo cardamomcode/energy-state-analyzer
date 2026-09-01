@@ -1,0 +1,14 @@
+std::vector<int> map(std::vector<int> source) { return source; }
+std::vector<int> filter(std::vector<int> source) { return source; }
+std::vector<int> fold(std::vector<int> source) { return source; }
+std::vector<int> head(std::vector<int> source) { return source; }
+std::vector<int> length(std::vector<int> source) { return source; }
+std::vector<int> take(std::vector<int> source) { return source; }
+std::vector<int> skip(std::vector<int> source) { return source; }
+std::vector<int> tail(std::vector<int> source) { return source; }
+std::vector<int> concat(std::vector<int> source) { return source; }
+std::vector<int> reverse(std::vector<int> source) { return source; }
+std::vector<int> distinct(std::vector<int> source) { return source; }
+std::vector<int> sum(std::vector<int> source) { return source; }
+std::vector<int> maximum(std::vector<int> source) { return source; }
+std::vector<int> minimum(std::vector<int> source) { return source; }

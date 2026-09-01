@@ -12,6 +12,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: runs the pipeline over the established real-code fixtures so the detector's grammar
@@ -21,7 +22,8 @@ let tests =
         [ "Python", PYTHON, "python/magicNumber.py"
           "TypeScript", TYPESCRIPT, "typescript/magicNumber.ts"
           "F#", FSHARP, "fsharp/magicNumber.fs"
-          "Kotlin", KOTLIN, "kotlin/magicNumber.kt" ]
+          "Kotlin", KOTLIN, "kotlin/magicNumber.kt"
+          "C++", CPP, "cpp/magicNumber.cpp" ]
 
     let fixtureTests =
         cases
@@ -91,6 +93,23 @@ let tests =
                         task {
                             let! (sourceCode, tree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
                             let violations = analyzeSource sourceCode tree KOTLIN "magicNumber.kt"
+                            let limits = findFunctionRange sourceCode "Limits"
+
+                            assertThat
+                                (violationsIn violations limits
+                                 |> List.filter (fun v -> v.Type = Magic)
+                                 |> List.length)
+                                (isEqualTo 0)
+                        }
+                    ))
+            )
+            testAsync (
+                "C++: constexpr declarations and enumerators are exempt at every nesting depth",
+                (fun _ ->
+                    toAsync (
+                        task {
+                            let! (sourceCode, tree) = parseFixture CPP "cpp/magicNumber.cpp"
+                            let violations = analyzeSource sourceCode tree CPP "magicNumber.cpp"
                             let limits = findFunctionRange sourceCode "Limits"
 
                             assertThat

@@ -12,6 +12,7 @@ open Energy.Languages.Python
 open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 // decision: exercises the registered pipeline over shared fixtures, proving the adapter hooks
@@ -21,7 +22,8 @@ let tests =
         [ "Python", PYTHON, "python/magicString.py"
           "TypeScript", TYPESCRIPT, "typescript/magicString.ts"
           "F#", FSHARP, "fsharp/magicString.fs"
-          "Kotlin", KOTLIN, "kotlin/magicString.kt" ]
+          "Kotlin", KOTLIN, "kotlin/magicString.kt"
+          "C++", CPP, "cpp/magicString.cpp" ]
 
     let fixtureTests =
         cases

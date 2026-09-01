@@ -7,12 +7,14 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Languages.Python
 open Energy.Languages.TypeScript
+open Energy.Languages.CPlusPlus
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
         [ "Python", PYTHON, "python/logicalControlFlow.py"
-          "TypeScript", TYPESCRIPT, "typescript/logicalControlFlow.ts" ]
+          "TypeScript", TYPESCRIPT, "typescript/logicalControlFlow.ts"
+          "C++", CPP, "cpp/logicalControlFlow.cpp" ]
 
     testList (
         "Integration: logical control flow",

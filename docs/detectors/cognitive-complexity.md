@@ -43,3 +43,7 @@ The two scores can diverge on the same function: a flat function with many indep
 - `energyStateAnalyzer.cognitiveComplexity.highThreshold` (default `25`)
 
 A progressive heatmap is also painted across a flagged function's body, mirroring the cyclomatic-complexity heatmap but weighted by nesting-adjusted contribution instead of flat count.
+
+For C++, `switch` is scored once as a nested decision, `catch` clauses contribute as nested
+decisions, and C++ lambdas contribute to their enclosing function rather than being analyzed as
+standalone functions. Macro-expanded control flow is not visible to this syntax-only analysis.
