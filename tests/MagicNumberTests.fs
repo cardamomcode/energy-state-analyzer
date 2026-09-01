@@ -163,24 +163,32 @@ let tests =
                             let numbers = findFunctionRange sourceCode "flaggedMagicNumbers"
 
                             let disabled =
-                                analyzeMagicNumbers
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicNumber.py"
-                                    { Enabled = false
-                                      Allowlist = []
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicNumber =
+                                            { Enabled = false
+                                              Allowlist = []
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicNumbers
+                                |> _.Violations
 
                             let customAllowlist =
-                                analyzeMagicNumbers
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicNumber.py"
-                                    { Enabled = true
-                                      Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicNumber =
+                                            { Enabled = true
+                                              Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicNumbers
+                                |> _.Violations
 
                             let testFile = analyzeFixture sourceCode tree PYTHON "PricingTest.py"
                             let latestFile = analyzeFixture sourceCode tree PYTHON "latest_pricing.py"
@@ -188,14 +196,18 @@ let tests =
                             // decision: the includeTestFiles flag re-enables findings in test-named files,
                             // which is how fixtures under a test/ directory get audited.
                             let testFileIncluded =
-                                analyzeMagicNumbers
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "PricingTest.py"
-                                    { Enabled = true
-                                      Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
-                                      IncludeTestFiles = true }
+                                    { defaultThresholds with
+                                        MagicNumber =
+                                            { Enabled = true
+                                              Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
+                                              IncludeTestFiles = true } }
+                                |> analyzeMagicNumbers
+                                |> _.Violations
 
                             assertThat (disabled |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
 

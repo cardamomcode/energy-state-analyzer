@@ -43,18 +43,15 @@ let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
-let analyzeMagicStrings
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (fileName: string)
-    (options: MagicStringOptions)
-    : EnergyViolation list =
-    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
-        []
+let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
+    if
+        not ctx.Options.MagicString.Enabled
+        || (not ctx.Options.MagicString.IncludeTestFiles && isTestFile ctx.FileName)
+    then
+        ctx
     else
         let isLiteral node =
-            language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
+            ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
 
         let rec traverse (node: Node) : (Node * string) list =
             let ownCandidate =
@@ -62,14 +59,14 @@ let analyzeMagicStrings
                     let content = stripQuotes (nodeText node)
 
                     let isDecisionPoint =
-                        isEqualityComparisonOperand language node
-                        || isMembershipOperand language node content
-                        || isKeyOrIndexPosition language node
+                        isEqualityComparisonOperand ctx.Language node
+                        || isMembershipOperand ctx.Language node content
+                        || isKeyOrIndexPosition ctx.Language node
 
                     let isExempt =
-                        isDocstring language node
-                        || language.IsFormattedOrInterpolatedString node
-                        || List.contains content options.Allowlist
+                        isDocstring ctx.Language node
+                        || ctx.Language.IsFormattedOrInterpolatedString node
+                        || List.contains content ctx.Options.MagicString.Allowlist
                         || content.Length <= 1
 
                     if isDecisionPoint && not isExempt then
@@ -81,31 +78,30 @@ let analyzeMagicStrings
 
             ownCandidate @ (nodeChildren node |> List.collect traverse)
 
-        traverse tree
-        |> List.groupBy snd
-        |> List.choose (fun (content, group) ->
-            if group.Length < options.MinDuplicates then
-                None
-            else
-                let first, _ = List.head group
-                let position = positions.toPosition (nodeStartIndex first)
+        let findings =
+            traverse ctx.Tree
+            |> List.groupBy snd
+            |> List.choose (fun (content, group) ->
+                if group.Length < ctx.Options.MagicString.MinDuplicates then
+                    None
+                else
+                    let first, _ = List.head group
+                    let position = ctx.Positions.toPosition (nodeStartIndex first)
 
-                Some
-                    { Line = position.Line
-                      Column = position.Column
-                      Type = Magic
-                      Severity = Low
-                      Message =
-                        sprintf
-                            "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
-                            content
-                            group.Length
-                      Hotspots = [] })
+                    Some
+                        { Line = position.Line
+                          Column = position.Column
+                          Type = Magic
+                          Severity = Low
+                          Message =
+                            sprintf
+                                "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
+                                content
+                                group.Length
+                          Hotspots = [] })
+
+        addViolations findings ctx
 
 let detector: Detector =
     { Name = "magicString"
-      Run =
-        fun ctx ->
-            analyzeMagicStrings ctx.Tree ctx.Positions ctx.Language ctx.FileName ctx.Options.MagicString
-            |> addViolations
-            <| ctx }
+      Run = analyzeMagicStrings }

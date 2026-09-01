@@ -92,37 +92,49 @@ let tests =
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
 
                             let disabled =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = false
-                                      MinDuplicates = 2
-                                      Allowlist = []
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = false
+                                              MinDuplicates = 2
+                                              Allowlist = []
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let singleUse =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 1
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 1
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let customAllowlist =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             assertThat (disabled |> List.filter (fun v -> v.Type = Magic) |> List.length) (isEqualTo 0)
 
@@ -150,26 +162,34 @@ let tests =
                             let strings = findFunctionRange sourceCode "flaggedMagicString"
 
                             let testFileExempt =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "src/test/magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = false }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = false } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             let testFileIncluded =
-                                analyzeMagicStrings
+                                createTestContext
+                                    sourceCode
                                     tree
-                                    positions
                                     PYTHON
                                     "src/test/magicString.py"
-                                    { Enabled = true
-                                      MinDuplicates = 2
-                                      Allowlist = [ ""; "utf-8"; "__main__" ]
-                                      IncludeTestFiles = true }
+                                    { defaultThresholds with
+                                        MagicString =
+                                            { Enabled = true
+                                              MinDuplicates = 2
+                                              Allowlist = [ ""; "utf-8"; "__main__" ]
+                                              IncludeTestFiles = true } }
+                                |> analyzeMagicStrings
+                                |> _.Violations
 
                             assertThat
                                 (violationsIn testFileExempt strings

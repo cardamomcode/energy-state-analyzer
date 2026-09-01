@@ -156,22 +156,19 @@ let private analyzeFunction (positions: PositionLookup) (language: LanguageAdapt
 
         dominant @ validationFinding @ deepFinding
 
-let analyzeInversionOpportunities (tree: Node) (positions: PositionLookup) (language: LanguageAdapter) =
+let analyzeInversionOpportunities (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse node =
         let own =
-            if language.IsFunctionDefinition node then
-                analyzeFunction positions language node
+            if ctx.Language.IsFunctionDefinition node then
+                analyzeFunction ctx.Positions ctx.Language node
             else
                 []
 
         own @ (nodeChildren node |> List.collect traverse)
 
-    traverse tree
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "inversion"
-      Run =
-        fun ctx ->
-            analyzeInversionOpportunities ctx.Tree ctx.Positions ctx.Language
-            |> addViolations
-            <| ctx }
+      Run = analyzeInversionOpportunities }

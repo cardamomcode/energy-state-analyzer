@@ -6,11 +6,11 @@ open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 
-let analyzeOpaqueBooleanLiteral (tree: Node) (positions: PositionLookup) (language: LanguageAdapter) =
+let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
     let rec walk node =
         let own =
-            if language.IsBooleanLiteral node && language.IsPositionalCallArgument node then
-                let position = positions.toPosition (nodeStartIndex node)
+            if ctx.Language.IsBooleanLiteral node && ctx.Language.IsPositionalCallArgument node then
+                let position = ctx.Positions.toPosition (nodeStartIndex node)
 
                 [ { Line = position.Line
                     Column = position.Column
@@ -26,11 +26,9 @@ let analyzeOpaqueBooleanLiteral (tree: Node) (positions: PositionLookup) (langua
 
         own @ (nodeChildren node |> List.collect walk)
 
-    walk tree
+    let findings = walk ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "opaqueBoolean"
-      Run =
-        fun ctx ->
-            analyzeOpaqueBooleanLiteral ctx.Tree ctx.Positions ctx.Language |> addViolations
-            <| ctx }
+      Run = analyzeOpaqueBooleanLiteral }

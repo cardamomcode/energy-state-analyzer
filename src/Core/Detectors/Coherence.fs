@@ -281,14 +281,8 @@ let private checkImportSprawl
 // The "Utils/Helpers Sprawl" detector. Methods are grouped by enclosing class (see
 // collectFunctionsClassesAndImports), so the function-count sprawl check only sees free-standing
 // functions; class methods are judged separately by checkClassRelatedness.
-let analyzeFileCoherence
-    (tree: Node)
-    (fileName: string)
-    (language: LanguageAdapter)
-    (positions: PositionLookup)
-    (thresholds: CoherenceThresholds)
-    : EnergyViolation list =
-    let collected = collectFunctionsClassesAndImports tree language
+let analyzeFileCoherence (ctx: AnalysisContext) : AnalysisContext =
+    let collected = collectFunctionsClassesAndImports ctx.Tree ctx.Language
     let FreeFunctions = collected.FreeFunctions
     let Classes = collected.Classes
     let ImportSources = collected.ImportSources
@@ -298,16 +292,15 @@ let analyzeFileCoherence
     let allFunctions =
         FreeFunctions @ (Classes |> List.collect (fun c -> List.ofSeq c.Methods))
 
-    [ checkFunctionCountSprawl FreeFunctions fileName thresholds language positions
-      checkLargeFunctionSprawl allFunctions thresholds positions
-      checkImportSprawl ImportSources FirstImportNode positions
-      checkClassRelatedness Classes thresholds.SingleDomainNameShare language positions ]
-    |> List.choose id
+    let findings =
+        [ checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
+          checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
+          checkImportSprawl ImportSources FirstImportNode ctx.Positions
+          checkClassRelatedness Classes ctx.Options.Coherence.SingleDomainNameShare ctx.Language ctx.Positions ]
+        |> List.choose id
+
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "coherence"
-      Run =
-        fun ctx ->
-            analyzeFileCoherence ctx.Tree ctx.FileName ctx.Language ctx.Positions ctx.Options.Coherence
-            |> addViolations
-            <| ctx }
+      Run = analyzeFileCoherence }

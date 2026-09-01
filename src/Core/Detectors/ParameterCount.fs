@@ -27,21 +27,21 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
 
 // The "Parameter Explosion" detector. Flags a function after five parameters, escalating after
 // eight; a violation is anchored at the function declaration rather than an arbitrary parameter.
-let analyzeParameterCount (tree: Node) (positions: PositionLookup) (language: LanguageAdapter) : EnergyViolation list =
+let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolation =
-            if language.IsFunctionDefinition node then
-                match findParametersNode node language.NodeTypes.Parameters with
+            if ctx.Language.IsFunctionDefinition node then
+                match findParametersNode node ctx.Language.NodeTypes.Parameters with
                 | Some parameters ->
                     let parameterCount =
                         nodeChildren parameters
-                        |> List.filter (fun child -> language.ParameterChildTypes |> List.contains (nodeType child))
+                        |> List.filter (fun child -> ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
                         |> List.length
 
                     // decision: flags past 5 parameters (medium) and 8 (high) — beyond roughly five,
                     // callers typically cannot recall argument order and meaning without the signature.
                     if parameterCount > 5 then
-                        let position = positions.toPosition (nodeStartIndex node)
+                        let position = ctx.Positions.toPosition (nodeStartIndex node)
 
                         [ { Line = position.Line
                             Column = position.Column
@@ -60,11 +60,9 @@ let analyzeParameterCount (tree: Node) (positions: PositionLookup) (language: La
 
         ownViolation @ (nodeChildren node |> List.collect traverse)
 
-    traverse tree
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "parameterCount"
-      Run =
-        fun ctx ->
-            analyzeParameterCount ctx.Tree ctx.Positions ctx.Language |> addViolations
-            <| ctx }
+      Run = analyzeParameterCount }

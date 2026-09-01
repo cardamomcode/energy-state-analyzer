@@ -145,22 +145,17 @@ let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (posi
 
     hotspots |> List.ofSeq
 
-let analyzeCognitiveComplexity
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (thresholds: CognitiveThresholds)
-    : EnergyViolation list =
+let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
-            if language.IsFunctionDefinition node then
-                let complexity = cognitiveScoreOf language node
+            if ctx.Language.IsFunctionDefinition node then
+                let complexity = cognitiveScoreOf ctx.Language node
 
-                if complexity > thresholds.MediumThreshold then
-                    let pos = positions.toPosition (nodeStartIndex node)
+                if complexity > ctx.Options.Cognitive.MediumThreshold then
+                    let pos = ctx.Positions.toPosition (nodeStartIndex node)
 
                     let severity =
-                        if complexity > thresholds.HighThreshold then
+                        if complexity > ctx.Options.Cognitive.HighThreshold then
                             High
                         else
                             Medium
@@ -173,7 +168,7 @@ let analyzeCognitiveComplexity
                           sprintf
                               "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
                               complexity
-                        Hotspots = findCognitiveHotspots language node positions } ]
+                        Hotspots = findCognitiveHotspots ctx.Language node ctx.Positions } ]
                 else
                     []
             else
@@ -184,12 +179,9 @@ let analyzeCognitiveComplexity
         // siblings left to right.
         ownViolations @ (nodeChildren node |> List.collect traverse)
 
-    traverse tree
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "cognitive"
-      Run =
-        fun ctx ->
-            analyzeCognitiveComplexity ctx.Tree ctx.Positions ctx.Language ctx.Options.Cognitive
-            |> addViolations
-            <| ctx }
+      Run = analyzeCognitiveComplexity }

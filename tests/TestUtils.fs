@@ -14,6 +14,8 @@ open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
+open Energy.Core.Context
+open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -52,6 +54,16 @@ let analyzeFixture sourceCode tree language fileName =
       FileName = fileName }
     |> analyze
     |> _.Violations
+
+/// Build a detector context for tests that exercise one detector with custom options.
+let createTestContext sourceCode tree language fileName options : AnalysisContext =
+    { Source = sourceCode
+      Tree = tree
+      Positions = createPositionLookup sourceCode
+      Language = language
+      FileName = fileName
+      Options = options
+      Violations = [] }
 
 // A line range (inclusive, 0-indexed like tree-sitter/EnergyViolation.line) that a named function
 // occupies within a fixture, so tests can assert a violation belongs to a specific example function

@@ -144,30 +144,25 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
 
 // The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
 // Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
-let analyzePrimitiveObsession
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    : EnergyViolation list =
+let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
-            if language.IsFunctionDefinition node then
+            if ctx.Language.IsFunctionDefinition node then
                 let parameterViolations =
-                    match findParametersNode node language.NodeTypes.Parameters with
-                    | Some parameters -> findParameterCollisions parameters positions language
+                    match findParametersNode node ctx.Language.NodeTypes.Parameters with
+                    | Some parameters -> findParameterCollisions parameters ctx.Positions ctx.Language
                     | None -> []
 
-                parameterViolations @ findStringlyTypedControlFlow node positions language
+                parameterViolations
+                @ findStringlyTypedControlFlow node ctx.Positions ctx.Language
             else
                 []
 
         ownViolations @ (nodeChildren node |> List.collect traverse)
 
-    traverse tree
+    let findings = traverse ctx.Tree
+    addViolations findings ctx
 
 let detector: Detector =
     { Name = "primitiveObsession"
-      Run =
-        fun ctx ->
-            analyzePrimitiveObsession ctx.Tree ctx.Positions ctx.Language |> addViolations
-            <| ctx }
+      Run = analyzePrimitiveObsession }

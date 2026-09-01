@@ -63,19 +63,16 @@ let private signedValue (node: Node) (rawValue: float) : float =
         | _ -> rawValue
     | None -> rawValue
 
-let analyzeMagicNumbers
-    (tree: Node)
-    (positions: PositionLookup)
-    (language: LanguageAdapter)
-    (fileName: string)
-    (options: MagicNumberOptions)
-    : EnergyViolation list =
-    if not options.Enabled || (not options.IncludeTestFiles && isTestFile fileName) then
-        []
+let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
+    if
+        not ctx.Options.MagicNumber.Enabled
+        || (not ctx.Options.MagicNumber.IncludeTestFiles && isTestFile ctx.FileName)
+    then
+        ctx
     else
         let isLiteral node =
-            isNodeType language.NodeTypes.IntegerLiteral node
-            || isNodeType language.NodeTypes.FloatLiteral node
+            isNodeType ctx.Language.NodeTypes.IntegerLiteral node
+            || isNodeType ctx.Language.NodeTypes.FloatLiteral node
 
         let rec traverse (node: Node) : EnergyViolation list =
             if isLiteral node then
@@ -86,16 +83,17 @@ let analyzeMagicNumbers
                     let value = signedValue node rawValue
 
                     let isExempt =
-                        List.contains value options.Allowlist
-                        || isInConstantContext language node
+                        List.contains value ctx.Options.MagicNumber.Allowlist
+                        || isInConstantContext ctx.Language node
                         || (nodeParent node
-                            |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes))
-                        || language.IsDefaultParameterValue node
+                            |> Option.exists (fun parent ->
+                                List.contains (nodeType parent) ctx.Language.SubscriptNodeTypes))
+                        || ctx.Language.IsDefaultParameterValue node
 
                     if isExempt then
                         []
                     else
-                        let position = positions.toPosition (nodeStartIndex node)
+                        let position = ctx.Positions.toPosition (nodeStartIndex node)
 
                         [ { Line = position.Line
                             Column = position.Column
@@ -110,12 +108,9 @@ let analyzeMagicNumbers
             else
                 nodeChildren node |> List.collect traverse
 
-        traverse tree
+        let findings = traverse ctx.Tree
+        addViolations findings ctx
 
 let detector: Detector =
     { Name = "magicNumber"
-      Run =
-        fun ctx ->
-            analyzeMagicNumbers ctx.Tree ctx.Positions ctx.Language ctx.FileName ctx.Options.MagicNumber
-            |> addViolations
-            <| ctx }
+      Run = analyzeMagicNumbers }
