@@ -39,6 +39,10 @@ type CoherenceThresholds =
 
 type MatchOpportunityThresholds = { MinBranches: int }
 
+type ParameterCountThresholds =
+    { MediumThreshold: int
+      HighThreshold: int }
+
 type MagicNumberOptions =
     { Enabled: bool
       Allowlist: float list
@@ -57,6 +61,7 @@ type AnalyzeOptions =
       Cognitive: CognitiveThresholds
       Coherence: CoherenceThresholds
       MatchOpportunity: MatchOpportunityThresholds
+      ParameterCount: ParameterCountThresholds
       MagicNumber: MagicNumberOptions
       MagicString: MagicStringOptions }
 
@@ -65,6 +70,7 @@ type AnalyzeOptions =
 // decision: default cognitive thresholds 15/25 align the nesting-weighted metric with SonarSource defaults.
 // decision: coherence uses large-function count rather than raw function count because F# modules often have many small functions.
 // decision: magic-detector test files stay exempt by default because their literals are usually intentional.
+// decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
 let defaultAnalyzeOptions =
     { Nesting =
         { MediumThreshold = 3
@@ -82,6 +88,9 @@ let defaultAnalyzeOptions =
           MaxTypeDiversityRatio = 0.4
           MinTypedCoverage = 0.5 }
       MatchOpportunity = { MinBranches = 3 }
+      ParameterCount =
+        { MediumThreshold = 5
+          HighThreshold = 8 }
       MagicNumber =
         { Enabled = true
           Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
@@ -101,6 +110,8 @@ let defaultCognitiveThresholds = defaultAnalyzeOptions.Cognitive
 let defaultCoherenceThresholds = defaultAnalyzeOptions.Coherence
 
 let defaultMatchOpportunityThresholds = defaultAnalyzeOptions.MatchOpportunity
+
+let defaultParameterCountThresholds = defaultAnalyzeOptions.ParameterCount
 
 let defaultMagicNumberOptions = defaultAnalyzeOptions.MagicNumber
 
@@ -151,6 +162,11 @@ type FileCoherence =
       MinTypedCoverage: float option }
 
 type FileMatchOpportunity = { MinBranches: int option }
+
+type FileParameterCount =
+    { MediumThreshold: int option
+      HighThreshold: int option }
+
 type FileMagicNumber = { Allowlist: float list option }
 
 type FileMagicString =
@@ -163,6 +179,7 @@ type FileConfig =
       Cognitive: FileCognitive
       Coherence: FileCoherence
       MatchOpportunity: FileMatchOpportunity
+      ParameterCount: FileParameterCount
       MagicNumber: FileMagicNumber
       MagicString: FileMagicString }
 
@@ -183,6 +200,9 @@ let private emptyFileConfig: FileConfig =
           MaxTypeDiversityRatio = None
           MinTypedCoverage = None }
       MatchOpportunity = { MinBranches = None }
+      ParameterCount =
+        { MediumThreshold = None
+          HighThreshold = None }
       MagicNumber = { Allowlist = None }
       MagicString =
         { MinDuplicates = None
@@ -255,6 +275,7 @@ let parseFileConfig (raw: obj) : FileConfig =
     let cognitive = field raw "cognitiveComplexity"
     let coherence = field raw "coherence"
     let matchOpportunity = field raw "matchOpportunity"
+    let parameterCount = field raw "parameterCount"
     let magicNumber = field raw "magicNumber"
     let magicString = field raw "magicString"
 
@@ -274,6 +295,9 @@ let parseFileConfig (raw: obj) : FileConfig =
           MaxTypeDiversityRatio = readNumber coherence "maxTypeDiversityRatio"
           MinTypedCoverage = readNumber coherence "minTypedCoverage" }
       MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
+      ParameterCount =
+        { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
+          HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int }
       MagicNumber = { Allowlist = readList magicNumber "allowlist" |> Option.map (List.map unbox<float>) }
       MagicString =
         { MinDuplicates = readNumber magicString "minDuplicates" |> Option.map int
@@ -317,6 +341,10 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
           MinTypedCoverage = Option.defaultValue defaults.Coherence.MinTypedCoverage file.Coherence.MinTypedCoverage }
       MatchOpportunity =
         { MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
+      ParameterCount =
+        { MediumThreshold =
+            Option.defaultValue defaults.ParameterCount.MediumThreshold file.ParameterCount.MediumThreshold
+          HighThreshold = Option.defaultValue defaults.ParameterCount.HighThreshold file.ParameterCount.HighThreshold }
       MagicNumber =
         { defaults.MagicNumber with
             Allowlist =

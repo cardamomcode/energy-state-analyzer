@@ -28,7 +28,7 @@ let printUsage () =
         "       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)"
 
     error
-        "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N"
+        "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N --medium-parameter-count N --high-parameter-count N"
 
     error "Flags: --include-test-files (also flag magic numbers and magic strings in test files)"
 

@@ -56,6 +56,8 @@ let private fileIntAccessors =
       (("coherence", "largeFunctionLines"), (fun f -> f.Coherence.LargeFunctionLines))
       (("coherence", "maxLargeFunctions"), (fun f -> f.Coherence.MaxLargeFunctions))
       (("matchOpportunity", "minBranches"), (fun f -> f.MatchOpportunity.MinBranches))
+      (("parameterCount", "mediumThreshold"), (fun f -> f.ParameterCount.MediumThreshold))
+      (("parameterCount", "highThreshold"), (fun f -> f.ParameterCount.HighThreshold))
       (("magicString", "minDuplicates"), (fun f -> f.MagicString.MinDuplicates)) ]
 
 let private fileFloatAccessors =

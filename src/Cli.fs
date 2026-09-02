@@ -17,6 +17,7 @@ type private ParsedArguments =
       Nesting: int option * int option
       Cyclomatic: int option * int option
       Cognitive: int option * int option
+      ParameterCount: int option * int option
       IncludeTestFiles: bool }
 
 let private valueFlags =
@@ -29,7 +30,9 @@ let private valueFlags =
           "medium-cyclomatic"
           "high-cyclomatic"
           "medium-cognitive"
-          "high-cognitive" ]
+          "high-cognitive"
+          "medium-parameter-count"
+          "high-parameter-count" ]
 
 // decision: recognized flags consume exactly one following value, leaving all other positional
 // arguments untouched so the CLI retains its intentionally small dependency-free parser.
@@ -77,6 +80,7 @@ let private parseArguments arguments =
       Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
       Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
+      ParameterCount = asNumber flags "medium-parameter-count", asNumber flags "high-parameter-count"
       IncludeTestFiles = Map.containsKey "include-test-files" flags }
 
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
@@ -121,7 +125,14 @@ let private buildThresholds parsed : AnalyzeOptions =
                 (fun medium high ->
                     { MediumThreshold = medium
                       HighThreshold = high })
-                parsed.Cognitive }
+                parsed.Cognitive
+        ParameterCount =
+            thresholdOverride
+                (defaultParameterCountThresholds.MediumThreshold, defaultParameterCountThresholds.HighThreshold)
+                (fun medium high ->
+                    { MediumThreshold = medium
+                      HighThreshold = high })
+                parsed.ParameterCount }
 
 let runCli () : Task<unit> =
     task {

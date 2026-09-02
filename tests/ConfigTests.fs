@@ -82,6 +82,16 @@ let defaultsTests =
           fun _ -> toAsync (task { assertThat defaultMatchOpportunityThresholds.MinBranches (isEqualTo 3) })
       )
       testAsync (
+          "parameter count thresholds default 5/8",
+          fun _ ->
+              toAsync (
+                  task {
+                      assertThat defaultParameterCountThresholds.MediumThreshold (isEqualTo 5)
+                      assertThat defaultParameterCountThresholds.HighThreshold (isEqualTo 8)
+                  }
+              )
+      )
+      testAsync (
           "magic number options default allowlist and flags",
           fun _ ->
               toAsync (
@@ -157,6 +167,21 @@ let mergePrecedenceTests =
 
                       assertThat maxLargeFunctions (isEqualTo 8)
                       assertThat largeFunctionLines (isEqualTo 20)
+                  }
+              )
+      )
+      testAsync (
+          "a provided parameter count threshold overrides only that field",
+          fun _ ->
+              toAsync (
+                  task {
+                      let merged = loadTempConfig """{"parameterCount": {"mediumThreshold": 10}}"""
+                      let mediumThreshold = merged.ParameterCount.MediumThreshold
+                      let highThreshold = merged.ParameterCount.HighThreshold
+
+                      assertThat mediumThreshold (isEqualTo 10)
+                      // the sibling high threshold was not in the file, so it stays the built-in default of 8.
+                      assertThat highThreshold (isEqualTo 8)
                   }
               )
       ) ]

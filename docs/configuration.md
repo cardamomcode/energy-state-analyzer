@@ -44,6 +44,7 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
     "minTypedCoverage": 0.5
   },
   "matchOpportunity": { "minBranches": 3 },
+  "parameterCount": { "mediumThreshold": 5, "highThreshold": 8 },
   "magicNumber": { "allowlist": [1024, 4096] },
   "magicString": { "minDuplicates": 3, "allowlist": ["pending", "wip"] }
 }
@@ -65,6 +66,8 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
 | `coherence` | `maxTypeDiversityRatio` | `0.4` | Max ratio of distinct parameter/return base types to typed functions, a stronger cohesion signal when type annotations are trustworthy. |
 | `coherence` | `minTypedCoverage` | `0.5` | Minimum share of functions with explicit param/return-type annotations before `maxTypeDiversityRatio` is trusted; below it the detector falls back to `singleDomainNameShare`. |
 | `matchOpportunity` | `minBranches` | `3` | Branches (if + elif/else-if) keyed on the same variable an chain must have before it's flagged as a match/switch opportunity. |
+| `parameterCount` | `mediumThreshold` | `5` | Parameter count above which a function is flagged for parameter explosion as medium energy. |
+| `parameterCount` | `highThreshold` | `8` | Parameter count above which a parameter-explosion violation is flagged as high energy instead of medium. |
 | `magicNumber` | `allowlist` | `[0, 1, -1, 2]` | Additional numeric literals to exempt alongside the structural values (see below). The `enabled` toggle stays in VS Code settings. |
 | `magicString` | `minDuplicates` | `2` | Times the same string literal must recur at a decision point before it's flagged. |
 | `magicString` | `allowlist` | `["", "utf-8", "__main__"]` | String literals never flagged as magic strings, regardless of context. The `enabled` toggle stays in VS Code settings. |
@@ -98,6 +101,6 @@ npx energy-state-analyzer src \
   --include-test-files
 ```
 
-Recognized flags: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`, and `--include-test-files`. Each threshold flag overrides only the value it provides, so a file can set cyclomatic thresholds while a CI run tightens just cognitive. The magic allowlists, `enabled` flags, and `minDuplicates` all come from the merged base (file over defaults) — only `--include-test-files` overrides them.
+Recognized flags: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`, `--medium-parameter-count`, `--high-parameter-count`, and `--include-test-files`. Each threshold flag overrides only the value it provides, so a file can set cyclomatic thresholds while a CI run tightens just cognitive. The magic allowlists, `enabled` flags, and `minDuplicates` all come from the merged base (file over defaults) — only `--include-test-files` overrides them.
 
 See [Command-Line Usage](cli.md) for scanning, reports, and diffing against a base branch.

@@ -54,6 +54,10 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
           MinTypedCoverage = reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage }
       MatchOpportunity =
         { MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
+      ParameterCount =
+        { MediumThreshold =
+            reader.Int "parameterCount" "mediumThreshold" defaultParameterCountThresholds.MediumThreshold
+          HighThreshold = reader.Int "parameterCount" "highThreshold" defaultParameterCountThresholds.HighThreshold }
       MagicNumber =
         { Enabled = reader.Bool "magicNumber" "enabled" defaultMagicNumberOptions.Enabled
           Allowlist = magicNumberAllowlist reader

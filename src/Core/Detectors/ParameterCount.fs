@@ -25,8 +25,9 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
         |> List.collect (fun c -> findParametersNode c parametersType |> Option.toList)
         |> List.tryHead
 
-// The "Parameter Explosion" detector. Flags a function after five parameters, escalating after
-// eight; a violation is anchored at the function declaration rather than an arbitrary parameter.
+// The "Parameter Explosion" detector. Flags a function past its medium threshold (5 by default),
+// escalating to high past the high threshold (8 by default); a violation is anchored at the function
+// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
 let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolation =
@@ -38,15 +39,19 @@ let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
                         |> List.filter (fun child -> ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
                         |> List.length
 
-                    // decision: flags past 5 parameters (medium) and 8 (high) — beyond roughly five,
-                    // callers typically cannot recall argument order and meaning without the signature.
-                    if parameterCount > 5 then
+                    // decision: thresholds live in Core.Config as the single source of truth; this detector
+                    // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can retune
+                    // without editing code — past medium is medium energy, past high escalates to high.
+                    let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
+                    let highThreshold = ctx.Options.ParameterCount.HighThreshold
+
+                    if parameterCount > mediumThreshold then
                         let position = ctx.Positions.toPosition (nodeStartIndex node)
 
                         [ { Line = position.Line
                             Column = position.Column
                             Type = Parameters
-                            Severity = if parameterCount > 8 then High else Medium
+                            Severity = if parameterCount > highThreshold then High else Medium
                             Message =
                               sprintf
                                   "Parameter explosion: %d parameters. Consider using objects or builder pattern."
