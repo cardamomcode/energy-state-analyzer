@@ -60,4 +60,3 @@ let rec extractTypeString node =
         match baseType with
         | Some name when not parameters.IsEmpty -> name + "[" + String.concat ", " parameters + "]"
         | _ -> nodeText node
-    | _ -> nodeText node
