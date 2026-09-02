@@ -33,6 +33,7 @@
     <Compile Include="Core/Detectors/ParameterCount.fs" />
     <Compile Include="Core/TypeCohesion.fs" />
     <Compile Include="Core/Detectors/ClassRelatedness.fs" />
+    <Compile Include="Core/Detectors/ImportCoherence.fs" />
     <Compile Include="Core/Detectors/Coherence.fs" />
     <Compile Include="Core/Detectors/TestFile.fs" />
     <Compile Include="Core/Detectors/MagicNumber.fs" />

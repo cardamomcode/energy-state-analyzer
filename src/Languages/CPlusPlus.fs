@@ -167,7 +167,7 @@ let private isClassDefinition (node: Node) : bool =
     && (nodeChildren node
         |> List.exists (fun child -> nodeType child = NodeType "field_declaration_list"))
 
-let CPP: LanguageAdapter =
+let cPlusPlusLanguageAdapter: LanguageAdapter =
     { Id = "cpp"
       GrammarPath = "grammars/tree-sitter-cpp.wasm"
       NodeTypes =
@@ -306,17 +306,22 @@ let CPP: LanguageAdapter =
                 |> Option.exists (fun parent -> nodeType parent = NodeType "call_expression")
             | _ -> false
       IsExplicitConstant = isExplicitConstant
-      ImportSource =
+      ImportInfo =
         fun node ->
-            match
-                nodeChildren node
-                |> List.tryFind (fun child ->
-                    nodeType child = NodeType "system_lib_string"
-                    || nodeType child = NodeType "string_literal"
-                    || nodeType child = NodeType "identifier")
-            with
-            | Some path -> (nodeText path).Trim([| '<'; '>'; '\"' |])
-            | None -> nodeText node
+            let source =
+                match
+                    nodeChildren node
+                    |> List.tryFind (fun child ->
+                        nodeType child = NodeType "system_lib_string"
+                        || nodeType child = NodeType "string_literal"
+                        || nodeType child = NodeType "identifier")
+                with
+                | Some path -> (nodeText path).Trim([| '<'; '>'; '\"' |])
+                | None -> nodeText node
+
+            [ { Kind = Header
+                Source = source
+                Bindings = [] } ]
       IsClassDefinition = isClassDefinition
       GetClassName =
         fun node ->

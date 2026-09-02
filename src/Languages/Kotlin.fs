@@ -81,7 +81,7 @@ let private delegationSpecifierName (specifier: Node) : string option =
 // module-scope heuristic isInConstantContext (magicNumber.ts) otherwise relies on, this is valid at
 // ANY nesting depth (a companion object's `const val` is just as much a real constant as a top-level
 // one), so it's checked as its own signal rather than folded into that scope walk.
-let KOTLIN: LanguageAdapter =
+let kotlinLanguageAdapter: LanguageAdapter =
     { Id = "kotlin"
       GrammarPath = "grammars/tree-sitter-kotlin.wasm"
       NodeTypes =
@@ -295,10 +295,9 @@ let KOTLIN: LanguageAdapter =
             | NodeType "property_declaration" -> isConstPropertyDeclaration node
             | NodeType "assignment" -> isAnnotatedConstValMisparse node
             | _ -> false
-      // `import a.b.C` -> source 'a.b' (the package, one symbol per line here since Kotlin has no
-      // brace-grouped import syntax); `import a.b.*` -> source 'a.b' as-is, the qualified_identifier
-      // is already the package with no trailing symbol to strip.
-      ImportSource =
+      // Kotlin imports one declaration into local scope; preserve that declaration separately from its
+      // package so coherence can identify a wide local vocabulary from one API.
+      ImportInfo =
         fun node ->
             match
                 nodeChildren node
@@ -308,12 +307,27 @@ let KOTLIN: LanguageAdapter =
                 let text = nodeText qualified
 
                 if nodeChildren node |> List.exists (fun c -> nodeType c = NodeType "*") then
-                    text
+                    [ { Kind = Wildcard
+                        Source = text
+                        Bindings = [] } ]
                 else
                     match text.LastIndexOf('.') with
-                    | -1 -> text
-                    | idx -> text.Substring(0, idx)
-            | _ -> nodeText node
+                    | -1 ->
+                        [ { Kind = Members
+                            Source = text
+                            Bindings = [] } ]
+                    | idx ->
+                        let name = text.Substring(idx + 1)
+
+                        [ { Kind = Members
+                            Source = text.Substring(0, idx)
+                            Bindings =
+                              [ { ImportedName = name
+                                  LocalName = name } ] } ]
+            | _ ->
+                [ { Kind = Members
+                    Source = nodeText node
+                    Bindings = [] } ]
       IsClassDefinition = fun node -> nodeType node = NodeType "class_declaration"
       GetClassName =
         fun node ->

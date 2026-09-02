@@ -65,7 +65,7 @@ let private implementsTargetNames (heritage: Node) : string list =
 // flat +1 plus the nested if's `1 + nesting`) instead of unwrapping single-if else-clauses specially
 // — TypeScript's `else if` parses as `else_clause` wrapping a nested `if_statement`, unlike Python's
 // flat elif sibling.
-let TYPESCRIPT: LanguageAdapter =
+let typeScriptLanguageAdapter: LanguageAdapter =
     { Id = "typescript"
       GrammarPath = "grammars/tree-sitter-typescript.wasm"
       NodeTypes =
@@ -250,13 +250,48 @@ let TYPESCRIPT: LanguageAdapter =
       // TS's `const` is block-scoping, not a compile-time-constant marker (unlike Kotlin's `const val`)
       // — module-scope lexical_declaration is the only signal here.
       IsExplicitConstant = fun _ -> false
-      // The module specifier (the `string` child) is the dependency; everything in import_clause
-      // (named/default/namespace imports) is just which symbols come from it.
-      ImportSource =
+      // Named imports bind local names; namespace imports retain a single qualified module binding.
+      ImportInfo =
         fun node ->
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "string") with
-            | Some s -> nodeText s
-            | None -> nodeText node
+            let source =
+                match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "string") with
+                | Some s -> nodeText s
+                | None -> nodeText node
+
+            let text = nodeText node
+            let openBrace = text.IndexOf('{')
+            let closeBrace = text.IndexOf('}')
+
+            if openBrace >= 0 && closeBrace > openBrace then
+                let bindings =
+                    text.Substring(openBrace + 1, closeBrace - openBrace - 1).Split(',')
+                    |> Array.toList
+                    |> List.map (fun name -> name.Trim().Replace("type ", ""))
+                    |> List.filter (fun name -> name <> "")
+                    |> List.map (fun name ->
+                        let parts = name.Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
+                        let imported = parts.[0]
+
+                        let local =
+                            if parts.Length >= 3 && parts.[1] = "as" then
+                                parts.[2]
+                            else
+                                imported
+
+                        { ImportedName = imported
+                          LocalName = local })
+
+                [ { Kind = Members
+                    Source = source
+                    Bindings = bindings } ]
+            elif text.Contains("* as ") then
+                [ { Kind = Module
+                    Source = source
+                    Bindings = [] } ]
+            else
+                [ { Kind = Module
+                    Source = source
+                    Bindings = [] } ]
       // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
       IsClassDefinition =
         fun node ->

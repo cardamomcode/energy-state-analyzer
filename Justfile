@@ -31,10 +31,11 @@ format:
 format-check:
     npm run format-check
 
-# Run the F# analyzer against local file(s)/dir(s), e.g. `just analyze src`
-analyze *paths="src":
+# Run the F# analyzer. With no arguments it scans src; otherwise arguments are forwarded unchanged.
+# Examples: `just analyze tests` and `just analyze --base-ref main --report human`.
+analyze *args:
     npm run compile
-    npm run analyze -- {{paths}}
+    if [ -n "{{args}}" ]; then npm run analyze -- {{args}}; else npm run analyze -- src; fi
 
 # Transpile and run the F# Scriptorium suite
 test:

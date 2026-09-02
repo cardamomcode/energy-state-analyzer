@@ -11,11 +11,11 @@ open Energy.Languages.CPlusPlus
 // decision: the registry is keyed by VS Code language id; the extension receives that canonical
 // identifier directly, while the CLI resolves an extension through the same registry below.
 let languages: Map<string, LanguageAdapter> =
-    [ "python", PYTHON
-      "fsharp", FSHARP
-      "typescript", TYPESCRIPT
-      "kotlin", KOTLIN
-      "cpp", CPP ]
+    [ "python", pythonLanguageAdapter
+      "fsharp", fSharpLanguageAdapter
+      "typescript", typeScriptLanguageAdapter
+      "kotlin", kotlinLanguageAdapter
+      "cpp", cPlusPlusLanguageAdapter ]
     |> Map.ofList
 
 // decision: keep suffixes instead of extracting only the final extension so compound C++ template

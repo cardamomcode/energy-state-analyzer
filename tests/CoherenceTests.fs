@@ -12,11 +12,7 @@ open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.LanguageAdapter
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: coherence is a whole-file metric (function count, large-function count, import count),
@@ -39,6 +35,35 @@ let private assertManyLargeFunctions (_src: string) (vs: EnergyViolation list) =
 
 let private assertManyImports (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "Import sprawl" ] vs |> List.length > 0) isTrue
+
+    assertThat
+        (hitsWithMessage [ "broad dependency surface"; "sibling modules" ] vs
+         |> List.length > 0)
+        isTrue
+
+let private assertFSharpImportScopeSprawl (_src: string) (vs: EnergyViolation list) =
+    assertThat
+        (hitsWithMessage [ "Import scope sprawl"; "Energy.Languages"; "name-resolution risk" ] vs
+         |> List.length > 0)
+        isTrue
+
+let private assertKotlinMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
+    assertThat
+        (hitsWithMessage [ "Import member fan-out"; "example.services"; "local vocabulary" ] vs
+         |> List.length > 0)
+        isTrue
+
+let private assertMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
+    assertThat
+        (hitsWithMessage [ "Import member fan-out"; "local vocabulary" ] vs
+         |> List.length > 0)
+        isTrue
+
+let private assertWildcardImportScopePollution (_src: string) (vs: EnergyViolation list) =
+    assertThat
+        (hitsWithMessage [ "Import scope pollution"; "wildcard import" ] vs
+         |> List.length > 0)
+        isTrue
 
 // "stays quiet" scenarios — assert no matching coherence violation is present.
 let private assertNarrowImportsQuiet (_src: string) (vs: EnergyViolation list) =
@@ -95,17 +120,17 @@ let tests =
     // the naming-only heuristic before the type-cohesion signal existed (see coherence.ts's decision
     // comments). The relatedClasses/exceptionFamily fixtures guard class-grouping false positives.
     let functionLanguages =
-        [ "Python", PYTHON, "py"
-          "TypeScript", TYPESCRIPT, "ts"
-          "F#", FSHARP, "fs"
-          "Kotlin", KOTLIN, "kt"
-          "C++", CPP, "cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp" ]
 
     let classLanguages =
-        [ "Python", PYTHON, "py"
-          "TypeScript", TYPESCRIPT, "ts"
-          "Kotlin", KOTLIN, "kt"
-          "C++", CPP, "cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp" ]
 
     let block1Scenarios: Scenario list =
         [ { Name = "too many large functions is flagged"
@@ -147,4 +172,49 @@ let tests =
     let block1 = buildBlock functionLanguages block1Scenarios
     let block2 = buildBlock classLanguages block2Scenarios
 
-    testList ("Integration: file coherence (real code examples)", block1 @ block2)
+    let fSharpScopeSprawl =
+        buildTest
+            "F#"
+            FSharp.fSharpLanguageAdapter
+            "fs"
+            { Name = "sibling opens warn about name resolution"
+              File = "siblingImports"
+              Assert = assertFSharpImportScopeSprawl }
+
+    let kotlinMemberFanOut =
+        buildTest
+            "Kotlin"
+            Kotlin.kotlinLanguageAdapter
+            "kt"
+            { Name = "many imported members from one package are flagged"
+              File = "memberFanOut"
+              Assert = assertKotlinMemberImportFanOut }
+
+    let memberFanOuts =
+        [ "Python", Python.pythonLanguageAdapter, "py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts" ]
+        |> List.map (fun (label, language, extension) ->
+            buildTest
+                label
+                language
+                extension
+                { Name = "many imported members from one module are flagged"
+                  File = "memberFanOut"
+                  Assert = assertMemberImportFanOut })
+
+    let pythonWildcardImport =
+        buildTest
+            "Python"
+            Python.pythonLanguageAdapter
+            "py"
+            { Name = "wildcard imports warn about scope pollution"
+              File = "wildcardImport"
+              Assert = assertWildcardImportScopePollution }
+
+    testList (
+        "Integration: file coherence (real code examples)",
+        block1
+        @ block2
+        @ [ fSharpScopeSprawl; kotlinMemberFanOut; pythonWildcardImport ]
+        @ memberFanOuts
+    )

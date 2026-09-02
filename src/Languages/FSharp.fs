@@ -31,7 +31,7 @@ let private functionDeclarationLeft = NodeType "function_declaration_left"
 // already named and not flagged as a magic value — broader than Python's module-only rule, since
 // function_or_value_defn -> declaration_expression looks identical at every scope, but still aligned
 // with the detector's intent that `let NAME = ...` IS F#'s idiomatic way to name a constant.
-let FSHARP: LanguageAdapter =
+let fSharpLanguageAdapter: LanguageAdapter =
     { Id = "fsharp"
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
       NodeTypes =
@@ -254,16 +254,21 @@ let FSHARP: LanguageAdapter =
       // F# has no compile-time-constant marker distinct from an ordinary `let` binding — module-scope
       // binding is the only signal here.
       IsExplicitConstant = fun _ -> false
-      // `open X.Y` already names one whole module per line (F# has no per-symbol import), so the
-      // long_identifier child is used as-is with no stripping.
-      ImportSource =
+      // `open X.Y` makes all public names from the module available unqualified, so it is a scope
+      // operation rather than a member import.
+      ImportInfo =
         fun node ->
-            match
-                nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = NodeType "long_identifier")
-            with
-            | Some li -> nodeText li
-            | None -> nodeText node
+            let source =
+                match
+                    nodeChildren node
+                    |> List.tryFind (fun c -> nodeType c = NodeType "long_identifier")
+                with
+                | Some li -> nodeText li
+                | None -> nodeText node
+
+            [ { Kind = ScopeOpen
+                Source = source
+                Bindings = [] } ]
       // F# has no idiomatic class-per-file OOP pattern the class-relatedness check targets — its
       // type_definition node also covers records/unions/modules, and distinguishing "this is a class
       // with methods" from those would need the same kind of grammar-shape disambiguation

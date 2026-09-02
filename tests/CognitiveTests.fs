@@ -11,11 +11,7 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
@@ -26,11 +22,11 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/cognitiveComplexity.py"
-          "TypeScript", TYPESCRIPT, "typescript/cognitiveComplexity.ts"
-          "F#", FSHARP, "fsharp/cognitiveComplexity.fs"
-          "Kotlin", KOTLIN, "kotlin/cognitiveComplexity.kt"
-          "C++", CPP, "cpp/cognitiveComplexity.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/cognitiveComplexity.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cognitiveComplexity.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/cognitiveComplexity.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/cognitiveComplexity.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cognitiveComplexity.cpp" ]
 
     testList (
         "Integration: cognitive complexity (real code examples)",

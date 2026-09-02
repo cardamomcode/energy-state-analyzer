@@ -5,20 +5,16 @@ open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/primitiveObsession.py"
-          "TypeScript", TYPESCRIPT, "typescript/primitiveObsession.ts"
-          "F#", FSHARP, "fsharp/primitiveObsession.fs"
-          "Kotlin", KOTLIN, "kotlin/primitiveObsession.kt"
-          "C++", CPP, "cpp/primitiveObsession.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/primitiveObsession.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/primitiveObsession.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/primitiveObsession.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/primitiveObsession.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/primitiveObsession.cpp" ]
 
     testList (
         "Integration: primitive obsession",
@@ -62,8 +58,11 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! (source, tree) = parseFixture PYTHON "python/primitiveObsession.py"
-                          let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
+                          let! (source, tree) = parseFixture Python.pythonLanguageAdapter "python/primitiveObsession.py"
+
+                          let violations =
+                              analyzeFixture source tree Python.pythonLanguageAdapter "python/primitiveObsession.py"
+
                           let membership = findFunctionRange source (FunctionName "flaggedMembershipCheck")
 
                           assertThat
@@ -80,8 +79,10 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! (source, tree) = parseFixture PYTHON "python/primitiveObsession.py"
-                          let violations = analyzeFixture source tree PYTHON "python/primitiveObsession.py"
+                          let! (source, tree) = parseFixture Python.pythonLanguageAdapter "python/primitiveObsession.py"
+
+                          let violations =
+                              analyzeFixture source tree Python.pythonLanguageAdapter "python/primitiveObsession.py"
 
                           let hits name =
                               violationsIn violations (findFunctionRange source (FunctionName name))

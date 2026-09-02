@@ -8,22 +8,18 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Detectors.MagicString
 open Energy.Core.Position
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: exercises the registered pipeline over shared fixtures, proving the adapter hooks
 // recognize decision-point strings consistently in every supported grammar.
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/magicString.py"
-          "TypeScript", TYPESCRIPT, "typescript/magicString.ts"
-          "F#", FSHARP, "fsharp/magicString.fs"
-          "Kotlin", KOTLIN, "kotlin/magicString.kt"
-          "C++", CPP, "cpp/magicString.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/magicString.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicString.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/magicString.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/magicString.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magicString.cpp" ]
 
     let fixtureTests =
         cases
@@ -60,8 +56,11 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
-                            let violations = analyzeFixture sourceCode tree PYTHON "magicString.py"
+                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicString.py"
+
+                            let violations =
+                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "magicString.py"
+
                             let membership = findFunctionRange sourceCode (FunctionName "flaggedMembership")
                             let dictKey = findFunctionRange sourceCode (FunctionName "flaggedDictKey")
 
@@ -86,7 +85,7 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
+                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicString.py"
                             let positions = createPositionLookup sourceCode
                             let clean = findFunctionRange sourceCode (FunctionName "cleanValues")
                             let strings = findFunctionRange sourceCode (FunctionName "flaggedMagicString")
@@ -95,7 +94,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "magicString.py"
                                     { defaultThresholds with
                                         MagicString =
@@ -110,7 +109,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "magicString.py"
                                     { defaultThresholds with
                                         MagicString =
@@ -125,7 +124,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "magicString.py"
                                     { defaultThresholds with
                                         MagicString =
@@ -157,7 +156,7 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicString.py"
+                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicString.py"
                             let positions = createPositionLookup sourceCode
                             let strings = findFunctionRange sourceCode (FunctionName "flaggedMagicString")
 
@@ -165,7 +164,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "src/test/magicString.py"
                                     { defaultThresholds with
                                         MagicString =
@@ -180,7 +179,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "src/test/magicString.py"
                                     { defaultThresholds with
                                         MagicString =

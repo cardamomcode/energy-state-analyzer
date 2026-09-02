@@ -60,7 +60,7 @@ let private isFormattedStringParent (node: Node) (parent: Node) =
     | nodeType when nodeType = attributeNodeType -> firstChild && isFormatCall parent
     | _ -> false
 
-let PYTHON: LanguageAdapter =
+let pythonLanguageAdapter: LanguageAdapter =
     { Id = "python"
       GrammarPath = "grammars/tree-sitter-python.wasm"
       NodeTypes =
@@ -287,22 +287,61 @@ let PYTHON: LanguageAdapter =
       // Python has no dedicated compile-time-constant marker — module-scope assignment is the only
       // signal (see isInConstantContext in magicNumber.ts).
       IsExplicitConstant = fun _ -> false
-      // `import os` -> 'os'; `from foo.bar import a, b, c` -> 'foo.bar' (the names after `import` are
-      // irrelevant — they're all the same dependency). `import os, sys` (two unrelated modules on one
-      // line) is rare enough that only the first is used as the source — undercounting a line like that
-      // is the safe direction, since it only reduces false positives.
-      ImportSource =
+      // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
+      // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
+      ImportInfo =
         fun node ->
-            let children = nodeChildren node
-
             if nodeType node = NodeType "import_from_statement" then
-                match children |> List.tryFindIndex (fun c -> nodeType c = NodeType "import") with
-                | Some idx when idx >= 1 -> nodeText children.[idx - 1]
-                | _ -> nodeText node
+                let text = nodeText node
+                let importIndex = text.IndexOf(" import ")
+
+                if importIndex > 5 then
+                    let source = text.Substring(5, importIndex - 5).Trim()
+                    let names = text.Substring(importIndex + 8).Trim().Trim([| '('; ')' |])
+
+                    if names = "*" then
+                        [ { Kind = Wildcard
+                            Source = source
+                            Bindings = [] } ]
+                    else
+                        let bindings =
+                            names.Split(',')
+                            |> Array.toList
+                            |> List.map (fun name -> name.Trim())
+                            |> List.filter (fun name -> name <> "")
+                            |> List.map (fun name ->
+                                let parts = name.Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
+                                let imported = parts.[0]
+
+                                let local =
+                                    if parts.Length >= 3 && parts.[1] = "as" then
+                                        parts.[2]
+                                    else
+                                        imported
+
+                                { ImportedName = imported
+                                  LocalName = local })
+
+                        [ { Kind = Members
+                            Source = source
+                            Bindings = bindings } ]
+                else
+                    [ { Kind = Members
+                        Source = text
+                        Bindings = [] } ]
             else
-                match children |> List.tryFind (fun c -> nodeType c = NodeType "dotted_name") with
-                | Some d -> nodeText d
-                | None -> nodeText node
+                nodeText node
+                |> fun text -> text.Substring(7).Split(',')
+                |> Array.toList
+                |> List.map (fun item ->
+                    let parts =
+                        item.Trim().Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
+
+                    let source = parts.[0]
+
+                    { Kind = Module
+                      Source = source
+                      Bindings = [] })
       IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
       GetClassName =
         fun node ->

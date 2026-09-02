@@ -6,11 +6,7 @@ open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: runs the complete pipeline against the existing real-code fixtures, rather than calling
@@ -18,11 +14,11 @@ open Energy.Tests.TestUtils
 // while proving parameter shapes are recognized consistently in every supported grammar.
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/parameterCount.py"
-          "TypeScript", TYPESCRIPT, "typescript/parameterCount.ts"
-          "F#", FSHARP, "fsharp/parameterCount.fs"
-          "Kotlin", KOTLIN, "kotlin/parameterCount.kt"
-          "C++", CPP, "cpp/parameterCount.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/parameterCount.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/parameterCount.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/parameterCount.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/parameterCount.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameterCount.cpp" ]
 
     testList (
         "Integration: parameter count (real code examples)",

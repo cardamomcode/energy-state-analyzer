@@ -1,17 +1,7 @@
 module Energy.Core.Detectors.Coherence
 
 
-open System
-open System.Collections.Generic
-
-open Energy.Core.TreeSitter
-open Energy.Core.Position
-open Energy.Core.LanguageAdapter
-open Energy.Core.Violation
-open Energy.Core.Context
-open Energy.Core.NamingCohesion
-open Energy.Core.TypeCohesion
-open Energy.Core.Detectors.ClassRelatedness
+open Energy.Core
 
 // The "Utils/Helpers Sprawl" detector.
 //
@@ -21,20 +11,18 @@ open Energy.Core.Detectors.ClassRelatedness
 // each violation is anchored at the most directly actionable position (first function / first import /
 // first large function) rather than line 0.
 
-type CoherenceThresholds = Energy.Core.Context.CoherenceThresholds
+type CoherenceThresholds = Context.CoherenceThresholds
 
 // decision: medium 15 / high 25 for large-function count; the raw function-count trigger (8/12) and its
 // severity escalation (15) are deliberately NOT part of CoherenceThresholds — they're secondary heuristics
 // tuned around the utils-file naming proxy, not thresholds users are expected to retune independently.
 let defaultCoherenceThresholds: CoherenceThresholds =
-    defaultAnalyzeOptions.Coherence
+    Context.defaultAnalyzeOptions.Coherence
 
 let private utilsFileFunctionThreshold = 8
 let private genericFunctionCountThreshold = 12
 let private highFunctionCountThreshold = 15
 let private largeFunctionSeverityMultiplier = 1.5
-let private importCountThreshold = 10
-let private highImportCountThreshold = 15
 
 // decision: methods are grouped by their nearest enclosing class rather than folded into the same flat
 // function list a free-standing function would land in — a class is already a cohesion boundary of its
@@ -42,21 +30,24 @@ let private highImportCountThreshold = 15
 // concern. A method with no enclosing class (every function in a functional-style module) still lands in
 // `freeFunctions`, preserving this detector's existing behavior for non-OOP files untouched.
 type private Collected =
-    { FreeFunctions: Node list
-      Classes: ClassInfo list
-      ImportSources: Set<string>
-      FirstImportNode: Node option }
+    { FreeFunctions: TreeSitter.Node list
+      Classes: ClassRelatedness.ClassInfo list
+      Imports: LanguageAdapter.ImportInfo list
+      FirstImportNode: TreeSitter.Node option }
 
 // decision: the traversal accumulates into an immutable Collected record threaded through the
 // recursion (merge keeps the earliest first-import node, since children are processed in source
 // order), instead of mutating captured state — same result, no shared mutable buffers.
-let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAdapter) : Collected =
+let private collectFunctionsClassesAndImports
+    (tree: TreeSitter.Node)
+    (language: LanguageAdapter.LanguageAdapter)
+    : Collected =
     // decision: requires isNamed, not just a type match — Kotlin's import rule is literally named `import`,
     // which collides with the anonymous `import` keyword token that is itself a child of every import node
     // (node.type for an anonymous node is its literal text). Without this guard, every Kotlin import is
     // counted twice: once for the named node, once for its own leading keyword token.
-    let isImportNode (node: Node) : bool =
-        let t = nodeType node
+    let isImportNode (node: TreeSitter.Node) : bool =
+        let t = TreeSitter.nodeType node
 
         language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
         || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
@@ -64,25 +55,27 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
     let empty: Collected =
         { FreeFunctions = []
           Classes = []
-          ImportSources = Set.empty
+          Imports = []
           FirstImportNode = None }
 
     let merge (left: Collected) (right: Collected) : Collected =
         { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
           Classes = left.Classes @ right.Classes
-          ImportSources = Set.union left.ImportSources right.ImportSources
+          Imports = left.Imports @ right.Imports
           FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
 
     // invariant: every syntax node is traversed exactly once; a class replaces the inherited class
     // context for its subtree so its methods never leak into FreeFunctions.
-    let rec traverse (node: Node) (enclosingClass: ClassInfo option) : Collected =
+    let rec traverse (node: TreeSitter.Node) (enclosingClass: ClassRelatedness.ClassInfo option) : Collected =
         let currentClass =
             if language.IsClassDefinition node then
-                Some
+                let classInfo: ClassRelatedness.ClassInfo =
                     { Name = language.GetClassName node
                       Node = node
                       BaseNames = language.GetBaseClassNames node
-                      Methods = ResizeArray<Node>() }
+                      Methods = ResizeArray<TreeSitter.Node>() }
+
+                Some classInfo
             else
                 None
 
@@ -96,25 +89,23 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
                     empty
                 | None -> { empty with FreeFunctions = [ node ] }
             | None when isImportNode node ->
-                // decision: counts distinct import *sources* (modules/packages), not raw import lines/symbols —
-                // see LanguageAdapter.importSource's doc for why raw-line counting isn't comparable across
-                // languages. Prefer the adapter's normalized source, falling back to the node's own text.
-                let imported = language.ImportSource node
-
-                let value =
-                    if String.IsNullOrEmpty imported then
-                        nodeText node
-                    else
-                        imported
+                let imports =
+                    language.ImportInfo node
+                    |> List.map (fun importInfo ->
+                        if System.String.IsNullOrEmpty importInfo.Source then
+                            { importInfo with
+                                Source = TreeSitter.nodeText node }
+                        else
+                            importInfo)
 
                 { empty with
-                    ImportSources = Set.singleton value
+                    Imports = imports
                     FirstImportNode = Some node }
             | None -> empty
 
         let childClass = Option.orElse currentClass enclosingClass
 
-        nodeChildren node
+        TreeSitter.nodeChildren node
         |> List.map (fun child -> traverse child childClass)
         |> List.fold merge own
 
@@ -126,26 +117,30 @@ let private collectFunctionsClassesAndImports (tree: Node) (language: LanguageAd
 // type diversity (Result === false), which must NOT be overridden by a coincidentally shared name prefix.
 // The naming heuristic only runs when the type signal is InsufficientData (too little type coverage to trust).
 let private isCohesiveByNamingOrType
-    (functions: Node list)
+    (functions: TreeSitter.Node list)
     (thresholds: CoherenceThresholds)
-    (typeResult: TypeCohesionResult)
+    (typeResult: TypeCohesion.TypeCohesionResult)
     : bool =
     match typeResult with
-    | Measured r -> r.Result
-    | InsufficientData -> looksLikeSingleDomain functions thresholds.SingleDomainNameShare
+    | TypeCohesion.Measured r -> r.Result
+    | TypeCohesion.InsufficientData -> NamingCohesion.looksLikeSingleDomain functions thresholds.SingleDomainNameShare
 
 // decision: anchored on the first function in the file (source order) rather than line 0 — there's no
 // single "worst offender" for a whole-file count signal, but pointing at the first function at least lands
 // the reader inside the file instead of at a meaningless (0, 0).
-let private functionCountViolation (functionCount: int) (message: string) (position: Position) : EnergyViolation =
+let private functionCountViolation
+    (functionCount: int)
+    (message: string)
+    (position: Position.Position)
+    : Violation.EnergyViolation =
     { Line = position.Line
       Column = position.Column
-      Type = Coherence
+      Type = Violation.Coherence
       Severity =
         if functionCount > highFunctionCountThreshold then
-            High
+            Violation.High
         else
-            Medium
+            Violation.Medium
       Message = message
       Hotspots = [] }
 
@@ -154,19 +149,19 @@ let private functionCountViolation (functionCount: int) (message: string) (posit
 // grab-bag module (util/helper/common) — the name is treated as a proxy for "already known to lack a
 // single responsibility". Only ever sees free-standing functions, not class methods.
 let private checkFunctionCountSprawl
-    (functions: Node list)
+    (functions: TreeSitter.Node list)
     (fileName: string)
     (thresholds: CoherenceThresholds)
-    (language: LanguageAdapter)
-    (positions: PositionLookup)
-    : EnergyViolation option =
+    (language: LanguageAdapter.LanguageAdapter)
+    (positions: Position.PositionLookup)
+    : Violation.EnergyViolation option =
     if functions.Length <= utilsFileFunctionThreshold then
         None
     else
-        let isUtilsFile = isUtilsFileName fileName
+        let isUtilsFile = NamingCohesion.isUtilsFileName fileName
 
         let typeResult =
-            typeCohesionResult
+            TypeCohesion.typeCohesionResult
                 functions
                 language
                 { MaxDiversityRatio = thresholds.MaxTypeDiversityRatio
@@ -183,7 +178,7 @@ let private checkFunctionCountSprawl
         then
             None
         else
-            let position = positions.toPosition (nodeStartIndex functions.[0])
+            let position = positions.toPosition (TreeSitter.nodeStartIndex functions.[0])
 
             match typeResult with
             // decision: once a file is already going to be flagged at the existing thresholds, a
@@ -192,7 +187,7 @@ let private checkFunctionCountSprawl
             // after dogfooding surfaced a real false positive on this project's own coherence.ts (9 small,
             // purpose-cohesive helper functions), showing type-diversity isn't reliable enough below ~12
             // functions to tell a legitimately-typed small module apart from a real grab-bag.
-            | Measured r when not r.Result ->
+            | TypeCohesion.Measured r when not r.Result ->
                 Some(
                     functionCountViolation
                         functions.Length
@@ -212,15 +207,16 @@ let private checkFunctionCountSprawl
                         position
                 )
 
-let private lineCount (node: Node) : int = nodeEndRow node - nodeStartRow node + 1
+let private lineCount (node: TreeSitter.Node) : int =
+    TreeSitter.nodeEndRow node - TreeSitter.nodeStartRow node + 1
 
 // Flag files with too many large functions, regardless of total function count — a module with 30 small
 // functions is fine, one with 6 sprawling ones isn't. Anchored on the first large function in source order.
 let private checkLargeFunctionSprawl
-    (functions: Node list)
+    (functions: TreeSitter.Node list)
     (thresholds: CoherenceThresholds)
-    (positions: PositionLookup)
-    : EnergyViolation option =
+    (positions: Position.PositionLookup)
+    : Violation.EnergyViolation option =
     let largeFunctions =
         functions
         |> List.filter (fun fn -> lineCount fn > thresholds.LargeFunctionLines)
@@ -228,19 +224,19 @@ let private checkLargeFunctionSprawl
     if largeFunctions.Length <= thresholds.MaxLargeFunctions then
         None
     else
-        let position = positions.toPosition (nodeStartIndex largeFunctions.[0])
+        let position = positions.toPosition (TreeSitter.nodeStartIndex largeFunctions.[0])
 
         Some
             { Line = position.Line
               Column = position.Column
-              Type = Coherence
+              Type = Violation.Coherence
               Severity =
                 if
                     float largeFunctions.Length > float thresholds.MaxLargeFunctions * largeFunctionSeverityMultiplier
                 then
-                    High
+                    Violation.High
                 else
-                    Medium
+                    Violation.Medium
               Message =
                 sprintf
                     "%d functions exceed %d lines. Large functions carry more complexity than function count alone suggests."
@@ -248,44 +244,14 @@ let private checkLargeFunctionSprawl
                     thresholds.LargeFunctionLines
               Hotspots = [] }
 
-// Flag excessive imports (another sign of incoherence). Counts distinct import *sources*, anchored on the
-// first import statement in the file rather than line 0.
-let private checkImportSprawl
-    (importSources: Set<string>)
-    (firstImportNode: Node option)
-    (positions: PositionLookup)
-    : EnergyViolation option =
-    if importSources.Count <= importCountThreshold then
-        None
-    else
-        let position =
-            match firstImportNode with
-            | Some node -> positions.toPosition (nodeStartIndex node)
-            | None -> { Line = 0; Column = 0 }
-
-        Some
-            { Line = position.Line
-              Column = position.Column
-              Type = Coherence
-              Severity =
-                if importSources.Count > highImportCountThreshold then
-                    High
-                else
-                    Medium
-              Message =
-                sprintf
-                    "Import sprawl: %d distinct modules imported suggest this file does too much. Splitting only helps if the resulting files don't each still need most of these imports."
-                    importSources.Count
-              Hotspots = [] }
-
 // The "Utils/Helpers Sprawl" detector. Methods are grouped by enclosing class (see
 // collectFunctionsClassesAndImports), so the function-count sprawl check only sees free-standing
 // functions; class methods are judged separately by checkClassRelatedness.
-let analyzeFileCoherence (ctx: AnalysisContext) : AnalysisContext =
+let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContext =
     let collected = collectFunctionsClassesAndImports ctx.Tree ctx.Language
     let FreeFunctions = collected.FreeFunctions
     let Classes = collected.Classes
-    let ImportSources = collected.ImportSources
+    let Imports = collected.Imports
     let FirstImportNode = collected.FirstImportNode
     // decision: the large-function check considers both free-standing functions and class methods; the
     // function-count sprawl check considers only free-standing ones.
@@ -295,12 +261,16 @@ let analyzeFileCoherence (ctx: AnalysisContext) : AnalysisContext =
     let findings =
         [ checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
           checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
-          checkImportSprawl ImportSources FirstImportNode ctx.Positions
-          checkClassRelatedness Classes ctx.Options.Coherence.SingleDomainNameShare ctx.Language ctx.Positions ]
+          ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions
+          ClassRelatedness.checkClassRelatedness
+              Classes
+              ctx.Options.Coherence.SingleDomainNameShare
+              ctx.Language
+              ctx.Positions ]
         |> List.choose id
 
-    addViolations findings ctx
+    Context.addViolations findings ctx
 
-let detector: Detector =
+let detector: Context.Detector =
     { Name = "coherence"
       Run = analyzeFileCoherence }

@@ -6,19 +6,15 @@ open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/inversion.py"
-          "TypeScript", TYPESCRIPT, "typescript/inversion.ts"
-          "Kotlin", KOTLIN, "kotlin/inversion.kt"
-          "C++", CPP, "cpp/inversion.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/inversion.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/inversion.ts"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/inversion.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/inversion.cpp" ]
 
     let fixtureTests =
         cases
@@ -60,8 +56,10 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture FSHARP "fsharp/inversion.fs"
-                            let violations = analyzeFixture source tree FSHARP "inversion.fs"
+                            let! (source, tree) = parseFixture FSharp.fSharpLanguageAdapter "fsharp/inversion.fs"
+
+                            let violations =
+                                analyzeFixture source tree FSharp.fSharpLanguageAdapter "inversion.fs"
 
                             assertThat
                                 (violations |> List.filter (fun v -> v.Type = Inversion) |> List.length)
