@@ -4,7 +4,6 @@ open Fable.Core.JS
 
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
-open Energy.Core.PythonTypeInfoExtraction
 open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Extension.Configuration
@@ -18,8 +17,6 @@ type LoadedLanguage =
 
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
-
-let private logValue (message: string) (value: obj) : unit = console.log (message, value)
 
 // A standalone document has no workspace root from which an .esaignore can be read, so it is
 // intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
@@ -40,34 +37,19 @@ let private parseDocument fileName parser source =
     with error ->
         Error(ParseFailed(fileName, string error))
 
-let private logPythonTypeInformation fileName source (adapter: Energy.Core.LanguageAdapter.LanguageAdapter) tree =
-    if adapter.Id <> "python" then
-        Ok()
-    else
-        try
-            extractTypeInformation tree (createPositionLookup source)
-            |> box
-            |> logValue "🔍 Found types:"
-
-            Ok()
-        with error ->
-            Error(AnalysisFailed(fileName, string error))
-
 let private analyze loaded document =
     let source = documentText document
     let fileName = documentFileName document
 
+    // decision: presentation consumes the Core result directly. Optional Python type-information
+    // logging is not part of analysis, so it must never turn valid findings into an empty editor.
     parseDocument fileName loaded.Parser source
-    |> Result.bind (fun root ->
-        let result =
-            { Source = source
-              Tree = root
-              Language = loaded.Adapter
-              FileName = fileName }
-            |> analyzeWith (readAnalyzeThresholds ())
-
-        logPythonTypeInformation fileName source loaded.Adapter root
-        |> Result.map (fun () -> result))
+    |> Result.map (fun root ->
+        { Source = source
+          Tree = root
+          Language = loaded.Adapter
+          FileName = fileName }
+        |> analyzeWith (readAnalyzeThresholds ()))
 
 // decision: handles typed boundary failures at the document boundary to retain the extension's
 // existing UX: report the error but clear decorations rather than leave stale findings visible.
