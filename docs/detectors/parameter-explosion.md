@@ -4,7 +4,7 @@ Flags functions with too many parameters for a caller to reliably remember the o
 
 ## What it flags
 
-Functions with more than 5 parameters are flagged (medium; high past 8). Beyond roughly 5 parameters, callers typically can no longer recall argument order or meaning without checking the signature.
+Functions with more than 5 parameters are flagged (medium; high past 8). Beyond roughly 5 parameters, callers typically can no longer recall argument order or meaning without checking the signature. Both thresholds are configurable — see [Configuration](../configuration.md).
 
 ## Example
 
@@ -14,97 +14,169 @@ function createUser(name: string, email: string, age: number, city: string, coun
 }
 ```
 
-The right fix depends on *why* the list is large. Grouping everything into one object silences the smell but doesn't always address it — pick what matches the cause:
+## Choose a fix that matches the cause
 
-- **Named options object** — the parameters belong to a single operation and are passed together at every call site. This directly removes caller-side ambiguity, since argument order no longer has to be memorized.
-- **Domain / value type** — several parameters already describe one concept (an address, contact details). Grouping them into a named type reduces *conceptual* complexity, not just the positional count.
-- **Split the function** — the parameters reveal multiple responsibilities (inventory, payment, notifications, auditing in one call). An options object mutes the warning; separating concerns fixes it.
-- **Move repeated dependencies onto an object** — when several parameters are services or state passed together at every call site, constructor or field injection turns them into state and leaves the real operation inputs visible.
-- **Builder** — construction is incremental, optional, conditional, or otherwise complex. Reach for a builder because of that complexity, not merely because there are many parameters.
+Do not automatically replace every long parameter list with one large object. That removes the positional call-site problem, but it can also hide unrelated inputs in a "parameter bag." Start by asking why the values travel together:
 
-Some mitigations improve call-site readability without lowering the count — e.g. Kotlin/Python named arguments or default values — so this detector still fires on them; reach for grouping or splitting when you need the number of parameters itself to drop.
+- **Introduce a parameter object** when the values describe one operation and callers normally supply them together. Give the object a meaningful name, such as `CreateUser` or `RetryPolicy`, rather than `Args` or `Options` when it represents domain data.
+- **Use a domain/value type** when several values are one concept, such as an address, date range, or contact details. Put validation and behavior that belong to that concept on the type.
+- **Pass an existing cohesive object** when the caller already has the domain object that the operation needs. Do not do this merely to avoid parameters: it can couple the callee to data it does not need.
+- **Split the operation** when its arguments expose several responsibilities, for example inventory, payment, notification, and auditing. Splitting fixes the responsibility problem; an options object alone only hides it.
+- **Move stable collaborators onto the owning object** when the repeated parameters are dependencies such as repositories, clocks, or payment services. Keep the method's actual operation inputs as parameters. This is not a reason to conceal dependencies that vary per call.
+- **Use a builder** when construction is incremental, conditional, or must validate combinations of optional values. A builder is usually unnecessary when one complete value can be created directly.
 
-Prefer a domain type over mechanically spreading six positional arguments into six object fields: it reads better at the call site *and* collapses related values into one concept. If most of the parameters are same-typed primitives (e.g. six booleans), positional ambiguity is really the smell — see [Primitive Obsession](primitive-obsession.md), which flags adjacent parameters that share a primitive type and can be silently swapped.
+Named arguments, keyword-only parameters, and default values can make a call easier to read, but they do not reduce the declared parameter count. They therefore do not stop this detector from reporting a long signature. Group related values or split the operation when the count itself needs to fall.
 
-### Per-language idioms
+If the parameters are adjacent values of the same primitive type, the central risk may be that callers can silently swap them. See [Primitive Obsession](primitive-obsession.md) for distinct domain types that make those calls harder to misuse.
 
-**TypeScript.** An options `interface` (nested interfaces for grouped values) is the default; for injected dependencies, move them to the constructor and keep operation parameters on the method.
+## Language-specific idioms
+
+### TypeScript: interfaces for input shapes, classes for owned dependencies
+
+Use an interface or type alias for a cohesive input shape. Prefer several small domain types to one flat object when the groups have independent meaning. Constructor injection is appropriate when an object owns stable collaborators.
 
 ```typescript
-// options object — order no longer has to be memorized
-function createUser(options: CreateUserOptions) {}
+interface Address {
+  city: string;
+  country: string;
+}
 
-// domain types reduce conceptual complexity further
-interface Address { city: string; country: string }
-interface ContactInfo { email: string; phone: string }
-function createUser(user: { name: string; age: number; address: Address; contact: ContactInfo }) {}
+interface ContactInfo {
+  email: string;
+  phone: string;
+}
 
-// dependencies become state, operation inputs stay visible
+interface CreateUser {
+  name: string;
+  age: number;
+  address: Address;
+  contact: ContactInfo;
+}
+
+function createUser(user: CreateUser): void {
+  // ...
+}
+
 class OrderProcessor {
-  constructor(private payment: PaymentService, private inventory: Inventory) {}
-  process(order: Order, customer: Customer) {}
+  constructor(
+    private readonly payment: PaymentService,
+    private readonly inventory: Inventory,
+  ) {}
+
+  process(order: Order, customer: Customer): void {
+    // ...
+  }
 }
 ```
 
-**Python.** Keyword arguments (optionally keyword-only with `*`) let callers name each value; bundle related config into a `@dataclass` when it is threaded through several functions.
+### Python: dataclasses for related data; keyword-only parameters for clarity
+
+Use a dataclass for related values that are passed through the domain together. A keyword-only signature improves a small API's call sites, but is only a readability aid when it still has many declared parameters.
 
 ```python
-def create_user(*, name, email, age, city, country, phone): ...   # named at the call site
+from dataclasses import dataclass
 
-@dataclass
-class ContactInfo:
+
+@dataclass(frozen=True)
+class Address:
+    city: str
+    country: str
+
+
+@dataclass(frozen=True)
+class CreateUser:
+    name: str
+    age: int
+    address: Address
     email: str
     phone: str
-def create_user(user: CreateUser): ...   # grouped values in a record
+
+
+def create_user(user: CreateUser) -> None:
+    ...
+
+
+def find_users(*, city: str, country: str, active_only: bool) -> list[CreateUser]:
+    ...  # explicit names help here; this smaller signature is not a parameter object
 ```
 
-**Kotlin.** Group related values into data classes to actually cut the count — that is the real fix here. Named arguments with default parameters make each call site unambiguous, but they don't reduce the declared parameter count, so this detector still fires on them.
+### Kotlin: data classes for grouped values
+
+Use `data class` for a cohesive value. Kotlin named arguments and default values are useful at call sites, but a function with six declared parameters remains a six-parameter function and is still reported.
 
 ```kotlin
 data class Address(val city: String, val country: String)
 data class ContactInfo(val email: String, val phone: String)
-fun createUser(name: String, age: Int, address: Address, contact: ContactInfo)   // 4 params — not flagged
+data class CreateUser(val name: String, val age: Int, val address: Address, val contact: ContactInfo)
 
-// named args + defaults improve call-site clarity but keep all six parameters (still flagged):
-fun createUser(
-    name: String, email: String, age: Int = 0,
-    city: String = "", country: String = "", phone: String = ""
-) // create_user(city = "Oslo", country = "Norway")
+fun createUser(user: CreateUser) {
+    // ...
+}
 ```
 
-**C++.** Pass an options struct by value (aggregate-initializable at the call site); use a builder or fluent interface when construction is conditional or incremental.
+### C++: small structs for cohesive inputs
+
+Use a small `struct` for related inputs and pass it by `const` reference when copying is not the intended API cost. C++20 designated initializers can make aggregate construction explicit; on earlier standards, initialize a local object by field name rather than relying on a long positional aggregate initializer.
 
 ```cpp
-struct CreateUserOptions { std::string name; std::string email; std::string phone; };
-void createUser(CreateUserOptions opts);   // called with aggregate init: createUser({ .name = "Alice", ... })
-
-// dependencies become state, operation inputs stay visible
-class OrderProcessor {
-public:
-    explicit OrderProcessor(PaymentService p, Inventory i)
-        : payment_(std::move(p)), inventory_(std::move(i)) {}
-    void process(const Order& order, const Customer& customer);
-private:
-    PaymentService payment_;
-    Inventory inventory_;
+struct Address {
+    std::string city;
+    std::string country;
 };
+
+struct CreateUser {
+    std::string name;
+    int age;
+    Address address;
+    std::string email;
+    std::string phone;
+};
+
+void createUser(const CreateUser& user);
+
+CreateUser user;
+user.name = "Alice";
+user.age = 30;
+user.address = {"Oslo", "Norway"};
+createUser(user);
 ```
 
-**F#.** Record types are the natural grouping, and F#'s currying turns a long parameter list into a chain of unary functions — so dependencies can be injected first and partially applied to yield a function of just the operational parameters, instead of threading an options bag everywhere.
+### F#: records for values and partial application for stable dependencies
+
+Use records to make related values one explicit input. When dependencies are stable, accept them first and partially apply the function; the resulting function exposes only the operational input. Currying is not a substitute for reducing an unrelated long argument list.
 
 ```fsharp
-type createUserOptions = { name: string; email: string; age: int; city: string; country: string; phone: string }
-let createUser ({ name; email; _ } : createUserOptions) = ...
+type Address =
+    { City: string
+      Country: string }
 
-// grouped domain values
-type address = { city: string; country: string }
-let createUser (user: CreateUser) = user.name, user.address.city
+type CreateUser =
+    { Name: string
+      Age: int
+      Address: Address
+      Email: string
+      Phone: string }
 
-// inject dependencies first, curry to a function of the operational params only
-let createUser (deps: Deps) ({ name; email; _ } : createUserOptions) = ...
-let createForUser = createUser someDeps   // : createUserOptions -> _
+type Dependencies = { SaveUser: CreateUser -> unit }
+
+let createUser (dependencies: Dependencies) (user: CreateUser) =
+    dependencies.SaveUser user
+
+let createUserInStore = createUser dependencies
 ```
+
+## Configuration
+
+The thresholds are configured at the same three levels as every other detector (see [Configuration](../configuration.md)): built-in defaults, a project's `.esaconfig.json`, and a host override (VS Code settings or CLI flags). The defaults are `5` (medium) / `8` (high).
+
+```jsonc
+{
+  "parameterCount": { "mediumThreshold": 5, "highThreshold": 8 }
+}
+```
+
+In the editor this is `energyStateAnalyzer.parameterCount.mediumThreshold` / `.highThreshold`; in the CLI, `--medium-parameter-count N` / `--high-parameter-count N`. Each flag overrides only the value it provides.
 
 ## Known limitations
 
-The threshold is not yet configurable via VS Code settings; it's fixed at >5 (medium) / >8 (high). TypeScript arrow functions and C++ lambdas aren't analyzed by this detector, only named functions and methods; Python's `lambda` has the same gap. C++ parameter packs count when the grammar exposes them as parameter declarations, but macro-generated parameters are invisible without preprocessing.
+TypeScript arrow functions and C++ lambdas aren't analyzed by this detector, only named functions and methods; Python's `lambda` has the same gap. C++ parameter packs count when the grammar exposes them as parameter declarations, but macro-generated parameters are invisible without preprocessing.
