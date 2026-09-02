@@ -11,6 +11,11 @@ let workspaceFolderUri (workspaceFolder: obj) : obj = nativeOnly
 [<Emit("$0.getConfiguration($1)")>]
 let getConfiguration (hostWorkspace: obj) (section: string) : obj = nativeOnly
 
+// decision: read the raw workspaceFolders array so a project's .esaconfig.json can be discovered from
+// the root before any document is open; null when no folder exists, which callers treat as "no config".
+[<Emit("$0.workspaceFolders")>]
+let workspaceFolders (hostWorkspace: obj) : obj = nativeOnly
+
 [<Emit("$0.get($1, $2)")>]
 let getConfigurationValue<'a> (configuration: obj) (key: string) (fallback: 'a) : 'a = nativeOnly
 

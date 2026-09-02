@@ -36,7 +36,7 @@ webpack watch pipeline.
 
 ## Architecture
 
-Keep every F# file at or below 12 functions and 10 import sources. `src/EnergyState.fsproj` has
+Code-quality parameters such as function and import counts are enforced by the analyzer, not by hand-written limits here — the analyzer is authoritative on them, so AGENTS.md does not set those numbers. If the analyzer flags a file, fix it (or challenge the analyzer if you believe its verdict is wrong); otherwise treat its output as final. `src/EnergyState.fsproj` has
 `EnableDefaultCompileItems=false` behavior, so add every new `.fs` file explicitly in dependency
 order.
 

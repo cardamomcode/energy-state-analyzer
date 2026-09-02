@@ -8,8 +8,12 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- F# SDK: EnableDefaultCompileItems is false, so every source file must be listed.
-         Order matters: dependencies first (TreeSitter facade before the modules that read it). -->
+         Order matters: dependencies first. Paths/FsPath are the leaf fs/path bindings, Config is a
+         dependency-free leaf (all-primitive config defaults + the .esaconfig.json loader) that sits
+         before Context, and TreeSitter precedes every module that reads it. -->
     <Compile Include="Core/Paths.fs" />
+    <Compile Include="Core/FsPath.fs" />
+    <Compile Include="Core/Config.fs" />
     <Compile Include="Core/TreeSitter.fs" />
     <Compile Include="Core/Violation.fs" />
     <Compile Include="Core/Position.fs" />
@@ -45,7 +49,6 @@
     <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
     <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
     <Compile Include="Core/Suppressions.fs" />
-    <Compile Include="Core/FsPath.fs" />
     <Compile Include="Core/Esaignore.fs" />
     <Compile Include="Core/Scan.fs" />
     <Compile Include="Core/Report.fs" />

@@ -8,9 +8,8 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-type MagicStringOptions = Energy.Core.Context.MagicStringOptions
-
-let defaultOptions = defaultAnalyzeOptions.MagicString
+// decision: magic-string options live in Core.Config as the single source of truth; this detector
+// reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 let private stripQuotes (text: string) =
     if text.Length >= 2 then

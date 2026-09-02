@@ -6,15 +6,14 @@ open System.Threading.Tasks
 open Energy.CliModes
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.Config
 open Energy.Core.Paths
-open Energy.Core.Detectors.Cognitive
-open Energy.Core.Detectors.Cyclomatic
-open Energy.Core.Detectors.Nesting
 
 type private ParsedArguments =
     { Paths: string list
       BaseRef: string option
       Report: ReportFormat option
+      ConfigFile: string option
       Nesting: int option * int option
       Cyclomatic: int option * int option
       Cognitive: int option * int option
@@ -24,6 +23,7 @@ let private valueFlags =
     Set.ofList
         [ "base-ref"
           "report"
+          "config"
           "medium-nesting"
           "high-nesting"
           "medium-cyclomatic"
@@ -73,6 +73,7 @@ let private parseArguments arguments =
     { Paths = paths
       BaseRef = Map.tryFind "base-ref" flags
       Report = Map.tryFind "report" flags
+      ConfigFile = Map.tryFind "config" flags
       Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
       Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
@@ -81,17 +82,25 @@ let private parseArguments arguments =
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
 
-let private buildThresholds parsed =
-    { defaultThresholds with
+// decision: the CLI reads .esaconfig.json by default (searching up from the current directory), or an
+// explicit path via --config; threshold flags then override whatever that file set. This is why the
+// defaults now come from Core.Config — they are the same values a project's config overlays onto.
+let private buildThresholds parsed : AnalyzeOptions =
+    let baseOptions =
+        match parsed.ConfigFile with
+        | Some configPath -> loadAnalyzeOptionsFromConfigPath (Path configPath)
+        | None -> loadAnalyzeOptions (Path(cwd ()))
+
+    { baseOptions with
+        // decision: the allowlists, enabled flags, and min-duplicates all come from baseOptions, which
+        // already merged .esaconfig.json over the Core.Config defaults; only the --include-test-files flag
+        // overrides them, so a project's config can no longer be silently discarded by the CLI.
         MagicNumber =
-            { Enabled = Energy.Core.Detectors.MagicNumber.defaultOptions.Enabled
-              Allowlist = Energy.Core.Detectors.MagicNumber.defaultOptions.Allowlist
-              IncludeTestFiles = parsed.IncludeTestFiles }
+            { baseOptions.MagicNumber with
+                IncludeTestFiles = parsed.IncludeTestFiles }
         MagicString =
-            { Enabled = Energy.Core.Detectors.MagicString.defaultOptions.Enabled
-              MinDuplicates = Energy.Core.Detectors.MagicString.defaultOptions.MinDuplicates
-              Allowlist = Energy.Core.Detectors.MagicString.defaultOptions.Allowlist
-              IncludeTestFiles = parsed.IncludeTestFiles }
+            { baseOptions.MagicString with
+                IncludeTestFiles = parsed.IncludeTestFiles }
         Nesting =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)

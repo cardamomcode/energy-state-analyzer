@@ -32,6 +32,9 @@ let joinPath (left: Path) (right: Path) : Path = nativeOnly
 [<Import("relative", "node:path")>]
 let relativePath (fromPath: Path) (toPath: Path) : string = nativeOnly
 
+[<Import("dirname", "node:path")>]
+let dirname (path: Path) : Path = nativeOnly
+
 [<Import("resolve", "node:path")>]
 let resolvePath (path: Path) : Path = nativeOnly
 
