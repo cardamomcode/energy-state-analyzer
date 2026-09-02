@@ -6,6 +6,7 @@ open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Context
+open Energy.Core.Config
 open Energy.Core.DetectorPipeline
 open Energy.Core.Suppressions
 

@@ -15,12 +15,8 @@ open Energy.Core.Context
 // edge. A violation is anchored at the function's start position and carries per-line hotspots
 // weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
-type CyclomaticThresholds = Energy.Core.Context.CyclomaticThresholds
-
-// decision: medium 10 / high 15 — the point where holding that many independent paths in working
-// memory degrades readability (medium), and deep branching genuinely demands extraction (high).
-let defaultCyclomaticThresholds: CyclomaticThresholds =
-    defaultAnalyzeOptions.Cyclomatic
+// decision: cyclomatic thresholds live in Core.Config as the single source of truth; this detector
+// reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 type private FlowNode =
     | Entry

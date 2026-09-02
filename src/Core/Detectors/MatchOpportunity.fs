@@ -8,9 +8,8 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.MatchOpportunitySupport
 
-type MatchOpportunityThresholds = Energy.Core.Context.MatchOpportunityThresholds
-
-let defaultThresholds = defaultAnalyzeOptions.MatchOpportunity
+// decision: matchOpportunity thresholds live in Core.Config as the single source of truth; this
+// detector reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 let private matchOpportunityViolation
     (positions: PositionLookup)

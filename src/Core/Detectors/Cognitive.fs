@@ -21,13 +21,8 @@ open Energy.Core.Context
 //   - match/switch-like constructs and try/except are scored once as a whole, not per-case — see
 //     each LanguageAdapter for the exact node-type mapping (CognitiveNestedDecisionTypes).
 
-type CognitiveThresholds = Energy.Core.Context.CognitiveThresholds
-
-// decision: medium 15 / high 25 — cognitive complexity weights nesting more heavily than cyclomatic,
-// so its thresholds sit higher (SonarSource's own defaults); a function that is only "medium" by
-// cyclomatic can legitimately be clean here.
-let defaultCognitiveThresholds: CognitiveThresholds =
-    defaultAnalyzeOptions.Cognitive
+// decision: cognitive thresholds live in Core.Config as the single source of truth; this detector
+// reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 // decision: compare a node against an optional grammar node type without leaking `option` into the
 // detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check

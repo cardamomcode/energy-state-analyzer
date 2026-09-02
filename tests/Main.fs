@@ -9,6 +9,7 @@ open type Scriptorium.Quill.Runner
 let main _ =
     runTests
         [ SpikeTests.tests
+          ConfigTests.tests
           CPlusPlusTests.tests
           NestingTests.tests
           CyclomaticTests.tests
@@ -21,6 +22,7 @@ let main _ =
           LogicalControlFlowTests.tests
           OpaqueBooleanTests.tests
           ParameterCountTests.tests
+          ParameterCountTests.configOverrideTests
           PrimitiveObsessionTests.tests
           SuppressionsTests.tests
           ReportTests.tests

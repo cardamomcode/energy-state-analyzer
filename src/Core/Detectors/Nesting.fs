@@ -12,11 +12,8 @@ open Energy.Core.Context
 // than the medium threshold; severity escalates to high past the high threshold. Each violation is
 // anchored at the control node's start position.
 
-type NestingThresholds = Energy.Core.Context.NestingThresholds
-
-// decision: default medium threshold of 3 is the point where tracking active conditions starts to
-// strain working memory; high threshold of 5 escalates severity for the deepest offenders.
-let defaultNestingThresholds: NestingThresholds = defaultAnalyzeOptions.Nesting
+// decision: default nesting thresholds live in Core.Config as the single source of truth; this
+// detector reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 let analyzeNesting (ctx: AnalysisContext) : AnalysisContext =
     // Pure pre-order DFS that reproduces the TS algorithm's push-to-end ordering exactly: a control

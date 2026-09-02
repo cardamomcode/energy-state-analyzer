@@ -2,6 +2,7 @@ module Energy.Core.Detectors.Coherence
 
 
 open Energy.Core
+open Energy.Core.Config
 
 // The "Utils/Helpers Sprawl" detector.
 //
@@ -11,13 +12,9 @@ open Energy.Core
 // each violation is anchored at the most directly actionable position (first function / first import /
 // first large function) rather than line 0.
 
-type CoherenceThresholds = Context.CoherenceThresholds
-
-// decision: medium 15 / high 25 for large-function count; the raw function-count trigger (8/12) and its
-// severity escalation (15) are deliberately NOT part of CoherenceThresholds — they're secondary heuristics
-// tuned around the utils-file naming proxy, not thresholds users are expected to retune independently.
-let defaultCoherenceThresholds: CoherenceThresholds =
-    Context.defaultAnalyzeOptions.Coherence
+// decision: coherence thresholds live in Core.Config as the single source of truth; this detector
+// reads them from ctx.Options (and its own `thresholds` parameter) so it no longer re-exports a
+// module-level copy.
 
 let private utilsFileFunctionThreshold = 8
 let private genericFunctionCountThreshold = 12
