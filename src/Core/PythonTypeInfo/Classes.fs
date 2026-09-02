@@ -1,8 +1,8 @@
-module Energy.Core.PythonTypeInfoClasses
+module Energy.Core.PythonTypeInfo.Classes
 
 open Energy.Core.Position
 open Energy.Core.PythonTypeInfo
-open Energy.Core.PythonTypeInfoFunctions
+open Energy.Core.PythonTypeInfo.Functions
 open Energy.Core.TreeSitter
 
 let private baseClasses node =

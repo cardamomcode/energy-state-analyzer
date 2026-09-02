@@ -1,4 +1,4 @@
-module Energy.Core.PythonTypeInfoFunctions
+module Energy.Core.PythonTypeInfo.Functions
 
 open Energy.Core.Position
 open Energy.Core.PythonTypeInfo

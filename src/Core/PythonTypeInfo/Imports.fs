@@ -1,4 +1,4 @@
-module Energy.Core.PythonTypeInfoImports
+module Energy.Core.PythonTypeInfo.Imports
 
 open Energy.Core.Position
 open Energy.Core.PythonTypeInfo

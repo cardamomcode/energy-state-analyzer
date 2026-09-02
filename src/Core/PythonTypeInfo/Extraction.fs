@@ -1,10 +1,10 @@
-module Energy.Core.PythonTypeInfoExtraction
+module Energy.Core.PythonTypeInfo.Extraction
 
 open Energy.Core.Position
 open Energy.Core.PythonTypeInfo
-open Energy.Core.PythonTypeInfoClasses
-open Energy.Core.PythonTypeInfoFunctions
-open Energy.Core.PythonTypeInfoImports
+open Energy.Core.PythonTypeInfo.Classes
+open Energy.Core.PythonTypeInfo.Functions
+open Energy.Core.PythonTypeInfo.Imports
 open Energy.Core.TreeSitter
 
 // decision: preserves the prior pre-order AST walk so the logged scaffolding remains stable for
