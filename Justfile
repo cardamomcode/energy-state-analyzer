@@ -31,11 +31,13 @@ format:
 format-check:
     npm run format-check
 
-# Run the F# analyzer. With no arguments it scans src; otherwise arguments are forwarded unchanged.
-# Examples: `just analyze tests` and `just analyze --base-ref main --report human`.
+# Run the F# analyzer against src/ (or supplied paths). Rebuilds the webpack bundles only when dist/
+# is missing; otherwise it reuses the existing bundle so per-file checks stay near-instant. With no
+# arguments it scans src; otherwise the remaining args are forwarded unchanged to the CLI.
+# Examples: `just analyze`, `just analyze tests`, `just analyze --base-ref main --report human`.
 analyze *args:
-    npm run compile
-    if [ -n "{{args}}" ]; then npm run analyze -- {{args}}; else npm run analyze -- src; fi
+    @if [ ! -d dist ]; then echo "just analyze: rebuilding before analysis…"; npm run compile; fi
+    @paths="{{args}}"; [ -z "$paths" ] && paths=src; npm run analyze -- $paths
 
 # Transpile and run the F# Scriptorium suite
 test:

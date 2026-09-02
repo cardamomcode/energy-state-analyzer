@@ -1,7 +1,6 @@
 module Energy.Core.Context
 
 open Energy.Core.Violation
-open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Config
@@ -19,7 +18,7 @@ type AnalysisContext =
       // Root node of the already-parsed tree — the pipeline is synchronous, so no task { } here.
       Tree: Node
       // Offset->line/column lookup derived from Source; detectors map node.startIndex through it.
-      Positions: PositionLookup
+      Positions: Position.PositionLookup
       Language: LanguageAdapter
       FileName: string
       Options: AnalyzeOptions
