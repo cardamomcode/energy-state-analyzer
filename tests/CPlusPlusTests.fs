@@ -9,7 +9,7 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Scan
 open Energy.Core.TypeCohesion
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Languages.Registry
 open Energy.Tests.TestUtils
 
@@ -81,22 +81,26 @@ let tests =
           test (
               "accepts qualified C++ names as type-cohesion signals",
               fun _ ->
-                  assertThat (baseTypeName "std::vector<int>" CPP.GenericBrackets) (isEqualTo (Some "std::vector"))
+                  assertThat
+                      (baseTypeName "std::vector<int>" CPlusPlus.cPlusPlusLanguageAdapter.GenericBrackets)
+                      (isEqualTo (Some "std::vector"))
 
-                  assertThat (baseTypeName "std::string" CPP.GenericBrackets) (isEqualTo (Some "std::string"))
+                  assertThat
+                      (baseTypeName "std::string" CPlusPlus.cPlusPlusLanguageAdapter.GenericBrackets)
+                      (isEqualTo (Some "std::string"))
           )
           testAsync (
               "extracts declarators, trailing returns, includes, constants, and inheritance",
               fun _ ->
                   toAsync (
                       task {
-                          let! (_, tree) = parseFixture CPP "cpp/adapter.cpp"
+                          let! (_, tree) = parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/adapter.cpp"
 
                           let parameters =
-                              CPP.ParameterChildTypes
+                              CPlusPlus.cPlusPlusLanguageAdapter.ParameterChildTypes
                               |> List.collect (fun nodeType -> nodesOfType nodeType tree)
                               |> List.sortBy nodeStartIndex
-                              |> List.choose CPP.ExtractTypedParameter
+                              |> List.choose CPlusPlus.cPlusPlusLanguageAdapter.ExtractTypedParameter
 
                           assertThat
                               (parameters |> List.map (fun parameter -> parameter.Name, parameter.Type))
@@ -108,30 +112,40 @@ let tests =
 
                           let returns =
                               nodesOfType (NodeType "function_definition") tree
-                              |> List.choose CPP.ExtractReturnType
+                              |> List.choose CPlusPlus.cPlusPlusLanguageAdapter.ExtractReturnType
 
                           assertThat returns (isEqualTo [ "std::string"; "std::string" ])
 
                           let includes =
-                              nodesOfType (NodeType "preproc_include") tree |> List.map CPP.ImportSource
+                              nodesOfType (NodeType "preproc_include") tree
+                              |> List.collect CPlusPlus.cPlusPlusLanguageAdapter.ImportInfo
+                              |> List.map _.Source
 
                           assertThat includes (isEqualTo [ "vector"; "thing.hpp" ])
 
                           let structure = nodesOfType (NodeType "struct_specifier") tree |> List.head
-                          assertThat (CPP.GetClassName structure) (isEqualTo (Some "Derived"))
-                          assertThat (CPP.GetBaseClassNames structure) (isEqualTo [ "ns::Base"; "Interface<int>" ])
+
+                          assertThat
+                              (CPlusPlus.cPlusPlusLanguageAdapter.GetClassName structure)
+                              (isEqualTo (Some "Derived"))
+
+                          assertThat
+                              (CPlusPlus.cPlusPlusLanguageAdapter.GetBaseClassNames structure)
+                              (isEqualTo [ "ns::Base"; "Interface<int>" ])
 
                           assertThat
                               (nodesOfType (NodeType "number_literal") tree
-                               |> List.exists CPP.IsDefaultParameterValue)
+                               |> List.exists CPlusPlus.cPlusPlusLanguageAdapter.IsDefaultParameterValue)
                               isTrue
 
                           assertThat
-                              (nodesOfType (NodeType "declaration") tree |> List.exists CPP.IsExplicitConstant)
+                              (nodesOfType (NodeType "declaration") tree
+                               |> List.exists CPlusPlus.cPlusPlusLanguageAdapter.IsExplicitConstant)
                               isTrue
 
                           assertThat
-                              (nodesOfType (NodeType "enumerator") tree |> List.exists CPP.IsExplicitConstant)
+                              (nodesOfType (NodeType "enumerator") tree
+                               |> List.exists CPlusPlus.cPlusPlusLanguageAdapter.IsExplicitConstant)
                               isTrue
                       }
                   )
@@ -141,7 +155,7 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! (_, tree) = parseFixture CPP "cpp/adapter.cpp"
+                          let! (_, tree) = parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/adapter.cpp"
 
                           for nodeType in
                               [ NodeType "for_statement"
@@ -152,7 +166,7 @@ let tests =
 
                           assertThat
                               (nodesOfType (NodeType "binary_expression") tree
-                               |> List.choose CPP.GetBooleanOperator
+                               |> List.choose CPlusPlus.cPlusPlusLanguageAdapter.GetBooleanOperator
                                |> List.isEmpty
                                |> not)
                               isTrue
@@ -164,8 +178,11 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! (source, tree) = parseFixture CPP "cpp/coherence/classBoundaries.cpp"
-                          let violations = analyzeFixture source tree CPP "classBoundaries.hpp"
+                          let! (source, tree) =
+                              parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/coherence/classBoundaries.cpp"
+
+                          let violations =
+                              analyzeFixture source tree CPlusPlus.cPlusPlusLanguageAdapter "classBoundaries.hpp"
 
                           assertThat
                               (violations
@@ -180,8 +197,10 @@ let tests =
               fun _ ->
                   toAsync (
                       task {
-                          let! (source, tree) = parseFixture CPP "cpp/suppressions.cpp"
-                          let violations = analyzeFixture source tree CPP "suppressions.cpp"
+                          let! (source, tree) = parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/suppressions.cpp"
+
+                          let violations =
+                              analyzeFixture source tree CPlusPlus.cPlusPlusLanguageAdapter "suppressions.cpp"
 
                           assertThat
                               (violations |> List.exists (fun violation -> violation.Type = PrimitiveObsession))

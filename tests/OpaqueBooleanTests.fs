@@ -5,20 +5,19 @@ open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/opaqueBoolean.py", "suppressedKeywordArgument"
-          "TypeScript", TYPESCRIPT, "typescript/opaqueBoolean.ts", "suppressedObjectLiteralField"
-          "F#", FSHARP, "fsharp/opaqueBoolean.fs", "suppressedNamedArgument"
-          "Kotlin", KOTLIN, "kotlin/opaqueBoolean.kt", "suppressedNamedArgument"
-          "C++", CPP, "cpp/opaqueBoolean.cpp", "suppressedLabeledAggregateField" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/opaqueBoolean.py", "suppressedKeywordArgument"
+          "TypeScript",
+          TypeScript.typeScriptLanguageAdapter,
+          "typescript/opaqueBoolean.ts",
+          "suppressedObjectLiteralField"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/opaqueBoolean.fs", "suppressedNamedArgument"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/opaqueBoolean.kt", "suppressedNamedArgument"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/opaqueBoolean.cpp", "suppressedLabeledAggregateField" ]
 
     testList (
         "Integration: opaque booleans",

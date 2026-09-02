@@ -13,11 +13,7 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Detectors.Cyclomatic
 open Energy.Core.LanguageAdapter
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
@@ -34,18 +30,18 @@ let rec private functionNodes (language: LanguageAdapter) (node: Node) : Node li
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/cyclomaticComplexity.py"
-          "TypeScript", TYPESCRIPT, "typescript/cyclomaticComplexity.ts"
-          "F#", FSHARP, "fsharp/cyclomaticComplexity.fs"
-          "Kotlin", KOTLIN, "kotlin/cyclomaticComplexity.kt"
-          "C++", CPP, "cpp/cyclomaticComplexity.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/cyclomaticComplexity.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cyclomaticComplexity.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/cyclomaticComplexity.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/cyclomaticComplexity.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomaticComplexity.cpp" ]
 
     let branchCases =
-        [ "Python", PYTHON, "python/cyclomaticBranches.py"
-          "TypeScript", TYPESCRIPT, "typescript/cyclomaticBranches.ts"
-          "F#", FSHARP, "fsharp/cyclomaticBranches.fs"
-          "Kotlin", KOTLIN, "kotlin/cyclomaticBranches.kt"
-          "C++", CPP, "cpp/cyclomaticBranches.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/cyclomaticBranches.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cyclomaticBranches.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/cyclomaticBranches.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/cyclomaticBranches.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomaticBranches.cpp" ]
 
     let regressionTests =
         cases

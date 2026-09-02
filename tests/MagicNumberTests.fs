@@ -8,22 +8,18 @@ open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Detectors.MagicNumber
 open Energy.Core.Position
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: runs the pipeline over the established real-code fixtures so the detector's grammar
 // hooks, position mapping, and registration are exercised together for every supported language.
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/magicNumber.py"
-          "TypeScript", TYPESCRIPT, "typescript/magicNumber.ts"
-          "F#", FSHARP, "fsharp/magicNumber.fs"
-          "Kotlin", KOTLIN, "kotlin/magicNumber.kt"
-          "C++", CPP, "cpp/magicNumber.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/magicNumber.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicNumber.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/magicNumber.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/magicNumber.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magicNumber.cpp" ]
 
     let fixtureTests =
         cases
@@ -70,8 +66,11 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicNumber.py"
-                            let violations = analyzeFixture sourceCode tree PYTHON "magicNumber.py"
+                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicNumber.py"
+
+                            let violations =
+                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "magicNumber.py"
+
                             let exempt = findFunctionRange sourceCode (FunctionName "exemptIndexAndDefault")
 
                             assertThat
@@ -91,8 +90,11 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
-                            let violations = analyzeFixture sourceCode tree KOTLIN "magicNumber.kt"
+                            let! (sourceCode, tree) = parseFixture Kotlin.kotlinLanguageAdapter "kotlin/magicNumber.kt"
+
+                            let violations =
+                                analyzeFixture sourceCode tree Kotlin.kotlinLanguageAdapter "magicNumber.kt"
+
                             let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
                             assertThat
@@ -108,8 +110,12 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture CPP "cpp/magicNumber.cpp"
-                            let violations = analyzeFixture sourceCode tree CPP "magicNumber.cpp"
+                            let! (sourceCode, tree) =
+                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/magicNumber.cpp"
+
+                            let violations =
+                                analyzeFixture sourceCode tree CPlusPlus.cPlusPlusLanguageAdapter "magicNumber.cpp"
+
                             let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
                             assertThat
@@ -125,17 +131,19 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (fsharpSource, fsharpTree) = parseFixture FSHARP "fsharp/magicNumber.fs"
+                            let! (fsharpSource, fsharpTree) =
+                                parseFixture FSharp.fSharpLanguageAdapter "fsharp/magicNumber.fs"
 
                             let fsharpViolations =
-                                analyzeFixture fsharpSource fsharpTree FSHARP "magicNumber.fs"
+                                analyzeFixture fsharpSource fsharpTree FSharp.fSharpLanguageAdapter "magicNumber.fs"
 
                             let maxRetries = findFunctionRange fsharpSource (FunctionName "maxRetries")
 
-                            let! (kotlinSource, kotlinTree) = parseFixture KOTLIN "kotlin/magicNumber.kt"
+                            let! (kotlinSource, kotlinTree) =
+                                parseFixture Kotlin.kotlinLanguageAdapter "kotlin/magicNumber.kt"
 
                             let kotlinViolations =
-                                analyzeFixture kotlinSource kotlinTree KOTLIN "magicNumber.kt"
+                                analyzeFixture kotlinSource kotlinTree Kotlin.kotlinLanguageAdapter "magicNumber.kt"
 
                             let annotatedRetries =
                                 findFunctionRange kotlinSource (FunctionName "MAX_ANNOTATED_RETRIES")
@@ -159,7 +167,7 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture PYTHON "python/magicNumber.py"
+                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicNumber.py"
                             let positions = createPositionLookup sourceCode
                             let numbers = findFunctionRange sourceCode (FunctionName "flaggedMagicNumbers")
 
@@ -167,7 +175,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "magicNumber.py"
                                     { defaultThresholds with
                                         MagicNumber =
@@ -181,7 +189,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "magicNumber.py"
                                     { defaultThresholds with
                                         MagicNumber =
@@ -191,8 +199,11 @@ let tests =
                                 |> analyzeMagicNumbers
                                 |> _.Violations
 
-                            let testFile = analyzeFixture sourceCode tree PYTHON "PricingTest.py"
-                            let latestFile = analyzeFixture sourceCode tree PYTHON "latest_pricing.py"
+                            let testFile =
+                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "PricingTest.py"
+
+                            let latestFile =
+                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "latest_pricing.py"
 
                             // decision: the includeTestFiles flag re-enables findings in test-named files,
                             // which is how fixtures under a test/ directory get audited.
@@ -200,7 +211,7 @@ let tests =
                                 createTestContext
                                     sourceCode
                                     tree
-                                    PYTHON
+                                    Python.pythonLanguageAdapter
                                     "PricingTest.py"
                                     { defaultThresholds with
                                         MagicNumber =

@@ -11,11 +11,7 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 // decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
@@ -25,11 +21,11 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/nesting.py"
-          "TypeScript", TYPESCRIPT, "typescript/nesting.ts"
-          "F#", FSHARP, "fsharp/nesting.fs"
-          "Kotlin", KOTLIN, "kotlin/nesting.kt"
-          "C++", CPP, "cpp/nesting.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/nesting.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/nesting.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/nesting.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp" ]
 
     testList (
         "Integration: nesting (real code examples)",

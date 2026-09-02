@@ -5,20 +5,16 @@ open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
+open Energy.Languages
 open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", PYTHON, "python/matchOpportunity.py"
-          "TypeScript", TYPESCRIPT, "typescript/matchOpportunity.ts"
-          "F#", FSHARP, "fsharp/matchOpportunity.fs"
-          "Kotlin", KOTLIN, "kotlin/matchOpportunity.kt"
-          "C++", CPP, "cpp/matchOpportunity.cpp" ]
+        [ "Python", Python.pythonLanguageAdapter, "python/matchOpportunity.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/matchOpportunity.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/matchOpportunity.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/matchOpportunity.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/matchOpportunity.cpp" ]
 
     let languageCases =
         cases
@@ -56,8 +52,11 @@ let tests =
                 fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture CPP "cpp/matchOpportunity.cpp"
-                            let violations = analyzeFixture source tree CPP "cpp/matchOpportunity.cpp"
+                            let! (source, tree) =
+                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/matchOpportunity.cpp"
+
+                            let violations =
+                                analyzeFixture source tree CPlusPlus.cPlusPlusLanguageAdapter "cpp/matchOpportunity.cpp"
 
                             for name in [ "cleanStringChain"; "cleanFloatingChain" ] do
                                 assertThat

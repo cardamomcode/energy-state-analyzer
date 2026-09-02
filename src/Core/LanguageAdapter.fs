@@ -38,6 +38,22 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
 
+type ImportKind =
+    | Module
+    | Members
+    | Wildcard
+    | ScopeOpen
+    | Header
+
+type ImportBinding =
+    { ImportedName: string
+      LocalName: string }
+
+type ImportInfo =
+    { Kind: ImportKind
+      Source: string
+      Bindings: ImportBinding list }
+
 // decision: uses `NodeType option` fields instead of required fields for grammar gaps (e.g. F#'s
 // missing block node, TypeScript's ternary not reused for if/else) — one field per current
 // LanguageNodeTypes member.
@@ -171,11 +187,10 @@ type LanguageAdapter =
       // with no such marker (Python, TS, F#), which rely on the module-scope heuristic alone. Called on every
       // ancestor while walking up from the literal (not just ones matching nodeTypes.Assignment).
       IsExplicitConstant: Node -> bool
-      // Given an import node (matched via ImportStatement/ImportFromStatement), returns the module/package it
-      // draws from, used to count *distinct dependencies* rather than raw import lines for the coherence
-      // detector's import-sprawl check. Grammars differ in how many lines one dependency costs: TS's and
-      // Python's bundle many symbols into one line; Kotlin has no grouping syntax.
-      ImportSource: Node -> string
+      // Given an import node, preserves both its dependency source and the names it introduces locally.
+      // Coherence uses these separately: source count measures dependency breadth; bindings/open forms
+      // measure local vocabulary and scope pollution.
+      ImportInfo: Node -> ImportInfo list
       // Whether a node introduces a class-like scope for the file-coherence detector's
       // class-relatedness check — methods nested inside one are grouped by their enclosing class
       // instead of counted as free-standing functions. A predicate is required because C++ uses the
