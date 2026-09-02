@@ -66,6 +66,8 @@ for the Extension Development Host.
 
 Detector thresholds are configurable under **Settings → Energy State Analyzer**. See each detector's doc (linked under Features above) for what a setting does; the keys and defaults are:
 
+For project-wide configuration shared between the editor and CLI, set thresholds in an `.esaconfig.json` file instead of — or on top of — these settings. See [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`).
+
 - `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` / `.highThreshold` (`10` / `15`)
 - `energyStateAnalyzer.cognitiveComplexity.mediumThreshold` / `.highThreshold` (`15` / `25`)
 - `energyStateAnalyzer.coherence.largeFunctionLines` (`20`)
