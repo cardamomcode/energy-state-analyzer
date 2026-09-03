@@ -263,7 +263,14 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
               Classes
               ctx.Options.Coherence.SingleDomainNameShare
               ctx.Language
-              ctx.Positions ]
+              ctx.Positions
+          // God-class is the class-level counterpart: one type whose methods span too many unrelated
+          // domains (as opposed to checkClassRelatedness, which is several unrelated types per file).
+          ClassRelatedness.checkGodClass
+              Classes
+              { Language = ctx.Language
+                Thresholds = ctx.Options.Coherence
+                Positions = ctx.Positions } ]
         |> List.choose id
 
     Context.addViolations findings ctx

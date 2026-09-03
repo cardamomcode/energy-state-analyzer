@@ -196,3 +196,113 @@ let checkClassRelatedness
                         groups.Length
                         (groupDescription groups names)
                   Hotspots = [] }
+
+// God-class side of the file-coherence detector.
+//
+// checkFunctionCountSprawl's signal is "too many unrelated *functions* in one file";
+// checkClassRelatedness's is "several unrelated *classes* in one file". This is the third angle:
+// "one class carrying too many *unrelated responsibilities*" — a single type whose methods touch a
+// wide set of unrelated domain types. It reuses coherence's type-diversity measurement, but with the
+// logic inverted: there, cohesion *exempts* a file from flagging; here, diversity *triggers* the flag
+// on a single type.
+//
+// decision: this emits ViolationType.Coherence rather than its own case — it is the class-level half
+// of the same single-responsibility concern, so inventing a new wire string and a new presentation
+// branch would duplicate work for no gain (DecorationModel already renders Coherence as a full-line
+// highlight). AGENTS.md says add a ViolationType case plus special presentation only when required;
+// here it isn't.
+//
+// decision: a stateless value type with a rich but cohesive API — an Option/Result-style tagged union
+// of pure combinators where every method transforms one domain type — is NOT a god class. Its type
+// diversity ratio stays low, so this check skips it regardless of method count. Only a class whose
+// methods are genuinely diverse across unrelated types fires, which is the "too many responsibilities"
+// signal at type granularity. This mirrors coherence's own rejection of count-only heuristics (the
+// entropy-dump message notes type-diversity alone isn't reliable below ~12 functions).
+
+// decision: method-count bars are module-private consts here, exactly like checkFunctionCountSprawl's
+// 8/12/15. God-class is a coherence sub-check and its cohesion gate reuses the existing
+// CoherenceThresholds (MaxTypeDiversityRatio/MinTypedCoverage), so there is nothing new to expose in
+// Config. These are starting points to be tuned against dogfooding, not config values yet.
+let private minMethodCountMedium = 15
+let private minMethodCountHigh = 25
+
+// decision: carries the per-analysis context considerGodClass needs as one record so its signature stays
+// short — threading three separate arguments would push that function past the 20-line large-function bar.
+// Public because checkGodClass exposes it in its signature; Coherence.fs builds this record at the call site.
+type GodClassCtx =
+    { Language: LanguageAdapter
+      Thresholds: Energy.Core.Config.CoherenceThresholds
+      Positions: PositionLookup }
+
+// decision: branded signals so the two int counts can't be silently transposed at the call site — this
+// project's own primitive-obsession detector flags adjacent bare-int params as a swap-risk pair.
+type private MethodSignals =
+    { MethodCount: int; DistinctTypes: int }
+
+// A class that passed the god-class test, carrying what Create renders into a violation.
+type private GodClassCandidate =
+    { Class: ClassInfo
+      Signals: MethodSignals
+      Severity: Severity }
+    // decision: rendering lives on the record as a static Create so the violation shape stays close to the
+    // data it describes; positions is supplied by the caller, never stored in the candidate.
+    static member Create(positions: PositionLookup) : GodClassCandidate -> EnergyViolation =
+        fun candidate ->
+            let pos = positions.toPosition (nodeStartIndex candidate.Class.Node)
+
+            { Line = pos.Line
+              Column = pos.Column
+              Type = Coherence
+              Severity = candidate.Severity
+              Message =
+                sprintf
+                    "File coherence warning: this class has %d methods spanning %d unrelated types. Its methods touch too many distinct concerns to be one responsibility — consider splitting it, or confirm these are one cohesive API (e.g. a tagged union of combinators over a single domain type)."
+                    candidate.Signals.MethodCount
+                    candidate.Signals.DistinctTypes
+              Hotspots = [] }
+
+// Returns the method/distinct-type counts when a class past the method-count bar is genuinely diverse
+// (non-cohesive); None otherwise, so cohesive value types and under-typed files stay quiet. Split out so
+// considerGodClass stays short — this match alone would push it past the 20-line large-function bar.
+let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) option =
+    let methods = List.ofSeq cls.Methods
+    // decision: pass the cohesion thresholds as one value so the typeCohesionResult call stays a single line.
+    let thresholds =
+        { MaxDiversityRatio = ctx.Thresholds.MaxTypeDiversityRatio
+          MinCoverage = ctx.Thresholds.MinTypedCoverage }
+
+    if methods.Length < minMethodCountMedium then
+        None
+    else
+        match typeCohesionResult methods ctx.Language thresholds with
+        | Measured r when not r.Result -> Some(methods.Length, r.DistinctTypes)
+        | _ -> None
+
+// Decides whether one class is a god class: diverse classes past the method-count bar become candidates,
+// tagged High only when they cross the higher bar. InsufficientData stays quiet rather than guessing.
+let private considerGodClass (ctx: GodClassCtx) (cls: ClassInfo) : GodClassCandidate option =
+    match distinctSignals ctx cls with
+    | Some(methodCount, distinctTypes) ->
+        Some
+            { Class = cls
+              Signals =
+                { MethodCount = methodCount
+                  DistinctTypes = distinctTypes }
+              Severity = if methodCount > minMethodCountHigh then High else Medium }
+    | _ -> None
+
+// Flag the worst single class whose methods span too many unrelated domain types (a god class), as one
+// coherence violation anchored at that class's start, or None when every class is cohesive enough to be
+// one coherent value/type. Takes its analysis context as one record so the signature stays a single line.
+let checkGodClass (classes: ClassInfo list) (ctx: GodClassCtx) : EnergyViolation option =
+    let candidates = classes |> List.choose (considerGodClass ctx)
+
+    // Severity is monotonic in method count, so the worst class has the most methods.
+    if List.isEmpty candidates then
+        None
+    else
+        Some(
+            candidates
+            |> List.maxBy (fun c -> c.Signals.MethodCount)
+            |> GodClassCandidate.Create ctx.Positions
+        )

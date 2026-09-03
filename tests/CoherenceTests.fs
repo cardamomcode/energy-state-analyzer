@@ -75,6 +75,16 @@ let private assertRelatedClassesQuiet (_src: string) (vs: EnergyViolation list) 
 let private assertExceptionFamilyQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+// "flagged" scenarios for the god-class (large-class) sub-check of coherence.
+let private assertGodClassFlagged (_src: string) (vs: EnergyViolation list) =
+    assertThat (hitsWithMessage [ "methods spanning" ] vs |> List.length > 0) isTrue
+
+// "stays quiet" scenario: a stateless value type with a rich but cohesive combinator API must not be
+// flagged as a god class, even though it has more methods than the count bar. A regression guard for
+// the "module-like value type used for method chaining" case (e.g. an Option of combinators).
+let private assertCohesiveValueQuiet (_src: string) (vs: EnergyViolation list) =
+    assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
+
 // "flagged with the stronger message" scenarios.
 let private assertEntropyDump (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated types" ] vs |> List.length > 0) isTrue
@@ -157,6 +167,18 @@ let tests =
             File = "exceptionFamily"
             Assert = assertExceptionFamilyQuiet } ]
 
+    // decision: god-class scenarios live over the class-supporting languages only — F# has no class
+    // construct, so a per-class metric has nothing to measure there (mirrors block2). The quiet fixture
+    // is a regression guard for the "stateless module-like value type used for method chaining" case:
+    // many methods over one domain type must stay unflagged.
+    let godClassScenarios: Scenario list =
+        [ { Name = "a class with many unrelated responsibilities is flagged as a god class"
+            File = "god_class"
+            Assert = assertGodClassFlagged }
+          { Name = "a cohesive value type with many combinators stays quiet"
+            File = "cohesive_value_type"
+            Assert = assertCohesiveValueQuiet } ]
+
     // Build one test per (language, scenario) pair. `block1Scenarios`/`block2Scenarios` are Scenario
     // lists; the language triplets carry the extension as a one-element list so this stays uniform.
     let buildBlock (langCases: (string * LanguageAdapter * string) list) (scenarios: Scenario list) =
@@ -165,6 +187,7 @@ let tests =
 
     let block1 = buildBlock functionLanguages block1Scenarios
     let block2 = buildBlock classLanguages block2Scenarios
+    let block3 = buildBlock classLanguages godClassScenarios
 
     let fSharpScopeSprawl =
         buildTest
@@ -250,6 +273,7 @@ let tests =
         "Integration: file coherence (real code examples)",
         block1
         @ block2
+        @ block3
         @ [ fSharpScopeSprawl
             siblingThresholdIsConfigurable
             kotlinMemberFanOut
