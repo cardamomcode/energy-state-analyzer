@@ -1,14 +1,8 @@
 module Energy.Tests.CoherenceTests
 
-open System.Threading.Tasks
-
-open Fable.Core.JsInterop
-
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
-open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.LanguageAdapter
 open Energy.Core.Analyze
@@ -181,6 +175,47 @@ let tests =
               File = "siblingImports"
               Assert = assertFSharpImportScopeSprawl }
 
+    // decision: proves the configured sibling-open threshold actually flows into the detector, not
+    // just through Config's merge — raise it above the fixture's 7 siblings and the scope-sprawl
+    // finding disappears (a count-based import-sprawl remains, since the file still draws from >10
+    // distinct modules), lower it below 7 and the sibling message returns.
+    let siblingThresholdIsConfigurable =
+        testAsync (
+            "F#: configured sibling-open threshold controls the scope-sprawl finding",
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) =
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/siblingImports.fs"
+
+                        let input =
+                            { Source = sourceCode
+                              Tree = tree
+                              Language = FSharp.fSharpLanguageAdapter
+                              FileName = "siblingImports.fs" }
+
+                        let withThresholds (siblingOpen: int) (importBreadth: int) =
+                            { defaultThresholds with
+                                Coherence =
+                                    { defaultThresholds.Coherence with
+                                        SiblingOpenThreshold = siblingOpen
+                                        ImportBreadthThreshold = importBreadth } }
+
+                        let fired = analyzeWith (withThresholds 5 10) input |> _.Violations
+                        let relaxed = analyzeWith (withThresholds 8 10) input |> _.Violations
+                        // raising both thresholds above the fixture's 7 siblings and 12 distinct modules suppresses every import signal.
+                        let quiet = analyzeWith (withThresholds 8 13) input |> _.Violations
+
+                        assertThat (hitsWithMessage [ "Import scope sprawl" ] fired |> List.length > 0) isTrue
+                        // raising the sibling threshold above the fixture's 7 siblings suppresses the sibling message; a count-based import-sprawl remains because the file still spans >10 modules.
+                        assertThat (hitsWithMessage [ "Import scope sprawl" ] relaxed |> List.length) (isEqualTo 0)
+                        assertThat (hitsWithMessage [ "Import sprawl" ] relaxed |> List.length > 0) isTrue
+                        // with both thresholds raised past the fixture's 7 siblings and 12 modules, no import signal fires at all.
+                        assertThat (coherenceHits quiet |> List.length) (isEqualTo 0)
+                    }
+                )
+        )
+
     let kotlinMemberFanOut =
         buildTest
             "Kotlin"
@@ -215,6 +250,9 @@ let tests =
         "Integration: file coherence (real code examples)",
         block1
         @ block2
-        @ [ fSharpScopeSprawl; kotlinMemberFanOut; pythonWildcardImport ]
+        @ [ fSharpScopeSprawl
+            siblingThresholdIsConfigurable
+            kotlinMemberFanOut
+            pythonWildcardImport ]
         @ memberFanOuts
     )

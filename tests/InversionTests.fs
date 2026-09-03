@@ -1,11 +1,9 @@
 module Energy.Tests.InversionTests
 
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
-open Energy.Core.Analyze
 open Energy.Languages
 open Energy.Tests.TestUtils
 

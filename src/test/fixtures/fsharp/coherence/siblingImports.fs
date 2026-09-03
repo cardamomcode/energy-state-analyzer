@@ -11,5 +11,6 @@ open Support.Logging
 open Support.Parsing
 open Support.Reporting
 open Support.Validation
+open Support.Threading
 
 let doSomething () = 1

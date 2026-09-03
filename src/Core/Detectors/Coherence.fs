@@ -258,7 +258,7 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
     let findings =
         [ checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
           checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
-          ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions
+          ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions ctx.Options.Coherence
           ClassRelatedness.checkClassRelatedness
               Classes
               ctx.Options.Coherence.SingleDomainNameShare
