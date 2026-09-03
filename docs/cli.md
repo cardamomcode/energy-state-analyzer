@@ -45,7 +45,7 @@ Pass more than one path, a directory, or a `dir/**/*.ext`-style pattern to scan 
 npx energy-state-analyzer src --report md
 ```
 
-```
+```text
 # Energy State Report
 
 **3 files scanned** — 2 clean, 1 with violations
@@ -67,7 +67,7 @@ Only one glob shape is supported: a trailing `**/*.ext` pattern on an otherwise 
 
 Add a `.esaignore` file next to where you run the CLI (or the extension's workspace root) to exclude paths from both `--report`/scan mode and `--base-ref` diff mode. One pattern per line:
 
-```
+```text
 # comment
 src/test/fixtures     # a literal path — matches it and everything under it
 generated             # a bare name with no '/' matches at any depth
@@ -84,7 +84,7 @@ This isn't a full `.gitignore` engine: no negation, no `**`, no brace expansion 
 npx energy-state-analyzer src --report human
 ```
 
-```
+```text
 # Energy State Report
 
 ## Score legend
@@ -135,7 +135,7 @@ npx energy-state-analyzer --base-ref origin/main --report md
 
 With no path arguments, changed files are discovered via `git diff --name-only <ref>...HEAD`; pass explicit paths to override that. Each changed file's pre-PR content is read with `git show <ref>:<path>` and re-analyzed in memory, a file that doesn't exist at the base ref (new file, or a rename `git diff` didn't resolve) is reported as `new` rather than erroring out.
 
-```
+```text
 # Energy State Diff vs `origin/main`
 
 | File | Base | Head | Δ | Status |

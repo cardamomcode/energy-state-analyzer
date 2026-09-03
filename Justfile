@@ -31,6 +31,10 @@ format:
 format-check:
     npm run format-check
 
+# Check markdown formatting (used locally and by CI)
+md-lint:
+    npm run md-lint
+
 # Run the F# analyzer against src/ (or supplied paths). Rebuilds the webpack bundles only when dist/
 # is missing; otherwise it reuses the existing bundle so per-file checks stay near-instant. With no
 # arguments it scans src; otherwise the remaining args are forwarded unchanged to the CLI.

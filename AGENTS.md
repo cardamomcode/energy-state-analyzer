@@ -21,6 +21,7 @@ just watch         # Fable and webpack watchers
 just lint          # Fantomas check over F# source and tests
 just format        # Format F# source and tests
 just format-check  # CI formatting check
+just md-lint       # Check markdown formatting (CI check)
 just analyze       # Build, then run the F# CLI against src/ or supplied paths
 just test          # Fable Scriptorium suite under Node
 just pack          # Production bundles + .vsix
@@ -80,7 +81,7 @@ sources, tests, `fable-out/`, `fable_modules/`, `bin/`, `obj/`, and maps exclude
 
 ## Before committing or opening a PR
 
-Run `just format`, `just lint`, and `just analyze`. Triage every analyzer finding:
+Run `just format`, `just lint`, `just md-lint`, and `just analyze`. Triage every analyzer finding:
 
 - **Real violation**: fix it.
 - **Wrong implementation**: add a fixture and integration test, then fix the detector.

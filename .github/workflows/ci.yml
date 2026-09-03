@@ -37,6 +37,9 @@ jobs:
       - name: Check dependency licenses
         run: npm run license-check
 
+      - name: Check markdown formatting
+        run: npm run md-lint
+
       - name: Run F# Scriptorium tests
         run: npm test
 

@@ -177,18 +177,6 @@ The thresholds are configured at the same three levels as every other detector (
 
 In the editor this is `energyStateAnalyzer.parameterCount.mediumThreshold` / `.highThreshold`; in the CLI, `--medium-parameter-count N` / `--high-parameter-count N`. Each flag overrides only the value it provides.
 
-## Configuration
-
-The thresholds are configured at the same three levels as every other detector (see [Configuration](../configuration.md)): built-in defaults, a project's `.esaconfig.json`, and a host override (VS Code settings or CLI flags). The defaults are `5` (medium) / `8` (high).
-
-```jsonc
-{
-  "parameterCount": { "mediumThreshold": 5, "highThreshold": 8 }
-}
-```
-
-In the editor this is `energyStateAnalyzer.parameterCount.mediumThreshold` / `.highThreshold`; in the CLI, `--medium-parameter-count N` / `--high-parameter-count N`. Each flag overrides only the value it provides.
-
 ## Known limitations
 
 TypeScript arrow functions and C++ lambdas aren't analyzed by this detector, only named functions and methods; Python's `lambda` has the same gap. C++ parameter packs count when the grammar exposes them as parameter declarations, but macro-generated parameters are invisible without preprocessing.
