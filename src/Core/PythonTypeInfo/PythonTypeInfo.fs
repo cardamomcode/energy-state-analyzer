@@ -60,3 +60,8 @@ let rec extractTypeString node =
         match baseType with
         | Some name when not parameters.IsEmpty -> name + "[" + String.concat ", " parameters + "]"
         | _ -> nodeText node
+
+    // decision: catch-all keeps the recursion total — any other node shape (a bare identifier, a
+    // reference, or a `type` node with more than one child) falls back to its literal text instead of
+    // leaving an uncovered case for Fable to warn about and for the runtime to blow up on.
+    | _ -> nodeText node
