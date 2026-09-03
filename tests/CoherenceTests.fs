@@ -239,6 +239,73 @@ let tests =
                 )
         )
 
+    let functionCountThresholdIsConfigurable =
+        testAsync (
+            "F#: configured function-count threshold controls the sprawl finding",
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) =
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/entropyDump.fs"
+
+                        let input =
+                            { Source = sourceCode
+                              Tree = tree
+                              Language = FSharp.fSharpLanguageAdapter
+                              FileName = "entropyDump.fs" }
+
+                        // decision: raise the generic function-count bar above the fixture's 13 functions and
+                        // the sprawl finding disappears; leave it at the default of 12 and it fires — proving
+                        // the configured value flows into the detector, not just through Config's merge.
+                        let withGeneric (genericFunctionCount: int) =
+                            { defaultThresholds with
+                                Coherence =
+                                    { defaultThresholds.Coherence with
+                                        GenericFunctionCount = genericFunctionCount } }
+
+                        let fired = analyzeWith (withGeneric 12) input |> _.Violations
+                        let relaxed = analyzeWith (withGeneric 14) input |> _.Violations
+
+                        assertThat (hitsWithMessage [ "unrelated types" ] fired |> List.length > 0) isTrue
+                        assertThat (coherenceHits relaxed |> List.length) (isEqualTo 0)
+                    }
+                )
+        )
+
+    let methodCountThresholdIsConfigurable =
+        testAsync (
+            "Python: configured god-class method-count bar controls the finding",
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) =
+                            parseFixture Python.pythonLanguageAdapter "python/coherence/god_class.py"
+
+                        let input =
+                            { Source = sourceCode
+                              Tree = tree
+                              Language = Python.pythonLanguageAdapter
+                              FileName = "god_class.py" }
+
+                        // decision: the fixture has 17 methods, so it fires at the default medium bar of 15 but clears
+                        // that bar at 18. Assert on the god-class message specifically — this file also trips an
+                        // unrelated "classes split into groups" coherence hit that persists regardless of the bar,
+                        // so a total coherence count would not isolate what the configured value controls.
+                        let withMedium (methodCountMedium: int) =
+                            { defaultThresholds with
+                                Coherence =
+                                    { defaultThresholds.Coherence with
+                                        MethodCountMedium = methodCountMedium } }
+
+                        let fired = analyzeWith (withMedium 15) input |> _.Violations
+                        let relaxed = analyzeWith (withMedium 18) input |> _.Violations
+
+                        assertThat (hitsWithMessage [ "methods spanning" ] fired |> List.length > 0) isTrue
+                        assertThat (hitsWithMessage [ "methods spanning" ] relaxed |> List.length) (isEqualTo 0)
+                    }
+                )
+        )
+
     let kotlinMemberFanOut =
         buildTest
             "Kotlin"
@@ -276,6 +343,8 @@ let tests =
         @ block3
         @ [ fSharpScopeSprawl
             siblingThresholdIsConfigurable
+            functionCountThresholdIsConfigurable
+            methodCountThresholdIsConfigurable
             kotlinMemberFanOut
             pythonWildcardImport ]
         @ memberFanOuts

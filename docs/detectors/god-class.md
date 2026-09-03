@@ -46,11 +46,20 @@ The same rule also lets through a class whose methods are all static (a namespac
 is function-count sprawl's concern, not this one) and fluent/builder-style classes whose methods all
 return the same value type (one responsibility: producing a derived value).
 
+## Configuration
+
+Both method-count bars are configurable; the type-diversity ratio already shares file coherence's settings (this check reuses its type-cohesion signal):
+
+- `energyStateAnalyzer.coherence.godClassMethodCountMedium` (default `15`), number of methods a class must have before it is measured for god-class sprawl. Raising it relaxes the check; lowering it tightens it.
+- `energyStateAnalyzer.coherence.godClassMethodCountHigh` (default `25`), method count above which a flagged class is reported at high severity instead of medium. Raising it relaxes the high-severity line; lowering it tightens it.
+- `energyStateAnalyzer.coherence.maxTypeDiversityRatio` (default `0.4`), ratio of distinct parameter/return base types to typed methods above which a class past the count bar is considered diverse enough to flag. Shares file coherence's setting because this check reuses its type-cohesion signal.
+
 ## Known limitations
 
-- The method-count bars (15 medium / 25 high) are fixed in code. The type-diversity ratio is
-  configurable through the existing [file-coherence configuration](file-coherence.md), since this
-  check reuses that signal.
+- The method-count bars are configurable — see [Configuration](#configuration). Raising
+  `godClassMethodCountMedium` relaxes the consideration bar (a class needs more methods before it is
+  measured); raising `godClassMethodCountHigh` moves classes off the high-severity line. The
+  type-diversity ratio shares file coherence's setting, since this check reuses that signal.
 - Type diversity is measured from declared parameter and return annotations, so it under-counts for
   weakly-typed code: when too few methods carry any annotation, the check stays quiet rather than
   guessing (conservative, to avoid false positives). Explicit string/forward-reference annotations

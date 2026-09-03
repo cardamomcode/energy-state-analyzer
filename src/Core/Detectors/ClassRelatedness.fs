@@ -219,12 +219,10 @@ let checkClassRelatedness
 // signal at type granularity. This mirrors coherence's own rejection of count-only heuristics (the
 // entropy-dump message notes type-diversity alone isn't reliable below ~12 functions).
 
-// decision: method-count bars are module-private consts here, exactly like checkFunctionCountSprawl's
-// 8/12/15. God-class is a coherence sub-check and its cohesion gate reuses the existing
-// CoherenceThresholds (MaxTypeDiversityRatio/MinTypedCoverage), so there is nothing new to expose in
-// Config. These are starting points to be tuned against dogfooding, not config values yet.
-let private minMethodCountMedium = 15
-let private minMethodCountHigh = 25
+// decision: method-count bars come from CoherenceThresholds (MethodCountMedium/High) so a project can
+// retune where a single type's responsibility sprawl is flagged without editing this detector, exactly
+// like checkFunctionCountSprawl's configurable 8/12/15. The cohesion gate still reuses the existing
+// CoherenceThresholds (MaxTypeDiversityRatio/MinTypedCoverage); both live on GodClassCtx.Thresholds.
 
 // decision: carries the per-analysis context considerGodClass needs as one record so its signature stays
 // short — threading three separate arguments would push that function past the 20-line large-function bar.
@@ -271,7 +269,7 @@ let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) op
         { MaxDiversityRatio = ctx.Thresholds.MaxTypeDiversityRatio
           MinCoverage = ctx.Thresholds.MinTypedCoverage }
 
-    if methods.Length < minMethodCountMedium then
+    if methods.Length < ctx.Thresholds.MethodCountMedium then
         None
     else
         match typeCohesionResult methods ctx.Language thresholds with
@@ -288,7 +286,11 @@ let private considerGodClass (ctx: GodClassCtx) (cls: ClassInfo) : GodClassCandi
               Signals =
                 { MethodCount = methodCount
                   DistinctTypes = distinctTypes }
-              Severity = if methodCount > minMethodCountHigh then High else Medium }
+              Severity =
+                if methodCount > ctx.Thresholds.MethodCountHigh then
+                    High
+                else
+                    Medium }
     | _ -> None
 
 // Flag the worst single class whose methods span too many unrelated domain types (a god class), as one

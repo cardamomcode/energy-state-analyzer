@@ -59,7 +59,20 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
           HighImportBreadthThreshold =
             reader.Int "coherence" "highImportBreadthThreshold" defaultCoherenceThresholds.HighImportBreadthThreshold
           MemberImportFanOutThreshold =
-            reader.Int "coherence" "memberImportFanOutThreshold" defaultCoherenceThresholds.MemberImportFanOutThreshold }
+            reader.Int "coherence" "memberImportFanOutThreshold" defaultCoherenceThresholds.MemberImportFanOutThreshold
+          UtilsFileFunctionCount =
+            reader.Int "coherence" "utilsFileFunctionCount" defaultCoherenceThresholds.UtilsFileFunctionCount
+          GenericFunctionCount =
+            reader.Int "coherence" "genericFunctionCount" defaultCoherenceThresholds.GenericFunctionCount
+          HighFunctionCount = reader.Int "coherence" "highFunctionCount" defaultCoherenceThresholds.HighFunctionCount
+          MethodCountMedium =
+            reader.Int "coherence" "godClassMethodCountMedium" defaultCoherenceThresholds.MethodCountMedium
+          MethodCountHigh = reader.Int "coherence" "godClassMethodCountHigh" defaultCoherenceThresholds.MethodCountHigh
+          LargeFunctionSeverityMultiplier =
+            reader.Float
+                "coherence"
+                "largeFunctionSeverityMultiplier"
+                defaultCoherenceThresholds.LargeFunctionSeverityMultiplier }
       MatchOpportunity =
         { MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
       ParameterCount =
