@@ -31,79 +31,91 @@ type private Collected =
 
 // decision: the traversal accumulates into an immutable Collected record threaded through the
 // recursion (merge keeps the earliest first-import node, since children are processed in source
-// order), instead of mutating captured state — same result, no shared mutable buffers.
-let private collectFunctionsClassesAndImports
-    (tree: TreeSitter.Node)
-    (language: LanguageAdapter.LanguageAdapter)
-    : Collected =
+// order), instead of mutating captured state — same result, no shared mutable buffers. These helpers
+// and the recursion live at module level rather than as locals of collectFunctionsClassesAndImports:
+// threading `language` through explicit parameters keeps them reusable and leaves that entry point a
+// thin wrapper (a non-obvious durable choice, so it's commented — see below). traverse is the only one
+// that calls itself, so it alone carries `rec`; the plain lets precede it so nothing forward-references.
+let private isImportNode (language: LanguageAdapter.LanguageAdapter) (node: TreeSitter.Node) : bool =
     // decision: requires isNamed, not just a type match — Kotlin's import rule is literally named `import`,
     // which collides with the anonymous `import` keyword token that is itself a child of every import node
     // (node.type for an anonymous node is its literal text). Without this guard, every Kotlin import is
     // counted twice: once for the named node, once for its own leading keyword token.
-    let isImportNode (node: TreeSitter.Node) : bool =
-        let t = TreeSitter.nodeType node
+    let t = TreeSitter.nodeType node
 
-        language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
-        || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
+    language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
+    || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
 
-    let empty: Collected =
-        { FreeFunctions = []
-          Classes = []
-          Imports = []
-          FirstImportNode = None }
+let private emptyCollected: Collected =
+    { FreeFunctions = []
+      Classes = []
+      Imports = []
+      FirstImportNode = None }
 
-    let merge (left: Collected) (right: Collected) : Collected =
-        { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
-          Classes = left.Classes @ right.Classes
-          Imports = left.Imports @ right.Imports
-          FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
+let private mergeCollected (left: Collected) (right: Collected) : Collected =
+    { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
+      Classes = left.Classes @ right.Classes
+      Imports = left.Imports @ right.Imports
+      FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
 
-    // invariant: every syntax node is traversed exactly once; a class replaces the inherited class
-    // context for its subtree so its methods never leak into FreeFunctions.
-    let rec traverse (node: TreeSitter.Node) (enclosingClass: ClassRelatedness.ClassInfo option) : Collected =
-        let currentClass =
-            if language.IsClassDefinition node then
-                let classInfo: ClassRelatedness.ClassInfo =
-                    { Name = language.GetClassName node
-                      Node = node
-                      BaseNames = language.GetBaseClassNames node
-                      Methods = ResizeArray<TreeSitter.Node>() }
+// invariant: every syntax node is traversed exactly once; a class replaces the inherited class
+// context for its subtree so its methods never leak into FreeFunctions.
+let rec private traverse
+    (language: LanguageAdapter.LanguageAdapter)
+    (node: TreeSitter.Node)
+    (enclosingClass: ClassRelatedness.ClassInfo option)
+    : Collected =
+    let currentClass =
+        if language.IsClassDefinition node then
+            let classInfo: ClassRelatedness.ClassInfo =
+                { Name = language.GetClassName node
+                  Node = node
+                  BaseNames = language.GetBaseClassNames node
+                  Methods = ResizeArray<TreeSitter.Node>() }
 
-                Some classInfo
-            else
-                None
+            Some classInfo
+        else
+            None
 
-        let own =
-            match currentClass with
-            | Some cls -> { empty with Classes = [ cls ] }
-            | None when language.IsFunctionDefinition node ->
-                match enclosingClass with
-                | Some cls ->
-                    cls.Methods.Add(node) |> ignore
-                    empty
-                | None -> { empty with FreeFunctions = [ node ] }
-            | None when isImportNode node ->
-                let imports =
-                    language.ImportInfo node
-                    |> List.map (fun importInfo ->
-                        if System.String.IsNullOrEmpty importInfo.Source then
-                            { importInfo with
-                                Source = TreeSitter.nodeText node }
-                        else
-                            importInfo)
+    let own =
+        match currentClass with
+        | Some cls ->
+            { emptyCollected with
+                Classes = [ cls ] }
+        | None when language.IsFunctionDefinition node ->
+            match enclosingClass with
+            | Some cls ->
+                cls.Methods.Add(node) |> ignore
+                emptyCollected
+            | None ->
+                { emptyCollected with
+                    FreeFunctions = [ node ] }
+        | None when isImportNode language node ->
+            let imports =
+                language.ImportInfo node
+                |> List.map (fun importInfo ->
+                    if System.String.IsNullOrEmpty importInfo.Source then
+                        { importInfo with
+                            Source = TreeSitter.nodeText node }
+                    else
+                        importInfo)
 
-                { empty with
-                    Imports = imports
-                    FirstImportNode = Some node }
-            | None -> empty
+            { emptyCollected with
+                Imports = imports
+                FirstImportNode = Some node }
+        | None -> emptyCollected
 
-        let childClass = Option.orElse currentClass enclosingClass
+    let childClass = Option.orElse currentClass enclosingClass
 
-        TreeSitter.nodeChildren node
-        |> List.map (fun child -> traverse child childClass)
-        |> List.fold merge own
+    TreeSitter.nodeChildren node
+    |> List.map (fun child -> traverse language child childClass)
+    |> List.fold mergeCollected own
 
-    traverse tree None
+let private collectFunctionsClassesAndImports
+    (tree: TreeSitter.Node)
+    (language: LanguageAdapter.LanguageAdapter)
+    : Collected =
+    traverse language tree None
 
 // decision: a confirmed type signal (result is Measured, not InsufficientData) is authoritative and
 // short-circuits the naming heuristic entirely — both for a confirmed shared type (Result === true, e.g.
