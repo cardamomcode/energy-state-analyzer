@@ -49,7 +49,7 @@ Software systems naturally evolve toward configurations that minimize the energy
 
 ### Files Structure
 
-```
+```text
 energy-state-analyzer/
 ├── src/extension.ts          # Main extension code (7.4K)
 ├── grammars/

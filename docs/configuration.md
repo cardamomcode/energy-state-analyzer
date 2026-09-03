@@ -2,7 +2,7 @@
 
 Analyzer behavior is configured at three levels, resolved in this order of increasing precedence:
 
-```
+```text
 built-in defaults  <  .esaconfig.json  <  host override
 ```
 

@@ -28,6 +28,7 @@ The count is a dependency-surface signal, not proof that the file has multiple r
 **Class relatedness (Python/TypeScript/Kotlin/C++).** A file containing 2 or more classes or structs is flagged when those types split into multiple families with nothing connecting them — no shared inheritance, no method signature referencing another type in the file, and no shared naming affix. Unlike the checks above, there's no minimum class count before this can fire: a class or struct is already a much stronger unit of cohesion than a single function (a whole type, not one operation), so even 2 completely unrelated types are worth flagging.
 
 Two classes are linked into the same family by any of:
+
 - *Direct inheritance* - one class's base name is the other's own name.
 - *Shared base* - both classes extend/implement the same name, even one not defined in this file at all (e.g. a whole `exceptions.py`-style file of classes that all extend `Exception` but never reference each other).
 - *Type cross-reference* - a method's signature (parameter or return type) names another class defined in the file, as with a token/token-source pair where one constructs or returns the other.
