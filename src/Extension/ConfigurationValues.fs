@@ -51,7 +51,15 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
             reader.Float "coherence" "singleDomainNameShare" defaultCoherenceThresholds.SingleDomainNameShare
           MaxTypeDiversityRatio =
             reader.Float "coherence" "maxTypeDiversityRatio" defaultCoherenceThresholds.MaxTypeDiversityRatio
-          MinTypedCoverage = reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage }
+          MinTypedCoverage = reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage
+          SiblingOpenThreshold =
+            reader.Int "coherence" "siblingOpenThreshold" defaultCoherenceThresholds.SiblingOpenThreshold
+          ImportBreadthThreshold =
+            reader.Int "coherence" "importBreadthThreshold" defaultCoherenceThresholds.ImportBreadthThreshold
+          HighImportBreadthThreshold =
+            reader.Int "coherence" "highImportBreadthThreshold" defaultCoherenceThresholds.HighImportBreadthThreshold
+          MemberImportFanOutThreshold =
+            reader.Int "coherence" "memberImportFanOutThreshold" defaultCoherenceThresholds.MemberImportFanOutThreshold }
       MatchOpportunity =
         { MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
       ParameterCount =

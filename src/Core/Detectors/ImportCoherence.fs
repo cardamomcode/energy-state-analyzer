@@ -1,16 +1,15 @@
 module Energy.Core.Detectors.ImportCoherence
 
 open Energy.Core
+open Energy.Core.Config
 
-let private importCountThreshold = 10
-let private highImportCountThreshold = 15
-let private memberImportCountThreshold = 10
-let private fSharpSiblingOpenThreshold = 5
-
-// F# `open` brings a module's members into lexical scope. Five or more siblings under one parent
-// are therefore a different signal from unrelated dependencies: their values can shadow each other
-// and an unqualified reference no longer says where it came from.
-let private mostOpenedFSharpSiblingNamespace (importSources: Set<string>) : (string * int) option =
+// F# `open` brings a module's members into lexical scope. A project-configured number of siblings
+// under one parent (seven by default) is therefore a different signal from unrelated dependencies:
+// their values can shadow each other and an unqualified reference no longer says where it came from.
+let private mostOpenedFSharpSiblingNamespace
+    (importSources: Set<string>)
+    (siblingOpenThreshold: int)
+    : (string * int) option =
     importSources
     |> Set.toList
     |> List.choose (fun source ->
@@ -21,16 +20,19 @@ let private mostOpenedFSharpSiblingNamespace (importSources: Set<string>) : (str
         else
             None)
     |> List.countBy id
-    |> List.filter (fun (_, count) -> count >= fSharpSiblingOpenThreshold)
+    |> List.filter (fun (_, count) -> count >= siblingOpenThreshold)
     |> List.sortByDescending snd
     |> List.tryHead
 
-let private widestMemberImportFanOut (imports: LanguageAdapter.ImportInfo list) : (string * int) option =
+let private widestMemberImportFanOut
+    (imports: LanguageAdapter.ImportInfo list)
+    (memberImportFanOutThreshold: int)
+    : (string * int) option =
     imports
     |> List.filter (fun importInfo -> importInfo.Kind = LanguageAdapter.Members)
     |> List.collect (fun importInfo -> importInfo.Bindings |> List.map (fun _ -> importInfo.Source))
     |> List.countBy id
-    |> List.filter (fun (_, count) -> count >= memberImportCountThreshold)
+    |> List.filter (fun (_, count) -> count >= memberImportFanOutThreshold)
     |> List.sortByDescending snd
     |> List.tryHead
 
@@ -68,6 +70,7 @@ let check
     (firstImportNode: TreeSitter.Node option)
     (language: LanguageAdapter.LanguageAdapter)
     (positions: Position.PositionLookup)
+    (coherence: CoherenceThresholds)
     : Violation.EnergyViolation option =
     let importSources = imports |> List.map _.Source |> Set.ofList
 
@@ -77,14 +80,15 @@ let check
 
     let fSharpSiblingNamespace =
         if language.Id = "fsharp" then
-            mostOpenedFSharpSiblingNamespace importSources
+            mostOpenedFSharpSiblingNamespace importSources coherence.SiblingOpenThreshold
         else
             None
 
-    let memberFanOut = widestMemberImportFanOut imports
+    let memberFanOut =
+        widestMemberImportFanOut imports coherence.MemberImportFanOutThreshold
 
     if
-        importSources.Count <= importCountThreshold
+        importSources.Count <= coherence.ImportBreadthThreshold
         && not hasWildcard
         && Option.isNone memberFanOut
         && Option.isNone fSharpSiblingNamespace
@@ -104,7 +108,7 @@ let check
               Column = position.Column
               Type = Violation.Coherence
               Severity =
-                if importSources.Count > highImportCountThreshold then
+                if importSources.Count > coherence.HighImportBreadthThreshold then
                     Violation.High
                 else
                     Violation.Medium

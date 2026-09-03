@@ -74,6 +74,10 @@ let defaultsTests =
                       assertThat defaultCoherenceThresholds.SingleDomainNameShare (isEqualTo 0.7)
                       assertThat defaultCoherenceThresholds.MaxTypeDiversityRatio (isEqualTo 0.4)
                       assertThat defaultCoherenceThresholds.MinTypedCoverage (isEqualTo 0.5)
+                      assertThat defaultCoherenceThresholds.SiblingOpenThreshold (isEqualTo 7)
+                      assertThat defaultCoherenceThresholds.ImportBreadthThreshold (isEqualTo 10)
+                      assertThat defaultCoherenceThresholds.HighImportBreadthThreshold (isEqualTo 15)
+                      assertThat defaultCoherenceThresholds.MemberImportFanOutThreshold (isEqualTo 10)
                   }
               )
       )
@@ -167,6 +171,43 @@ let mergePrecedenceTests =
 
                       assertThat maxLargeFunctions (isEqualTo 8)
                       assertThat largeFunctionLines (isEqualTo 20)
+                  }
+              )
+      )
+
+      testAsync (
+          "a provided sibling-open threshold overrides only that field",
+          fun _ ->
+              toAsync (
+                  task {
+                      let merged = loadTempConfig """{"coherence": {"siblingOpenThreshold": 10}}"""
+                      let siblingOpenThreshold = merged.Coherence.SiblingOpenThreshold
+                      let maxLargeFunctions = merged.Coherence.MaxLargeFunctions
+
+                      assertThat siblingOpenThreshold (isEqualTo 10)
+                      // an unrelated coherence field keeps its built-in default of 5.
+                      assertThat maxLargeFunctions (isEqualTo 5)
+                  }
+              )
+      )
+
+      testAsync (
+          "a provided import-breadth and member-fan-out threshold override only their fields",
+          fun _ ->
+              toAsync (
+                  task {
+                      let merged =
+                          loadTempConfig
+                              """{"coherence": {"importBreadthThreshold": 20, "memberImportFanOutThreshold": 3}}"""
+
+                      let importBreadthThreshold = merged.Coherence.ImportBreadthThreshold
+                      let memberImportFanOutThreshold = merged.Coherence.MemberImportFanOutThreshold
+                      let siblingOpenThreshold = merged.Coherence.SiblingOpenThreshold
+
+                      assertThat importBreadthThreshold (isEqualTo 20)
+                      assertThat memberImportFanOutThreshold (isEqualTo 3)
+                      // unrelated import-coherence fields keep their built-in defaults.
+                      assertThat siblingOpenThreshold (isEqualTo 7)
                   }
               )
       )

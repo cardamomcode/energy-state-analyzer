@@ -35,7 +35,11 @@ type CoherenceThresholds =
       MaxLargeFunctions: int
       SingleDomainNameShare: float
       MaxTypeDiversityRatio: float
-      MinTypedCoverage: float }
+      MinTypedCoverage: float
+      SiblingOpenThreshold: int
+      ImportBreadthThreshold: int
+      HighImportBreadthThreshold: int
+      MemberImportFanOutThreshold: int }
 
 type MatchOpportunityThresholds = { MinBranches: int }
 
@@ -86,7 +90,11 @@ let defaultAnalyzeOptions =
           MaxLargeFunctions = 5
           SingleDomainNameShare = 0.7
           MaxTypeDiversityRatio = 0.4
-          MinTypedCoverage = 0.5 }
+          MinTypedCoverage = 0.5
+          SiblingOpenThreshold = 7
+          ImportBreadthThreshold = 10
+          HighImportBreadthThreshold = 15
+          MemberImportFanOutThreshold = 10 }
       MatchOpportunity = { MinBranches = 3 }
       ParameterCount =
         { MediumThreshold = 5
@@ -159,7 +167,11 @@ type FileCoherence =
       MaxLargeFunctions: int option
       SingleDomainNameShare: float option
       MaxTypeDiversityRatio: float option
-      MinTypedCoverage: float option }
+      MinTypedCoverage: float option
+      SiblingOpenThreshold: int option
+      ImportBreadthThreshold: int option
+      HighImportBreadthThreshold: int option
+      MemberImportFanOutThreshold: int option }
 
 type FileMatchOpportunity = { MinBranches: int option }
 
@@ -198,7 +210,11 @@ let private emptyFileConfig: FileConfig =
           MaxLargeFunctions = None
           SingleDomainNameShare = None
           MaxTypeDiversityRatio = None
-          MinTypedCoverage = None }
+          MinTypedCoverage = None
+          SiblingOpenThreshold = None
+          ImportBreadthThreshold = None
+          HighImportBreadthThreshold = None
+          MemberImportFanOutThreshold = None }
       MatchOpportunity = { MinBranches = None }
       ParameterCount =
         { MediumThreshold = None
@@ -293,7 +309,11 @@ let parseFileConfig (raw: obj) : FileConfig =
           MaxLargeFunctions = readNumber coherence "maxLargeFunctions" |> Option.map int
           SingleDomainNameShare = readNumber coherence "singleDomainNameShare"
           MaxTypeDiversityRatio = readNumber coherence "maxTypeDiversityRatio"
-          MinTypedCoverage = readNumber coherence "minTypedCoverage" }
+          MinTypedCoverage = readNumber coherence "minTypedCoverage"
+          SiblingOpenThreshold = readNumber coherence "siblingOpenThreshold" |> Option.map int
+          ImportBreadthThreshold = readNumber coherence "importBreadthThreshold" |> Option.map int
+          HighImportBreadthThreshold = readNumber coherence "highImportBreadthThreshold" |> Option.map int
+          MemberImportFanOutThreshold = readNumber coherence "memberImportFanOutThreshold" |> Option.map int }
       MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
       ParameterCount =
         { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
@@ -338,7 +358,17 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
             Option.defaultValue defaults.Coherence.SingleDomainNameShare file.Coherence.SingleDomainNameShare
           MaxTypeDiversityRatio =
             Option.defaultValue defaults.Coherence.MaxTypeDiversityRatio file.Coherence.MaxTypeDiversityRatio
-          MinTypedCoverage = Option.defaultValue defaults.Coherence.MinTypedCoverage file.Coherence.MinTypedCoverage }
+          MinTypedCoverage = Option.defaultValue defaults.Coherence.MinTypedCoverage file.Coherence.MinTypedCoverage
+          SiblingOpenThreshold =
+            Option.defaultValue defaults.Coherence.SiblingOpenThreshold file.Coherence.SiblingOpenThreshold
+          ImportBreadthThreshold =
+            Option.defaultValue defaults.Coherence.ImportBreadthThreshold file.Coherence.ImportBreadthThreshold
+          HighImportBreadthThreshold =
+            Option.defaultValue defaults.Coherence.HighImportBreadthThreshold file.Coherence.HighImportBreadthThreshold
+          MemberImportFanOutThreshold =
+            Option.defaultValue
+                defaults.Coherence.MemberImportFanOutThreshold
+                file.Coherence.MemberImportFanOutThreshold }
       MatchOpportunity =
         { MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
       ParameterCount =
