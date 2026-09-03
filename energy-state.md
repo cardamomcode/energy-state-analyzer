@@ -38,6 +38,8 @@ Software systems naturally evolve toward configurations that minimize the energy
 5. **Deletion Whisperer** - Identifies tightly coupled code
 6. **Intent Translator** - Flags unclear loops/transformations
 
+> Implementation status: agents 1-4 and the class-relatedness check are implemented (see `docs/detectors/`). The god-class detector — flagging one type whose methods span too many unrelated domains, while leaving cohesive value types like an `Option` of combinators unflagged — is now implemented as a sub-check of file coherence (`docs/detectors/god-class.md`).
+
 ## Technical Stack
 
 - **Language**: TypeScript (for VSCode extension)

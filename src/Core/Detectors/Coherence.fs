@@ -13,13 +13,10 @@ open Energy.Core.Config
 // first large function) rather than line 0.
 
 // decision: coherence thresholds live in Core.Config as the single source of truth; this detector
-// reads them from ctx.Options (and its own `thresholds` parameter) so it no longer re-exports a
-// module-level copy.
-
-let private utilsFileFunctionThreshold = 8
-let private genericFunctionCountThreshold = 12
-let private highFunctionCountThreshold = 15
-let private largeFunctionSeverityMultiplier = 1.5
+// reads every one from the CoherenceThresholds record passed to each check (ctx.Options.Coherence at
+// the entry point, threaded down into the private checks) so it no longer re-exports a module-level
+// copy. The function-count sprawl thresholds (utils/generic/high), the large-function line count and
+// count bar, and the severity multiplier are all configured the same way as the import signals.
 
 // decision: methods are grouped by their nearest enclosing class rather than folded into the same flat
 // function list a free-standing function would land in — a class is already a cohesion boundary of its
@@ -34,79 +31,91 @@ type private Collected =
 
 // decision: the traversal accumulates into an immutable Collected record threaded through the
 // recursion (merge keeps the earliest first-import node, since children are processed in source
-// order), instead of mutating captured state — same result, no shared mutable buffers.
-let private collectFunctionsClassesAndImports
-    (tree: TreeSitter.Node)
-    (language: LanguageAdapter.LanguageAdapter)
-    : Collected =
+// order), instead of mutating captured state — same result, no shared mutable buffers. These helpers
+// and the recursion live at module level rather than as locals of collectFunctionsClassesAndImports:
+// threading `language` through explicit parameters keeps them reusable and leaves that entry point a
+// thin wrapper (a non-obvious durable choice, so it's commented — see below). traverse is the only one
+// that calls itself, so it alone carries `rec`; the plain lets precede it so nothing forward-references.
+let private isImportNode (language: LanguageAdapter.LanguageAdapter) (node: TreeSitter.Node) : bool =
     // decision: requires isNamed, not just a type match — Kotlin's import rule is literally named `import`,
     // which collides with the anonymous `import` keyword token that is itself a child of every import node
     // (node.type for an anonymous node is its literal text). Without this guard, every Kotlin import is
     // counted twice: once for the named node, once for its own leading keyword token.
-    let isImportNode (node: TreeSitter.Node) : bool =
-        let t = TreeSitter.nodeType node
+    let t = TreeSitter.nodeType node
 
-        language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
-        || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
+    language.NodeTypes.ImportStatement |> Option.exists (fun nt -> t = nt)
+    || language.NodeTypes.ImportFromStatement |> Option.exists (fun nt -> t = nt)
 
-    let empty: Collected =
-        { FreeFunctions = []
-          Classes = []
-          Imports = []
-          FirstImportNode = None }
+let private emptyCollected: Collected =
+    { FreeFunctions = []
+      Classes = []
+      Imports = []
+      FirstImportNode = None }
 
-    let merge (left: Collected) (right: Collected) : Collected =
-        { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
-          Classes = left.Classes @ right.Classes
-          Imports = left.Imports @ right.Imports
-          FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
+let private mergeCollected (left: Collected) (right: Collected) : Collected =
+    { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
+      Classes = left.Classes @ right.Classes
+      Imports = left.Imports @ right.Imports
+      FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
 
-    // invariant: every syntax node is traversed exactly once; a class replaces the inherited class
-    // context for its subtree so its methods never leak into FreeFunctions.
-    let rec traverse (node: TreeSitter.Node) (enclosingClass: ClassRelatedness.ClassInfo option) : Collected =
-        let currentClass =
-            if language.IsClassDefinition node then
-                let classInfo: ClassRelatedness.ClassInfo =
-                    { Name = language.GetClassName node
-                      Node = node
-                      BaseNames = language.GetBaseClassNames node
-                      Methods = ResizeArray<TreeSitter.Node>() }
+// invariant: every syntax node is traversed exactly once; a class replaces the inherited class
+// context for its subtree so its methods never leak into FreeFunctions.
+let rec private traverse
+    (language: LanguageAdapter.LanguageAdapter)
+    (node: TreeSitter.Node)
+    (enclosingClass: ClassRelatedness.ClassInfo option)
+    : Collected =
+    let currentClass =
+        if language.IsClassDefinition node then
+            let classInfo: ClassRelatedness.ClassInfo =
+                { Name = language.GetClassName node
+                  Node = node
+                  BaseNames = language.GetBaseClassNames node
+                  Methods = ResizeArray<TreeSitter.Node>() }
 
-                Some classInfo
-            else
-                None
+            Some classInfo
+        else
+            None
 
-        let own =
-            match currentClass with
-            | Some cls -> { empty with Classes = [ cls ] }
-            | None when language.IsFunctionDefinition node ->
-                match enclosingClass with
-                | Some cls ->
-                    cls.Methods.Add(node) |> ignore
-                    empty
-                | None -> { empty with FreeFunctions = [ node ] }
-            | None when isImportNode node ->
-                let imports =
-                    language.ImportInfo node
-                    |> List.map (fun importInfo ->
-                        if System.String.IsNullOrEmpty importInfo.Source then
-                            { importInfo with
-                                Source = TreeSitter.nodeText node }
-                        else
-                            importInfo)
+    let own =
+        match currentClass with
+        | Some cls ->
+            { emptyCollected with
+                Classes = [ cls ] }
+        | None when language.IsFunctionDefinition node ->
+            match enclosingClass with
+            | Some cls ->
+                cls.Methods.Add(node) |> ignore
+                emptyCollected
+            | None ->
+                { emptyCollected with
+                    FreeFunctions = [ node ] }
+        | None when isImportNode language node ->
+            let imports =
+                language.ImportInfo node
+                |> List.map (fun importInfo ->
+                    if System.String.IsNullOrEmpty importInfo.Source then
+                        { importInfo with
+                            Source = TreeSitter.nodeText node }
+                    else
+                        importInfo)
 
-                { empty with
-                    Imports = imports
-                    FirstImportNode = Some node }
-            | None -> empty
+            { emptyCollected with
+                Imports = imports
+                FirstImportNode = Some node }
+        | None -> emptyCollected
 
-        let childClass = Option.orElse currentClass enclosingClass
+    let childClass = Option.orElse currentClass enclosingClass
 
-        TreeSitter.nodeChildren node
-        |> List.map (fun child -> traverse child childClass)
-        |> List.fold merge own
+    TreeSitter.nodeChildren node
+    |> List.map (fun child -> traverse language child childClass)
+    |> List.fold mergeCollected own
 
-    traverse tree None
+let private collectFunctionsClassesAndImports
+    (tree: TreeSitter.Node)
+    (language: LanguageAdapter.LanguageAdapter)
+    : Collected =
+    traverse language tree None
 
 // decision: a confirmed type signal (result is Measured, not InsufficientData) is authoritative and
 // short-circuits the naming heuristic entirely — both for a confirmed shared type (Result === true, e.g.
@@ -129,12 +138,13 @@ let private functionCountViolation
     (functionCount: int)
     (message: string)
     (position: Position.Position)
+    (thresholds: CoherenceThresholds)
     : Violation.EnergyViolation =
     { Line = position.Line
       Column = position.Column
       Type = Violation.Coherence
       Severity =
-        if functionCount > highFunctionCountThreshold then
+        if functionCount > thresholds.HighFunctionCount then
             Violation.High
         else
             Violation.Medium
@@ -152,7 +162,7 @@ let private checkFunctionCountSprawl
     (language: LanguageAdapter.LanguageAdapter)
     (positions: Position.PositionLookup)
     : Violation.EnergyViolation option =
-    if functions.Length <= utilsFileFunctionThreshold then
+    if functions.Length <= thresholds.UtilsFileFunctionCount then
         None
     else
         let isUtilsFile = NamingCohesion.isUtilsFileName fileName
@@ -171,7 +181,7 @@ let private checkFunctionCountSprawl
 
         if
             (not isUtilsFile)
-            && (functions.Length <= genericFunctionCountThreshold || singleDomain)
+            && (functions.Length <= thresholds.GenericFunctionCount || singleDomain)
         then
             None
         else
@@ -193,6 +203,7 @@ let private checkFunctionCountSprawl
                             functions.Length
                             r.DistinctTypes)
                         position
+                        thresholds
                 )
             | _ ->
                 Some(
@@ -202,6 +213,7 @@ let private checkFunctionCountSprawl
                             "File coherence warning: %d functions in one file. If they belong to distinct domains, prefer moving them into existing cohesive modules; splitting into a new file only helps if it doesn't just relocate the same imports/coupling."
                             functions.Length)
                         position
+                        thresholds
                 )
 
 let private lineCount (node: TreeSitter.Node) : int =
@@ -229,7 +241,8 @@ let private checkLargeFunctionSprawl
               Type = Violation.Coherence
               Severity =
                 if
-                    float largeFunctions.Length > float thresholds.MaxLargeFunctions * largeFunctionSeverityMultiplier
+                    float largeFunctions.Length > float thresholds.MaxLargeFunctions
+                                                  * thresholds.LargeFunctionSeverityMultiplier
                 then
                     Violation.High
                 else
@@ -263,7 +276,14 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
               Classes
               ctx.Options.Coherence.SingleDomainNameShare
               ctx.Language
-              ctx.Positions ]
+              ctx.Positions
+          // God-class is the class-level counterpart: one type whose methods span too many unrelated
+          // domains (as opposed to checkClassRelatedness, which is several unrelated types per file).
+          ClassRelatedness.checkGodClass
+              Classes
+              { Language = ctx.Language
+                Thresholds = ctx.Options.Coherence
+                Positions = ctx.Positions } ]
         |> List.choose id
 
     Context.addViolations findings ctx

@@ -75,6 +75,16 @@ let private assertRelatedClassesQuiet (_src: string) (vs: EnergyViolation list) 
 let private assertExceptionFamilyQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+// "flagged" scenarios for the god-class (large-class) sub-check of coherence.
+let private assertGodClassFlagged (_src: string) (vs: EnergyViolation list) =
+    assertThat (hitsWithMessage [ "methods spanning" ] vs |> List.length > 0) isTrue
+
+// "stays quiet" scenario: a stateless value type with a rich but cohesive combinator API must not be
+// flagged as a god class, even though it has more methods than the count bar. A regression guard for
+// the "module-like value type used for method chaining" case (e.g. an Option of combinators).
+let private assertCohesiveValueQuiet (_src: string) (vs: EnergyViolation list) =
+    assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
+
 // "flagged with the stronger message" scenarios.
 let private assertEntropyDump (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated types" ] vs |> List.length > 0) isTrue
@@ -157,6 +167,18 @@ let tests =
             File = "exceptionFamily"
             Assert = assertExceptionFamilyQuiet } ]
 
+    // decision: god-class scenarios live over the class-supporting languages only — F# has no class
+    // construct, so a per-class metric has nothing to measure there (mirrors block2). The quiet fixture
+    // is a regression guard for the "stateless module-like value type used for method chaining" case:
+    // many methods over one domain type must stay unflagged.
+    let godClassScenarios: Scenario list =
+        [ { Name = "a class with many unrelated responsibilities is flagged as a god class"
+            File = "god_class"
+            Assert = assertGodClassFlagged }
+          { Name = "a cohesive value type with many combinators stays quiet"
+            File = "cohesive_value_type"
+            Assert = assertCohesiveValueQuiet } ]
+
     // Build one test per (language, scenario) pair. `block1Scenarios`/`block2Scenarios` are Scenario
     // lists; the language triplets carry the extension as a one-element list so this stays uniform.
     let buildBlock (langCases: (string * LanguageAdapter * string) list) (scenarios: Scenario list) =
@@ -165,6 +187,7 @@ let tests =
 
     let block1 = buildBlock functionLanguages block1Scenarios
     let block2 = buildBlock classLanguages block2Scenarios
+    let block3 = buildBlock classLanguages godClassScenarios
 
     let fSharpScopeSprawl =
         buildTest
@@ -216,6 +239,73 @@ let tests =
                 )
         )
 
+    let functionCountThresholdIsConfigurable =
+        testAsync (
+            "F#: configured function-count threshold controls the sprawl finding",
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) =
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/entropyDump.fs"
+
+                        let input =
+                            { Source = sourceCode
+                              Tree = tree
+                              Language = FSharp.fSharpLanguageAdapter
+                              FileName = "entropyDump.fs" }
+
+                        // decision: raise the generic function-count bar above the fixture's 13 functions and
+                        // the sprawl finding disappears; leave it at the default of 12 and it fires — proving
+                        // the configured value flows into the detector, not just through Config's merge.
+                        let withGeneric (genericFunctionCount: int) =
+                            { defaultThresholds with
+                                Coherence =
+                                    { defaultThresholds.Coherence with
+                                        GenericFunctionCount = genericFunctionCount } }
+
+                        let fired = analyzeWith (withGeneric 12) input |> _.Violations
+                        let relaxed = analyzeWith (withGeneric 14) input |> _.Violations
+
+                        assertThat (hitsWithMessage [ "unrelated types" ] fired |> List.length > 0) isTrue
+                        assertThat (coherenceHits relaxed |> List.length) (isEqualTo 0)
+                    }
+                )
+        )
+
+    let methodCountThresholdIsConfigurable =
+        testAsync (
+            "Python: configured god-class method-count bar controls the finding",
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) =
+                            parseFixture Python.pythonLanguageAdapter "python/coherence/god_class.py"
+
+                        let input =
+                            { Source = sourceCode
+                              Tree = tree
+                              Language = Python.pythonLanguageAdapter
+                              FileName = "god_class.py" }
+
+                        // decision: the fixture has 17 methods, so it fires at the default medium bar of 15 but clears
+                        // that bar at 18. Assert on the god-class message specifically — this file also trips an
+                        // unrelated "classes split into groups" coherence hit that persists regardless of the bar,
+                        // so a total coherence count would not isolate what the configured value controls.
+                        let withMedium (methodCountMedium: int) =
+                            { defaultThresholds with
+                                Coherence =
+                                    { defaultThresholds.Coherence with
+                                        MethodCountMedium = methodCountMedium } }
+
+                        let fired = analyzeWith (withMedium 15) input |> _.Violations
+                        let relaxed = analyzeWith (withMedium 18) input |> _.Violations
+
+                        assertThat (hitsWithMessage [ "methods spanning" ] fired |> List.length > 0) isTrue
+                        assertThat (hitsWithMessage [ "methods spanning" ] relaxed |> List.length) (isEqualTo 0)
+                    }
+                )
+        )
+
     let kotlinMemberFanOut =
         buildTest
             "Kotlin"
@@ -250,8 +340,11 @@ let tests =
         "Integration: file coherence (real code examples)",
         block1
         @ block2
+        @ block3
         @ [ fSharpScopeSprawl
             siblingThresholdIsConfigurable
+            functionCountThresholdIsConfigurable
+            methodCountThresholdIsConfigurable
             kotlinMemberFanOut
             pythonWildcardImport ]
         @ memberFanOuts

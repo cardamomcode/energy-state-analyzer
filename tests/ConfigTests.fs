@@ -76,6 +76,12 @@ let defaultsTests =
                       assertThat defaultCoherenceThresholds.ImportBreadthThreshold (isEqualTo 10)
                       assertThat defaultCoherenceThresholds.HighImportBreadthThreshold (isEqualTo 15)
                       assertThat defaultCoherenceThresholds.MemberImportFanOutThreshold (isEqualTo 10)
+                      assertThat defaultCoherenceThresholds.UtilsFileFunctionCount (isEqualTo 8)
+                      assertThat defaultCoherenceThresholds.GenericFunctionCount (isEqualTo 12)
+                      assertThat defaultCoherenceThresholds.HighFunctionCount (isEqualTo 15)
+                      assertThat defaultCoherenceThresholds.MethodCountMedium (isEqualTo 15)
+                      assertThat defaultCoherenceThresholds.MethodCountHigh (isEqualTo 25)
+                      assertThat defaultCoherenceThresholds.LargeFunctionSeverityMultiplier (isEqualTo 1.5)
                   }
               )
       )
@@ -206,6 +212,60 @@ let mergePrecedenceTests =
                       assertThat memberImportFanOutThreshold (isEqualTo 3)
                       // unrelated import-coherence fields keep their built-in defaults.
                       assertThat siblingOpenThreshold (isEqualTo 7)
+                  }
+              )
+      )
+      testAsync (
+          "a provided function-count sprawl threshold overrides only its field",
+          fun _ ->
+              toAsync (
+                  task {
+                      let merged =
+                          loadTempConfig
+                              """{"coherence": {"genericFunctionCount": 20, "highFunctionCount": 30, "utilsFileFunctionCount": 12, "largeFunctionSeverityMultiplier": 2.0}}"""
+
+                      let genericFunctionCount = merged.Coherence.GenericFunctionCount
+                      let highFunctionCount = merged.Coherence.HighFunctionCount
+                      let utilsFileFunctionCount = merged.Coherence.UtilsFileFunctionCount
+
+                      let largeFunctionSeverityMultiplier =
+                          merged.Coherence.LargeFunctionSeverityMultiplier
+
+                      let maxLargeFunctions = merged.Coherence.MaxLargeFunctions
+                      let siblingOpenThreshold = merged.Coherence.SiblingOpenThreshold
+
+                      // the four provided function-count sprawl fields take their provided values.
+                      assertThat genericFunctionCount (isEqualTo 20)
+                      assertThat highFunctionCount (isEqualTo 30)
+                      assertThat utilsFileFunctionCount (isEqualTo 12)
+                      assertThat largeFunctionSeverityMultiplier (isEqualTo 2.0)
+                      // unrelated coherence fields keep their built-in defaults.
+                      assertThat maxLargeFunctions (isEqualTo 5)
+                      assertThat siblingOpenThreshold (isEqualTo 7)
+                  }
+              )
+      )
+
+      testAsync (
+          "a provided god-class method-count threshold overrides only that field",
+          fun _ ->
+              toAsync (
+                  task {
+                      let merged =
+                          loadTempConfig
+                              """{"coherence": {"godClassMethodCountMedium": 20, "godClassMethodCountHigh": 30}}"""
+
+                      let methodCountMedium = merged.Coherence.MethodCountMedium
+                      let methodCountHigh = merged.Coherence.MethodCountHigh
+                      let highFunctionCount = merged.Coherence.HighFunctionCount
+                      let maxLargeFunctions = merged.Coherence.MaxLargeFunctions
+
+                      // the two provided god-class bars take their provided values.
+                      assertThat methodCountMedium (isEqualTo 20)
+                      assertThat methodCountHigh (isEqualTo 30)
+                      // unrelated coherence fields keep their built-in defaults.
+                      assertThat highFunctionCount (isEqualTo 15)
+                      assertThat maxLargeFunctions (isEqualTo 5)
                   }
               )
       )

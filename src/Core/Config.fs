@@ -39,7 +39,13 @@ type CoherenceThresholds =
       SiblingOpenThreshold: int
       ImportBreadthThreshold: int
       HighImportBreadthThreshold: int
-      MemberImportFanOutThreshold: int }
+      MemberImportFanOutThreshold: int
+      UtilsFileFunctionCount: int
+      GenericFunctionCount: int
+      HighFunctionCount: int
+      MethodCountMedium: int
+      MethodCountHigh: int
+      LargeFunctionSeverityMultiplier: float }
 
 type MatchOpportunityThresholds = { MinBranches: int }
 
@@ -73,6 +79,8 @@ type AnalyzeOptions =
 // decision: default cyclomatic thresholds 10/15 distinguish many paths from urgent extraction work.
 // decision: default cognitive thresholds 15/25 align the nesting-weighted metric with SonarSource defaults.
 // decision: coherence uses large-function count rather than raw function count because F# modules often have many small functions.
+// decision: the function-count sprawl thresholds (8 for utils/helper/common-named files, 12 generic, 15 high-severity) and the large-function severity multiplier are configurable so a project can retune exactly where sprawl is flagged without editing detector code.
+// decision: the god-class method-count bars (15 medium / 25 high) are configurable for the same reason — a project can retune where a single type's responsibility sprawl is flagged without editing the class-relatedness detector.
 // decision: magic-detector test files stay exempt by default because their literals are usually intentional.
 // decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
 let defaultAnalyzeOptions =
@@ -94,7 +102,13 @@ let defaultAnalyzeOptions =
           SiblingOpenThreshold = 7
           ImportBreadthThreshold = 10
           HighImportBreadthThreshold = 15
-          MemberImportFanOutThreshold = 10 }
+          MemberImportFanOutThreshold = 10
+          UtilsFileFunctionCount = 8
+          GenericFunctionCount = 12
+          HighFunctionCount = 15
+          MethodCountMedium = 15
+          MethodCountHigh = 25
+          LargeFunctionSeverityMultiplier = 1.5 }
       MatchOpportunity = { MinBranches = 3 }
       ParameterCount =
         { MediumThreshold = 5
@@ -171,7 +185,13 @@ type FileCoherence =
       SiblingOpenThreshold: int option
       ImportBreadthThreshold: int option
       HighImportBreadthThreshold: int option
-      MemberImportFanOutThreshold: int option }
+      MemberImportFanOutThreshold: int option
+      UtilsFileFunctionCount: int option
+      GenericFunctionCount: int option
+      HighFunctionCount: int option
+      MethodCountMedium: int option
+      MethodCountHigh: int option
+      LargeFunctionSeverityMultiplier: float option }
 
 type FileMatchOpportunity = { MinBranches: int option }
 
@@ -214,7 +234,13 @@ let private emptyFileConfig: FileConfig =
           SiblingOpenThreshold = None
           ImportBreadthThreshold = None
           HighImportBreadthThreshold = None
-          MemberImportFanOutThreshold = None }
+          MemberImportFanOutThreshold = None
+          UtilsFileFunctionCount = None
+          GenericFunctionCount = None
+          HighFunctionCount = None
+          MethodCountMedium = None
+          MethodCountHigh = None
+          LargeFunctionSeverityMultiplier = None }
       MatchOpportunity = { MinBranches = None }
       ParameterCount =
         { MediumThreshold = None
@@ -313,7 +339,13 @@ let parseFileConfig (raw: obj) : FileConfig =
           SiblingOpenThreshold = readNumber coherence "siblingOpenThreshold" |> Option.map int
           ImportBreadthThreshold = readNumber coherence "importBreadthThreshold" |> Option.map int
           HighImportBreadthThreshold = readNumber coherence "highImportBreadthThreshold" |> Option.map int
-          MemberImportFanOutThreshold = readNumber coherence "memberImportFanOutThreshold" |> Option.map int }
+          MemberImportFanOutThreshold = readNumber coherence "memberImportFanOutThreshold" |> Option.map int
+          UtilsFileFunctionCount = readNumber coherence "utilsFileFunctionCount" |> Option.map int
+          GenericFunctionCount = readNumber coherence "genericFunctionCount" |> Option.map int
+          HighFunctionCount = readNumber coherence "highFunctionCount" |> Option.map int
+          MethodCountMedium = readNumber coherence "godClassMethodCountMedium" |> Option.map int
+          MethodCountHigh = readNumber coherence "godClassMethodCountHigh" |> Option.map int
+          LargeFunctionSeverityMultiplier = readNumber coherence "largeFunctionSeverityMultiplier" }
       MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
       ParameterCount =
         { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
@@ -368,7 +400,18 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
           MemberImportFanOutThreshold =
             Option.defaultValue
                 defaults.Coherence.MemberImportFanOutThreshold
-                file.Coherence.MemberImportFanOutThreshold }
+                file.Coherence.MemberImportFanOutThreshold
+          UtilsFileFunctionCount =
+            Option.defaultValue defaults.Coherence.UtilsFileFunctionCount file.Coherence.UtilsFileFunctionCount
+          GenericFunctionCount =
+            Option.defaultValue defaults.Coherence.GenericFunctionCount file.Coherence.GenericFunctionCount
+          HighFunctionCount = Option.defaultValue defaults.Coherence.HighFunctionCount file.Coherence.HighFunctionCount
+          MethodCountMedium = Option.defaultValue defaults.Coherence.MethodCountMedium file.Coherence.MethodCountMedium
+          MethodCountHigh = Option.defaultValue defaults.Coherence.MethodCountHigh file.Coherence.MethodCountHigh
+          LargeFunctionSeverityMultiplier =
+            Option.defaultValue
+                defaults.Coherence.LargeFunctionSeverityMultiplier
+                file.Coherence.LargeFunctionSeverityMultiplier }
       MatchOpportunity =
         { MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
       ParameterCount =

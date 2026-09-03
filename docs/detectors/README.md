@@ -15,6 +15,7 @@ type checking remain the compiler's job.
 - [Excessive nesting](excessive-nesting.md), control-flow blocks nested too deep.
 - [Parameter explosion](parameter-explosion.md), functions with too many parameters.
 - [File coherence](file-coherence.md), files that have lost a single responsibility.
+- [God class](god-class.md), one type whose methods span too many unrelated domains (the class-level half of file coherence).
 
 ## Naming and literals
 
