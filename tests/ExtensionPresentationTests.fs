@@ -1,7 +1,6 @@
 module Energy.Tests.ExtensionPresentationTests
 
 open Scriptorium.Nib.Assertion
-open Scriptorium.Quill
 open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation

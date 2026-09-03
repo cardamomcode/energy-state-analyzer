@@ -1,12 +1,10 @@
 module Energy.Tests.CPlusPlusTests
 
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
-open Energy.Core.Analyze
 open Energy.Core.Scan
 open Energy.Core.TypeCohesion
 open Energy.Languages

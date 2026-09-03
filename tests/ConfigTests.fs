@@ -1,11 +1,9 @@
 module Energy.Tests.ConfigTests
 
 open System
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 open Fable.Core
-open Fable.Core.JsInterop
 
 open Energy.Core.Config
 open Energy.Core.Paths

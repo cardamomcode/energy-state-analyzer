@@ -1,14 +1,8 @@
 module Energy.Tests.CoherenceTests
 
-open System.Threading.Tasks
-
-open Fable.Core.JsInterop
-
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
-open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.LanguageAdapter
 open Energy.Core.Analyze
