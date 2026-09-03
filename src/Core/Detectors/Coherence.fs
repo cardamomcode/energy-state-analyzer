@@ -13,13 +13,10 @@ open Energy.Core.Config
 // first large function) rather than line 0.
 
 // decision: coherence thresholds live in Core.Config as the single source of truth; this detector
-// reads them from ctx.Options (and its own `thresholds` parameter) so it no longer re-exports a
-// module-level copy.
-
-let private utilsFileFunctionThreshold = 8
-let private genericFunctionCountThreshold = 12
-let private highFunctionCountThreshold = 15
-let private largeFunctionSeverityMultiplier = 1.5
+// reads every one from the CoherenceThresholds record passed to each check (ctx.Options.Coherence at
+// the entry point, threaded down into the private checks) so it no longer re-exports a module-level
+// copy. The function-count sprawl thresholds (utils/generic/high), the large-function line count and
+// count bar, and the severity multiplier are all configured the same way as the import signals.
 
 // decision: methods are grouped by their nearest enclosing class rather than folded into the same flat
 // function list a free-standing function would land in — a class is already a cohesion boundary of its
@@ -129,12 +126,13 @@ let private functionCountViolation
     (functionCount: int)
     (message: string)
     (position: Position.Position)
+    (thresholds: CoherenceThresholds)
     : Violation.EnergyViolation =
     { Line = position.Line
       Column = position.Column
       Type = Violation.Coherence
       Severity =
-        if functionCount > highFunctionCountThreshold then
+        if functionCount > thresholds.HighFunctionCount then
             Violation.High
         else
             Violation.Medium
@@ -152,7 +150,7 @@ let private checkFunctionCountSprawl
     (language: LanguageAdapter.LanguageAdapter)
     (positions: Position.PositionLookup)
     : Violation.EnergyViolation option =
-    if functions.Length <= utilsFileFunctionThreshold then
+    if functions.Length <= thresholds.UtilsFileFunctionCount then
         None
     else
         let isUtilsFile = NamingCohesion.isUtilsFileName fileName
@@ -171,7 +169,7 @@ let private checkFunctionCountSprawl
 
         if
             (not isUtilsFile)
-            && (functions.Length <= genericFunctionCountThreshold || singleDomain)
+            && (functions.Length <= thresholds.GenericFunctionCount || singleDomain)
         then
             None
         else
@@ -193,6 +191,7 @@ let private checkFunctionCountSprawl
                             functions.Length
                             r.DistinctTypes)
                         position
+                        thresholds
                 )
             | _ ->
                 Some(
@@ -202,6 +201,7 @@ let private checkFunctionCountSprawl
                             "File coherence warning: %d functions in one file. If they belong to distinct domains, prefer moving them into existing cohesive modules; splitting into a new file only helps if it doesn't just relocate the same imports/coupling."
                             functions.Length)
                         position
+                        thresholds
                 )
 
 let private lineCount (node: TreeSitter.Node) : int =
@@ -229,7 +229,8 @@ let private checkLargeFunctionSprawl
               Type = Violation.Coherence
               Severity =
                 if
-                    float largeFunctions.Length > float thresholds.MaxLargeFunctions * largeFunctionSeverityMultiplier
+                    float largeFunctions.Length > float thresholds.MaxLargeFunctions
+                                                  * thresholds.LargeFunctionSeverityMultiplier
                 then
                     Violation.High
                 else
