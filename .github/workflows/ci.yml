@@ -47,9 +47,12 @@ jobs:
         run: npm run compile
 
   # F# analyzer check (fsharp-analyzers + G-Research rules), mirroring how Fable runs its own.
-  # Soft-gated (continue-on-error) with SARIF upload to GitHub Code Scanning so findings are
-  # triaged over time instead of hard-failing PRs on day one. Once the backlog clears, drop the
-  # continue-on-error line to turn this into a blocking check.
+  # Soft-gated: the AnalyzeFSharpProject target ignores the CLI exit code, so the job succeeds
+  # whenever analysis runs and produces a SARIF -- findings never fail the build. It fails loudly
+  # (via the verify step) on a real restore/build/analysis error instead of hiding it, as a
+  # bare continue-on-error would. SARIF uploads to GitHub Code Scanning for triage over time.
+  # To make this blocking once the backlog clears, replace the verify step with a check that
+  # fails when results are non-empty.
   fsharp-analyzers:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -71,14 +74,24 @@ jobs:
       - name: Install F# tools
         run: dotnet tool restore
 
-      - name: Run fsharp-analyzers on ${{ matrix.project }}
+      - name: Restore and run fsharp-analyzers on ${{ matrix.project }}
         run: |
           dotnet restore ${{ matrix.project }}
           dotnet msbuild /t:AnalyzeFSharpProject ${{ matrix.project }}
-        continue-on-error: true
+
+      - name: Verify analyzer report exists
+        run: |
+          if ls fsharp-analyzer-reports/*.sarif >/dev/null 2>&1; then
+            echo "report present:"
+            ls -la fsharp-analyzer-reports/
+          else
+            echo "ERROR: no SARIF produced for ${{ matrix.project }}" >&2
+            ls -la fsharp-analyzer-reports 2>/dev/null || echo "(reports dir missing)" >&2
+            exit 1
+          fi
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: fsharp-analyzer-reports
+          sarif_file: fsharp-analyzer-reports/**/*.sarif
           category: ${{ matrix.project }}

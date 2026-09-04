@@ -22,7 +22,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <!-- The rule set (G-Research F# checker rules). Referenced as an analyzer asset so NuGet
-         extracts the DLL to disk; the CLI locates it via --analyzers-path (using $(
+         extracts the DLL to disk; the CLI locates it via the analyzers-path flag (using $(
         NuGetPackageRoot)) in Directory.Build.targets. RunAnalyzers=false above keeps it from
          running at build time. -->
     <PackageReference Include="G-Research.FSharp.Analyzers" Version="0.23.0">

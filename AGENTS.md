@@ -86,6 +86,7 @@ Beyond our own product analyzer, the repo runs the [fsharp-analyzers](https://g-
 
 - `Directory.Build.props` adds `FSharp.Analyzers.Build` (the `AnalyzeFSharpProject` target) and `G-Research.FSharp.Analyzers` (the rules), and sets `RunAnalyzers=false` so these external rules never fire during Fable transpilation — the check is driven only through the explicit target.
 - `Directory.Build.targets` sets `FSharpAnalyzersOtherFlags` (`--analyzers-path`, `--code-root`, `--report`). The rule package version in that path (currently `0.23.0`) must match the SDK the rules were built against; pair it with matching tooling versions in `.config/dotnet-tools.json` (`fsharp-analyzers`), or the CLI refuses to load the analyzer DLL on an SDK-version mismatch.
+- `Directory.Build.*` are evaluated for every project, so their XML must be valid: **XML comments may not contain `--`** (write "the analyzers-path flag", not `--analyzers-path` inside a comment) — otherwise every project fails MSBuild evaluation and no SARIF is produced.
 - The `fsharp-analyzers` dotnet tool (0.37.2) is restored by the existing `dotnet tool restore` step; run it locally with `just fsharp-analyze [paths]`.
 
 The job is **soft-gated** (`continue-on-error`) and uploads a SARIF per project to GitHub Code Scanning, so findings are triaged over time rather than hard-failing PRs on day one. When the backlog clears, remove `continue-on-error` from that job to make it blocking.
