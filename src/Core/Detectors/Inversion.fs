@@ -7,6 +7,13 @@ open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 
+// decision: these inversion-detection thresholds are detector heuristics, not published or
+// user-tunable metric values, so they stay as named constants at the top of the module rather
+// than in Core.Config, keeping the rationale visible next to the module's other declarations.
+let private maxNestedLevel = 4
+let private inversionRatioThreshold = 0.5
+let private deepIfDepthThreshold = 3
+
 let private hasType expected node =
     expected |> Option.exists ((=) (nodeType node))
 
@@ -40,7 +47,7 @@ let private hasElse (language: LanguageAdapter) (ifNode: Node) =
 
 let private nestedValidation (language: LanguageAdapter) (body: Node) =
     let rec collect current level checks =
-        if level >= 4 then
+        if level >= maxNestedLevel then
             checks
         else
             let statements =
@@ -104,7 +111,7 @@ let private analyzeFunction (positions: PositionLookup) (language: LanguageAdapt
                         float (nodeEndIndex ifBody - nodeStartIndex ifBody)
                         / float (nodeEndIndex functionNode - nodeStartIndex functionNode)
 
-                    if ratio > 0.5 then
+                    if ratio > inversionRatioThreshold then
                         let position = positions.toPosition (nodeStartIndex first)
 
                         [ { Line = position.Line
@@ -140,7 +147,7 @@ let private analyzeFunction (positions: PositionLookup) (language: LanguageAdapt
 
         let deepFinding =
             match location with
-            | Some node when depth >= 3 ->
+            | Some node when depth >= deepIfDepthThreshold ->
                 let position = positions.toPosition (nodeStartIndex node)
 
                 [ { Line = position.Line

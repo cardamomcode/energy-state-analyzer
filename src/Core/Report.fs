@@ -2,6 +2,12 @@ module Energy.Core.Report
 
 open Energy.Core.Violation
 
+// decision: scoring weights are the published report/diff continuity metric (1/4/9); only the
+// low weight is 1, so the medium and high weights become named constants at the top of the module
+// rather than in Core.Config, keeping them visible next to the module's other declarations.
+let private mediumWeight = 4
+let private highWeight = 9
+
 type SeverityCounts = { Low: int; Medium: int; High: int }
 
 type FileResult =
@@ -30,7 +36,7 @@ let private addViolation counts violation =
     | High -> { counts with High = counts.High + 1 }
 
 let private score counts =
-    counts.Low + 4 * counts.Medium + 9 * counts.High
+    counts.Low + mediumWeight * counts.Medium + highWeight * counts.High
 
 // invariant: weights 1/4/9 are the published report/diff continuity metric; only structured
 // severity contributes, never numbers embedded in detector messages.

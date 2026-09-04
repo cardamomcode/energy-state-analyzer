@@ -6,6 +6,12 @@ open Fable.Core
 
 open Energy.Core.Violation
 
+// decision: these describe the accepted hex color form (six hex digits, parsed base 16); they are
+// properties of that fixed format rather than tunable thresholds, so they stay as named constants
+// at the top of the module instead of being hidden next to their use sites.
+let private hexColorLength = 6
+let private hexRadix = 16
+
 // Pure editor-decoration calculations. They intentionally know nothing about VS Code objects so
 // Node-based Scriptorium tests can preserve presentation behavior without an extension host.
 
@@ -38,7 +44,7 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
         let normalized = value.Trim().TrimStart('#')
 
         if
-            normalized.Length = 6
+            normalized.Length = hexColorLength
             && (normalized
                 |> Seq.forall (fun character -> "0123456789abcdefABCDEF".Contains(string<char> character)))
         then
@@ -47,7 +53,7 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
             fallback.TrimStart('#')
 
     let channel index =
-        Convert.ToInt32(digits.Substring(index * 2, 2), 16)
+        Convert.ToInt32(digits.Substring(index * 2, 2), hexRadix)
 
     sprintf "rgba(%d, %d, %d, %g)" (channel 0) (channel 1) (channel 2) alpha
 

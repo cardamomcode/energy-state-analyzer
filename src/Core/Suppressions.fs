@@ -3,6 +3,13 @@ module Energy.Core.Suppressions
 open System.Text.RegularExpressions
 open Energy.Core.Violation
 
+// decision: these are the capture-group indices of directivePattern (group 1 = comment marker,
+// group 2 = optional `-file`, group 3 = suppression types); named constants make the indexed reads
+// below self-documenting instead of bare magic numbers. They sit at the top of the module so this
+// choice is visible rather than hidden next to their use sites.
+let private scopeGroupIndex = 2
+let private typeGroupIndex = 3
+
 type SuppressionScope =
     | Line
     | File
@@ -74,12 +81,16 @@ let parseSuppressions (sourceText: string) : Suppression list =
         if not matched.Success then
             None
         else
-            let types, unknownTypes = parseTypeList matched.Groups.[3].Value
+            let types, unknownTypes = parseTypeList matched.Groups.[typeGroupIndex].Value
 
             Some
                 { Line = line
                   Column = matched.Index
-                  Scope = if matched.Groups.[2].Success then File else Line
+                  Scope =
+                    if matched.Groups.[scopeGroupIndex].Success then
+                        File
+                    else
+                        Line
                   Types = types
                   UnknownTypes = unknownTypes
                   Standalone = lineText.Substring(0, matched.Index).Trim() = "" })

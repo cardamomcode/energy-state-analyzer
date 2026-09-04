@@ -8,6 +8,12 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.ParameterCount
 
+// decision: these primitive-obsession thresholds are detector heuristics, not published or
+// user-tunable metric values, so they stay as named constants at the top of the module rather
+// than in Core.Config, keeping the rationale visible next to the module's other declarations.
+let private minDistinctValues = 3
+let private sampleSize = 4
+
 type private TypedParameterNode =
     { Name: string
       Type: string
@@ -121,11 +127,11 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
     traverse functionNode Map.empty
     |> Map.toList
     |> List.choose (fun (name, (values, firstOccurrence)) ->
-        if Set.count values < 3 then
+        if Set.count values < minDistinctValues then
             None
         else
             let position = positions.toPosition (nodeStartIndex firstOccurrence)
-            let sample = values |> Set.toList |> List.truncate 4
+            let sample = values |> Set.toList |> List.truncate sampleSize
             let suffix = if Set.count values > sample.Length then ", …" else ""
 
             Some
