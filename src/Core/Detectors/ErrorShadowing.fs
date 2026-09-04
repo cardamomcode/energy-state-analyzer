@@ -74,12 +74,16 @@ let analyzeErrorShadowing (ctx: AnalysisContext) : AnalysisContext =
     let findings =
         allFunctions ctx.Language ctx.Tree
         |> List.collect (fun fnNode ->
-            let errorCount, totalCount = countNodes ctx.Language fnNode
+            let errorCount, logicCount = countNodes ctx.Language fnNode
+            let totalCount = errorCount + logicCount
 
             // decision: MinNamedNodes keeps tiny wrappers (a single call under a try) from tripping the
             // rule — a share only becomes meaningful once there is enough body to judge separation of concerns.
+            // invariant: the share's denominator includes every named node in the function, so the
+            // reported percentage measures error handling's portion of the complete body.
             if
-                totalCount >= thresholds.MinNamedNodes
+                errorCount > 0
+                && totalCount >= thresholds.MinNamedNodes
                 && float errorCount / float totalCount >= thresholds.Threshold
             then
                 let share = float errorCount / float totalCount
@@ -97,7 +101,7 @@ let analyzeErrorShadowing (ctx: AnalysisContext) : AnalysisContext =
                           Violation.High
                       else
                           Violation.Medium
-                    Message = shadowMessage errorCount (errorCount + totalCount) share
+                    Message = shadowMessage errorCount totalCount share
                     Hotspots = [] } ]
             else
                 [])
