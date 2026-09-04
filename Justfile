@@ -43,6 +43,18 @@ analyze *args:
     @if [ ! -d dist ]; then echo "just analyze: rebuilding before analysis…"; npm run compile; fi
     @paths="{{args}}"; [ -z "$paths" ] && paths=src; npm run analyze -- $paths
 
+# Run the F# analyzers (fsharp-analyzers + G-Research rules) over one or more .fsproj. Emits a
+# SARIF report per project under fsharp-analyzer-reports/ for CI code-scanning. With no args, it
+# checks src/. Examples: `just fsharp-analyze`, `just fsharp-analyze src/EnergyState.fsproj cli/
+# EnergyState.Cli.fsproj`.
+fsharp-analyze *args:
+    @paths="{{args}}"; [ -z "$paths" ] && paths=src/EnergyState.fsproj; \
+    for p in $paths; do \
+      echo ">> restoring $p"; dotnet restore "$p"; \
+      mkdir -p fsharp-analyzer-reports; \
+      echo ">> analyzing $p"; dotnet msbuild /t:AnalyzeFSharpProject "$p" || true; \
+    done
+
 # Transpile and run the F# Scriptorium suite
 test:
     npm test

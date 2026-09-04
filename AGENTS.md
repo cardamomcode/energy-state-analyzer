@@ -23,6 +23,7 @@ just format        # Format F# source and tests
 just format-check  # CI formatting check
 just md-lint       # Check markdown formatting (CI check)
 just analyze       # Build, then run the F# CLI against src/ or supplied paths
+just fsharp-analyze# fsharp-analyzers (G-Research rules) over .fsproj; emits SARIF for CI
 just test          # Fable Scriptorium suite under Node
 just pack          # Production bundles + .vsix
 just clean         # Generated outputs and packages
@@ -78,6 +79,17 @@ compiles the library project for the extension entry, then the CLI project for `
 
 The `.vsix` and npm package ship transpiled bundles, grammar WASMs, and metadata only. Keep F#
 sources, tests, `fable-out/`, `fable_modules/`, `bin/`, `obj/`, and maps excluded by ignore files.
+
+## F# analyzers (fsharp-analyzers)
+
+Beyond our own product analyzer, the repo runs the [fsharp-analyzers](https://g-research.github.io/fsharp-analyzers/) rule set over our written F# via a dedicated CI job (`fsharp-analyzers` in `.github/workflows/ci.yml`). It is wired through MSBuild:
+
+- `Directory.Build.props` adds `FSharp.Analyzers.Build` (the `AnalyzeFSharpProject` target) and `G-Research.FSharp.Analyzers` (the rules), and sets `RunAnalyzers=false` so these external rules never fire during Fable transpilation — the check is driven only through the explicit target.
+- `Directory.Build.targets` sets `FSharpAnalyzersOtherFlags` (`--analyzers-path`, `--code-root`, `--report`). The rule package version in that path (currently `0.23.0`) must match the SDK the rules were built against; pair it with matching tooling versions in `.config/dotnet-tools.json` (`fsharp-analyzers`), or the CLI refuses to load the analyzer DLL on an SDK-version mismatch.
+- `Directory.Build.*` are evaluated for every project, so their XML must be valid: **XML comments may not contain `--`** (write "the analyzers-path flag", not `--analyzers-path` inside a comment) — otherwise every project fails MSBuild evaluation and no SARIF is produced.
+- The `fsharp-analyzers` dotnet tool (0.37.2) is restored by the existing `dotnet tool restore` step; run it locally with `just fsharp-analyze [paths]`.
+
+The job is **soft-gated**: the `AnalyzeFSharpProject` target ignores the CLI exit code, so findings never fail the build, and a real restore/build/analysis error surfaces via the "Verify analyzer report exists" step (which fails loudly) instead of being hidden. A SARIF uploads per project to GitHub Code Scanning for triage over time. To make it blocking once the backlog clears, change the verify step to fail when results are non-empty.
 
 ## Before committing or opening a PR
 
