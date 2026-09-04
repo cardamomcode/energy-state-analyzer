@@ -45,3 +45,40 @@ jobs:
 
       - name: Build extension and CLI
         run: npm run compile
+
+  # F# analyzer check (fsharp-analyzers + G-Research rules), mirroring how Fable runs its own.
+  # Soft-gated (continue-on-error) with SARIF upload to GitHub Code Scanning so findings are
+  # triaged over time instead of hard-failing PRs on day one. Once the backlog clears, drop the
+  # continue-on-error line to turn this into a blocking check.
+  fsharp-analyzers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - src/EnergyState.fsproj
+          - cli/EnergyState.Cli.fsproj
+          - tests/EnergyState.Tests.fsproj
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.x"
+
+      - name: Install F# tools
+        run: dotnet tool restore
+
+      - name: Run fsharp-analyzers on ${{ matrix.project }}
+        run: |
+          dotnet restore ${{ matrix.project }}
+          dotnet msbuild /t:AnalyzeFSharpProject ${{ matrix.project }}
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: fsharp-analyzer-reports
+          category: ${{ matrix.project }}

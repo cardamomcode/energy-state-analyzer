@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      CLI arguments for the fsharp-analyzers host, consumed by the AnalyzeFSharpProject target.
+      Kept on ONE line: <Exec Command="..."> is passed to sh verbatim, so any newline in the
+      value would be treated as a separate command. analyzers-path points at the G-Research rule
+      DLL extracted from its NuGet package (resolved per machine via $(NuGetPackageRoot));
+      code-root makes SARIF positions relative to the repo root; report writes one SARIF per
+      project under fsharp-analyzer-reports/ (git-ignored) for CI code-scanning upload.
+    -->
+    <FSharpAnalyzersOtherFlags>--analyzers-path "$(NuGetPackageRoot)g-research.fsharp.analyzers/0.23.0/analyzers/dotnet/fs" --code-root "$(MSBuildProjectDirectory)/.." --report "$(MSBuildProjectDirectory)/../fsharp-analyzer-reports/$(MSBuildProjectName).sarif"</FSharpAnalyzersOtherFlags>
+  </PropertyGroup>
+</Project>

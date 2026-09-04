@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      F# analyzer (fsharp-analyzers) integration.
+
+      We run the fsharp-analyzers host explicitly via the AnalyzeFSharpProject target
+      (see Directory.Build.targets and `just fsharp-analyze`), not during a normal build.
+      Our production build is Fable transpilation; we do not want these external rules firing
+      while `dotnet fable` type-checks, so compiler-integrated analysis is disabled here and the
+      check is driven only through the explicit target in CI or on demand.
+    -->
+    <RunAnalyzers>false</RunAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableDefaultAnalyzerOutputs>false</EnableDefaultAnalyzerOutputs>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MSBuild hook: defines the AnalyzeFSharpProject / FSharpAnalyzerAfterBuild targets that
+         shell out to the `fsharp-analyzers` CLI. Restored as a normal package (not an analyzer
+         asset) because it contributes build targets, not compiler plugins. -->
+    <PackageReference Include="FSharp.Analyzers.Build" Version="0.5.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!-- The rule set (G-Research F# checker rules). Referenced as an analyzer asset so NuGet
+         extracts the DLL to disk; the CLI locates it via --analyzers-path (using $(
+        NuGetPackageRoot)) in Directory.Build.targets. RunAnalyzers=false above keeps it from
+         running at build time. -->
+    <PackageReference Include="G-Research.FSharp.Analyzers" Version="0.23.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

@@ -23,6 +23,7 @@ just format        # Format F# source and tests
 just format-check  # CI formatting check
 just md-lint       # Check markdown formatting (CI check)
 just analyze       # Build, then run the F# CLI against src/ or supplied paths
+just fsharp-analyze# fsharp-analyzers (G-Research rules) over .fsproj; emits SARIF for CI
 just test          # Fable Scriptorium suite under Node
 just pack          # Production bundles + .vsix
 just clean         # Generated outputs and packages
@@ -78,6 +79,16 @@ compiles the library project for the extension entry, then the CLI project for `
 
 The `.vsix` and npm package ship transpiled bundles, grammar WASMs, and metadata only. Keep F#
 sources, tests, `fable-out/`, `fable_modules/`, `bin/`, `obj/`, and maps excluded by ignore files.
+
+## F# analyzers (fsharp-analyzers)
+
+Beyond our own product analyzer, the repo runs the [fsharp-analyzers](https://g-research.github.io/fsharp-analyzers/) rule set over our written F# via a dedicated CI job (`fsharp-analyzers` in `.github/workflows/ci.yml`). It is wired through MSBuild:
+
+- `Directory.Build.props` adds `FSharp.Analyzers.Build` (the `AnalyzeFSharpProject` target) and `G-Research.FSharp.Analyzers` (the rules), and sets `RunAnalyzers=false` so these external rules never fire during Fable transpilation — the check is driven only through the explicit target.
+- `Directory.Build.targets` sets `FSharpAnalyzersOtherFlags` (`--analyzers-path`, `--code-root`, `--report`). The rule package version in that path (currently `0.23.0`) must match the SDK the rules were built against; pair it with matching tooling versions in `.config/dotnet-tools.json` (`fsharp-analyzers`), or the CLI refuses to load the analyzer DLL on an SDK-version mismatch.
+- The `fsharp-analyzers` dotnet tool (0.37.2) is restored by the existing `dotnet tool restore` step; run it locally with `just fsharp-analyze [paths]`.
+
+The job is **soft-gated** (`continue-on-error`) and uploads a SARIF per project to GitHub Code Scanning, so findings are triaged over time rather than hard-failing PRs on day one. When the backlog clears, remove `continue-on-error` from that job to make it blocking.
 
 ## Before committing or opening a PR
 
