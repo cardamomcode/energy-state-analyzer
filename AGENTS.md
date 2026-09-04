@@ -89,7 +89,7 @@ Beyond our own product analyzer, the repo runs the [fsharp-analyzers](https://g-
 - `Directory.Build.*` are evaluated for every project, so their XML must be valid: **XML comments may not contain `--`** (write "the analyzers-path flag", not `--analyzers-path` inside a comment) — otherwise every project fails MSBuild evaluation and no SARIF is produced.
 - The `fsharp-analyzers` dotnet tool (0.37.2) is restored by the existing `dotnet tool restore` step; run it locally with `just fsharp-analyze [paths]`.
 
-The job is **soft-gated** (`continue-on-error`) and uploads a SARIF per project to GitHub Code Scanning, so findings are triaged over time rather than hard-failing PRs on day one. When the backlog clears, remove `continue-on-error` from that job to make it blocking.
+The job is **soft-gated**: the `AnalyzeFSharpProject` target ignores the CLI exit code, so findings never fail the build, and a real restore/build/analysis error surfaces via the "Verify analyzer report exists" step (which fails loudly) instead of being hidden. A SARIF uploads per project to GitHub Code Scanning for triage over time. To make it blocking once the backlog clears, change the verify step to fail when results are non-empty.
 
 ## Before committing or opening a PR
 
