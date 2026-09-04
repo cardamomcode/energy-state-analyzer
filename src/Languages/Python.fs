@@ -293,7 +293,7 @@ let pythonLanguageAdapter: LanguageAdapter =
         fun node ->
             if nodeType node = NodeType "import_from_statement" then
                 let text = nodeText node
-                let importIndex = text.IndexOf(" import ")
+                let importIndex = text.IndexOf(" import ", System.StringComparison.Ordinal)
 
                 if importIndex > 5 then
                     let source = text.Substring(5, importIndex - 5).Trim()

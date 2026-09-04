@@ -47,15 +47,18 @@ let private parseValues (arguments: string array) : string list * Map<string, st
         else
             let argument = arguments.[index]
 
-            if argument.StartsWith "--" && booleanFlags.Contains(argument.Substring 2) then
+            if
+                argument.StartsWith("--", System.StringComparison.Ordinal)
+                && booleanFlags.Contains(argument.Substring 2)
+            then
                 loop (index + 1) paths (Map.add (argument.Substring 2) "true" flags)
             elif
-                argument.StartsWith "--"
+                argument.StartsWith("--", System.StringComparison.Ordinal)
                 && valueFlags.Contains(argument.Substring 2)
                 && index + 1 < arguments.Length
             then
                 loop (index + 2) paths (Map.add (argument.Substring 2) arguments.[index + 1] flags)
-            elif argument.StartsWith "--" then
+            elif argument.StartsWith("--", System.StringComparison.Ordinal) then
                 loop (index + 1) paths flags
             else
                 loop (index + 1) (argument :: paths) flags
@@ -158,6 +161,6 @@ let runCli () : Task<unit> =
                 do! runLegacySingleFile path thresholds
             | None, _ -> do! runScan parsed.Paths thresholds report
         with error ->
-            Energy.CliNode.error ("energy-state-cli failed: " + string error)
+            Energy.CliNode.error ("energy-state-cli failed: " + string<exn> error)
             exit 1
     }

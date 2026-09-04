@@ -9,9 +9,9 @@ open Energy.Extension.Vscode.Presentation
 
 let private vscodeSeverity =
     function
-    | Error -> error
-    | Warning -> warning
-    | Information -> information
+    | ProblemSeverity.Error -> error
+    | ProblemSeverity.Warning -> warning
+    | ProblemSeverity.Information -> information
 
 let private vscodeTag =
     function

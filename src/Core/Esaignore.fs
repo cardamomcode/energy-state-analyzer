@@ -25,13 +25,14 @@ let loadIgnorePatterns (rootDir: string) : string list =
     else
         (readFileSync ignorePath (Encoding "utf8")).Split('\n')
         |> Array.map _.Trim()
-        |> Array.filter (fun line -> line <> "" && not (line.StartsWith "#"))
+        |> Array.filter (fun line -> line <> "" && not (line.StartsWith("#", System.StringComparison.Ordinal)))
         |> Array.map (fun line -> line.TrimEnd('/'))
         |> Array.toList
 
 let private matchesLiteralPattern (relative: string) (IgnorePattern pattern) =
     if pattern.Contains "/" then
-        relative = pattern || relative.StartsWith(pattern + "/")
+        relative = pattern
+        || relative.StartsWith(pattern + "/", System.StringComparison.Ordinal)
     else
         relative.Split('/') |> Array.contains pattern
 
@@ -42,7 +43,7 @@ let private matchesBasenameGlob (IgnorePattern pattern) (name: string) =
         match remaining with
         | [] -> position = name.Length
         | first :: rest when position = 0 ->
-            if name.StartsWith first then
+            if name.StartsWith(first, System.StringComparison.Ordinal) then
                 loop rest first.Length
             else
                 false

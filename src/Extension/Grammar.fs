@@ -57,7 +57,7 @@ let getOrLoadLanguage
                             logSuccess ("✅ " + adapter.Id + " grammar loaded successfully")
                             return Ok loaded
                         with error ->
-                            return Error(GrammarLoadFailed(adapter.Id, string error))
+                            return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
                     }
 
             if not (context.InFlightLoads.ContainsKey languageId) then

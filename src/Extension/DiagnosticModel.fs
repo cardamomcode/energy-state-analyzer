@@ -5,6 +5,7 @@ open Energy.Core.Violation
 // Pure Problems-panel mapping. VS Code constructors live in Diagnostics.fs, leaving these public
 // semantics directly testable in the normal Fable/Node suite.
 
+[<RequireQualifiedAccess>]
 type ProblemSeverity =
     | Error
     | Warning
@@ -30,15 +31,15 @@ let private diagnosticRangeWidth = 10
 
 let severityFor =
     function
-    | High -> Error
-    | Medium -> Warning
-    | Low -> Information
+    | High -> ProblemSeverity.Error
+    | Medium -> ProblemSeverity.Warning
+    | Low -> ProblemSeverity.Information
 
 let private severityRank severity =
     match severityFor severity with
-    | Error -> 0
-    | Warning -> 1
-    | Information -> 2
+    | ProblemSeverity.Error -> 0
+    | ProblemSeverity.Warning -> 1
+    | ProblemSeverity.Information -> 2
 
 let tagsFor =
     function

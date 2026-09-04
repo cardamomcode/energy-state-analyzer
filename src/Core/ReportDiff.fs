@@ -59,12 +59,13 @@ let renderDiffMarkdown (entries: DiffEntry list) (baseRef: string) =
     let rows =
         entries
         |> List.map (fun entry ->
-            let baseScore = entry.BaseScore |> Option.map string |> Option.defaultValue "—"
+            let baseScore =
+                entry.BaseScore |> Option.map (string<int>) |> Option.defaultValue "—"
 
             let delta =
                 if entry.BaseScore.IsNone then "—"
-                elif entry.Delta > 0 then "+" + string entry.Delta
-                else string entry.Delta
+                elif entry.Delta > 0 then "+" + string<int> entry.Delta
+                else string<int> entry.Delta
 
             sprintf
                 "| %s | %s | %d | %s | %s %s |"

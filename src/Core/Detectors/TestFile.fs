@@ -15,7 +15,7 @@ let private splitIntoWords (text: string) : string list =
                         && System.Char.IsUpper current)
 
                 let separator = if isCamelCaseBoundary then " " else ""
-                Some current, result + separator + string current)
+                Some current, result + separator + string<char> current)
             (None, "")
 
     separated.Split([| ' '; '_'; '-'; '.' |])

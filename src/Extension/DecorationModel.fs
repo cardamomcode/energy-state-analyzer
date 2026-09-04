@@ -40,7 +40,7 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
         if
             normalized.Length = 6
             && (normalized
-                |> Seq.forall (fun character -> "0123456789abcdefABCDEF".Contains(string character)))
+                |> Seq.forall (fun character -> "0123456789abcdefABCDEF".Contains(string<char> character)))
         then
             normalized
         else

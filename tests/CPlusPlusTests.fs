@@ -63,7 +63,7 @@ let tests =
                   let (Energy.Core.Paths.Path file) = List.head resolved
 
                   assertThat resolved.Length (isEqualTo 1)
-                  assertThat (file.EndsWith("widget.hpp.in")) isTrue
+                  assertThat (file.EndsWith("widget.hpp.in", System.StringComparison.Ordinal)) isTrue
           )
           test (
               "does not claim C, CUDA, or Objective-C++ suffixes",
