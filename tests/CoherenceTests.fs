@@ -92,15 +92,18 @@ let private assertEntropyDump (_src: string) (vs: EnergyViolation list) =
 let private assertUnrelatedClassesFlagged (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated groups" ] vs |> List.length > 0) isTrue
 
-// A single scenario: a display name, fixture filename (without language dir or extension), and the
-// assertion to run after parsing + analyzing. Built into an async test per language below.
+// A single scenario: a display name, a per-extension fixture filename (without the language dir), and
+// the assertion to run after parsing + analyzing. The stem is stored per extension because each
+// language uses its own file-name casing (snake_case for Python/C++, camelCase for TypeScript,
+// PascalCase for F#/Kotlin), so one shared stem can no longer resolve across all five.
+// Built into an async test per language below.
 type Scenario =
     { Name: string
-      File: string
+      Files: Map<string, string>
       Assert: string -> EnergyViolation list -> unit }
 
 let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: string) (scenario: Scenario) =
-    let fixture = language.Id + "/coherence/" + scenario.File + "." + ext
+    let fixture = language.Id + "/coherence/" + Map.find ext scenario.Files + "." + ext
 
     testAsync (
         (sprintf "%s: %s" languageLabel scenario.Name),
@@ -138,33 +141,81 @@ let tests =
 
     let block1Scenarios: Scenario list =
         [ { Name = "too many large functions is flagged"
-            File = "manyLargeFunctions"
+            Files =
+              Map.ofList
+                  [ "py", "many_large_functions"
+                    "ts", "manyLargeFunctions"
+                    "fs", "ManyLargeFunctions"
+                    "kt", "ManyLargeFunctions"
+                    "cpp", "many_large_functions" ]
             Assert = assertManyLargeFunctions }
           { Name = "import sprawl is flagged"
-            File = "manyImports"
+            Files =
+              Map.ofList
+                  [ "py", "many_imports"
+                    "ts", "manyImports"
+                    "fs", "ManyImports"
+                    "kt", "ManyImports"
+                    "cpp", "many_imports" ]
             Assert = assertManyImports }
           { Name = "many imports from one source stays quiet"
-            File = "narrowImports"
+            Files =
+              Map.ofList
+                  [ "py", "narrow_imports"
+                    "ts", "narrowImports"
+                    "fs", "NarrowImports"
+                    "kt", "NarrowImports"
+                    "cpp", "narrow_imports" ]
             Assert = assertNarrowImportsQuiet }
           { Name = "a small module stays quiet"
-            File = "clean"
+            Files = Map.ofList [ "py", "clean"; "ts", "clean"; "fs", "Clean"; "kt", "Clean"; "cpp", "clean" ]
             Assert = assertCleanQuiet }
           { Name = "a type-cohesive module with no naming cohesion stays quiet"
-            File = "typeCohesive"
+            Files =
+              Map.ofList
+                  [ "py", "type_cohesive"
+                    "ts", "typeCohesive"
+                    "fs", "TypeCohesive"
+                    "kt", "TypeCohesive"
+                    "cpp", "type_cohesive" ]
             Assert = assertTypeCohesiveQuiet }
           { Name = "a module with distinct names AND unrelated types gets the stronger entropy-dump message"
-            File = "entropyDump"
+            Files =
+              Map.ofList
+                  [ "py", "entropy_dump"
+                    "ts", "entropyDump"
+                    "fs", "EntropyDump"
+                    "kt", "EntropyDump"
+                    "cpp", "entropy_dump" ]
             Assert = assertEntropyDump } ]
 
     let block2Scenarios: Scenario list =
         [ { Name = "two classes that construct/return each other stay quiet"
-            File = "relatedClasses"
+            Files =
+              Map.ofList
+                  [ "py", "related_classes"
+                    "ts", "relatedClasses"
+                    "fs", "RelatedClasses"
+                    "kt", "RelatedClasses"
+                    "cpp", "related_classes" ]
             Assert = assertRelatedClassesQuiet }
           { Name = "two classes with no shared inheritance, type reference, or naming pattern are flagged"
-            File = "unrelatedClasses"
+            Files =
+              Map.ofList
+                  [ "py", "unrelated_classes"
+                    "ts", "unrelatedClasses"
+                    "fs", "UnrelatedClasses"
+                    "kt", "UnrelatedClasses"
+                    "cpp", "unrelated_classes" ]
             Assert = assertUnrelatedClassesFlagged }
           { Name = "classes sharing a common base with no naming pattern stay quiet"
-            File = "exceptionFamily"
+            Files =
+              Map.ofList
+                  [ "py", "exception_family"
+                    "ts", "exceptionFamily"
+                    "fs", "ExceptionFamily"
+                    "kt", "ExceptionFamily"
+                    "cpp", "exception_family" ]
             Assert = assertExceptionFamilyQuiet } ]
 
     // decision: god-class scenarios live over the class-supporting languages only — F# has no class
@@ -173,10 +224,22 @@ let tests =
     // many methods over one domain type must stay unflagged.
     let godClassScenarios: Scenario list =
         [ { Name = "a class with many unrelated responsibilities is flagged as a god class"
-            File = "god_class"
+            Files =
+              Map.ofList
+                  [ "py", "god_class"
+                    "ts", "godClass"
+                    "fs", "GodClass"
+                    "kt", "GodClass"
+                    "cpp", "god_class" ]
             Assert = assertGodClassFlagged }
           { Name = "a cohesive value type with many combinators stays quiet"
-            File = "cohesive_value_type"
+            Files =
+              Map.ofList
+                  [ "py", "cohesive_value_type"
+                    "ts", "cohesiveValueType"
+                    "fs", "CohesiveValueType"
+                    "kt", "CohesiveValueType"
+                    "cpp", "cohesive_value_type" ]
             Assert = assertCohesiveValueQuiet } ]
 
     // Build one test per (language, scenario) pair. `block1Scenarios`/`block2Scenarios` are Scenario
@@ -195,11 +258,17 @@ let tests =
             FSharp.fSharpLanguageAdapter
             "fs"
             { Name = "sibling opens warn about name resolution"
-              File = "siblingImports"
+              Files =
+                Map.ofList
+                    [ "py", "sibling_imports"
+                      "ts", "siblingImports"
+                      "fs", "SiblingImports"
+                      "kt", "SiblingImports"
+                      "cpp", "sibling_imports" ]
               Assert = assertFSharpImportScopeSprawl }
 
     // decision: proves the configured sibling-open threshold actually flows into the detector, not
-    // just through Config's merge — raise it above the fixture's 7 siblings and the scope-sprawl
+    // just through Config"s merge — raise it above the fixture"s 7 siblings and the scope-sprawl
     // finding disappears (a count-based import-sprawl remains, since the file still draws from >10
     // distinct modules), lower it below 7 and the sibling message returns.
     let siblingThresholdIsConfigurable =
@@ -209,13 +278,13 @@ let tests =
                 toAsync (
                     task {
                         let! (sourceCode, tree) =
-                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/siblingImports.fs"
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/SiblingImports.fs"
 
                         let input =
                             { Source = sourceCode
                               Tree = tree
                               Language = FSharp.fSharpLanguageAdapter
-                              FileName = "siblingImports.fs" }
+                              FileName = "SiblingImports.fs" }
 
                         let withThresholds (siblingOpen: int) (importBreadth: int) =
                             { defaultThresholds with
@@ -246,13 +315,13 @@ let tests =
                 toAsync (
                     task {
                         let! (sourceCode, tree) =
-                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/entropyDump.fs"
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/EntropyDump.fs"
 
                         let input =
                             { Source = sourceCode
                               Tree = tree
                               Language = FSharp.fSharpLanguageAdapter
-                              FileName = "entropyDump.fs" }
+                              FileName = "EntropyDump.fs" }
 
                         // decision: raise the generic function-count bar above the fixture's 13 functions and
                         // the sprawl finding disappears; leave it at the default of 12 and it fires — proving
@@ -312,7 +381,13 @@ let tests =
             Kotlin.kotlinLanguageAdapter
             "kt"
             { Name = "many imported members from one package are flagged"
-              File = "memberFanOut"
+              Files =
+                Map.ofList
+                    [ "py", "member_fan_out"
+                      "ts", "memberFanOut"
+                      "fs", "MemberFanOut"
+                      "kt", "MemberFanOut"
+                      "cpp", "member_fan_out" ]
               Assert = assertKotlinMemberImportFanOut }
 
     let memberFanOuts =
@@ -324,7 +399,13 @@ let tests =
                 language
                 extension
                 { Name = "many imported members from one module are flagged"
-                  File = "memberFanOut"
+                  Files =
+                    Map.ofList
+                        [ "py", "member_fan_out"
+                          "ts", "memberFanOut"
+                          "fs", "MemberFanOut"
+                          "kt", "MemberFanOut"
+                          "cpp", "member_fan_out" ]
                   Assert = assertMemberImportFanOut })
 
     let pythonWildcardImport =
@@ -333,7 +414,13 @@ let tests =
             Python.pythonLanguageAdapter
             "py"
             { Name = "wildcard imports warn about scope pollution"
-              File = "wildcardImport"
+              Files =
+                Map.ofList
+                    [ "py", "wildcard_import"
+                      "ts", "wildcardImport"
+                      "fs", "WildcardImport"
+                      "kt", "WildcardImport"
+                      "cpp", "wildcard_import" ]
               Assert = assertWildcardImportScopePollution }
 
     testList (

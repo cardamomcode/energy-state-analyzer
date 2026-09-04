@@ -10,14 +10,14 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/opaqueBoolean.py", "suppressedKeywordArgument"
+        [ "Python", Python.pythonLanguageAdapter, "python/opaque_boolean.py", "suppressedKeywordArgument"
           "TypeScript",
           TypeScript.typeScriptLanguageAdapter,
           "typescript/opaqueBoolean.ts",
           "suppressedObjectLiteralField"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/opaqueBoolean.fs", "suppressedNamedArgument"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/opaqueBoolean.kt", "suppressedNamedArgument"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/opaqueBoolean.cpp", "suppressedLabeledAggregateField" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/OpaqueBoolean.fs", "suppressedNamedArgument"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/OpaqueBoolean.kt", "suppressedNamedArgument"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/opaque_boolean.cpp", "suppressedLabeledAggregateField" ]
 
     testList (
         "Integration: opaque booleans",

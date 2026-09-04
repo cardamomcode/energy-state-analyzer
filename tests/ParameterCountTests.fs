@@ -67,11 +67,11 @@ let configOverrideTests =
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/parameterCount.py"
+        [ "Python", Python.pythonLanguageAdapter, "python/parameter_count.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/parameterCount.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/parameterCount.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/parameterCount.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameterCount.cpp" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/ParameterCount.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/ParameterCount.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameter_count.cpp" ]
 
     testList (
         "Integration: parameter count (real code examples)",

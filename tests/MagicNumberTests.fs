@@ -15,11 +15,11 @@ open Energy.Tests.TestUtils
 // hooks, position mapping, and registration are exercised together for every supported language.
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/magicNumber.py"
+        [ "Python", Python.pythonLanguageAdapter, "python/magic_number.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicNumber.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/magicNumber.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/magicNumber.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magicNumber.cpp" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/MagicNumber.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MagicNumber.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magic_number.cpp" ]
 
     let fixtureTests =
         cases
@@ -66,10 +66,11 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicNumber.py"
+                            let! (sourceCode, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/magic_number.py"
 
                             let violations =
-                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "magicNumber.py"
+                                analyzeFixture sourceCode tree Python.pythonLanguageAdapter "magic_number.py"
 
                             let exempt = findFunctionRange sourceCode (FunctionName "exemptIndexAndDefault")
 
@@ -90,10 +91,10 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture Kotlin.kotlinLanguageAdapter "kotlin/magicNumber.kt"
+                            let! (sourceCode, tree) = parseFixture Kotlin.kotlinLanguageAdapter "kotlin/MagicNumber.kt"
 
                             let violations =
-                                analyzeFixture sourceCode tree Kotlin.kotlinLanguageAdapter "magicNumber.kt"
+                                analyzeFixture sourceCode tree Kotlin.kotlinLanguageAdapter "magic_number.kt"
 
                             let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
@@ -111,10 +112,10 @@ let tests =
                     toAsync (
                         task {
                             let! (sourceCode, tree) =
-                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/magicNumber.cpp"
+                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/magic_number.cpp"
 
                             let violations =
-                                analyzeFixture sourceCode tree CPlusPlus.cPlusPlusLanguageAdapter "magicNumber.cpp"
+                                analyzeFixture sourceCode tree CPlusPlus.cPlusPlusLanguageAdapter "magic_number.cpp"
 
                             let limits = findFunctionRange sourceCode (FunctionName "Limits")
 
@@ -132,18 +133,18 @@ let tests =
                     toAsync (
                         task {
                             let! (fsharpSource, fsharpTree) =
-                                parseFixture FSharp.fSharpLanguageAdapter "fsharp/magicNumber.fs"
+                                parseFixture FSharp.fSharpLanguageAdapter "fsharp/MagicNumber.fs"
 
                             let fsharpViolations =
-                                analyzeFixture fsharpSource fsharpTree FSharp.fSharpLanguageAdapter "magicNumber.fs"
+                                analyzeFixture fsharpSource fsharpTree FSharp.fSharpLanguageAdapter "magic_number.fs"
 
                             let maxRetries = findFunctionRange fsharpSource (FunctionName "maxRetries")
 
                             let! (kotlinSource, kotlinTree) =
-                                parseFixture Kotlin.kotlinLanguageAdapter "kotlin/magicNumber.kt"
+                                parseFixture Kotlin.kotlinLanguageAdapter "kotlin/MagicNumber.kt"
 
                             let kotlinViolations =
-                                analyzeFixture kotlinSource kotlinTree Kotlin.kotlinLanguageAdapter "magicNumber.kt"
+                                analyzeFixture kotlinSource kotlinTree Kotlin.kotlinLanguageAdapter "magic_number.kt"
 
                             let annotatedRetries =
                                 findFunctionRange kotlinSource (FunctionName "MAX_ANNOTATED_RETRIES")
@@ -167,7 +168,9 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture Python.pythonLanguageAdapter "python/magicNumber.py"
+                            let! (sourceCode, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/magic_number.py"
+
                             let positions = createPositionLookup sourceCode
                             let numbers = findFunctionRange sourceCode (FunctionName "flaggedMagicNumbers")
 
@@ -176,7 +179,7 @@ let tests =
                                     sourceCode
                                     tree
                                     Python.pythonLanguageAdapter
-                                    "magicNumber.py"
+                                    "magic_number.py"
                                     { defaultThresholds with
                                         MagicNumber =
                                             { Enabled = false
@@ -190,7 +193,7 @@ let tests =
                                     sourceCode
                                     tree
                                     Python.pythonLanguageAdapter
-                                    "magicNumber.py"
+                                    "magic_number.py"
                                     { defaultThresholds with
                                         MagicNumber =
                                             { Enabled = true
