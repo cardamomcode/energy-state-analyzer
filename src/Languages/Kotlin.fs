@@ -110,6 +110,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float_literal")
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_declaration"
+      IsStaticMethod = fun _ -> false
       ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =
         [ NodeType "if_expression"

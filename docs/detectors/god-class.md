@@ -42,15 +42,15 @@ methods than the count bar. An `Option[T]`-style tagged union of pure combinator
 stays low and it is not flagged. This covers the common case of a module-like value type used for
 method chaining: many methods over one type is cohesion, not sprawl.
 
-The same rule also lets through a class whose methods are all static (a namespace of functions — that
-is function-count sprawl's concern, not this one) and fluent/builder-style classes whose methods all
-return the same value type (one responsibility: producing a derived value).
+The same rule also lets through a class whose methods are all static (a namespace of functions, excluded
+from class-level responsibility scoring) and fluent/builder-style classes whose methods all return the same
+value type (one responsibility: producing a derived value).
 
 ## Configuration
 
 Both method-count bars are configurable; the type-diversity ratio already shares file coherence's settings (this check reuses its type-cohesion signal):
 
-- `energyStateAnalyzer.coherence.godClassMethodCountMedium` (default `15`), number of methods a class must have before it is measured for god-class sprawl. Raising it relaxes the check; lowering it tightens it.
+- `energyStateAnalyzer.coherence.godClassMethodCountMedium` (default `15`), a class needs more methods than this before it is measured for god-class sprawl. Raising it relaxes the check; lowering it tightens it.
 - `energyStateAnalyzer.coherence.godClassMethodCountHigh` (default `25`), method count above which a flagged class is reported at high severity instead of medium. Raising it relaxes the high-severity line; lowering it tightens it.
 - `energyStateAnalyzer.coherence.maxTypeDiversityRatio` (default `0.4`), ratio of distinct parameter/return base types to typed methods above which a class past the count bar is considered diverse enough to flag. Shares file coherence's setting because this check reuses its type-cohesion signal.
 

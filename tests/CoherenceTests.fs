@@ -85,6 +85,9 @@ let private assertGodClassFlagged (_src: string) (vs: EnergyViolation list) =
 let private assertCohesiveValueQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+let private assertGodClassQuiet (_src: string) (vs: EnergyViolation list) =
+    assertThat (hitsWithMessage [ "methods spanning" ] vs |> List.length) (isEqualTo 0)
+
 // "flagged with the stronger message" scenarios.
 let private assertEntropyDump (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated types" ] vs |> List.length > 0) isTrue
@@ -375,6 +378,27 @@ let tests =
                 )
         )
 
+    let godClassBoundaryAndStaticMethods =
+        [ "a class at the medium method-count bar stays quiet", "god_class_at_medium"
+          "an all-static class stays quiet", "static_god_class" ]
+        |> List.map (fun (name, fixture) ->
+            buildTest
+                "Python"
+                Python.pythonLanguageAdapter
+                "py"
+                { Name = name
+                  Files = Map.ofList [ "py", fixture ]
+                  Assert = assertGodClassQuiet })
+
+    let typeScriptStaticGodClass =
+        buildTest
+            "TypeScript"
+            TypeScript.typeScriptLanguageAdapter
+            "ts"
+            { Name = "an all-static class stays quiet"
+              Files = Map.ofList [ "ts", "staticGodClass" ]
+              Assert = assertGodClassQuiet }
+
     let kotlinMemberFanOut =
         buildTest
             "Kotlin"
@@ -433,6 +457,8 @@ let tests =
             functionCountThresholdIsConfigurable
             methodCountThresholdIsConfigurable
             kotlinMemberFanOut
-            pythonWildcardImport ]
+            pythonWildcardImport
+            typeScriptStaticGodClass ]
+        @ godClassBoundaryAndStaticMethods
         @ memberFanOuts
     )

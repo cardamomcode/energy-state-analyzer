@@ -83,6 +83,14 @@ let pythonLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float")
           StringLiteral = Some(NodeType "string") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      IsStaticMethod =
+        fun node ->
+            nodeParent node
+            |> Option.filter (fun parent -> nodeType parent = NodeType "decorated_definition")
+            |> Option.exists (fun decorated ->
+                decorated
+                |> nodeChildren
+                |> List.exists (fun child -> nodeType child = NodeType "decorator" && nodeText child = "@staticmethod"))
       ParameterChildTypes = [ identifierNodeType; NodeType "default_parameter" ]
       DecisionNodeTypes =
         [ NodeType "if_statement"
