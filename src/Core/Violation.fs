@@ -25,6 +25,9 @@ type ViolationType =
     | MatchOpportunity
     | LogicalControlFlow
     | OpaqueBoolean
+    // Error handling that occupies so much of a function's body it shadows the business logic it
+    // wraps — a separation-of-concerns/cohesion signal, distinct from cyclomatic/cognitive complexity.
+    | ErrorShadowing
     | Suppression
 
 // decision: per-line weighted hotspots (nesting depth for cognitive, decision density for
@@ -57,6 +60,7 @@ let violationTypeName =
     | MatchOpportunity -> "match-opportunity"
     | LogicalControlFlow -> "logical-control-flow"
     | OpaqueBoolean -> "opaque-boolean"
+    | ErrorShadowing -> "error-shadowing"
     | Suppression -> "suppression"
 
 let severityName =

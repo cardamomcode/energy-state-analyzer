@@ -356,4 +356,5 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> nodeChildren
                 |> List.filter (fun c -> nodeType c = identifierNodeType || nodeType c = attributeNodeType)
                 |> List.map nodeText
-            | None -> [] }
+            | None -> []
+      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }

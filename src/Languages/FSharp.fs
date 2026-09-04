@@ -277,4 +277,5 @@ let fSharpLanguageAdapter: LanguageAdapter =
       // the free-function checks above, unaffected by this gap.
       IsClassDefinition = fun _ -> false
       GetClassName = fun _ -> None
-      GetBaseClassNames = fun _ -> [] }
+      GetBaseClassNames = fun _ -> []
+      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }

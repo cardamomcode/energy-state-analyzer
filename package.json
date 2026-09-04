@@ -224,6 +224,31 @@
           "default": true,
           "description": "Whether to flag inversion opportunities where a condition's structure could be simplified by inverting it."
         },
+        "energyStateAnalyzer.errorShadowing.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag functions whose error handling (try/catch/except) occupies most of the body, shadowing the business logic it wraps."
+        },
+        "energyStateAnalyzer.errorShadowing.threshold": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Share of a function's statements inside error-handling regions at which it is flagged (medium). Tunable in .esaconfig.json as errorShadowing.threshold."
+        },
+        "energyStateAnalyzer.errorShadowing.highThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Share at which the finding is high severity. Tunable in .esaconfig.json as errorShadowing.highThreshold."
+        },
+        "energyStateAnalyzer.errorShadowing.minNamedNodes": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "description": "Minimum number of statements a function must have before error shadowing is considered, so tiny wrappers don't trip the rule. Tunable in .esaconfig.json as errorShadowing.minNamedNodes."
+        },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",
           "default": "#fb8500",

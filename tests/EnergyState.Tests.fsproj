@@ -24,6 +24,7 @@
     <Compile Include="OpaqueBooleanTests.fs" />
     <Compile Include="ParameterCountTests.fs" />
     <Compile Include="PrimitiveObsessionTests.fs" />
+    <Compile Include="ErrorShadowingTests.fs" />
     <Compile Include="SuppressionsTests.fs" />
     <Compile Include="ReportTests.fs" />
     <Compile Include="ExtensionPresentationTests.fs" />

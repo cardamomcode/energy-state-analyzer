@@ -48,6 +48,7 @@
     <Compile Include="Core/Detectors/LogicalControlFlow.fs" />
     <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
     <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
+    <Compile Include="Core/Detectors/ErrorShadowing.fs" />
     <Compile Include="Core/Suppressions.fs" />
     <Compile Include="Core/Esaignore.fs" />
     <Compile Include="Core/Scan.fs" />

@@ -22,6 +22,7 @@ let detectorPipeline (ctx: AnalysisContext) : AnalysisContext =
     |> runWhen ctx.Options.LogicalControlFlow.Enabled Detectors.LogicalControlFlow.detector.Run
     |> runWhen ctx.Options.MatchOpportunity.Enabled Detectors.MatchOpportunity.detector.Run
     |> runWhen ctx.Options.Inversion.Enabled Detectors.Inversion.detector.Run
+    |> runWhen ctx.Options.ErrorShadowing.Enabled Detectors.ErrorShadowing.detector.Run
     |> runWhen ctx.Options.ParameterCount.Enabled Detectors.ParameterCount.detector.Run
     |> runWhen ctx.Options.MagicString.Enabled Detectors.MagicString.detector.Run
     |> runWhen ctx.Options.MagicNumber.Enabled Detectors.MagicNumber.detector.Run

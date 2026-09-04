@@ -91,6 +91,11 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
       LogicalControlFlow =
         { Enabled = reader.Bool "logicalControlFlow" "enabled" defaultLogicalControlFlowThresholds.Enabled }
       Inversion = { Enabled = reader.Bool "inversion" "enabled" defaultInversionThresholds.Enabled }
+      ErrorShadowing =
+        { Enabled = reader.Bool "errorShadowing" "enabled" defaultErrorShadowingThresholds.Enabled
+          Threshold = reader.Float "errorShadowing" "threshold" defaultErrorShadowingThresholds.Threshold
+          HighThreshold = reader.Float "errorShadowing" "highThreshold" defaultErrorShadowingThresholds.HighThreshold
+          MinNamedNodes = reader.Int "errorShadowing" "minNamedNodes" defaultErrorShadowingThresholds.MinNamedNodes }
       MagicNumber =
         { Enabled = reader.Bool "magicNumber" "enabled" defaultMagicNumberOptions.Enabled
           Allowlist = magicNumberAllowlist reader
