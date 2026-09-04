@@ -4,6 +4,11 @@ open Energy.Core.Position
 open Energy.Core.PythonTypeInfo
 open Energy.Core.TreeSitter
 
+// decision: name the two `hasDefault` values so the call sites read self-descriptively instead of
+// passing bare true/false whose meaning only survives by reading `parameterInfo`'s signature.
+let private parameterHasDefault = true
+let private parameterNoDefault = false
+
 let private parameterInfo hasDefault node =
     { Name =
         childOfType "identifier" node
@@ -16,8 +21,8 @@ let private extractParameters node =
     nodeChildren node
     |> List.choose (fun child ->
         match nodeType child with
-        | NodeType "typed_parameter" -> Some(parameterInfo false child)
-        | NodeType "default_parameter" -> Some(parameterInfo true child)
+        | NodeType "typed_parameter" -> Some(parameterInfo parameterNoDefault child)
+        | NodeType "default_parameter" -> Some(parameterInfo parameterHasDefault child)
         | NodeType "identifier" ->
             Some
                 { Name = nodeText child
