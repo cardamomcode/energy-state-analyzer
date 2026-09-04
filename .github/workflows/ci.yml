@@ -5,6 +5,18 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Run against the default branch on demand and nightly. PR uploads only populate the PR-level
+  # Code Scanning view; a successful push/schedule upload is what makes the default branch show up
+  # as scanned (Settings > Code scanning). Push-to-main runs have failed intermittently, so an
+  # explicit schedule guarantees main keeps being scanned.
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+# Required so the non-PR contexts (push/schedule/workflow_dispatch) can upload SARIF to Code
+# Scanning. Pull-request uploads work with defaults, but declaring it keeps every context consistent.
+permissions:
+  security_events: write
 
 jobs:
   test:
