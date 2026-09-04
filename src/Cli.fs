@@ -112,28 +112,32 @@ let private buildThresholds parsed : AnalyzeOptions =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)
                 (fun medium high ->
-                    { MediumThreshold = medium
+                    { Enabled = true
+                      MediumThreshold = medium
                       HighThreshold = high })
                 parsed.Nesting
         Cyclomatic =
             thresholdOverride
                 (defaultCyclomaticThresholds.MediumThreshold, defaultCyclomaticThresholds.HighThreshold)
                 (fun medium high ->
-                    { MediumThreshold = medium
+                    { Enabled = true
+                      MediumThreshold = medium
                       HighThreshold = high })
                 parsed.Cyclomatic
         Cognitive =
             thresholdOverride
                 (defaultCognitiveThresholds.MediumThreshold, defaultCognitiveThresholds.HighThreshold)
                 (fun medium high ->
-                    { MediumThreshold = medium
+                    { Enabled = true
+                      MediumThreshold = medium
                       HighThreshold = high })
                 parsed.Cognitive
         ParameterCount =
             thresholdOverride
                 (defaultParameterCountThresholds.MediumThreshold, defaultParameterCountThresholds.HighThreshold)
                 (fun medium high ->
-                    { MediumThreshold = medium
+                    { Enabled = true
+                      MediumThreshold = medium
                       HighThreshold = high })
                 parsed.ParameterCount }
 

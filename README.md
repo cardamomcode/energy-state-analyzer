@@ -64,23 +64,40 @@ for the Extension Development Host.
 
 ## Extension Settings
 
-Detector thresholds are configurable under **Settings → Energy State Analyzer**. See each detector's doc (linked under Features above) for what a setting does; the keys and defaults are:
+Settings split into two concerns: **which detectors run and how they look** live in VS Code (editor-only toggles and colors), while **how strict each detector is** lives in a project `.esaconfig.json` shared with the CLI/CI.
 
-For project-wide configuration shared between the editor and CLI, set thresholds in an `.esaconfig.json` file instead of — or on top of — these settings. See [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`).
+### Enable/disable detectors and pick colors (VS Code settings)
 
-- `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` / `.highThreshold` (`10` / `15`)
-- `energyStateAnalyzer.cognitiveComplexity.mediumThreshold` / `.highThreshold` (`15` / `25`)
-- `energyStateAnalyzer.coherence.largeFunctionLines` (`20`)
-- `energyStateAnalyzer.coherence.maxLargeFunctions` (`5`)
-- `energyStateAnalyzer.coherence.singleDomainNameShare` (`0.7`)
-- `energyStateAnalyzer.matchOpportunity.minBranches` (`3`)
+Every detector has an `enabled` toggle, plus the magic-number/string switches and the color palette. All toggles default to `true`. See each detector's doc (linked under Features above) for what it flags:
+
+- `energyStateAnalyzer.nesting.enabled` (`true`)
+- `energyStateAnalyzer.cyclomaticComplexity.enabled` (`true`)
+- `energyStateAnalyzer.cognitiveComplexity.enabled` (`true`)
+- `energyStateAnalyzer.coherence.enabled` (`true`)
+- `energyStateAnalyzer.matchOpportunity.enabled` (`true`)
+- `energyStateAnalyzer.parameterCount.enabled` (`true`)
+- `energyStateAnalyzer.primitiveObsession.enabled` (`true`)
+- `energyStateAnalyzer.opaqueBoolean.enabled` (`true`)
+- `energyStateAnalyzer.logicalControlFlow.enabled` (`true`)
+- `energyStateAnalyzer.inversion.enabled` (`true`)
 - `energyStateAnalyzer.magicNumber.enabled` (`true`)
-- `energyStateAnalyzer.magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `energyStateAnalyzer.magicString.enabled` (`true`)
-- `energyStateAnalyzer.magicString.minDuplicates` (`2`)
-- `energyStateAnalyzer.magicString.allowlist` (`["", "utf-8", "__main__"]`)
 - `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` (`#fb8500` / `#ffb703` / `#99dd99`)
 - `energyStateAnalyzer.colors.backgroundOpacity` (`0.1`)
+
+### Thresholds and allowlists (`.esaconfig.json`)
+
+Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). Thresholds are **not** configurable in VS Code on purpose: a project decides how strict its detectors are, and that decision travels with the repo. The keys (all optional; an absent key keeps its default) include:
+
+- `nesting.mediumThreshold` / `highThreshold` (`3` / `5`)
+- `cognitiveComplexity.mediumThreshold` / `highThreshold` (`15` / `25`)
+- `coherence.largeFunctionLines` (`20`), `maxLargeFunctions` (`5`), `singleDomainNameShare` (`0.7`)
+- `matchOpportunity.minBranches` (`3`)
+- `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
+- `magicNumber.allowlist` (`[0, 1, -1, 2]`)
+- `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
+
+The magic-number/string `enabled` toggles above remain in VS Code — enabling or disabling a detector is an editor-only convenience, so it stays out of the shared project file.
 
 Changes take effect immediately on the active editor.
 

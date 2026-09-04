@@ -1,16 +1,11 @@
 module Energy.Tests.NestingTests
 
-open System.Threading.Tasks
-
-open Fable.Core.JsInterop
-
-open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
-open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Analyze
+open Energy.Core.Config
 open Energy.Languages
 open Energy.Tests.TestUtils
 
@@ -63,6 +58,62 @@ let tests =
                             assertThat (List.last severe).Severity (isEqualTo High)
 
                             assertThat (nestingHits "flaggedTryNesting" |> List.length > 0) isTrue
+                        }
+                    )
+            ))
+    )
+
+// decision: disabling a detector must skip it entirely while leaving the rest of the pipeline
+// intact — so an editor toggle turns one detector off without silently muting its neighbours.
+let gatingTests =
+    let gatingCases =
+        [ "Python", Python.pythonLanguageAdapter, "python/nesting.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp" ]
+
+    testList (
+        "Integration: nesting enable/disable gating",
+        gatingCases
+        |> List.map (fun (label, language, fixture) ->
+            testAsync (
+                sprintf "%s: disabling the nesting detector removes its violations only" label,
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) = parseFixture language fixture
+
+                            let input =
+                                { Source = source
+                                  Tree = tree
+                                  Language = language
+                                  FileName = fixture }
+
+                            let disabledOpts =
+                                { defaultAnalyzeOptions with
+                                    Nesting =
+                                        { defaultNestingThresholds with
+                                            Enabled = false } }
+
+                            let enabledViolations = input |> analyze |> _.Violations
+
+                            let disabledViolations = input |> analyzeWith disabledOpts |> _.Violations
+
+                            // the detector is on by default, so it produces nesting findings...
+                            assertThat
+                                (enabledViolations |> List.filter (fun v -> v.Type = Nesting) |> List.length > 0)
+                                isTrue
+                            // ...and toggling it off removes exactly those, with nothing else changing: the disabled
+                            // run equals the enabled run with only the nesting violations removed.
+                            let enabledWithoutNesting =
+                                enabledViolations |> List.filter (fun v -> v.Type <> Nesting)
+
+                            assertThat
+                                (disabledViolations |> List.filter (fun v -> v.Type = Nesting) |> List.length)
+                                (isEqualTo 0)
+
+                            assertThat disabledViolations (isEqualTo enabledWithoutNesting)
                         }
                     )
             ))

@@ -125,6 +125,26 @@ let defaultsTests =
                       assertThat (defaultMagicStringOptions.Allowlist |> List.contains "__main__") (isTrue)
                   }
               )
+      )
+      // decision: every detector is enabled by default, so the CLI and a fresh workspace run the full
+      // suite; disabling is an explicit editor choice, never the silent baseline.
+      testAsync (
+          "every detector defaults to enabled",
+          fun _ ->
+              toAsync (
+                  task {
+                      assertThat defaultNestingThresholds.Enabled (isTrue)
+                      assertThat defaultCyclomaticThresholds.Enabled (isTrue)
+                      assertThat defaultCognitiveThresholds.Enabled (isTrue)
+                      assertThat defaultCoherenceThresholds.Enabled (isTrue)
+                      assertThat defaultMatchOpportunityThresholds.Enabled (isTrue)
+                      assertThat defaultParameterCountThresholds.Enabled (isTrue)
+                      assertThat defaultPrimitiveObsessionThresholds.Enabled (isTrue)
+                      assertThat defaultOpaqueBooleanThresholds.Enabled (isTrue)
+                      assertThat defaultLogicalControlFlowThresholds.Enabled (isTrue)
+                      assertThat defaultInversionThresholds.Enabled (isTrue)
+                  }
+              )
       ) ]
 
 // decision: the default amber is declared once here, so the editor and CI can never disagree on it.

@@ -12,6 +12,7 @@ let main _ =
           ConfigTests.tests
           CPlusPlusTests.tests
           NestingTests.tests
+          NestingTests.gatingTests
           CyclomaticTests.tests
           CognitiveTests.tests
           CoherenceTests.tests
