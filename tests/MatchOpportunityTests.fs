@@ -10,11 +10,11 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/matchOpportunity.py"
+        [ "Python", Python.pythonLanguageAdapter, "python/match_opportunity.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/matchOpportunity.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/matchOpportunity.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/matchOpportunity.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/matchOpportunity.cpp" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/MatchOpportunity.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MatchOpportunity.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/match_opportunity.cpp" ]
 
     let languageCases =
         cases
@@ -53,10 +53,14 @@ let tests =
                     toAsync (
                         task {
                             let! (source, tree) =
-                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/matchOpportunity.cpp"
+                                parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/match_opportunity.cpp"
 
                             let violations =
-                                analyzeFixture source tree CPlusPlus.cPlusPlusLanguageAdapter "cpp/matchOpportunity.cpp"
+                                analyzeFixture
+                                    source
+                                    tree
+                                    CPlusPlus.cPlusPlusLanguageAdapter
+                                    "cpp/match_opportunity.cpp"
 
                             for name in [ "cleanStringChain"; "cleanFloatingChain" ] do
                                 assertThat

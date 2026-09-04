@@ -11,7 +11,7 @@ let tests =
     let cases =
         [ "Python", Python.pythonLanguageAdapter, "python/inversion.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/inversion.ts"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/inversion.kt"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Inversion.kt"
           "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/inversion.cpp" ]
 
     let fixtureTests =
@@ -54,10 +54,10 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture FSharp.fSharpLanguageAdapter "fsharp/inversion.fs"
+                            let! (source, tree) = parseFixture FSharp.fSharpLanguageAdapter "fsharp/Inversion.fs"
 
                             let violations =
-                                analyzeFixture source tree FSharp.fSharpLanguageAdapter "inversion.fs"
+                                analyzeFixture source tree FSharp.fSharpLanguageAdapter "Inversion.fs"
 
                             assertThat
                                 (violations |> List.filter (fun v -> v.Type = Inversion) |> List.length)

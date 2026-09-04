@@ -177,7 +177,7 @@ let tests =
                   toAsync (
                       task {
                           let! (source, tree) =
-                              parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/coherence/classBoundaries.cpp"
+                              parseFixture CPlusPlus.cPlusPlusLanguageAdapter "cpp/coherence/class_boundaries.cpp"
 
                           let violations =
                               analyzeFixture source tree CPlusPlus.cPlusPlusLanguageAdapter "classBoundaries.hpp"

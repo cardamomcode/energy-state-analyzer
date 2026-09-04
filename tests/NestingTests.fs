@@ -23,8 +23,8 @@ let tests =
     let cases =
         [ "Python", Python.pythonLanguageAdapter, "python/nesting.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/nesting.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/nesting.kt"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
           "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp" ]
 
     testList (

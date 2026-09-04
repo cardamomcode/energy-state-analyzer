@@ -24,18 +24,18 @@ let rec private functionNodes (language: LanguageAdapter) (node: Node) : Node li
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/cyclomaticComplexity.py"
+        [ "Python", Python.pythonLanguageAdapter, "python/cyclomatic_complexity.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cyclomaticComplexity.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/cyclomaticComplexity.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/cyclomaticComplexity.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomaticComplexity.cpp" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/CyclomaticComplexity.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/CyclomaticComplexity.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomatic_complexity.cpp" ]
 
     let branchCases =
-        [ "Python", Python.pythonLanguageAdapter, "python/cyclomaticBranches.py"
+        [ "Python", Python.pythonLanguageAdapter, "python/cyclomatic_branches.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cyclomaticBranches.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/cyclomaticBranches.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/cyclomaticBranches.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomaticBranches.cpp" ]
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/CyclomaticBranches.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/CyclomaticBranches.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cyclomatic_branches.cpp" ]
 
     let regressionTests =
         cases
