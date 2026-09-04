@@ -4,6 +4,18 @@ open System.Text.RegularExpressions
 open Energy.Core.Report
 open Energy.Core.Violation
 
+// decision: the score scale and risk boundaries are fixed parts of the published report/diff
+// metric rather than tunable detector thresholds, so they live as named constants at the top of
+// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
+// complexity bound stays an int to match extractComplexityValue's return type.
+let private maxComplexityScore = 100
+let private scoreCeiling = 10.0
+let private lowThreshold = 4.0
+let private mediumThreshold = 7.0
+let private highThreshold = 9.0
+let private highFileScore = 7.5
+let private mediumFileScore = 5.0
+
 type RiskLevel =
     | NoRisk
     | LowRisk
@@ -16,8 +28,8 @@ let private complexityCurve = [ 0, 0.0; 10, 3.9; 20, 6.9; 50, 8.9; 100, 10.0 ]
 let complexityToScore value =
     if value <= 0 then
         0.0
-    elif value >= 100 then
-        10.0
+    elif value >= maxComplexityScore then
+        scoreCeiling
     else
         complexityCurve
         |> List.pairwise
@@ -28,9 +40,9 @@ let complexityToScore value =
 
 let classifyScore score =
     if score <= 0.0 then NoRisk
-    elif score < 4.0 then LowRisk
-    elif score < 7.0 then MediumRisk
-    elif score < 9.0 then HighRisk
+    elif score < lowThreshold then LowRisk
+    elif score < mediumThreshold then MediumRisk
+    elif score < highThreshold then HighRisk
     else Critical
 
 let classifyComplexityScore value =
@@ -181,8 +193,8 @@ let private describeCategoryFindings violationType violations =
 let private fileScore violations =
     match violations |> List.choose extractComplexityValue |> List.sortDescending with
     | value :: _ -> complexityToScore value
-    | [] when violations |> List.exists (fun violation -> violation.Severity = High) -> 7.5
-    | [] when violations |> List.exists (fun violation -> violation.Severity = Medium) -> 5.0
+    | [] when violations |> List.exists (fun violation -> violation.Severity = High) -> highFileScore
+    | [] when violations |> List.exists (fun violation -> violation.Severity = Medium) -> mediumFileScore
     | [] when not violations.IsEmpty -> 2.0
     | [] -> 0.0
 

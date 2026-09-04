@@ -4,6 +4,11 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+// decision: an infix expression is flagged only when it has exactly three identifier children
+// (operand operator operand); this is a property of that shape, not a tunable threshold, so it
+// stays as a named constant at the top of the module rather than in Core.Config.
+let private expectedInfixIdentifierCount = 3
+
 // The Kotlin LanguageAdapter.
 //
 // tree-sitter-kotlin (v1.1.0) has a real block wrapper like Python/TS, but its `else` is a bare
@@ -47,7 +52,7 @@ let private isAnnotatedConstValMisparse (node: Node) : bool =
             let identifiers =
                 nodeChildren infix |> List.filter (fun c -> nodeType c = NodeType "identifier")
 
-            if List.length identifiers <> 3 then
+            if List.length identifiers <> expectedInfixIdentifierCount then
                 false
             else
                 let ids = List.toArray identifiers
