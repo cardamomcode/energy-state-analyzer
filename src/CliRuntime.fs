@@ -32,14 +32,14 @@ let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> 
                 parserCache.Add(adapter.Id, parser)
                 return Ok parser
             with error ->
-                return Error(GrammarLoadFailed(adapter.Id, string error))
+                return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
     }
 
 let private parseSource (filePath: string) (parser: Parser) (sourceText: string) =
     try
         parse parser sourceText |> rootNode |> Ok
     with error ->
-        Error(ParseFailed(filePath, string error))
+        Error(ParseFailed(filePath, string<exn> error))
 
 // decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
 // `sourceText` stays a raw string (it feeds AnalysisInput.Source) — the distinct types remove
@@ -70,7 +70,7 @@ let private readSource (filePath: Path) =
         // decision: the error payload is the string edge of this module — unwrap once here for
         // the message rather than threading a Path through AnalysisError.
         let (Path file) = filePath
-        Error(SourceReadFailed(file, string error))
+        Error(SourceReadFailed(file, string<exn> error))
 
 let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
     task {

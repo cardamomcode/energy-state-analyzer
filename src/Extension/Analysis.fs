@@ -35,7 +35,7 @@ let private parseDocument fileName parser source =
     try
         parse parser source |> rootNode |> Ok
     with error ->
-        Error(ParseFailed(fileName, string error))
+        Error(ParseFailed(fileName, string<exn> error))
 
 let private analyze loaded document =
     let source = documentText document

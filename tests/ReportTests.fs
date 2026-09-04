@@ -110,7 +110,14 @@ let tests =
 
                   assertThat (report.Contains("## severe.py — Critical (score 9.1)")) isTrue
                   assertThat (report.Contains("## pattern.py — High (score 7.5)")) isTrue
-                  assertThat (report.IndexOf("## severe.py") < report.IndexOf("## mild.py")) isTrue
+
+                  assertThat
+                      (report.IndexOf("## severe.py", System.StringComparison.Ordinal) < report.IndexOf(
+                          "## mild.py",
+                          System.StringComparison.Ordinal
+                      ))
+                      isTrue
+
                   assertThat (report.Contains("**Repo score: 9.1 (Critical)**")) isTrue
           )
           test (

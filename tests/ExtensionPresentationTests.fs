@@ -177,7 +177,7 @@ let tests =
                             violation 8 7 Medium Nesting "nested" [] ]
 
                   let spec = List.exactlyOne specs
-                  assertThat spec.Severity (isEqualTo Error)
+                  assertThat spec.Severity (isEqualTo ProblemSeverity.Error)
                   assertThat spec.Range.StartColumn (isEqualTo 4)
                   assertThat spec.Message (isEqualTo "complex | nested | magic")
                   assertThat spec.Code (isEqualTo "energy-complexity,energy-nesting,energy-magic")

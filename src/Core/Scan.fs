@@ -80,7 +80,10 @@ let private expandGlobLike (pattern: string) ignore =
     let suffix = pattern.Substring(pattern.LastIndexOf('*') + 1)
 
     let extension =
-        if suffix.StartsWith "." && not (suffix.Contains "*") then
+        if
+            suffix.StartsWith(".", System.StringComparison.Ordinal)
+            && not (suffix.Contains "*")
+        then
             Some suffix
         else
             None

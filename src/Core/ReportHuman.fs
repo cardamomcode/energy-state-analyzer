@@ -120,7 +120,7 @@ let private describeComplexityFindings label violations =
                 sprintf
                     "%d functions score %s (worst: %d)"
                     values.Length
-                    (values |> List.map string |> String.concat ", ")
+                    (values |> List.map (string<int>) |> String.concat ", ")
                     worst
 
         Some(

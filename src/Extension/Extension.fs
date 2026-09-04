@@ -69,7 +69,7 @@ let private analyzeActiveEditor () : Task<unit> =
                 | Ok(Some loaded) ->
                     console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document
-                    console.log ("🔍 Found " + string violations.Length + " energy violations")
+                    console.log ("🔍 Found " + string<int> violations.Length + " energy violations")
                     applyDecorations editor current.Decorations violations
                     updateProblemsPanel current.Diagnostics document violations
     }
@@ -140,7 +140,7 @@ let activate (context: obj) : Task<unit> =
             console.log ("✅ Energy State Analyzer activated successfully!")
         with error ->
             console.error ("Failed to activate Energy State Analyzer:", box error)
-            showErrorMessage window ("Energy State Analyzer failed to activate: " + string error)
+            showErrorMessage window ("Energy State Analyzer failed to activate: " + string<exn> error)
     }
 
 let deactivate () =

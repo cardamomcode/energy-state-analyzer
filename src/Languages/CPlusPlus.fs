@@ -295,7 +295,8 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
       SubscriptNodeTypes = [ NodeType "subscript_expression" ]
       // Prefixed literals (u8"...", L"...", etc.) carry encoding semantics; raw strings use a
       // distinct raw_string_literal node and therefore never enter the bare-string detector.
-      IsFormattedOrInterpolatedString = fun node -> not ((nodeText node).StartsWith("\""))
+      IsFormattedOrInterpolatedString =
+        fun node -> not ((nodeText node).StartsWith("\"", System.StringComparison.Ordinal))
       IsDefaultParameterValue = isDefaultParameterValue
       IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
       IsPositionalCallArgument =

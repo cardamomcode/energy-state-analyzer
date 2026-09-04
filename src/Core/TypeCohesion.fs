@@ -52,7 +52,7 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
     if String.IsNullOrEmpty trimmed then
         None
     else
-        let openIndex = trimmed.IndexOf(brackets.Open)
+        let openIndex = trimmed.IndexOf(brackets.Open, System.StringComparison.Ordinal)
         // the head is everything before the first bracket — or the whole thing if there's no bracket.
         let head =
             if openIndex = -1 then
