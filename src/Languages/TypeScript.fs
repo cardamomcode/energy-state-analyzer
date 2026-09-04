@@ -312,4 +312,5 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                 |> List.tryFind (fun c -> nodeType c = NodeType "class_heritage")
             with
             | Some heritage -> extendsTargetNames heritage @ implementsTargetNames heritage
-            | None -> [] }
+            | None -> []
+      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }

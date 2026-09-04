@@ -25,6 +25,7 @@ let main _ =
           ParameterCountTests.tests
           ParameterCountTests.configOverrideTests
           PrimitiveObsessionTests.tests
+          ErrorShadowingTests.tests
           SuppressionsTests.tests
           ReportTests.tests
           ExtensionPresentationTests.tests ]

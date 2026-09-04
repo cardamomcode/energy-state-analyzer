@@ -12,6 +12,14 @@ let private setting section key fallback =
     getConfiguration workspace ("energyStateAnalyzer." + section)
     |> fun configuration -> getConfigurationValue configuration key fallback
 
+let private settingOverride section key fallback =
+    let configuration = getConfiguration workspace ("energyStateAnalyzer." + section)
+
+    if hasConfigurationOverride configuration key then
+        Some(getConfigurationValue configuration key fallback)
+    else
+        None
+
 // decision: top-level settings live directly under energyStateAnalyzer (no sub-section), so the
 // global reader reads the base configuration object rather than a namespaced one.
 let private globalSetting key fallback =
@@ -56,6 +64,7 @@ let private fileIntAccessors =
       (("coherence", "largeFunctionLines"), (fun f -> f.Coherence.LargeFunctionLines))
       (("coherence", "maxLargeFunctions"), (fun f -> f.Coherence.MaxLargeFunctions))
       (("matchOpportunity", "minBranches"), (fun f -> f.MatchOpportunity.MinBranches))
+      (("errorShadowing", "minNamedNodes"), (fun f -> f.ErrorShadowing.MinNamedNodes))
       (("parameterCount", "mediumThreshold"), (fun f -> f.ParameterCount.MediumThreshold))
       (("parameterCount", "highThreshold"), (fun f -> f.ParameterCount.HighThreshold))
       (("magicString", "minDuplicates"), (fun f -> f.MagicString.MinDuplicates)) ]
@@ -63,7 +72,9 @@ let private fileIntAccessors =
 let private fileFloatAccessors =
     [ (("coherence", "singleDomainNameShare"), (fun f -> f.Coherence.SingleDomainNameShare))
       (("coherence", "maxTypeDiversityRatio"), (fun f -> f.Coherence.MaxTypeDiversityRatio))
-      (("coherence", "minTypedCoverage"), (fun f -> f.Coherence.MinTypedCoverage)) ]
+      (("coherence", "minTypedCoverage"), (fun f -> f.Coherence.MinTypedCoverage))
+      (("errorShadowing", "threshold"), (fun f -> f.ErrorShadowing.Threshold))
+      (("errorShadowing", "highThreshold"), (fun f -> f.ErrorShadowing.HighThreshold)) ]
 
 let private readFileInt (sectionKey: string * string) (file: FileConfig) : int option =
     match List.tryFind (fun (sk, _) -> sk = sectionKey) fileIntAccessors with
@@ -77,10 +88,16 @@ let private readFileFloat (sectionKey: string * string) (file: FileConfig) : flo
 
 // decision: the only project-file list values are the two magic allowlists; a single membership test
 // routes a (section, key) pair to the file when it matches one of them, so the names stay out of the
-// control flow the magic-string detector flags. When the file is present the project allowlist is
-// authoritative (empty when omitted), matching how an empty vscode array behaved before this layer.
+// control flow the magic-string detector flags. An absent list remains absent, preserving its defaults.
 let private fileListKeys: (string * string) list =
     [ ("magicNumber", "allowlist"); ("magicString", "allowlist") ]
+
+// decision: inspect distinguishes an explicitly configured VS Code value from package.json's
+// contributed default, preserving the documented precedence: defaults < file < host override.
+let private preferHostOverride section key fallback fileValue =
+    match settingOverride section key fallback with
+    | Some hostValue -> hostValue
+    | None -> Option.defaultValue (setting section key fallback) fileValue
 
 let private reader =
     { Bool = fun section key fallback -> setting section key fallback
@@ -88,25 +105,32 @@ let private reader =
         fun section key fallback ->
             readCachedFileConfig ()
             |> Option.bind (fun file -> readFileInt (section, key) file)
-            |> Option.defaultValue (setting section key fallback)
+            |> preferHostOverride section key fallback
       Float =
         fun section key fallback ->
             readCachedFileConfig ()
             |> Option.bind (fun file -> readFileFloat (section, key) file)
-            |> Option.defaultValue (setting section key fallback)
+            |> preferHostOverride section key fallback
       Floats =
         fun section key fallback ->
-            match readCachedFileConfig () with
-            | Some file when List.contains (section, key) fileListKeys ->
-                floatsFromConfiguration (Option.defaultValue [] file.MagicNumber.Allowlist |> List.toArray)
-            | _ -> setting section key fallback
+            readCachedFileConfig ()
+            |> Option.bind (fun file ->
+                if List.contains (section, key) fileListKeys then
+                    file.MagicNumber.Allowlist
+                    |> Option.map (List.toArray >> floatsFromConfiguration)
+                else
+                    None)
+            |> preferHostOverride section key fallback
       String = fun section key fallback -> setting section key fallback
       Strings =
         fun section key fallback ->
-            match readCachedFileConfig () with
-            | Some file when List.contains (section, key) fileListKeys ->
-                Option.defaultValue [] file.MagicString.Allowlist
-            | _ -> setting section key fallback
+            readCachedFileConfig ()
+            |> Option.bind (fun file ->
+                if List.contains (section, key) fileListKeys then
+                    file.MagicString.Allowlist
+                else
+                    None)
+            |> preferHostOverride section key fallback
       GlobalBool = globalSetting }
 
 let readAnalyzeThresholds () =

@@ -331,4 +331,5 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                 nodeType child = NodeType "type_identifier"
                 || nodeType child = NodeType "qualified_identifier")
             |> Option.map nodeText
-      GetBaseClassNames = baseClassNames }
+      GetBaseClassNames = baseClassNames
+      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }

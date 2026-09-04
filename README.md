@@ -13,6 +13,7 @@ Real-time analysis of the active Python, F#, TypeScript, Kotlin, or C++ file, re
 - [Magic numbers](docs/detectors/magic-numbers.md), unnamed numeric literals.
 - [Magic strings](docs/detectors/magic-strings.md), unnamed string literals at decision points.
 - [Parameter explosion](docs/detectors/parameter-explosion.md), functions with too many parameters.
+- [Error shadowing](docs/detectors/error-shadowing.md), error handling that overwhelms a function's happy path.
 - [Inversion opportunities](docs/detectors/inversion-opportunities.md), nested conditionals that could be guard clauses.
 - [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type.
 - [Match opportunities](docs/detectors/match-opportunities.md), if/elif chains that could be a match/switch.
@@ -64,7 +65,7 @@ for the Extension Development Host.
 
 ## Extension Settings
 
-Settings split into two concerns: **which detectors run and how they look** live in VS Code (editor-only toggles and colors), while **how strict each detector is** lives in a project `.esaconfig.json` shared with the CLI/CI.
+Settings split into two concerns: **which detectors run and how they look** live in VS Code (editor-only toggles and colors), while **how strict each detector is** belongs in a project `.esaconfig.json` shared with the CLI/CI. An explicitly configured VS Code value can override a detail setting for the current workspace.
 
 ### Enable/disable detectors and pick colors (VS Code settings)
 
@@ -80,6 +81,7 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 - `energyStateAnalyzer.opaqueBoolean.enabled` (`true`)
 - `energyStateAnalyzer.logicalControlFlow.enabled` (`true`)
 - `energyStateAnalyzer.inversion.enabled` (`true`)
+- `energyStateAnalyzer.errorShadowing.enabled` (`true`)
 - `energyStateAnalyzer.magicNumber.enabled` (`true`)
 - `energyStateAnalyzer.magicString.enabled` (`true`)
 - `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` (`#fb8500` / `#ffb703` / `#99dd99`)
@@ -87,13 +89,14 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 
 ### Thresholds and allowlists (`.esaconfig.json`)
 
-Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). Thresholds are **not** configurable in VS Code on purpose: a project decides how strict its detectors are, and that decision travels with the repo. The keys (all optional; an absent key keeps its default) include:
+Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). The keys (all optional; an absent key keeps its default) include:
 
 - `nesting.mediumThreshold` / `highThreshold` (`3` / `5`)
 - `cognitiveComplexity.mediumThreshold` / `highThreshold` (`15` / `25`)
 - `coherence.largeFunctionLines` (`20`), `maxLargeFunctions` (`5`), `singleDomainNameShare` (`0.7`)
 - `matchOpportunity.minBranches` (`3`)
 - `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
+- `errorShadowing.threshold` / `highThreshold` / `minNamedNodes` (`0.5` / `0.7` / `8`)
 - `magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
 

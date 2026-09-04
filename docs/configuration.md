@@ -44,6 +44,7 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
     "minTypedCoverage": 0.5
   },
   "matchOpportunity": { "minBranches": 3 },
+  "errorShadowing": { "threshold": 0.5, "highThreshold": 0.7, "minNamedNodes": 8 },
   "parameterCount": { "mediumThreshold": 5, "highThreshold": 8 },
   "magicNumber": { "allowlist": [1024, 4096] },
   "magicString": { "minDuplicates": 3, "allowlist": ["pending", "wip"] }
@@ -66,6 +67,9 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
 | `coherence` | `maxTypeDiversityRatio` | `0.4` | Max ratio of distinct parameter/return base types to typed functions, a stronger cohesion signal when type annotations are trustworthy. |
 | `coherence` | `minTypedCoverage` | `0.5` | Minimum share of functions with explicit param/return-type annotations before `maxTypeDiversityRatio` is trusted; below it the detector falls back to `singleDomainNameShare`. |
 | `matchOpportunity` | `minBranches` | `3` | Branches (if + elif/else-if) keyed on the same variable an chain must have before it's flagged as a match/switch opportunity. |
+| `errorShadowing` | `threshold` | `0.5` | Share of a function's named syntax nodes inside error-handling regions at which it is flagged as medium energy. |
+| `errorShadowing` | `highThreshold` | `0.7` | Share at which an error-shadowing finding is high energy. |
+| `errorShadowing` | `minNamedNodes` | `8` | Minimum named syntax-node count required before the error-handling share is evaluated. |
 | `parameterCount` | `mediumThreshold` | `5` | Parameter count above which a function is flagged for parameter explosion as medium energy. |
 | `parameterCount` | `highThreshold` | `8` | Parameter count above which a parameter-explosion violation is flagged as high energy instead of medium. |
 | `magicNumber` | `allowlist` | `[0, 1, -1, 2]` | Additional numeric literals to exempt alongside the structural values (see below). The `enabled` toggle stays in VS Code settings. |

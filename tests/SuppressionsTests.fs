@@ -36,6 +36,15 @@ let tests =
                   assertThat result.Violations.Head.Type (isEqualTo Complexity)
           )
           test (
+              "typed error-shadowing directive suppresses error-shadowing findings",
+              fun _ ->
+                  let result =
+                      applySuppressions [ violation 0 ErrorShadowing ] "try: work() # esa-ignore: error-shadowing\n"
+
+                  assertThat result.Violations.Length (isEqualTo 0)
+                  assertThat result.SuppressionNotes.Length (isEqualTo 0)
+          )
+          test (
               "standalone directive covers its next line",
               fun _ ->
                   let result =

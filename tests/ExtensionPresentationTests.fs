@@ -43,6 +43,7 @@ let tests =
                               fun section key fallback ->
                                   match section, key with
                                   | "coherence", "singleDomainNameShare" -> 0.8
+                                  | "errorShadowing", "threshold" -> 0.6
                                   | "colors", "backgroundOpacity" -> 0.25
                                   | _ -> fallback
                           Bool =
@@ -78,6 +79,7 @@ let tests =
                   let magicString = thresholds.MagicString
                   let matchOpportunity = thresholds.MatchOpportunity
                   let cyclomatic = thresholds.Cyclomatic
+                  let errorShadowing = thresholds.ErrorShadowing
 
                   let emptyMagicNumberAllowlist =
                       readAnalyzeThresholds
@@ -113,6 +115,7 @@ let tests =
                   assertThat magicNumber.IncludeTestFiles isTrue
                   assertThat magicString.IncludeTestFiles isTrue
                   assertThat matchOpportunity.MinBranches (isEqualTo 5)
+                  assertThat errorShadowing.Threshold (isEqualTo 0.6)
                   assertThat colors.HighEnergy (isEqualTo "#112233")
                   assertThat colors.BackgroundOpacity (isEqualTo 0.25)
           )

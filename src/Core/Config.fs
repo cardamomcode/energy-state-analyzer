@@ -53,6 +53,16 @@ type CoherenceThresholds =
 
 type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 
+// decision: the error-shadowing share is a 0..1 ratio (like coherence's SingleDomainNameShare), so it
+// shares that float shape rather than an int count — a percentage of a function's body has no natural
+// integer unit, and a project should be able to retune exactly where "most of this function is error
+// handling" begins without editing detector code.
+type ErrorShadowingThresholds =
+    { Enabled: bool
+      Threshold: float
+      HighThreshold: float
+      MinNamedNodes: int }
+
 type ParameterCountThresholds =
     { Enabled: bool
       MediumThreshold: int
@@ -89,7 +99,8 @@ type AnalyzeOptions =
       PrimitiveObsession: PrimitiveObsessionThresholds
       OpaqueBoolean: OpaqueBooleanThresholds
       LogicalControlFlow: LogicalControlFlowThresholds
-      Inversion: InversionThresholds }
+      Inversion: InversionThresholds
+      ErrorShadowing: ErrorShadowingThresholds }
 
 // decision: default nesting thresholds 3/5 mark the point where active conditions strain working memory.
 // decision: default cyclomatic thresholds 10/15 distinguish many paths from urgent extraction work.
@@ -138,6 +149,14 @@ let defaultAnalyzeOptions =
       OpaqueBoolean = { Enabled = true }
       LogicalControlFlow = { Enabled = true }
       Inversion = { Enabled = true }
+      // decision: 50% / 70% are the shares where a function's own body is more error handling than
+      // guarded work — enough that the happy path can no longer be read without wading through failure
+      // handling. MinNamedNodes keeps tiny wrappers (a single call under a try) from tripping it.
+      ErrorShadowing =
+        { Enabled = true
+          Threshold = 0.5
+          HighThreshold = 0.7
+          MinNamedNodes = 8 }
       MagicNumber =
         { Enabled = true
           Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
@@ -167,6 +186,8 @@ let defaultOpaqueBooleanThresholds = defaultAnalyzeOptions.OpaqueBoolean
 let defaultLogicalControlFlowThresholds = defaultAnalyzeOptions.LogicalControlFlow
 
 let defaultInversionThresholds = defaultAnalyzeOptions.Inversion
+
+let defaultErrorShadowingThresholds = defaultAnalyzeOptions.ErrorShadowing
 
 let defaultMagicNumberOptions = defaultAnalyzeOptions.MagicNumber
 
@@ -228,6 +249,11 @@ type FileCoherence =
 
 type FileMatchOpportunity = { MinBranches: int option }
 
+type FileErrorShadowing =
+    { Threshold: float option
+      HighThreshold: float option
+      MinNamedNodes: int option }
+
 type FileParameterCount =
     { MediumThreshold: int option
       HighThreshold: int option }
@@ -244,6 +270,7 @@ type FileConfig =
       Cognitive: FileCognitive
       Coherence: FileCoherence
       MatchOpportunity: FileMatchOpportunity
+      ErrorShadowing: FileErrorShadowing
       ParameterCount: FileParameterCount
       MagicNumber: FileMagicNumber
       MagicString: FileMagicString }
@@ -275,6 +302,10 @@ let private emptyFileConfig: FileConfig =
           MethodCountHigh = None
           LargeFunctionSeverityMultiplier = None }
       MatchOpportunity = { MinBranches = None }
+      ErrorShadowing =
+        { Threshold = None
+          HighThreshold = None
+          MinNamedNodes = None }
       ParameterCount =
         { MediumThreshold = None
           HighThreshold = None }
@@ -350,6 +381,7 @@ let parseFileConfig (raw: obj) : FileConfig =
     let cognitive = field raw "cognitiveComplexity"
     let coherence = field raw "coherence"
     let matchOpportunity = field raw "matchOpportunity"
+    let errorShadowing = field raw "errorShadowing"
     let parameterCount = field raw "parameterCount"
     let magicNumber = field raw "magicNumber"
     let magicString = field raw "magicString"
@@ -380,6 +412,10 @@ let parseFileConfig (raw: obj) : FileConfig =
           MethodCountHigh = readNumber coherence "godClassMethodCountHigh" |> Option.map int
           LargeFunctionSeverityMultiplier = readNumber coherence "largeFunctionSeverityMultiplier" }
       MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
+      ErrorShadowing =
+        { Threshold = readNumber errorShadowing "threshold"
+          HighThreshold = readNumber errorShadowing "highThreshold"
+          MinNamedNodes = readNumber errorShadowing "minNamedNodes" |> Option.map int }
       ParameterCount =
         { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
           HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int }
@@ -452,6 +488,13 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
       MatchOpportunity =
         { defaults.MatchOpportunity with
             MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
+      // decision: enable/disable is host-only (like the threshold-less detectors), so a project can
+      // retune only the thresholds via .esaconfig.json — never switch the rule off from a repo config.
+      ErrorShadowing =
+        { Enabled = defaults.ErrorShadowing.Enabled
+          Threshold = Option.defaultValue defaults.ErrorShadowing.Threshold file.ErrorShadowing.Threshold
+          HighThreshold = Option.defaultValue defaults.ErrorShadowing.HighThreshold file.ErrorShadowing.HighThreshold
+          MinNamedNodes = Option.defaultValue defaults.ErrorShadowing.MinNamedNodes file.ErrorShadowing.MinNamedNodes }
       ParameterCount =
         { defaults.ParameterCount with
             MediumThreshold =

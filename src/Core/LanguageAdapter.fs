@@ -135,6 +135,12 @@ type LanguageAdapter =
       // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
       // boolean, F# string/int/float/bool).
       PrimitiveTypeNames: Set<string>
+      // Node types that begin an error-handling region — the try construct whose whole subtree (the
+      // guarded body plus any catch/except/finally arms) counts as "error handling" for the
+      // error-shadowing detector. Marking the entire construct, not just the handler arms, captures
+      // both shadowing modes: logic buried under one catch, and a function dominated by handlers.
+      // Empty for a language whose grammar exposes no try/catch construct.
+      ErrorHandlingAnchorTypes: NodeType list
       // Node types that mark "every parameter after this one is keyword-only" (Python's bare `*`
       // keyword_separator and `*args` list_splat_pattern — both make positional calls to later params
       // impossible). Drives the primitive-obsession detector's parameter-swap-risk suppression. Empty

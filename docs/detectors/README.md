@@ -2,7 +2,7 @@
 
 Each detector is documented in its own file: what it flags, an example, its configuration, and known limitations.
 
-All twelve detector categories run for C++. Coverage includes functions and methods, typed
+All thirteen detector categories run for C++. Coverage includes functions and methods, typed
 declarators, classes and structs, inheritance, includes, literals and constants, boolean operators,
 subscripts, `if`/loops/`try`/`catch`, ternaries, and branch-aware `switch` statements. Analysis is
 syntax-only: preprocessing, include resolution, template instantiation, overload resolution, and
@@ -16,6 +16,7 @@ type checking remain the compiler's job.
 - [Parameter explosion](parameter-explosion.md), functions with too many parameters.
 - [File coherence](file-coherence.md), files that have lost a single responsibility.
 - [God class](god-class.md), one type whose methods span too many unrelated domains (the class-level half of file coherence).
+- [Error shadowing](error-shadowing.md), error handling that overwhelms a function's happy path.
 
 ## Naming and literals
 

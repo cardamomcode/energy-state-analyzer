@@ -346,4 +346,5 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 nodeChildren specifiers
                 |> List.filter (fun s -> nodeType s = NodeType "delegation_specifier")
                 |> List.choose delegationSpecifierName
-            | None -> [] }
+            | None -> []
+      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }

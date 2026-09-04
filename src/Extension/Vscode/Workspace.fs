@@ -19,6 +19,11 @@ let workspaceFolders (hostWorkspace: obj) : obj = nativeOnly
 [<Emit("$0.get($1, $2)")>]
 let getConfigurationValue<'a> (configuration: obj) (key: string) (fallback: 'a) : 'a = nativeOnly
 
+// `get` returns contributed defaults too. Inspect separately so a setting only overrides
+// `.esaconfig.json` when a user has actually configured it in VS Code.
+[<Emit("(() => { const setting = $0.inspect($1); return !!setting && ['globalValue', 'workspaceValue', 'workspaceFolderValue', 'globalLanguageValue', 'workspaceLanguageValue', 'workspaceFolderLanguageValue'].some(name => setting[name] !== undefined); })()")>]
+let hasConfigurationOverride (configuration: obj) (key: string) : bool = nativeOnly
+
 [<Emit("$0.onDidChangeTextDocument($1)")>]
 let onDidChangeTextDocument (hostWorkspace: obj) (handler: obj -> unit) : obj = nativeOnly
 
