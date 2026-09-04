@@ -60,6 +60,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
         fun node ->
             nodeType node = NodeType "function_or_value_defn"
             && (nodeChildren node |> List.exists (fun c -> nodeType c = functionDeclarationLeft))
+      IsStaticMethod = fun _ -> false
       ParameterChildTypes = [ NodeType "long_identifier"; NodeType "typed_pattern" ]
       DecisionNodeTypes =
         [ NodeType "if_expression"

@@ -202,6 +202,9 @@ type LanguageAdapter =
       // instead of counted as free-standing functions. A predicate is required because C++ uses the
       // same class_specifier/struct_specifier node types for definitions and forward declarations.
       IsClassDefinition: Node -> bool
+      // Whether a class method has no instance receiver. God-class scoring intentionally excludes
+      // all-static classes because they are namespaces of functions, not stateful object responsibilities.
+      IsStaticMethod: Node -> bool
       // Given a class-definition node, returns its declared name, or None if it can't be determined. Always
       // called with a node for which IsClassDefinition returns true.
       GetClassName: Node -> string option

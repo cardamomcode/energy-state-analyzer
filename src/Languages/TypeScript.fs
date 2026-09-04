@@ -93,6 +93,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
         fun node ->
             nodeType node = NodeType "function_declaration"
             || nodeType node = NodeType "method_definition"
+      IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes = [ NodeType "required_parameter"; NodeType "optional_parameter" ]
       DecisionNodeTypes =
         [ NodeType "if_statement"

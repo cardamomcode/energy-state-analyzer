@@ -259,6 +259,13 @@ type private GodClassCandidate =
                     candidate.Signals.DistinctTypes
               Hotspots = [] }
 
+// decision: a class must exceed the medium bar and contain at least one instance method before
+// type diversity can represent competing object responsibilities; all-static classes are function
+// namespaces and belong to neither god-class scoring nor free-function sprawl.
+let private shouldMeasureGodClass (ctx: GodClassCtx) (methods: Node list) : bool =
+    methods.Length > ctx.Thresholds.MethodCountMedium
+    && (methods |> List.exists (ctx.Language.IsStaticMethod >> not))
+
 // Returns the method/distinct-type counts when a class past the method-count bar is genuinely diverse
 // (non-cohesive); None otherwise, so cohesive value types and under-typed files stay quiet. Split out so
 // considerGodClass stays short — this match alone would push it past the 20-line large-function bar.
@@ -269,7 +276,7 @@ let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) op
         { MaxDiversityRatio = ctx.Thresholds.MaxTypeDiversityRatio
           MinCoverage = ctx.Thresholds.MinTypedCoverage }
 
-    if methods.Length < ctx.Thresholds.MethodCountMedium then
+    if not (shouldMeasureGodClass ctx methods) then
         None
     else
         match typeCohesionResult methods ctx.Language thresholds with

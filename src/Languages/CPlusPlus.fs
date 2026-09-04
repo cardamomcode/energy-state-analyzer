@@ -190,6 +190,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           FloatLiteral = None
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes =
         [ NodeType "parameter_declaration"
           NodeType "optional_parameter_declaration"
