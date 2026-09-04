@@ -179,6 +179,51 @@
           "minimum": 2,
           "description": "Number of branches (if + elif/else-if) an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity."
         },
+        "energyStateAnalyzer.nesting.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag deeply nested control-flow blocks (nesting detector). Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.cyclomaticComplexity.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag functions by cyclomatic complexity. Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.cognitiveComplexity.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag functions by cognitive complexity. Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.coherence.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag file coherence problems (function-count sprawl, god classes). Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.parameterCount.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag functions with too many parameters. Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.primitiveObsession.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag primitive obsession (too many primitive arguments or returns in a function)."
+        },
+        "energyStateAnalyzer.opaqueBoolean.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag opaque booleans/literals used directly in conditionals instead of a named constant."
+        },
+        "energyStateAnalyzer.logicalControlFlow.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag repeated or inverted boolean expressions across adjacent control-flow branches (logical control flow)."
+        },
+        "energyStateAnalyzer.inversion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag inversion opportunities where a condition's structure could be simplified by inverting it."
+        },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",
           "default": "#fb8500",

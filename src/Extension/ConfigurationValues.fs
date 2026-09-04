@@ -34,18 +34,22 @@ let private magicNumberAllowlist (reader: SettingReader) =
 
 let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
     { Nesting =
-        { MediumThreshold = reader.Int "nesting" "mediumThreshold" defaultNestingThresholds.MediumThreshold
+        { Enabled = reader.Bool "nesting" "enabled" defaultNestingThresholds.Enabled
+          MediumThreshold = reader.Int "nesting" "mediumThreshold" defaultNestingThresholds.MediumThreshold
           HighThreshold = reader.Int "nesting" "highThreshold" defaultNestingThresholds.HighThreshold }
       Cyclomatic =
-        { MediumThreshold =
+        { Enabled = reader.Bool "cyclomaticComplexity" "enabled" defaultCyclomaticThresholds.Enabled
+          MediumThreshold =
             reader.Int "cyclomaticComplexity" "mediumThreshold" defaultCyclomaticThresholds.MediumThreshold
           HighThreshold = reader.Int "cyclomaticComplexity" "highThreshold" defaultCyclomaticThresholds.HighThreshold }
       Cognitive =
-        { MediumThreshold =
+        { Enabled = reader.Bool "cognitiveComplexity" "enabled" defaultCognitiveThresholds.Enabled
+          MediumThreshold =
             reader.Int "cognitiveComplexity" "mediumThreshold" defaultCognitiveThresholds.MediumThreshold
           HighThreshold = reader.Int "cognitiveComplexity" "highThreshold" defaultCognitiveThresholds.HighThreshold }
       Coherence =
-        { LargeFunctionLines = reader.Int "coherence" "largeFunctionLines" defaultCoherenceThresholds.LargeFunctionLines
+        { Enabled = reader.Bool "coherence" "enabled" defaultCoherenceThresholds.Enabled
+          LargeFunctionLines = reader.Int "coherence" "largeFunctionLines" defaultCoherenceThresholds.LargeFunctionLines
           MaxLargeFunctions = reader.Int "coherence" "maxLargeFunctions" defaultCoherenceThresholds.MaxLargeFunctions
           SingleDomainNameShare =
             reader.Float "coherence" "singleDomainNameShare" defaultCoherenceThresholds.SingleDomainNameShare
@@ -74,11 +78,19 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
                 "largeFunctionSeverityMultiplier"
                 defaultCoherenceThresholds.LargeFunctionSeverityMultiplier }
       MatchOpportunity =
-        { MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
+        { Enabled = reader.Bool "matchOpportunity" "enabled" defaultMatchOpportunityThresholds.Enabled
+          MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
       ParameterCount =
-        { MediumThreshold =
+        { Enabled = reader.Bool "parameterCount" "enabled" defaultParameterCountThresholds.Enabled
+          MediumThreshold =
             reader.Int "parameterCount" "mediumThreshold" defaultParameterCountThresholds.MediumThreshold
           HighThreshold = reader.Int "parameterCount" "highThreshold" defaultParameterCountThresholds.HighThreshold }
+      PrimitiveObsession =
+        { Enabled = reader.Bool "primitiveObsession" "enabled" defaultPrimitiveObsessionThresholds.Enabled }
+      OpaqueBoolean = { Enabled = reader.Bool "opaqueBoolean" "enabled" defaultOpaqueBooleanThresholds.Enabled }
+      LogicalControlFlow =
+        { Enabled = reader.Bool "logicalControlFlow" "enabled" defaultLogicalControlFlowThresholds.Enabled }
+      Inversion = { Enabled = reader.Bool "inversion" "enabled" defaultInversionThresholds.Enabled }
       MagicNumber =
         { Enabled = reader.Bool "magicNumber" "enabled" defaultMagicNumberOptions.Enabled
           Allowlist = magicNumberAllowlist reader

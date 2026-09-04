@@ -30,7 +30,8 @@ let configOverrideTests =
                           let custom =
                               { defaultThresholds with
                                   ParameterCount =
-                                      { MediumThreshold = 7
+                                      { Enabled = true
+                                        MediumThreshold = 7
                                         HighThreshold = 8 } }
 
                           let ctx =

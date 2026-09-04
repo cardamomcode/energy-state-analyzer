@@ -49,6 +49,8 @@ let tests =
                               fun section key fallback ->
                                   match section, key with
                                   | "magicNumber", "enabled" -> false
+                                  | "nesting", "enabled" -> false
+                                  | "cyclomaticComplexity", "enabled" -> true
                                   | _ -> fallback
                           GlobalBool =
                               fun key fallback ->
@@ -75,6 +77,7 @@ let tests =
                   let magicNumber = thresholds.MagicNumber
                   let magicString = thresholds.MagicString
                   let matchOpportunity = thresholds.MatchOpportunity
+                  let cyclomatic = thresholds.Cyclomatic
 
                   let emptyMagicNumberAllowlist =
                       readAnalyzeThresholds
@@ -101,6 +104,9 @@ let tests =
                   assertThat nesting.MediumThreshold (isEqualTo 4)
                   assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
                   assertThat magicNumber.Enabled isFalse
+                  // the existing `nesting` binding (declared above) reflects its toggled-off value here.
+                  assertThat nesting.Enabled isFalse
+                  assertThat cyclomatic.Enabled isTrue
                   assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
                   assertThat emptyMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0 ])
                   assertThat hostArrayMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])

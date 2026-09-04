@@ -19,19 +19,23 @@ open Energy.Core.FsPath
 // ---------------------------------------------------------------------------
 
 type NestingThresholds =
-    { MediumThreshold: int
+    { Enabled: bool
+      MediumThreshold: int
       HighThreshold: int }
 
 type CyclomaticThresholds =
-    { MediumThreshold: int
+    { Enabled: bool
+      MediumThreshold: int
       HighThreshold: int }
 
 type CognitiveThresholds =
-    { MediumThreshold: int
+    { Enabled: bool
+      MediumThreshold: int
       HighThreshold: int }
 
 type CoherenceThresholds =
-    { LargeFunctionLines: int
+    { Enabled: bool
+      LargeFunctionLines: int
       MaxLargeFunctions: int
       SingleDomainNameShare: float
       MaxTypeDiversityRatio: float
@@ -47,11 +51,19 @@ type CoherenceThresholds =
       MethodCountHigh: int
       LargeFunctionSeverityMultiplier: float }
 
-type MatchOpportunityThresholds = { MinBranches: int }
+type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 
 type ParameterCountThresholds =
-    { MediumThreshold: int
+    { Enabled: bool
+      MediumThreshold: int
       HighThreshold: int }
+
+// decision: these four detectors have no tunable threshold, so their options record is just the
+// enable flag — a uniform shape that lets the pipeline guard every detector identically.
+type PrimitiveObsessionThresholds = { Enabled: bool }
+type OpaqueBooleanThresholds = { Enabled: bool }
+type LogicalControlFlowThresholds = { Enabled: bool }
+type InversionThresholds = { Enabled: bool }
 
 type MagicNumberOptions =
     { Enabled: bool
@@ -73,7 +85,11 @@ type AnalyzeOptions =
       MatchOpportunity: MatchOpportunityThresholds
       ParameterCount: ParameterCountThresholds
       MagicNumber: MagicNumberOptions
-      MagicString: MagicStringOptions }
+      MagicString: MagicStringOptions
+      PrimitiveObsession: PrimitiveObsessionThresholds
+      OpaqueBoolean: OpaqueBooleanThresholds
+      LogicalControlFlow: LogicalControlFlowThresholds
+      Inversion: InversionThresholds }
 
 // decision: default nesting thresholds 3/5 mark the point where active conditions strain working memory.
 // decision: default cyclomatic thresholds 10/15 distinguish many paths from urgent extraction work.
@@ -85,16 +101,20 @@ type AnalyzeOptions =
 // decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
 let defaultAnalyzeOptions =
     { Nesting =
-        { MediumThreshold = 3
+        { Enabled = true
+          MediumThreshold = 3
           HighThreshold = 5 }
       Cyclomatic =
-        { MediumThreshold = 10
+        { Enabled = true
+          MediumThreshold = 10
           HighThreshold = 15 }
       Cognitive =
-        { MediumThreshold = 15
+        { Enabled = true
+          MediumThreshold = 15
           HighThreshold = 25 }
       Coherence =
-        { LargeFunctionLines = 20
+        { Enabled = true
+          LargeFunctionLines = 20
           MaxLargeFunctions = 5
           SingleDomainNameShare = 0.7
           MaxTypeDiversityRatio = 0.4
@@ -109,10 +129,15 @@ let defaultAnalyzeOptions =
           MethodCountMedium = 15
           MethodCountHigh = 25
           LargeFunctionSeverityMultiplier = 1.5 }
-      MatchOpportunity = { MinBranches = 3 }
+      MatchOpportunity = { Enabled = true; MinBranches = 3 }
       ParameterCount =
-        { MediumThreshold = 5
+        { Enabled = true
+          MediumThreshold = 5
           HighThreshold = 8 }
+      PrimitiveObsession = { Enabled = true }
+      OpaqueBoolean = { Enabled = true }
+      LogicalControlFlow = { Enabled = true }
+      Inversion = { Enabled = true }
       MagicNumber =
         { Enabled = true
           Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
@@ -134,6 +159,14 @@ let defaultCoherenceThresholds = defaultAnalyzeOptions.Coherence
 let defaultMatchOpportunityThresholds = defaultAnalyzeOptions.MatchOpportunity
 
 let defaultParameterCountThresholds = defaultAnalyzeOptions.ParameterCount
+
+let defaultPrimitiveObsessionThresholds = defaultAnalyzeOptions.PrimitiveObsession
+
+let defaultOpaqueBooleanThresholds = defaultAnalyzeOptions.OpaqueBoolean
+
+let defaultLogicalControlFlowThresholds = defaultAnalyzeOptions.LogicalControlFlow
+
+let defaultInversionThresholds = defaultAnalyzeOptions.Inversion
 
 let defaultMagicNumberOptions = defaultAnalyzeOptions.MagicNumber
 
@@ -374,16 +407,20 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
            |> List.filter (fun value -> not (List.contains value structuralMagicStringAllowlist)))
 
     { Nesting =
-        { MediumThreshold = Option.defaultValue defaults.Nesting.MediumThreshold file.Nesting.MediumThreshold
-          HighThreshold = Option.defaultValue defaults.Nesting.HighThreshold file.Nesting.HighThreshold }
+        { defaults.Nesting with
+            MediumThreshold = Option.defaultValue defaults.Nesting.MediumThreshold file.Nesting.MediumThreshold
+            HighThreshold = Option.defaultValue defaults.Nesting.HighThreshold file.Nesting.HighThreshold }
       Cyclomatic =
-        { MediumThreshold = Option.defaultValue defaults.Cyclomatic.MediumThreshold file.Cyclomatic.MediumThreshold
-          HighThreshold = Option.defaultValue defaults.Cyclomatic.HighThreshold file.Cyclomatic.HighThreshold }
+        { defaults.Cyclomatic with
+            MediumThreshold = Option.defaultValue defaults.Cyclomatic.MediumThreshold file.Cyclomatic.MediumThreshold
+            HighThreshold = Option.defaultValue defaults.Cyclomatic.HighThreshold file.Cyclomatic.HighThreshold }
       Cognitive =
-        { MediumThreshold = Option.defaultValue defaults.Cognitive.MediumThreshold file.Cognitive.MediumThreshold
-          HighThreshold = Option.defaultValue defaults.Cognitive.HighThreshold file.Cognitive.HighThreshold }
+        { defaults.Cognitive with
+            MediumThreshold = Option.defaultValue defaults.Cognitive.MediumThreshold file.Cognitive.MediumThreshold
+            HighThreshold = Option.defaultValue defaults.Cognitive.HighThreshold file.Cognitive.HighThreshold }
       Coherence =
-        { LargeFunctionLines =
+        { Enabled = defaults.Coherence.Enabled
+          LargeFunctionLines =
             Option.defaultValue defaults.Coherence.LargeFunctionLines file.Coherence.LargeFunctionLines
           MaxLargeFunctions = Option.defaultValue defaults.Coherence.MaxLargeFunctions file.Coherence.MaxLargeFunctions
           SingleDomainNameShare =
@@ -413,11 +450,13 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
                 defaults.Coherence.LargeFunctionSeverityMultiplier
                 file.Coherence.LargeFunctionSeverityMultiplier }
       MatchOpportunity =
-        { MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
+        { defaults.MatchOpportunity with
+            MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
       ParameterCount =
-        { MediumThreshold =
-            Option.defaultValue defaults.ParameterCount.MediumThreshold file.ParameterCount.MediumThreshold
-          HighThreshold = Option.defaultValue defaults.ParameterCount.HighThreshold file.ParameterCount.HighThreshold }
+        { defaults.ParameterCount with
+            MediumThreshold =
+                Option.defaultValue defaults.ParameterCount.MediumThreshold file.ParameterCount.MediumThreshold
+            HighThreshold = Option.defaultValue defaults.ParameterCount.HighThreshold file.ParameterCount.HighThreshold }
       MagicNumber =
         { defaults.MagicNumber with
             Allowlist =
@@ -428,7 +467,13 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
             MinDuplicates = Option.defaultValue defaults.MagicString.MinDuplicates file.MagicString.MinDuplicates
             Allowlist =
                 (Option.defaultValue [] file.MagicString.Allowlist)
-                |> unionWithStructuralMagicString } }
+                |> unionWithStructuralMagicString }
+      // decision: enable/disable is host-only, never a project-file value, so these four threshold-less
+      // detectors pass their built-in defaults straight through the merge untouched.
+      PrimitiveObsession = defaults.PrimitiveObsession
+      OpaqueBoolean = defaults.OpaqueBoolean
+      LogicalControlFlow = defaults.LogicalControlFlow
+      Inversion = defaults.Inversion }
 
 /// Public entry: resolve `.esaconfig.json` from `startDir` (walking up) and overlay it on the defaults.
 ///
