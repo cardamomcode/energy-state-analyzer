@@ -25,18 +25,22 @@ let private countNodes (language: LanguageAdapter.LanguageAdapter) (fnNode: Tree
     // decision: collect a per-named-node region flag first, then count — this keeps the metric
     // grammar-agnostic (the five grammars disagree on what counts as a statement node, but every one
     // yields named descendant nodes) and avoids a fold whose initial value could be mis-parsed.
-    let rec walk (inErrorRegion: bool) (node: TreeSitter.Node) : bool list =
-        if nodeIsNamed node then
+    let rec walk (isFunctionRoot: bool) (inErrorRegion: bool) (node: TreeSitter.Node) : bool list =
+        if not isFunctionRoot && language.IsFunctionDefinition node then
+            // decision: nested functions are traversal boundaries because allFunctions analyzes each
+            // one independently; their error-handling regions must not affect an enclosing function.
+            []
+        elif nodeIsNamed node then
             let nowInError =
                 inErrorRegion || List.contains (nodeType node) language.ErrorHandlingAnchorTypes
 
-            nowInError :: (nodeChildren node |> List.collect (walk nowInError))
+            nowInError :: (nodeChildren node |> List.collect (walk false nowInError))
         else
             // unnamed nodes are tokens/punctuation: descend so a named descendant inside an anchor is
             // still flagged, but never count the token itself.
-            nodeChildren node |> List.collect (walk inErrorRegion)
+            nodeChildren node |> List.collect (walk false inErrorRegion)
 
-    let flags = fnNode |> walk false
+    let flags = fnNode |> walk true false
     let errorCount = flags |> List.filter id |> List.length
     let logicCount = flags |> List.filter (fun flag -> not flag) |> List.length
     (errorCount, logicCount)
@@ -44,13 +48,15 @@ let private countNodes (language: LanguageAdapter.LanguageAdapter) (fnNode: Tree
 // The first error-handling region inside a function — the anchor we point the violation at, so the
 // reader lands on the try/catch doing the shadowing rather than the function's signature.
 let private firstAnchor (language: LanguageAdapter.LanguageAdapter) (fnNode: TreeSitter.Node) : TreeSitter.Node option =
-    let rec walk (node: TreeSitter.Node) : TreeSitter.Node option =
-        if List.contains (nodeType node) language.ErrorHandlingAnchorTypes then
+    let rec walk (isFunctionRoot: bool) (node: TreeSitter.Node) : TreeSitter.Node option =
+        if not isFunctionRoot && language.IsFunctionDefinition node then
+            None
+        elif List.contains (nodeType node) language.ErrorHandlingAnchorTypes then
             Some node
         else
-            nodeChildren node |> List.tryPick walk
+            nodeChildren node |> List.tryPick (walk false)
 
-    walk fnNode
+    walk true fnNode
 
 // Every function definition anywhere in the tree, not just module-scope ones — methods nested inside a
 // class are still functions whose logic can be shadowed by their own error handling.
