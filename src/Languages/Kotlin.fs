@@ -64,23 +64,17 @@ let private isAnnotatedConstValMisparse (node: Node) : bool =
 // decision: split out of getBaseClassNames into its own function, rather than several `c.type ===
 // '...'` comparisons inline — same rationale as isUserType above.
 let private delegationSpecifierName (specifier: Node) : string option =
-    let userType =
-        match nodeChildren specifier |> List.tryFind isUserType with
-        | Some ut -> Some ut
-        | None ->
-            match
-                nodeChildren specifier
-                |> List.tryFind (fun c -> nodeType c = NodeType "constructor_invocation")
-            with
-            | Some ci -> nodeChildren ci |> List.tryFind isUserType
-            | None -> None
-
-    match userType with
-    | Some ut ->
+    nodeChildren specifier
+    |> List.tryFind isUserType
+    |> Option.orElse (
+        nodeChildren specifier
+        |> List.tryFind (fun c -> nodeType c = NodeType "constructor_invocation")
+        |> Option.bind (fun ci -> nodeChildren ci |> List.tryFind isUserType)
+    )
+    |> Option.bind (fun ut ->
         nodeChildren ut
         |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
-        |> Option.map nodeText
-    | None -> None
+        |> Option.map nodeText)
 
 // decision: `const val` is an explicit, compiler-enforced compile-time-constant marker — unlike the
 // module-scope heuristic isInConstantContext (magicNumber.ts) otherwise relies on, this is valid at
