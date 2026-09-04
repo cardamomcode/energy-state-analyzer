@@ -32,6 +32,13 @@ let private magicNumberAllowlist (reader: SettingReader) =
     defaults
     @ (configured |> List.filter (fun value -> not (List.contains value defaults)))
 
+let private magicStringAllowlist (reader: SettingReader) =
+    let defaults = defaultMagicStringOptions.Allowlist
+    let configured = reader.Strings "magicString" "allowlist" defaults
+
+    defaults
+    @ (configured |> List.filter (fun value -> not (List.contains value defaults)))
+
 let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
     { Nesting =
         { Enabled = reader.Bool "nesting" "enabled" defaultNestingThresholds.Enabled
@@ -103,7 +110,7 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
       MagicString =
         { Enabled = reader.Bool "magicString" "enabled" defaultMagicStringOptions.Enabled
           MinDuplicates = reader.Int "magicString" "minDuplicates" defaultMagicStringOptions.MinDuplicates
-          Allowlist = reader.Strings "magicString" "allowlist" defaultMagicStringOptions.Allowlist
+          Allowlist = magicStringAllowlist reader
           IncludeTestFiles = reader.GlobalBool "includeTestFiles" defaultMagicStringOptions.IncludeTestFiles } }
 
 // decision: colors stay a VS Code setting (not read from .esaconfig.json) — this mapping still pulls
