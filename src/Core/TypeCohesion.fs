@@ -73,26 +73,27 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
 // Per-function set of distinct base types touched across its typed parameters and return type. A
 // function with no typed signals at all returns an empty set — that's "no data point", not "different
 // type", and is treated as such by typeCohesionResult below.
+// decision: threads both typed-signal sources through Option.bind/Option.map instead of nested match
+// arms, so a missing parameter type or an unbaseable annotation is dropped silently rather than
+// forcing another `| None -> ()` level. The added base types fold into one shared accumulator.
 let collectTypeSignals (fn: Node) (language: LanguageAdapter) : HashSet<string> =
     let types = HashSet<string>()
 
     match findParametersNode fn language.NodeTypes.Parameters with
     | Some paramsNode ->
         for child in nodeChildren paramsNode do
-            match language.ExtractTypedParameter child with
-            | Some tp ->
-                match baseTypeName tp.Type language.GenericBrackets with
-                | Some baseType -> types.Add(baseType) |> ignore
-                | None -> ()
-            | None -> ()
+            language.ExtractTypedParameter child
+            |> Option.bind (fun tp ->
+                baseTypeName tp.Type language.GenericBrackets
+                |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
+            |> ignore
     | None -> ()
 
-    match language.ExtractReturnType fn with
-    | Some returnType ->
-        match baseTypeName returnType language.GenericBrackets with
-        | Some baseType -> types.Add(baseType) |> ignore
-        | None -> ()
-    | None -> ()
+    language.ExtractReturnType fn
+    |> Option.bind (fun returnType ->
+        baseTypeName returnType language.GenericBrackets
+        |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
+    |> ignore
 
     types
 
