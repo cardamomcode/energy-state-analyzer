@@ -93,6 +93,13 @@ The job is **soft-gated**: the `AnalyzeFSharpProject` target ignores the CLI exi
 
 ## Before committing or opening a PR
 
+**Never commit directly to `main`.** Always create and work on a feature branch off `main`
+(e.g. `fix/...`, `chore/...`, `ci/...`), open a PR from that branch targeting `main`, and never
+force-push onto `main`. Keep `main` matching `origin/main`; if you accidentally commit to `main`,
+reset it back to `origin/main` and carry the work on a feature branch instead. This keeps every
+change reviewable through a PR and preserves ShipIt's release flow, which reads conventional
+commit subjects from merged PRs.
+
 Run `just format`, `just lint`, `just md-lint`, and `just analyze`. Triage every analyzer finding:
 
 - **Real violation**: fix it.
