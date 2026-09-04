@@ -48,6 +48,29 @@ let tests =
                      )
              )))
         @ [ testAsync (
+                "does not attribute a nested function's error handling to its enclosing function",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/error_shadowing_nested.py"
+
+                            let violations =
+                                analyzeFixture
+                                    source
+                                    tree
+                                    Python.pythonLanguageAdapter
+                                    "python/error_shadowing_nested.py"
+                                |> List.filter (fun v -> v.Type = ErrorShadowing)
+
+                            // The nested function is analyzed on its own, but its try/except must not
+                            // create a second finding for the enclosing function.
+                            assertThat (violations |> List.length) (isEqualTo 1)
+                            assertValidPositions violations source
+                        }
+                    )
+            )
+            testAsync (
                 "does not flag functions without error handling when threshold is zero",
                 fun _ ->
                     toAsync (
