@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++)",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "publisher": "cardamom-code",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -232,15 +232,15 @@
         "energyStateAnalyzer.errorShadowing.threshold": {
           "type": "number",
           "default": 0.5,
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "minimum": 0,
+          "maximum": 1,
           "description": "Share of a function's statements inside error-handling regions at which it is flagged (medium). Tunable in .esaconfig.json as errorShadowing.threshold."
         },
         "energyStateAnalyzer.errorShadowing.highThreshold": {
           "type": "number",
           "default": 0.7,
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "minimum": 0,
+          "maximum": 1,
           "description": "Share at which the finding is high severity. Tunable in .esaconfig.json as errorShadowing.highThreshold."
         },
         "energyStateAnalyzer.errorShadowing.minNamedNodes": {
