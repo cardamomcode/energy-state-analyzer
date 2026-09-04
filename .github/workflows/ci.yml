@@ -93,5 +93,7 @@ jobs:
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: fsharp-analyzer-reports/**/*.sarif
+          # Pass the directory, not a glob: upload-sarif does a literal existence check on
+          # sarif_file and rejects a path containing '**'. It walks the dir for *.sarif itself.
+          sarif_file: fsharp-analyzer-reports
           category: ${{ matrix.project }}
