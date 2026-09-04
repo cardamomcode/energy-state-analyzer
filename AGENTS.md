@@ -91,6 +91,10 @@ Beyond our own product analyzer, the repo runs the [fsharp-analyzers](https://g-
 
 The job is **soft-gated**: the `AnalyzeFSharpProject` target ignores the CLI exit code, so findings never fail the build, and a real restore/build/analysis error surfaces via the "Verify analyzer report exists" step (which fails loudly) instead of being hidden. A SARIF uploads per project to GitHub Code Scanning for triage over time. To make it blocking once the backlog clears, change the verify step to fail when results are non-empty.
 
+**Default-branch scanning.** GitHub marks a tool as scanning the default branch only after it receives a SARIF upload tied to a commit *on that branch*. PR uploads populate just the PR-level view (the `?query=pr:N` Code Scanning filter); a `push`, `schedule`, or `workflow_dispatch` run against `main` is what populates the repository-wide alerts. The CI job therefore triggers on `pull_request`, `push`, plus `workflow_dispatch` and a nightly `schedule` (`0 6 * * * UTC`) so `main` keeps being scanned even if a push-to-`main` run fails intermittently. It declares `permissions: security_events: write` so those non-PR contexts can upload SARIF.
+
+To trigger a scan of `main` on demand once this is merged, run `just fsharp-scan-main` (or the equivalent `gh workflow trigger`), which dispatches the CI job against `main` and uploads its SARIF. Then check [Code Scanning](https://github.com/cardamomcode/energy-state-analyzer/security/code-scanning) for the default branch.
+
 ## Before committing or opening a PR
 
 Run `just format`, `just lint`, `just md-lint`, and `just analyze`. Triage every analyzer finding:

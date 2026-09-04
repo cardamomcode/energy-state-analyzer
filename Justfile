@@ -55,6 +55,15 @@ fsharp-analyze *args:
       echo ">> analyzing $p"; dotnet msbuild /t:AnalyzeFSharpProject "$p" || true; \
     done
 
+# Trigger the CI workflow against a branch (main by default) to scan the default branch and upload
+# SARIF to GitHub Code Scanning. PR uploads only populate the PR-level view, so this is how you push
+# a scan of main itself. Use after the ci.yml schedule/dispatch change merges. Examples:
+# `just fsharp-scan-main`, `just fsharp-scan-main refs/heads/main`.
+fsharp-scan-main *args:
+    @ref="{{args}}"; [ -z "$ref" ] && ref=main; \
+    echo ">> triggering CI on $ref"; \
+    gh workflow trigger ci.yml --ref "$ref" || { echo "gh workflow trigger failed (is gh authenticated with write access?)" >&2; exit 1; };
+
 # Transpile and run the F# Scriptorium suite
 test:
     npm test
