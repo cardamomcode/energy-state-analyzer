@@ -5,6 +5,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Run against the default branch on demand. PR uploads only populate the PR-level Code Scanning
+  # view; a successful push to main (which fires on every merge) is what makes the default branch
+  # show up as scanned (Settings > Code scanning).
+  workflow_dispatch:
+
+# Required so the non-PR contexts (push/workflow_dispatch) can upload SARIF to Code Scanning. This
+# was the root cause of push-to-main uploads failing when #83 merged; declaring it fixes that.
+# Pull-request uploads work with defaults, but declaring it keeps every context consistent.
+permissions:
+  security_events: write
 
 jobs:
   test:
