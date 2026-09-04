@@ -157,27 +157,27 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                 let typeAnnotation =
                     nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
 
-                match nameNode, typeAnnotation with
-                | Some n, Some ta ->
-                    // type_annotation's children are [':', <the actual type node>].
-                    match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> NodeType ":") with
-                    | Some tn ->
-                        Some
+                nameNode
+                |> Option.bind (fun n ->
+                    typeAnnotation
+                    |> Option.bind (fun ta ->
+                        // type_annotation's children are [':', <the actual type node>].
+                        nodeChildren ta
+                        |> List.tryFind (fun c -> nodeType c <> NodeType ":")
+                        |> Option.map (fun tn ->
                             { Name = nodeText n
-                              Type = nodeText tn }
-                    | None -> None
-                | _ -> None
+                              Type = nodeText tn })))
       ExtractReturnType =
         fun node ->
             // decision: scans only the function node's own direct children — a parameter's
             // type_annotation lives two levels deeper (inside formal_parameters), so this can't
             // accidentally pick up a parameter's type instead of the return type.
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType) with
-            | Some ta ->
-                match nodeChildren ta |> List.tryFind (fun c -> nodeType c <> NodeType ":") with
-                | Some tn -> Some(nodeText tn)
-                | None -> None
-            | None -> None
+            nodeChildren node
+            |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
+            |> Option.bind (fun ta ->
+                nodeChildren ta
+                |> List.tryFind (fun c -> nodeType c <> NodeType ":")
+                |> Option.map nodeText)
       GenericBrackets = { Open = "<"; Close = ">" }
       PrimitiveTypeNames = Set.ofList [ "string"; "number"; "boolean" ]
       // TS has no enforced-keyword-only parameter syntax — see language.ts's field doc.

@@ -153,9 +153,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                 let typeNode =
                     nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
 
-                match nameNode, typeNode with
-                | Some n, Some t -> Some { Name = nodeText n; Type = nodeText t }
-                | _ -> None
+                Option.map2 (fun n t -> { Name = nodeText n; Type = nodeText t }) nameNode typeNode
             else
                 None
       ExtractReturnType =
