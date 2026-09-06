@@ -22,7 +22,7 @@ let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"
 
     error
-        "       energy-state-cli <path...> [--report json|md|human] [thresholds...]              (scan a directory/subtree)"
+        "       energy-state-cli <path...> [--report json|md|human|sarif] [thresholds...]        (scan a directory/subtree)"
 
     error
         "       energy-state-cli --base-ref <ref> [<path...>] [--report json|md] [thresholds...]  (diff PR head against a base ref)"
@@ -46,10 +46,16 @@ let private violationJson violation =
           "message" ==> violation.Message
           "hotspots" ==> hotspots ]
 
-let private summaryJson summary =
+// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
+// receive the same location and remediation message as VS Code without changing summary consumers.
+let summaryJson results =
+    let summary = summarize results
+
     let files =
-        summary.Files
-        |> List.map (fun file ->
+        results
+        |> List.map (fun result ->
+            let file = summarizeFile result
+
             createObj
                 [ "filePath" ==> file.FilePath
                   "score" ==> file.Score
@@ -62,7 +68,8 @@ let private summaryJson summary =
                   ==> (file.ByType
                        |> Map.toList
                        |> List.map (fun (key, value) -> key ==> value)
-                       |> createObj) ])
+                       |> createObj)
+                  "violations" ==> (result.Violations |> List.map violationJson |> List.toArray) ])
         |> List.toArray
 
     createObj
@@ -93,33 +100,6 @@ let private diffJson entries =
     |> List.toArray
     |> box
 
-let runLegacySingleFile (filePath: string) (thresholds: AnalyzeThresholds) : Task<unit> =
-    task {
-        if resolveLanguageForFile filePath |> Option.isNone then
-            error ("Unsupported file type: " + filePath)
-            printUsage ()
-            exit 2
-        else
-            let! analysis = analyzePath (Path filePath) thresholds
-
-            match analysis with
-            | Error analysisError ->
-                error ("energy-state-cli failed: " + analysisErrorMessage analysisError)
-                exit 1
-            | Ok violations ->
-                output (stringify (violations |> List.map violationJson |> List.toArray |> box))
-
-                exit (
-                    if
-                        violations
-                        |> List.exists (fun violation -> violation.Severity = Medium || violation.Severity = High)
-                    then
-                        1
-                    else
-                        0
-                )
-    }
-
 let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: ReportFormat) : Task<unit> =
     task {
         let! analysis = analyzeFiles (resolveSupportedFiles paths (cwd ())) thresholds
@@ -135,7 +115,8 @@ let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: 
                 match reportFormat with
                 | "human" -> renderHumanReport results
                 | "md" -> renderMarkdownReport summary
-                | _ -> stringify (summaryJson summary)
+                | "sarif" -> stringify (Energy.Core.ReportSarif.renderSarif results)
+                | _ -> stringify (summaryJson results)
             )
 
             exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)

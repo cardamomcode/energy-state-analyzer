@@ -39,7 +39,7 @@ suffixes are deliberately not routed to the C++ adapter.
 
 ## Scanning a repo or subtree
 
-Pass more than one path, a directory, or a `dir/**/*.ext`-style pattern to scan every supported file underneath it (skipping dependency, generated, and test-output directories such as `node_modules`, `.git`, `bin`, `obj`, `dist`, `out`, `build`, Fable outputs, Python environments and caches, Gradle caches, and Rust/Maven `target`) and get an aggregated report instead of a single file's violations:
+Pass a file, more than one path, a directory, or a `dir/**/*.ext`-style pattern to scan every supported file underneath it (skipping dependency, generated, and test-output directories such as `node_modules`, `.git`, `bin`, `obj`, `dist`, `out`, `build`, Fable outputs, Python environments and caches, Gradle caches, and Rust/Maven `target`) and get an aggregated report:
 
 ```bash
 npx energy-state-analyzer src --report md
@@ -59,7 +59,17 @@ npx energy-state-analyzer src --report md
 **Total score: 13** (1 high, 1 medium, 0 low)
 ```
 
-`--report json` prints the same data as a structured `{ files, totalScore, totalCounts }` object instead. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a certified complexity metric.
+`--report json` prints the same data as a structured `{ files, totalScore, totalCounts }` object instead. Every file also has a `violations` array: each finding includes its zero-based `line` and `column`, `type`, `severity`, detector `message` (including its suggested fix), and any `hotspots`. This makes the JSON report suitable for coding agents as well as scripts. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a certified complexity metric.
+
+### Default report for agents and code scanning: SARIF
+
+SARIF 2.1.0 is the default scan output for an agent, editor, or code-scanning service:
+
+```bash
+npx energy-state-analyzer src
+```
+
+Each SARIF result has a stable `energy-state/<detector>` rule ID, a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. Use `--report json`, `md`, or `human` to select a different scan report. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
 
 Only one glob shape is supported: a trailing `**/*.ext` pattern on an otherwise literal directory prefix (e.g. `src/**/*.py`). There's no brace expansion, negation, or mid-path wildcards, pass explicit directories/files for anything more complex.
 
@@ -78,7 +88,7 @@ This isn't a full `.gitignore` engine: no negation, no `**`, no brace expansion 
 
 ### A report for humans: `--report human`
 
-`--report md`/`--report json` are compact, built for scripts and PR comments. `--report human` produces a longer, prose-and-tables report meant to be read by a person auditing a repo or subtree: a section per flagged file, each with its findings translated into plain language, followed by a repo-wide "Total evaluation":
+`--report md`/`--report json` are compact, built for scripts and PR comments. `--report sarif` is the interoperable agent and code-scanning format. `--report human` produces a longer, prose-and-tables report meant to be read by a person auditing a repo or subtree: a section per flagged file, each with its findings translated into plain language, followed by a repo-wide "Total evaluation":
 
 ```bash
 npx energy-state-analyzer src --report human
@@ -149,5 +159,5 @@ _2 files changed, 1 worsened, 1 improved, 1 new._
 
 Single-file and scan modes exit `1` for any medium/high-severity violation (`0` otherwise).
 Diff mode exits `1` only when a changed file worsens relative to its base revision, so pre-existing
-debt and new files are reported without blocking the PR. `energy-state-cli <single-file>` with no
-other flags keeps its original flat JSON violation-array contract.
+debt and new files are reported without blocking the PR. Single-file scans use the same default
+SARIF report as directory scans.
