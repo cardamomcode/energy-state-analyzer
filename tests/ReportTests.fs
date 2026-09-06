@@ -73,6 +73,52 @@ let tests =
                   assertThat (markdown.Contains("1 clean, 1 with violations")) isTrue
           )
           test (
+              "JSON report retains actionable finding locations and messages",
+              fun _ ->
+                  let finding =
+                      { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
+                          Line = 5
+                          Column = 12
+                          Hotspots = [ { Line = 5; Weight = 3 } ] }
+
+                  let json =
+                      [ { FilePath = "agents.fs"
+                          Violations = [ finding ] } ]
+                      |> Energy.CliModes.summaryJson
+                      |> Energy.CliNode.stringify
+
+                  assertThat (json.Contains("\"violations\"")) isTrue
+                  assertThat (json.Contains("\"line\": 5")) isTrue
+                  assertThat (json.Contains("\"column\": 12")) isTrue
+
+                  assertThat
+                      (json.Contains("\"message\": \"Introduce a value object so swaps fail type checking.\""))
+                      isTrue
+
+                  assertThat (json.Contains("\"hotspots\"")) isTrue
+                  assertThat (json.Contains("\"weight\": 3")) isTrue
+          )
+          test (
+              "SARIF report exposes standard rules, one-based locations, and remediation messages",
+              fun _ ->
+                  let finding =
+                      { violation High Magic "Extract this literal to a named constant." with
+                          Line = 5
+                          Column = 12 }
+
+                  let sarif =
+                      [ { FilePath = "agents.fs"
+                          Violations = [ finding ] } ]
+                      |> Energy.Core.ReportSarif.renderSarif
+                      |> Energy.CliNode.stringify
+
+                  assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
+                  assertThat (sarif.Contains("\"ruleId\": \"energy-state/magic\"")) isTrue
+                  assertThat (sarif.Contains("\"startLine\": 6")) isTrue
+                  assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
+                  assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue
+          )
+          test (
               "diff identifies every status and renders deltas",
               fun _ ->
                   let file path score =

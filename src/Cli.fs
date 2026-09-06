@@ -149,20 +149,13 @@ let runCli () : Task<unit> =
 
             let report =
                 parsed.Report
-                |> Option.defaultValue (
-                    if parsed.BaseRef.IsSome || parsed.Paths.Length <> 1 then
-                        "md"
-                    else
-                        "json"
-                )
+                |> Option.defaultValue (if parsed.BaseRef.IsSome then "md" else "sarif")
 
             match parsed.BaseRef, parsed.Paths with
             | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report
             | None, [] ->
                 printUsage ()
                 exit 2
-            | None, [ path ] when existsSync (Path path) && isFile (statSync (Path path)) && parsed.Report.IsNone ->
-                do! runLegacySingleFile path thresholds
             | None, _ -> do! runScan parsed.Paths thresholds report
         with error ->
             Energy.CliNode.error ("energy-state-cli failed: " + string<exn> error)
