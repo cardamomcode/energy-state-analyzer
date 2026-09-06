@@ -2,6 +2,8 @@
 
 Visualizes "energy states" in Python, F#, TypeScript, Kotlin, and C++ code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
+![Energy State Analyzer screenshot](https://raw.githubusercontent.com/cardamomcode/energy-state-analyzer/99f806f/images/energy-state-analyzer.png)
+
 ## Features
 
 Real-time analysis of the active Python, F#, TypeScript, Kotlin, or C++ file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
