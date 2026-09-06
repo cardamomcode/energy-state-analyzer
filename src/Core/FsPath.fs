@@ -21,6 +21,18 @@ let readdirSync: obj = nativeOnly
 [<Import("statSync", "node:fs")>]
 let statSync (path: Path) : obj = nativeOnly
 
+[<Import("mkdirSync", "node:fs")>]
+let private mkdirSync: obj = nativeOnly
+
+[<Emit("$0($1, { recursive: true })")>]
+let private makeDirectory (maker: obj) (directory: Path) : unit = nativeOnly
+
+/// Create a directory and any missing parents; succeeds when it already exists.
+let ensureDirectory (directory: Path) = makeDirectory mkdirSync directory
+
+[<Import("writeFileSync", "node:fs")>]
+let writeTextFile (path: Path) (contents: string) : unit = nativeOnly
+
 [<Import("basename", "node:path")>]
 let basename (path: Path) : string = nativeOnly
 

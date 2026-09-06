@@ -1,5 +1,7 @@
 module Energy.Extension.Vscode.Host
 
+open System.Threading.Tasks
+
 open Fable.Core
 
 // The host-level portion of the small VS Code facade.
@@ -33,6 +35,12 @@ let onDidChangeActiveTextEditor (hostWindow: obj) (handler: obj -> unit) : obj =
 
 [<Emit("$0.registerCommand($1, $2)")>]
 let registerCommand (hostCommands: obj) (command: string) (handler: unit -> unit) : obj = nativeOnly
+
+[<Emit("$0.registerCommand($1, $2)")>]
+let registerAsyncCommand (hostCommands: obj) (command: string) (handler: unit -> Task<unit>) : obj = nativeOnly
+
+[<Emit("$0.showTextDocument($1)")>]
+let showTextDocument (hostWindow: obj) (uri: obj) : Task<obj> = nativeOnly
 
 [<Emit("$0.subscriptions.push($1)")>]
 let addSubscription (context: obj) (disposable: obj) : unit = nativeOnly

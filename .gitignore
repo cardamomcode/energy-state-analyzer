@@ -9,6 +9,7 @@ fable_modules/
 spike-js/
 fable-out/
 fable-tests/
+.energy-state/
 *.vsix
 .vscode-test/
 *.log

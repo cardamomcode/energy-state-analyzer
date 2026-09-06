@@ -11,9 +11,6 @@ let private sarifLevel =
     | Medium -> "warning"
     | Low -> "note"
 
-let private sarifRuleId violationType =
-    "energy-state/" + violationTypeName violationType
-
 // decision: reports one SARIF rule per emitted detector type and keeps the detector message on
 // every result, so tools can group findings by stable rule ID while agents receive contextual fixes.
 let renderSarif results =
@@ -29,7 +26,7 @@ let renderSarif results =
         |> List.sortBy violationTypeName
         |> List.map (fun violationType ->
             createObj
-                [ "id" ==> sarifRuleId violationType
+                [ "id" ==> violationRuleId violationType
                   "name" ==> violationTypeName violationType
                   "shortDescription"
                   ==> createObj
@@ -48,7 +45,7 @@ let renderSarif results =
                 |> List.toArray
 
             createObj
-                [ "ruleId" ==> sarifRuleId violation.Type
+                [ "ruleId" ==> violationRuleId violation.Type
                   "level" ==> sarifLevel violation.Severity
                   "message" ==> createObj [ "text" ==> violation.Message ]
                   "locations"
