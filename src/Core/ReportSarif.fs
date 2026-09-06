@@ -32,8 +32,7 @@ let renderSarif results =
                   ==> createObj
                           [ "text"
                             ==> ("Energy State Analyzer " + violationTypeName violationType + " finding") ]
-                  "helpUri"
-                  ==> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors" ])
+                  "helpUri" ==> violationHelpUri violationType ])
         |> List.toArray
 
     let sarifResults =

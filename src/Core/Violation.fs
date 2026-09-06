@@ -83,6 +83,35 @@ let violationRuleId =
     | ErrorShadowing -> "ESA-013"
     | Suppression -> "ESA-014"
 
+/// Canonical documentation for each user-facing analyzer rule.
+// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
+// renderer change cannot silently send users to the generic detector index.
+let violationHelpUri =
+    function
+    | Nesting -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/excessive-nesting.md"
+    | Complexity ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/cyclomatic-complexity.md"
+    | Cognitive ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/cognitive-complexity.md"
+    | Naming -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/file-coherence.md"
+    | Coherence -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/file-coherence.md"
+    | Magic -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/magic-values.md"
+    | Parameters ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/parameter-explosion.md"
+    | Inversion ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/inversion-opportunities.md"
+    | PrimitiveObsession ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/primitive-obsession.md"
+    | MatchOpportunity ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/match-opportunities.md"
+    | LogicalControlFlow ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/logical-operator-control-flow.md"
+    | OpaqueBoolean ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/opaque-boolean-literal.md"
+    | ErrorShadowing ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/error-shadowing.md"
+    | Suppression -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/suppression.md"
+
 let severityName =
     function
     | Low -> "low"
