@@ -159,7 +159,9 @@ let tests =
 
                   documentation
                   |> List.iter (fun (violationType, document) ->
-                      assertThat ((violationHelpUri violationType).EndsWith document) isTrue)
+                      assertThat
+                          ((violationHelpUri violationType).EndsWith(document, System.StringComparison.Ordinal))
+                          isTrue)
           )
           test (
               "SARIF report exposes standard rules, one-based locations, and remediation messages",
