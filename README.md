@@ -32,7 +32,7 @@ For functions flagged as too complex (cyclomatic or cognitive), a progressive he
 
 ## Energy and Entropy
 
-The name is a deliberate analogy to thermodynamics: a function's "energy" is its complexity, nesting, and parameter count, while its "entropy" is how many ways a reader can misunderstand it or a change can silently break it. See [docs/energy-and-entropy.md](docs/energy-and-entropy.md) for the full explanation of why cyclomatic and cognitive complexity are tracked as separate metrics rather than one score.
+The name is a deliberate analogy to thermodynamics: a function's "energy" is its complexity, nesting, and parameter count, while its "entropy" is how many ways a reader can misunderstand it or a change can silently break it. Primitive obsession raises entropy too: broad, interchangeable strings and numbers admit invalid states and accidental swaps that distinct, validated domain types would reject. See [docs/energy-and-entropy.md](docs/energy-and-entropy.md) for the full explanation of why cyclomatic and cognitive complexity are tracked as separate metrics rather than one score.
 
 ## Command-Line Usage
 
