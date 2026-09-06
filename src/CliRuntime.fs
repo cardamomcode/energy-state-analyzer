@@ -5,6 +5,7 @@ open System.Threading.Tasks
 
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.Architecture
 open Energy.Core.Paths
 open Energy.Core.LanguageAdapter
 open Energy.Core.Report
@@ -77,6 +78,36 @@ let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
         match readSource filePath with
         | Error error -> return Error error
         | Ok sourceText -> return! analyzeFile filePath sourceText thresholds
+    }
+
+let extractArchitectureImports (rootDir: Path) (filePath: Path) =
+    task {
+        let (Path path) = filePath
+
+        match readSource filePath, resolveLanguageForFile path with
+        | Error error, _ -> return Error error
+        | _, None -> return Error(UnsupportedLanguage path)
+        | Ok sourceText, Some adapter ->
+            let! parserResult = loadParser adapter
+
+            return
+                parserResult
+                |> Result.bind (fun parser -> parseSource path parser sourceText)
+                |> Result.map (fun tree -> collectImports (relativePath rootDir filePath) adapter tree)
+    }
+
+let rec extractArchitectureImportsFromFiles (rootDir: Path) (files: Path list) =
+    task {
+        match files with
+        | [] -> return Ok []
+        | file :: rest ->
+            let! imports = extractArchitectureImports rootDir file
+
+            match imports with
+            | Error error -> return Error error
+            | Ok imports ->
+                let! remaining = extractArchitectureImportsFromFiles rootDir rest
+                return remaining |> Result.map (fun values -> imports @ values)
     }
 
 // decision: analyzes files sequentially — grammar loads are cached and report rows retain source

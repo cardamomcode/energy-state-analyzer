@@ -23,6 +23,9 @@
     <Compile Include="Core/PythonTypeInfo/Imports.fs" />
     <Compile Include="Core/PythonTypeInfo/Extraction.fs" />
     <Compile Include="Core/LanguageAdapter.fs" />
+    <Compile Include="Core/ArchitectureModel.fs" />
+    <Compile Include="Core/ArchitecturePolicy.fs" />
+    <Compile Include="Core/Architecture.fs" />
     <Compile Include="Core/Context.fs" />
     <Compile Include="Languages/Python.fs" />
     <Compile Include="Languages/TypeScript.fs" />

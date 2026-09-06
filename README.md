@@ -43,6 +43,8 @@ npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp /
 ```
 
 See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch.
+See [docs/architecture-audit.md](docs/architecture-audit.md) for architecture conformance checks
+against explicit repository-layer boundaries.
 
 ## Requirements
 

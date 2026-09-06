@@ -18,7 +18,8 @@ type private ParsedArguments =
       Cyclomatic: int option * int option
       Cognitive: int option * int option
       ParameterCount: int option * int option
-      IncludeTestFiles: bool }
+      IncludeTestFiles: bool
+      Architecture: bool }
 
 let private valueFlags =
     Set.ofList
@@ -39,7 +40,7 @@ let private valueFlags =
 let private parseValues (arguments: string array) : string list * Map<string, string> =
     // decision: boolean flags are recognized by name and consume no value, so they can appear
     // anywhere in the argument list without shifting the positional paths.
-    let booleanFlags = Set.ofList [ "include-test-files" ]
+    let booleanFlags = Set.ofList [ "include-test-files"; "architecture" ]
 
     let rec loop (index: int) (paths: string list) (flags: Map<string, string>) =
         if index >= arguments.Length then
@@ -84,7 +85,8 @@ let private parseArguments arguments =
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
       Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
       ParameterCount = asNumber flags "medium-parameter-count", asNumber flags "high-parameter-count"
-      IncludeTestFiles = Map.containsKey "include-test-files" flags }
+      IncludeTestFiles = Map.containsKey "include-test-files" flags
+      Architecture = Map.containsKey "architecture" flags }
 
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
@@ -149,14 +151,22 @@ let runCli () : Task<unit> =
 
             let report =
                 parsed.Report
-                |> Option.defaultValue (if parsed.BaseRef.IsSome then "md" else "sarif")
+                |> Option.defaultValue (
+                    if parsed.Architecture then "human"
+                    elif parsed.BaseRef.IsSome then "md"
+                    else "sarif"
+                )
 
-            match parsed.BaseRef, parsed.Paths with
-            | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report
-            | None, [] ->
+            match parsed.Architecture, parsed.BaseRef, parsed.Paths with
+            | true, Some _, _ ->
                 printUsage ()
                 exit 2
-            | None, _ -> do! runScan parsed.Paths thresholds report
+            | true, _, _ -> do! runArchitecture parsed.Paths report
+            | false, Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report
+            | false, None, [] ->
+                printUsage ()
+                exit 2
+            | false, None, _ -> do! runScan parsed.Paths thresholds report
         with error ->
             Energy.CliNode.error ("energy-state-cli failed: " + string<exn> error)
             exit 1

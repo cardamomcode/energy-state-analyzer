@@ -31,6 +31,7 @@ let printUsage () =
         "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N --medium-parameter-count N --high-parameter-count N"
 
     error "Flags: --include-test-files (also flag magic numbers and magic strings in test files)"
+    error "       --architecture [paths...] [--report json|human] (audit .esa-architecture.json boundaries)"
 
 let private violationJson violation =
     let hotspots =
@@ -120,6 +121,93 @@ let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: 
             )
 
             exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
+    }
+
+let private architectureJson (report: Energy.Core.ArchitectureModel.ArchitectureReport) =
+    createObj
+        [ "filesScanned" ==> report.FilesScanned
+          "imports"
+          ==> (report.Imports
+               |> List.map (fun item ->
+                   createObj
+                       [ "filePath" ==> item.FilePath
+                         "line" ==> item.Line
+                         "column" ==> item.Column
+                         "source" ==> item.Source ])
+               |> List.toArray)
+          "unresolvedImports"
+          ==> (report.UnresolvedImports
+               |> List.map (fun item ->
+                   createObj [ "filePath" ==> item.FilePath; "line" ==> item.Line; "source" ==> item.Source ])
+               |> List.toArray)
+          "violations"
+          ==> (report.Violations
+               |> List.map (fun violation ->
+                   createObj
+                       [ "filePath" ==> violation.Import.FilePath
+                         "line" ==> violation.Import.Line
+                         "column" ==> violation.Import.Column
+                         "source" ==> violation.Import.Source
+                         "from" ==> violation.FromZone
+                         "to" ==> violation.ToZone ])
+               |> List.toArray) ]
+
+let private renderArchitectureHuman (report: Energy.Core.ArchitectureModel.ArchitectureReport) =
+    let heading =
+        sprintf
+            "# Architecture Audit\n\n**%d files scanned** — %d imports, %d unresolved\n"
+            report.FilesScanned
+            report.Imports.Length
+            report.UnresolvedImports.Length
+
+    if report.Violations.IsEmpty then
+        heading + "\nNo forbidden dependencies found."
+    else
+        let rows =
+            report.Violations
+            |> List.map (fun violation ->
+                sprintf
+                    "| %s:%d | %s | %s → %s |"
+                    violation.Import.FilePath
+                    (violation.Import.Line + 1)
+                    violation.Import.Source
+                    violation.FromZone
+                    violation.ToZone)
+            |> String.concat "\n"
+
+        heading
+        + "\n## Forbidden dependencies\n\n| Import | Source | Boundary |\n| --- | --- | --- |\n"
+        + rows
+
+// decision: architecture output is independent of the per-file violation reports because a layer
+// edge has two repository contexts and must not masquerade as a source-local editor diagnostic.
+let runArchitecture (paths: string list) (reportFormat: ReportFormat) : Task<unit> =
+    task {
+        let root = Path(cwd ())
+
+        match Energy.Core.ArchitecturePolicy.loadPolicy root with
+        | Error message ->
+            error ("energy-state-cli architecture audit failed: " + message)
+            exit 2
+        | Ok policy ->
+            let inputs = if paths.IsEmpty then [ cwd () ] else paths
+            let files = resolveSupportedFiles inputs (cwd ())
+            let! analysis = extractArchitectureImportsFromFiles root files
+
+            match analysis with
+            | Error analysisError ->
+                error ("energy-state-cli failed: " + analysisErrorMessage analysisError)
+                exit 1
+            | Ok imports ->
+                let report = Energy.Core.Architecture.audit policy files.Length imports
+
+                output (
+                    match reportFormat with
+                    | "human" -> renderArchitectureHuman report
+                    | _ -> stringify (architectureJson report)
+                )
+
+                exit (if report.Violations.IsEmpty then 0 else 1)
     }
 
 let private changedFilesFromGit baseRef =

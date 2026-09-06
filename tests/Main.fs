@@ -10,6 +10,7 @@ let main _ =
     runTests
         [ SpikeTests.tests
           ConfigTests.tests
+          ArchitectureTests.tests
           CPlusPlusTests.tests
           NestingTests.tests
           NestingTests.gatingTests

@@ -75,6 +75,19 @@ In VS Code, run **Energy State Analyzer: Export SARIF Report** to scan the open 
 
 Only one glob shape is supported: a trailing `**/*.ext` pattern on an otherwise literal directory prefix (e.g. `src/**/*.py`). There's no brace expansion, negation, or mid-path wildcards, pass explicit directories/files for anything more complex.
 
+## Checking architecture conformance
+
+Use `--architecture` to check configured layer boundaries across a repository. It is an explicit
+CLI/CI audit and does not change normal scan reports or VS Code diagnostics:
+
+```bash
+npx energy-state-analyzer --architecture --report human
+```
+
+The audit reads `.esa-architecture.json` in the current directory and exits non-zero for a
+forbidden dependency. See [Architecture conformance](architecture-audit.md) for the policy schema
+and JSON output.
+
 ### Excluding files and folders: `.esaignore`
 
 Add a `.esaignore` file next to where you run the CLI (or the extension's workspace root) to exclude paths from both `--report`/scan mode and `--base-ref` diff mode. One pattern per line:

@@ -1,0 +1,30 @@
+{
+  "zones": [
+    {
+      "name": "Core",
+      "files": ["src/Core"],
+      "importPrefixes": ["Energy.Core"]
+    },
+    {
+      "name": "Languages",
+      "files": ["src/Languages"],
+      "importPrefixes": ["Energy.Languages"]
+    },
+    {
+      "name": "Extension",
+      "files": ["src/Extension"],
+      "importPrefixes": ["Energy.Extension"]
+    },
+    {
+      "name": "Cli",
+      "files": ["src/Cli.fs", "src/CliModes.fs", "src/CliNode.fs", "src/CliRuntime.fs", "cli"],
+      "importPrefixes": ["Energy.Cli", "Energy.CliModes", "Energy.CliNode", "Energy.CliRuntime"]
+    }
+  ],
+  "forbiddenDependencies": [
+    { "from": "Core", "to": "Extension" },
+    { "from": "Core", "to": "Cli" },
+    { "from": "Languages", "to": "Extension" },
+    { "from": "Languages", "to": "Cli" }
+  ]
+}
