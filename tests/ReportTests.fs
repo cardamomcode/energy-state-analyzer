@@ -139,6 +139,29 @@ let tests =
                   assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
           )
           test (
+              "rule help URIs point to their detector documentation",
+              fun _ ->
+                  let documentation =
+                      [ Nesting, "excessive-nesting.md"
+                        Complexity, "cyclomatic-complexity.md"
+                        Cognitive, "cognitive-complexity.md"
+                        Naming, "file-coherence.md"
+                        Coherence, "file-coherence.md"
+                        Magic, "magic-values.md"
+                        Parameters, "parameter-explosion.md"
+                        Inversion, "inversion-opportunities.md"
+                        PrimitiveObsession, "primitive-obsession.md"
+                        MatchOpportunity, "match-opportunities.md"
+                        LogicalControlFlow, "logical-operator-control-flow.md"
+                        OpaqueBoolean, "opaque-boolean-literal.md"
+                        ErrorShadowing, "error-shadowing.md"
+                        Suppression, "suppression.md" ]
+
+                  documentation
+                  |> List.iter (fun (violationType, document) ->
+                      assertThat ((violationHelpUri violationType).EndsWith document) isTrue)
+          )
+          test (
               "SARIF report exposes standard rules, one-based locations, and remediation messages",
               fun _ ->
                   let finding =
@@ -155,6 +178,13 @@ let tests =
                   assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
                   assertThat (sarif.Contains("\"ruleId\": \"ESA-006\"")) isTrue
                   assertThat (sarif.Contains("\"id\": \"ESA-006\"")) isTrue
+
+                  assertThat
+                      (sarif.Contains(
+                          "\"helpUri\": \"https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/magic-values.md\""
+                      ))
+                      isTrue
+
                   assertThat (sarif.Contains("\"startLine\": 6")) isTrue
                   assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
                   assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue

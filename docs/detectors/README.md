@@ -20,8 +20,9 @@ type checking remain the compiler's job.
 
 ## Naming and literals
 
-- [ESA-006: Magic numbers](magic-numbers.md), unnamed numeric literals.
-- [ESA-006: Magic strings](magic-strings.md), unnamed string literals at decision points.
+- [ESA-006: Magic values](magic-values.md), unnamed numeric literals or strings at decision points.
+  - [Magic numbers](magic-numbers.md), unnamed numeric literals.
+  - [Magic strings](magic-strings.md), unnamed string literals at decision points.
 - [ESA-009: Primitive obsession](primitive-obsession.md), strings/numbers standing in for a real type.
 
 ## Control-flow shape

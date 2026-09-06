@@ -43,6 +43,9 @@
     "energy-state-analyzer": "./dist/cli.js",
     "energy-state-cli": "./dist/cli.js"
   },
+  "extensionPack": [
+    "ms-sarifvscode.sarif-viewer"
+  ],
   "contributes": {
     "commands": [
       {
