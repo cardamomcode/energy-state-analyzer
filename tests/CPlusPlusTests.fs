@@ -66,6 +66,17 @@ let tests =
                   assertThat (file.EndsWith("widget.hpp.in", System.StringComparison.Ordinal)) isTrue
           )
           test (
+              "skips generated and dependency directories when recursively scanning",
+              fun _ ->
+                  let resolved =
+                      resolveSupportedFiles [ "tests/scan-fixtures/ignored-directories" ] (cwd ())
+
+                  let paths = resolved |> List.map (fun (Energy.Core.Paths.Path path) -> path)
+
+                  assertThat paths.Length (isEqualTo 1)
+                  assertThat ((List.head paths).EndsWith("source.py", System.StringComparison.Ordinal)) isTrue
+          )
+          test (
               "does not claim C, CUDA, or Objective-C++ suffixes",
               fun _ ->
                   for suffix in [ ".c"; ".i"; ".cu"; ".cuh"; ".mm"; ".m" ] do

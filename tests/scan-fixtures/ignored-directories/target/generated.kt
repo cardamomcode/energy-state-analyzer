@@ -1,0 +1,1 @@
+fun generated() = 1

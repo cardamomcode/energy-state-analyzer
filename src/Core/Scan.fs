@@ -31,12 +31,28 @@ let private ignoredDirectoryNames =
     Set.ofList
         [ "node_modules"
           ".git"
+          "bin"
+          "obj"
           "dist"
           "out"
           "build"
+          "fable-out"
+          "fable_modules"
+          "fable-tests"
+          "spike-js"
           ".next"
           "coverage"
-          ".vscode-test" ]
+          ".vscode-test"
+          "target"
+          ".gradle"
+          "__pycache__"
+          ".venv"
+          "venv"
+          ".tox"
+          ".nox"
+          ".pytest_cache"
+          ".mypy_cache"
+          ".ruff_cache" ]
 
 // decision: the walked file set stays a Path list end to end — joinPath's Path results flow
 // straight into isIgnored/recursive walks without string round-trips; the string world is only
