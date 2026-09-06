@@ -39,7 +39,7 @@ suffixes are deliberately not routed to the C++ adapter.
 
 ## Scanning a repo or subtree
 
-Pass more than one path, a directory, or a `dir/**/*.ext`-style pattern to scan every supported file underneath it (skipping `node_modules`, `.git`, `dist`, `out`, `build`, `.next`, `coverage`, `.vscode-test`) and get an aggregated report instead of a single file's violations:
+Pass more than one path, a directory, or a `dir/**/*.ext`-style pattern to scan every supported file underneath it (skipping dependency, generated, and test-output directories such as `node_modules`, `.git`, `bin`, `obj`, `dist`, `out`, `build`, Fable outputs, Python environments and caches, Gradle caches, and Rust/Maven `target`) and get an aggregated report instead of a single file's violations:
 
 ```bash
 npx energy-state-analyzer src --report md
