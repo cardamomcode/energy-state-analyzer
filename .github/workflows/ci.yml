@@ -14,7 +14,7 @@ on:
 # was the root cause of push-to-main uploads failing when #83 merged; declaring it fixes that.
 # Pull-request uploads work with defaults, but declaring it keeps every context consistent.
 permissions:
-  security_events: write
+  security-events: write
 
 jobs:
   test:
