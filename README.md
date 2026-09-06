@@ -109,6 +109,7 @@ To exclude files/folders (e.g. test fixtures, generated code) from both the exte
 ## Commands
 
 - **Energy State Analyzer: Analyze Energy State** (`energy-state-analyzer.analyze`), manually re-run analysis on the active editor.
+- **Energy State Analyzer: Export SARIF Report** (`energy-state-analyzer.exportSarif`), scan the workspace and write `.energy-state/latest.sarif` for SARIF-compatible tools.
 
 ## Known Issues
 

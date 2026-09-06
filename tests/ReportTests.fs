@@ -99,6 +99,46 @@ let tests =
                   assertThat (json.Contains("\"weight\": 3")) isTrue
           )
           test (
+              "rule IDs are stable and unique across every violation type",
+              fun _ ->
+                  let ids =
+                      [ Nesting
+                        Complexity
+                        Cognitive
+                        Naming
+                        Coherence
+                        Magic
+                        Parameters
+                        Inversion
+                        PrimitiveObsession
+                        MatchOpportunity
+                        LogicalControlFlow
+                        OpaqueBoolean
+                        ErrorShadowing
+                        Suppression ]
+                      |> List.map violationRuleId
+
+                  assertThat
+                      ids
+                      (isEqualTo
+                          [ "ESA-001"
+                            "ESA-002"
+                            "ESA-003"
+                            "ESA-004"
+                            "ESA-005"
+                            "ESA-006"
+                            "ESA-007"
+                            "ESA-008"
+                            "ESA-009"
+                            "ESA-010"
+                            "ESA-011"
+                            "ESA-012"
+                            "ESA-013"
+                            "ESA-014" ])
+
+                  assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
+          )
+          test (
               "SARIF report exposes standard rules, one-based locations, and remediation messages",
               fun _ ->
                   let finding =
@@ -113,7 +153,8 @@ let tests =
                       |> Energy.CliNode.stringify
 
                   assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
-                  assertThat (sarif.Contains("\"ruleId\": \"energy-state/magic\"")) isTrue
+                  assertThat (sarif.Contains("\"ruleId\": \"ESA-006\"")) isTrue
+                  assertThat (sarif.Contains("\"id\": \"ESA-006\"")) isTrue
                   assertThat (sarif.Contains("\"startLine\": 6")) isTrue
                   assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
                   assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue

@@ -135,6 +135,12 @@ let activate (context: obj) : Task<unit> =
                 requestAnalysis ())
             |> addSubscription context
 
+            registerAsyncCommand
+                commands
+                "energy-state-analyzer.exportSarif"
+                (Energy.Extension.SarifExport.createCommand (fun () -> state |> Option.map _.Grammar))
+            |> addSubscription context
+
             subscribeEvents context
             requestAnalysis ()
             console.log ("✅ Energy State Analyzer activated successfully!")

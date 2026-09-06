@@ -48,6 +48,10 @@
       {
         "command": "energy-state-analyzer.analyze",
         "title": "Analyze Energy State"
+      },
+      {
+        "command": "energy-state-analyzer.exportSarif",
+        "title": "Export SARIF Report"
       }
     ],
     "configuration": {

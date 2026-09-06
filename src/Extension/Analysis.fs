@@ -37,10 +37,7 @@ let private parseDocument fileName parser source =
     with error ->
         Error(ParseFailed(fileName, string<exn> error))
 
-let private analyze loaded document =
-    let source = documentText document
-    let fileName = documentFileName document
-
+let analyzeSourceWith thresholds loaded fileName source =
     // decision: presentation consumes the Core result directly. Optional Python type-information
     // logging is not part of analysis, so it must never turn valid findings into an empty editor.
     parseDocument fileName loaded.Parser source
@@ -49,7 +46,13 @@ let private analyze loaded document =
           Tree = root
           Language = loaded.Adapter
           FileName = fileName }
-        |> analyzeWith (readAnalyzeThresholds ()))
+        |> analyzeWith thresholds)
+
+let analyzeSource loaded fileName source =
+    analyzeSourceWith (readAnalyzeThresholds ()) loaded fileName source
+
+let private analyze loaded document =
+    analyzeSource loaded (documentFileName document) (documentText document)
 
 // decision: handles typed boundary failures at the document boundary to retain the extension's
 // existing UX: report the error but clear decorations rather than leave stale findings visible.

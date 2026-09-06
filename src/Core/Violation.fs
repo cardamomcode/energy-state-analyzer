@@ -63,6 +63,26 @@ let violationTypeName =
     | ErrorShadowing -> "error-shadowing"
     | Suppression -> "suppression"
 
+/// Stable, user-facing identifiers for analyzer rules.
+// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
+// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
+let violationRuleId =
+    function
+    | Nesting -> "ESA-001"
+    | Complexity -> "ESA-002"
+    | Cognitive -> "ESA-003"
+    | Naming -> "ESA-004"
+    | Coherence -> "ESA-005"
+    | Magic -> "ESA-006"
+    | Parameters -> "ESA-007"
+    | Inversion -> "ESA-008"
+    | PrimitiveObsession -> "ESA-009"
+    | MatchOpportunity -> "ESA-010"
+    | LogicalControlFlow -> "ESA-011"
+    | OpaqueBoolean -> "ESA-012"
+    | ErrorShadowing -> "ESA-013"
+    | Suppression -> "ESA-014"
+
 let severityName =
     function
     | Low -> "low"

@@ -26,6 +26,11 @@ let private parseUri (constructor: obj) (value: string) : obj = nativeOnly
 
 let uriFromString value = parseUri uriConstructor value
 
+[<Emit("$0.file($1)")>]
+let private fileUri (constructor: obj) (path: string) : obj = nativeOnly
+
+let uriFromFilePath path = fileUri uriConstructor path
+
 [<Emit("new $0($1, $2, $3, $4)")>]
 let private constructRange
     (constructor: obj)

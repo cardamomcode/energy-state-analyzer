@@ -69,6 +69,7 @@
     <Compile Include="Extension/Configuration.fs" />
     <Compile Include="Extension/Analysis.fs" />
     <Compile Include="Extension/Grammar.fs" />
+    <Compile Include="Extension/SarifExport.fs" />
     <Compile Include="Extension/DecorationModel.fs" />
     <Compile Include="Extension/Decorations.fs" />
     <Compile Include="Extension/DiagnosticModel.fs" />

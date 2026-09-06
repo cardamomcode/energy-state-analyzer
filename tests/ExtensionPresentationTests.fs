@@ -189,7 +189,7 @@ let tests =
                   assertThat spec.Severity (isEqualTo ProblemSeverity.Error)
                   assertThat spec.Range.StartColumn (isEqualTo 4)
                   assertThat spec.Message (isEqualTo "complex | nested | magic")
-                  assertThat spec.Code (isEqualTo "energy-complexity,energy-nesting,energy-magic")
+                  assertThat spec.Code (isEqualTo "ESA-002,ESA-001,ESA-006")
                   assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ])
           ) ]
     )
