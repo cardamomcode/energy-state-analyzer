@@ -89,7 +89,7 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 
 ### Thresholds and allowlists (`.esaconfig.json`)
 
-Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). The keys (all optional; an absent key keeps its default) include:
+Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, [guidance on choosing thresholds](docs/configuration.md#choosing-thresholds), and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). The keys (all optional; an absent key keeps its default) include:
 
 - `nesting.mediumThreshold` / `highThreshold` (`3` / `5`)
 - `cognitiveComplexity.mediumThreshold` / `highThreshold` (`15` / `25`)

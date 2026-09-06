@@ -8,6 +8,12 @@ built-in defaults  <  .esaconfig.json  <  host override
 
 The built-in defaults are the single source of truth for every threshold (see `src/Core/Config.fs`). A project's `.esaconfig.json` layers its values on top, and each host wins at its own boundary — VS Code settings in the editor, command-line flags in the CLI. Anything not set in the file falls back to the built-in default; anything set via a host override beats both.
 
+## Choosing thresholds
+
+Thresholds are intentional prompts to inspect and improve code, not universal claims about what good code looks like. A finding near a threshold is often the useful moment to simplify a function or clarify a design; passing a threshold does not mean there is nothing left to improve.
+
+Start by fixing a finding when it exposes real design friction. Change a threshold only when the metric or its default is demonstrably a poor fit for the project, and document why the shared configuration differs. For a reviewed, local exception, prefer a specific [`esa-ignore`](detectors/suppression.md) directive to weakening or disabling a detector for the entire project.
+
 ## The config file: `.esaconfig.json`
 
 Add a `.esaconfig.json` file to configure thresholds, ratios, and magic-number/string allowlists for a whole project — shared between the editor's live analysis and the CLI/CI scan, so one file drives both. It carries the **detail** values (thresholds, allowlists, ratios). Toggles (`enabled`, `includeTestFiles`, `includeFixtures`) and colors stay in VS Code settings; see [Extension Settings](../README.md#extension-settings) — they are not read from this file.
