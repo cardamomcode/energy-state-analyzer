@@ -25,6 +25,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # G-Research.FSharp.Analyzers 0.23.0 is built with fsharp-analyzers 0.37.2.
+    # Do not update the host until G-Research ships a compatible rule package.
+    ignore:
+      - dependency-name: "fsharp-analyzers"
+        versions: ["0.38.0"]
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
