@@ -121,8 +121,19 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
                         acc)
                 withEqualities
 
+        // decision: also counts the idiomatic match/switch dispatch on string literals (F#'s
+        // `match x with | "a" -> ... | "b" -> ...`), which the infix-`=` hooks above don't see. The hook
+        // returns the scrutinee variable and the string-literal case nodes; the values are accumulated
+        // under the same variable key as an equality comparison, so a match and an if/elif chain on the
+        // same name in one function still sum toward the threshold.
+        let withMatchCases =
+            match language.GetMatchStringCases node with
+            | Some(scrutinee, caseNodes) ->
+                record scrutinee (caseNodes |> List.map (stripQuotes << nodeText)) withMembership
+            | None -> withMembership
+
         nodeChildren node
-        |> List.fold (fun acc child -> traverse child acc) withMembership
+        |> List.fold (fun acc child -> traverse child acc) withMatchCases
 
     traverse functionNode Map.empty
     |> Map.toList
@@ -152,15 +163,23 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
 // Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
 let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
+        // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head
+        // per mutually recursive let) rather than the merged node. This fixes two false results at once:
+        // each head's parameters are analyzed for swap risk (previously only the first head's were), and
+        // each head's body is scanned for stringly-typed control flow in isolation (previously the merged
+        // node let two heads' same-named-variable comparisons accumulate into one phantom finding).
+        // For a single-head definition this is one head, so behavior is unchanged.
         let ownViolations =
             if ctx.Language.IsFunctionDefinition node then
-                let parameterViolations =
-                    match findParametersNode node ctx.Language.NodeTypes.Parameters with
-                    | Some parameters -> findParameterCollisions parameters ctx.Positions ctx.Language
-                    | None -> []
+                ctx.Language.GetFunctionHeads node
+                |> List.collect (fun head ->
+                    let parameterViolations =
+                        match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
+                        | Some parameters -> findParameterCollisions parameters ctx.Positions ctx.Language
+                        | None -> []
 
-                parameterViolations
-                @ findStringlyTypedControlFlow node ctx.Positions ctx.Language
+                    parameterViolations
+                    @ findStringlyTypedControlFlow head.Body ctx.Positions ctx.Language)
             else
                 []
 

@@ -74,8 +74,7 @@ let tests =
           "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/ParameterCount.kt"
           "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameter_count.cpp" ]
 
-    testList (
-        "Integration: parameter count (real code examples)",
+    let perLanguage =
         cases
         |> List.map (fun (label, language, fixture) ->
             testAsync (
@@ -112,4 +111,33 @@ let tests =
                         }
                     ))
             ))
-    )
+
+    // decision: the F# `and`-binding (a mutually recursive let) parses as one definition node holding
+    // several heads, a shape with no equivalent in the other four fixtures — so its parameter-count
+    // check gets a dedicated F#-only test proving the second head is measured, not just the first.
+    let fsharpAndBinding =
+        testAsync (
+            "F#: an and-bound function's parameter count is measured",
+            (fun _ ->
+                toAsync (
+                    task {
+                        let! (sourceCode, tree) = parseFixture FSharp.fSharpLanguageAdapter "fsharp/ParameterCount.fs"
+
+                        let violations =
+                            analyzeFixture sourceCode tree FSharp.fSharpLanguageAdapter "fsharp/ParameterCount.fs"
+
+                        assertValidPositions violations sourceCode
+
+                        let andHead =
+                            findFunctionRange sourceCode (FunctionName "flaggedAndBindingManyParams")
+
+                        let hits =
+                            violationsIn violations andHead |> List.filter (fun v -> v.Type = Parameters)
+
+                        assertThat (List.length hits) (isEqualTo 1)
+                        assertThat (List.head hits).Severity (isEqualTo Medium)
+                    }
+                ))
+        )
+
+    testList ("Integration: parameter count (real code examples)", perLanguage @ [ fsharpAndBinding ])

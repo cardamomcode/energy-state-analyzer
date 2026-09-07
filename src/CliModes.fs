@@ -16,7 +16,23 @@ open Energy.Core.Scan
 open Energy.Core.Violation
 open Energy.Languages.Registry
 
-type ReportFormat = string
+// decision: the report format is a closed set of CLI choices, so it is a DU rather than a free
+// string — this is what keeps the render dispatch below from being a stringly-typed match (the
+// primitive-obsession detector's stringly-control-flow check) and makes the selection exhaustive at
+// compile time. The `--report` flag still takes a string; parseReportFormat maps it onto the DU.
+type ReportFormat =
+    | Human
+    | Markdown
+    | Sarif
+    | Json
+
+let parseReportFormat (text: string) : ReportFormat =
+    match text with
+    | "human" -> Human
+    | "md"
+    | "markdown" -> Markdown
+    | "sarif" -> Sarif
+    | _ -> Json
 
 let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"
@@ -113,10 +129,10 @@ let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: 
 
             output (
                 match reportFormat with
-                | "human" -> renderHumanReport results
-                | "md" -> renderMarkdownReport summary
-                | "sarif" -> stringify (Energy.Core.ReportSarif.renderSarif results)
-                | _ -> stringify (summaryJson results)
+                | Human -> renderHumanReport results
+                | Markdown -> renderMarkdownReport summary
+                | Sarif -> stringify (Energy.Core.ReportSarif.renderSarif results)
+                | Json -> stringify (summaryJson results)
             )
 
             exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
@@ -214,7 +230,7 @@ let runDiff
             let entries = diffSummaries bases heads
 
             output (
-                if reportFormat = "md" then
+                if reportFormat = Markdown then
                     renderDiffMarkdown entries baseRef
                 else
                     stringify (diffJson entries)

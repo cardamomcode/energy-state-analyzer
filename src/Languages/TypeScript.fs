@@ -93,6 +93,8 @@ let typeScriptLanguageAdapter: LanguageAdapter =
         fun node ->
             nodeType node = NodeType "function_declaration"
             || nodeType node = NodeType "method_definition"
+      // TypeScript has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes = [ NodeType "required_parameter"; NodeType "optional_parameter" ]
       DecisionNodeTypes =
@@ -202,6 +204,9 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                     | [ l; r ] -> [ { Left = l; Right = r } ]
                     | _ -> []
                 | None -> []
+      // TS's switch-on-string is a documented gap shared with Python/Kotlin/C++ — only F#'s `match` gets
+      // the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       // TS's set-membership idiom is `[...].includes(x)`, a call_expression rather than a comparison
       // node — not modeled here; repeated equality checks still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []

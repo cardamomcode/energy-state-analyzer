@@ -83,6 +83,8 @@ let pythonLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float")
           StringLiteral = Some(NodeType "string") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      // Python has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod =
         fun node ->
             nodeParent node
@@ -198,6 +200,10 @@ let pythonLanguageAdapter: LanguageAdapter =
                       Right = children.[i + 1] })
             else
                 []
+      // Python's match is a `match ... case` statement; its string-case dispatch is already captured by
+      // the equality/membership hooks for the if/elif form this detector models — the match form is a
+      // documented gap shared with TS/Kotlin/C++ (only F#'s `match` gets the dedicated hook).
+      GetMatchStringCases = fun _ -> None
       // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
       // comparison node) and F# has no direct construct; both still accumulate distinct literals across
       // separate equality comparisons via GetEqualityComparisons.

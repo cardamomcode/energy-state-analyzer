@@ -30,40 +30,49 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
 // declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
 let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
-        let ownViolation =
+        // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head
+        // per mutually recursive let) rather than the merged node, so every head's parameter count is
+        // measured instead of only the first head's. For a single-head definition this is one head, so
+        // behavior is unchanged.
+        let ownViolations =
             if ctx.Language.IsFunctionDefinition node then
-                match findParametersNode node ctx.Language.NodeTypes.Parameters with
-                | Some parameters ->
-                    let parameterCount =
-                        nodeChildren parameters
-                        |> List.filter (fun child -> ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
-                        |> List.length
+                ctx.Language.GetFunctionHeads node
+                |> List.collect (fun head ->
+                    match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
+                    | Some parameters ->
+                        let parameterCount =
+                            nodeChildren parameters
+                            |> List.filter (fun child ->
+                                ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
+                            |> List.length
 
-                    // decision: thresholds live in Core.Config as the single source of truth; this detector
-                    // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can retune
-                    // without editing code — past medium is medium energy, past high escalates to high.
-                    let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
-                    let highThreshold = ctx.Options.ParameterCount.HighThreshold
+                        // decision: thresholds live in Core.Config as the single source of truth; this detector
+                        // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can
+                        // retune without editing code — past medium is medium energy, past high escalates to high.
+                        let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
+                        let highThreshold = ctx.Options.ParameterCount.HighThreshold
 
-                    if parameterCount > mediumThreshold then
-                        let position = ctx.Positions.toPosition (nodeStartIndex node)
+                        if parameterCount > mediumThreshold then
+                            // Anchor at the head (the function name), not the merged defn, so an `and`-bound
+                            // function's finding lands on its own declaration.
+                            let position = ctx.Positions.toPosition (nodeStartIndex head.ParametersRoot)
 
-                        [ { Line = position.Line
-                            Column = position.Column
-                            Type = Parameters
-                            Severity = if parameterCount > highThreshold then High else Medium
-                            Message =
-                              sprintf
-                                  "Parameter explosion: %d parameters. Consider using objects or builder pattern."
-                                  parameterCount
-                            Hotspots = [] } ]
-                    else
-                        []
-                | None -> []
+                            [ { Line = position.Line
+                                Column = position.Column
+                                Type = Parameters
+                                Severity = if parameterCount > highThreshold then High else Medium
+                                Message =
+                                  sprintf
+                                      "Parameter explosion: %d parameters. Consider using objects or builder pattern."
+                                      parameterCount
+                                Hotspots = [] } ]
+                        else
+                            []
+                    | None -> [])
             else
                 []
 
-        ownViolation @ (nodeChildren node |> List.collect traverse)
+        ownViolations @ (nodeChildren node |> List.collect traverse)
 
     let findings = traverse ctx.Tree
     addViolations findings ctx

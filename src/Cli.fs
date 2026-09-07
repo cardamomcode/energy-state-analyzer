@@ -78,7 +78,7 @@ let private parseArguments arguments =
 
     { Paths = paths
       BaseRef = Map.tryFind "base-ref" flags
-      Report = Map.tryFind "report" flags
+      Report = Map.tryFind "report" flags |> Option.map parseReportFormat
       ConfigFile = Map.tryFind "config" flags
       Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
@@ -149,7 +149,7 @@ let runCli () : Task<unit> =
 
             let report =
                 parsed.Report
-                |> Option.defaultValue (if parsed.BaseRef.IsSome then "md" else "sarif")
+                |> Option.defaultValue (if parsed.BaseRef.IsSome then Markdown else Sarif)
 
             match parsed.BaseRef, parsed.Paths with
             | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report

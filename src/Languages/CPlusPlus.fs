@@ -190,6 +190,8 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           FloatLiteral = None
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      // C++ has no merged-binding shape: one function_definition is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes =
         [ NodeType "parameter_declaration"
@@ -290,6 +292,9 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
       KeywordOnlyBoundaryTypes = []
       DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
       GetEqualityComparisons = equalityComparisons
+      // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
+      // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       GetMembershipComparisons = fun _ -> []
       IsMatchCaseLiteral = isMatchCaseLiteral
       GetElseIfBranches = fun _ -> []

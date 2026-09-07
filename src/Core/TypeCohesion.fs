@@ -79,15 +79,19 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
 let collectTypeSignals (fn: Node) (language: LanguageAdapter) : HashSet<string> =
     let types = HashSet<string>()
 
-    match findParametersNode fn language.NodeTypes.Parameters with
-    | Some paramsNode ->
-        for child in nodeChildren paramsNode do
-            language.ExtractTypedParameter child
-            |> Option.bind (fun tp ->
-                baseTypeName tp.Type language.GenericBrackets
-                |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
-            |> ignore
-    | None -> ()
+    // decision: collects the typed-parameter signal from every logical head of a definition (F#'s
+    // `and`-binding splits into one head per mutually recursive let) rather than only the first head's
+    // parameters, so an `and`-bound function is no longer starved of its own typed parameters.
+    for head in language.GetFunctionHeads fn do
+        match findParametersNode head.ParametersRoot language.NodeTypes.Parameters with
+        | Some paramsNode ->
+            for child in nodeChildren paramsNode do
+                language.ExtractTypedParameter child
+                |> Option.bind (fun tp ->
+                    baseTypeName tp.Type language.GenericBrackets
+                    |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
+                |> ignore
+        | None -> ()
 
     language.ExtractReturnType fn
     |> Option.bind (fun returnType ->

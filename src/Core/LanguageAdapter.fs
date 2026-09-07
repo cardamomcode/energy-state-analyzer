@@ -38,6 +38,21 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
 
+/// One logical function inside a definition node. Most grammars have exactly one (the definition
+/// node itself). F#'s `and`-binding (a mutually recursive `let rec f ... and g ...`) parses as a
+/// single `function_or_value_defn` holding several `function_declaration_left` heads, each with its
+/// own parameters and body — `GetFunctionHeads` splits it into one view per head.
+type FunctionHead =
+    {
+        /// The node whose children carry this head's parameter patterns; `findParametersNode` runs
+        /// against it. For a single-head definition this is the definition node itself.
+        ParametersRoot: Node
+        /// The node whose subtree is this head's body — drives per-function stringly-typed control
+        /// flow and anchors that head's violation position. For a single-head definition this is the
+        /// definition node itself.
+        Body: Node
+    }
+
 type ImportKind =
     | Module
     | Members
@@ -93,6 +108,16 @@ type LanguageAdapter =
       // apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain
       // `let x = 5` and monadic `let!` bindings, distinguished only by their children).
       IsFunctionDefinition: Node -> bool
+      // Given a node for which IsFunctionDefinition is true, decompose it into the logical functions
+      // it contains. Most grammars return a single view wrapping the node itself (one function per
+      // definition node). F# splits an `and`-binding into one view per `function_declaration_left`
+      // head, so each head's parameters and body are analyzed independently rather than merged into
+      // the first head's.
+      //
+      // decision: a hook rather than a detector-side special case — the merged-binding shape is a
+      // grammar fact only the adapter knows, and every consumer (parameter-count, primitive-obsession
+      // swap-risk + stringly control flow, type-cohesion) shares the same per-head views.
+      GetFunctionHeads: Node -> FunctionHead list
       // Node types that count as "one parameter" among a parameters node's children.
       ParameterChildTypes: NodeType list
       // Node types that count as a decision point for cyclomatic complexity, EXCLUDING boolean and/or
@@ -150,6 +175,14 @@ type LanguageAdapter =
       // language's own idiom (Python: NewType/dataclass, TS: branded/nominal type, F#: single-case union).
       DistinctTypeAdvice: string
       GetEqualityComparisons: Node -> EqualityComparison list
+      // Given a node, if it is a match/switch that dispatches on a simple variable and carries one
+      // or more string-literal case patterns, returns the scrutinee variable node and the
+      // string-literal case-pattern nodes. None otherwise (not a match on a simple variable, or no
+      // string-literal cases). Drives the primitive-obsession detector's stringly-typed control-flow
+      // check for the idiomatic match/switch dispatch form (F#'s `match x with | "a" -> ... | "b" -> ...
+      //`). Always None for languages whose match/switch is already captured by GetEqualityComparisons
+      // or that have no string-dispatch construct.
+      GetMatchStringCases: Node -> (Node * Node list) option
       // Given a node, returns every 'variable in (literal, ...)' membership check it directly represents
       // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
       // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.
