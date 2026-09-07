@@ -110,6 +110,8 @@ let kotlinLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float_literal")
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_declaration"
+      // Kotlin has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun _ -> false
       ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =
@@ -224,6 +226,9 @@ let kotlinLanguageAdapter: LanguageAdapter =
                     | [ l; r ] -> [ { Left = l; Right = r } ]
                     | _ -> []
                 | None -> []
+      // Kotlin's when-on-string is a documented gap shared with Python/TS/C++ — only F#'s `match` gets
+      // the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       // Kotlin's set-membership idiom (`x in listOf(...)`) is an in_expression whose right side is
       // normally a call_expression, not a literal collection — not modeled here, same precedent as
       // typescript.ts. Repeated equality checks still accumulate via getEqualityComparisons.

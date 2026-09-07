@@ -8,7 +8,7 @@ Flags strings and numbers standing in for what should be a distinct, validated t
 
 In Python, a pair is suppressed only when *both* parameters are keyword-only (after a bare `*` or `*args` in the signature), since the signature itself then makes a positional call impossible. Named-parameter naming is still a weaker mitigation than a distinct type (`NewType`, a dataclass, etc.), since nothing stops a future `**kwargs`-splat call from transposing the values by hand, but that gap isn't worth detecting. This suppression doesn't apply to TypeScript, Kotlin, or C++, which have no enforcing keyword-only boundary, or F#, whose named arguments are optional at the call site and so don't prevent a positional call.
 
-**Stringly-typed control flow.** A variable compared against 3 or more distinct string literals within one function is a de facto enum encoded as strings, with no exhaustiveness checking and no typo protection at the type level. Runs on Python, F#, TypeScript, Kotlin, and C++; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, since the other adapters have no modeled direct equivalent construct.
+**Stringly-typed control flow.** A variable compared against 3 or more distinct string literals within one function is a de facto enum encoded as strings, with no exhaustiveness checking and no typo protection at the type level. Runs on Python, F#, TypeScript, Kotlin, and C++; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, and F# additionally flags the idiomatic `match` on string-literal cases dispatching on one variable, since the two are the same de facto enum expressed in each language's dominant form.
 
 ## Example
 
@@ -193,3 +193,5 @@ integers.
 ## Known limitations
 
 The `in (a, b, c)`-style membership check for stringly-typed control flow only runs on Python; F#'s grammar has no direct equivalent, TypeScript's idiom (`[...].includes(x)`) is a call expression rather than a comparison node, and common C++ container membership checks are library calls that require semantic resolution. Type aliases and macro-expanded declarations are not resolved.
+
+In F#, `fun` lambda (closure) parameters are deliberately not checked for parameter-swap risk: the adapter excludes `fun` expressions and nested `let`-bindings from "function" detection to avoid misidentifying a nested bind as its own function, and that same boundary means a lambda's adjacent same-typed parameters (a common home for them) escape the check. This is a known trade-off, not a detector bug.
