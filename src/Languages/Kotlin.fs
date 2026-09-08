@@ -4,6 +4,39 @@ open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+let private tryExpressionNodeType = NodeType "try_expression"
+let private blockNodeType = NodeType "block"
+let private functionBodyNodeType = NodeType "function_body"
+let private catchBlockNodeType = NodeType "catch_block"
+let private finallyBlockNodeType = NodeType "finally_block"
+
+let rec private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = blockNodeType) with
+    | Some block -> nodeNamedChildren block
+    | None ->
+        match children |> List.tryFind (fun child -> nodeType child = functionBodyNodeType) with
+        | Some body -> bodyItems body
+        | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryExpressionNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = blockNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedItems = bodyItems protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchBlockNodeType || nodeType child = finallyBlockNodeType)
+                |> List.collect bodyItems })
+
 // decision: an infix expression is flagged only when it has exactly three identifier children
 // (operand operator operand); this is a property of that shape, not a tunable threshold, so it
 // stays as a named constant at the top of the module rather than in Core.Config.
@@ -353,4 +386,5 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 |> List.filter (fun s -> nodeType s = NodeType "delegation_specifier")
                 |> List.choose delegationSpecifierName
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems }

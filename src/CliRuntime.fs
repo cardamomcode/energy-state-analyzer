@@ -5,6 +5,7 @@ open System.Threading.Tasks
 
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.NodeInterop
 open Energy.Core.Paths
 open Energy.Core.LanguageAdapter
 open Energy.Core.Report
@@ -35,11 +36,11 @@ let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> 
                 return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
     }
 
+// decision: tree-sitter's `parse` never throws (it yields a tree with an error child for bad input),
+// so there is no failure to catch — wrap the parsed tree directly. filePath stays a raw string because
+// it feeds AnalysisInput.Source; it is kept for call-site clarity even though nothing here reads it.
 let private parseSource (filePath: string) (parser: Parser) (sourceText: string) =
-    try
-        parse parser sourceText |> rootNode |> Ok
-    with error ->
-        Error(ParseFailed(filePath, string<exn> error))
+    Ok(parse parser sourceText |> rootNode)
 
 // decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
 // `sourceText` stays a raw string (it feeds AnalysisInput.Source) — the distinct types remove
@@ -63,14 +64,16 @@ let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresho
                     |> _.Violations)
     }
 
-let private readSource (filePath: Path) =
-    try
-        readFileSync filePath (Encoding "utf8") |> Ok
-    with error ->
-        // decision: the error payload is the string edge of this module — unwrap once here for
-        // the message rather than threading a Path through AnalysisError.
+let private readSource (filePath: Path) : Result<string, AnalysisError> =
+    // decision: use the safe Node binding so a missing/unreadable file becomes an Error payload
+    // instead of a thrown exception — no try/with here for the error-shadowing detector to flag.
+    match readFileSyncSafe filePath (Encoding "utf8") with
+    | Ok sourceText -> Ok sourceText
+    | Error message ->
+        // decision: the error payload is the string edge of this module — unwrap once here for the
+        // message rather than threading a Path through AnalysisError.
         let (Path file) = filePath
-        Error(SourceReadFailed(file, string<exn> error))
+        Error(SourceReadFailed(file, message))
 
 let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
     task {

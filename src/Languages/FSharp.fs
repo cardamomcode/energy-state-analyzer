@@ -124,6 +124,50 @@ let private isNamedArgumentPosition (node: Node) : bool =
 
     walk node
 
+let private tryExpressionNodeType = NodeType "try_expression"
+let private declarationExpressionNodeType = NodeType "declaration_expression"
+let private rulesNodeType = NodeType "rules"
+let private ruleNodeType = NodeType "rule"
+
+// F# sequences `let` bindings through declaration_expression instead of a block. Expand only that
+// structural chain; applications, conditionals, and loops remain one logical item.
+let rec private logicalItems (node: Node) : Node list =
+    match nodeType node with
+    | kind when kind = declarationExpressionNodeType -> nodeNamedChildren node |> List.collect logicalItems
+    | kind when kind = rulesNodeType -> nodeNamedChildren node |> List.collect logicalItems
+    | kind when kind = ruleNodeType -> [ node ]
+    | kind when kind = NodeType "function_or_value_defn" ->
+        nodeNamedChildren node
+        |> List.filter (fun child ->
+            nodeType child <> functionDeclarationLeft
+            && nodeType child <> NodeType "value_declaration_left")
+        |> List.collect logicalItems
+    | _ -> [ node ]
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryExpressionNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        let rulesIndex =
+            children |> List.tryFindIndex (fun child -> nodeType child = rulesNodeType)
+
+        match rulesIndex with
+        | Some index ->
+            { Anchor = node
+              ProtectedItems = children |> List.take index |> List.collect logicalItems
+              RecoveryItems = children |> List.skip index |> List.collect logicalItems }
+            |> Some
+        | None ->
+            match children with
+            | protectedBody :: cleanupBody :: _ ->
+                { Anchor = node
+                  ProtectedItems = logicalItems protectedBody
+                  RecoveryItems = logicalItems cleanupBody }
+                |> Some
+            | _ -> None
+
 let fSharpLanguageAdapter: LanguageAdapter =
     { Id = "fsharp"
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
@@ -393,4 +437,5 @@ let fSharpLanguageAdapter: LanguageAdapter =
       IsClassDefinition = fun _ -> false
       GetClassName = fun _ -> None
       GetBaseClassNames = fun _ -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = logicalItems }

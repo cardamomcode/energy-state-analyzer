@@ -343,5 +343,24 @@ let allowlistUnioningTests =
 let tests =
     testList (
         "Config: single source of truth",
-        defaultsTests @ colorsTests @ mergePrecedenceTests @ allowlistUnioningTests
+        defaultsTests
+        @ colorsTests
+        @ mergePrecedenceTests
+        @ allowlistUnioningTests
+        @ [ testAsync (
+                "error shadowing modes override independently",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let merged =
+                                loadTempConfig
+                                    """{"errorShadowing":{"protectedScope":{"minItems":11},"recovery":{"threshold":0.6}}}"""
+
+                            assertThat merged.ErrorShadowing.ProtectedScope.MinItems (isEqualTo 11)
+                            assertThat merged.ErrorShadowing.ProtectedScope.Threshold (isEqualTo 0.5)
+                            assertThat merged.ErrorShadowing.Recovery.MinItems (isEqualTo 5)
+                            assertThat merged.ErrorShadowing.Recovery.Threshold (isEqualTo 0.6)
+                        }
+                    )
+            ) ]
     )

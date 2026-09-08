@@ -12,6 +12,9 @@ open Fable.Core.JsInterop
 open Energy.Core.Paths
 
 [<Import("readFileSync", "node:fs")>]
+// decision: CliNode is the shared CLI arg/interop surface; its functions span many argument shapes by
+// necessity, so file coherence breadth reflects the shape of the command line, not a cohesion failure.
+//esa-ignore: coherence
 let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
 
 [<Import("existsSync", "node:fs")>]

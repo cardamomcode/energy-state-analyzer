@@ -98,7 +98,8 @@ Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.jso
 - `coherence.largeFunctionLines` (`20`), `maxLargeFunctions` (`5`), `singleDomainNameShare` (`0.7`)
 - `matchOpportunity.minBranches` (`3`)
 - `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
-- `errorShadowing.threshold` / `highThreshold` / `minNamedNodes` (`0.5` / `0.7` / `8`)
+- `errorShadowing.protectedScope.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `8`)
+- `errorShadowing.recovery.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `5`)
 - `magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
 

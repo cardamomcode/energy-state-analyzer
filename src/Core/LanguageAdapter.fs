@@ -28,6 +28,12 @@ type TypedParameter = { Name: string; Type: string }
 /// The bracket characters wrapping generic type arguments (`[` `]` for Python, `<` `>` for TS/Kotlin/F#).
 type GenericBrackets = { Open: string; Close: string }
 
+/// One try boundary expressed in language-neutral logical work items.
+type ErrorHandlingRegion =
+    { Anchor: Node
+      ProtectedItems: Node list
+      RecoveryItems: Node list }
+
 /// One direct equality comparison (== / === / F#'s single =) a node represents. A list rather than
 /// a single pair because Python's chained `a == b == c` parses as one comparison_operator holding
 /// two comparisons. Operand literals are already unwrapped to the real literal node by the caller.
@@ -160,12 +166,12 @@ type LanguageAdapter =
       // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
       // boolean, F# string/int/float/bool).
       PrimitiveTypeNames: Set<string>
-      // Node types that begin an error-handling region — the try construct whose whole subtree (the
-      // guarded body plus any catch/except/finally arms) counts as "error handling" for the
-      // error-shadowing detector. Marking the entire construct, not just the handler arms, captures
-      // both shadowing modes: logic buried under one catch, and a function dominated by handlers.
-      // Empty for a language whose grammar exposes no try/catch construct.
-      ErrorHandlingAnchorTypes: NodeType list
+      // Extracts a try boundary's protected and recovery/cleanup logical items. None means this node is
+      // not a try boundary. Each grammar owns its body wrappers and handler shapes here.
+      GetErrorHandlingRegion: Node -> ErrorHandlingRegion option
+      // Returns the statement-like work items in a function. Implementations unwrap only structural body
+      // containers; expressions and control structures stay one item, and nested functions stay separate.
+      GetFunctionLogicalItems: Node -> Node list
       // Node types that mark "every parameter after this one is keyword-only" (Python's bare `*`
       // keyword_separator and `*args` list_splat_pattern — both make positional calls to later params
       // impossible). Drives the primitive-obsession detector's parameter-swap-risk suppression. Empty

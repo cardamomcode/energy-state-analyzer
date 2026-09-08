@@ -33,6 +33,37 @@ let private typedDefaultParameterNodeType = NodeType "typed_default_parameter"
 let private comparisonOperatorNodeType = NodeType "comparison_operator"
 let private callNodeType = NodeType "call"
 let private andOperatorNodeType = NodeType "and"
+let private tryStatementNodeType = NodeType "try_statement"
+let private exceptClauseNodeType = NodeType "except_clause"
+let private finallyClauseNodeType = NodeType "finally_clause"
+
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = NodeType "block") with
+    | Some block -> nodeNamedChildren block
+    | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        let protectedItems =
+            children
+            |> List.tryFind (fun child -> nodeType child = NodeType "block")
+            |> Option.map bodyItems
+
+        protectedItems
+        |> Option.map (fun protectedItems ->
+            { Anchor = node
+              ProtectedItems = protectedItems
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.collect bodyItems })
 
 let private isFirstChild (node: Node) (parent: Node) =
     parent
@@ -371,4 +402,5 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> List.filter (fun c -> nodeType c = identifierNodeType || nodeType c = attributeNodeType)
                 |> List.map nodeText
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems }

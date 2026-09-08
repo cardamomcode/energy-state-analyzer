@@ -25,6 +25,34 @@ let private typeAnnotationNodeType = NodeType "type_annotation"
 // which lower-cased bindings use); a literal repeated across both would trip the magic-string
 // detector's own duplicate-string check.
 let private typeIdentifierNodeType = NodeType "type_identifier"
+let private tryStatementNodeType = NodeType "try_statement"
+let private statementBlockNodeType = NodeType "statement_block"
+let private catchClauseNodeType = NodeType "catch_clause"
+let private finallyClauseNodeType = NodeType "finally_clause"
+
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = statementBlockNodeType) with
+    | Some block -> nodeNamedChildren block
+    | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = statementBlockNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedItems = bodyItems protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.collect bodyItems })
 
 // decision: split out of getBaseClassNames into their own functions, each checking a single node
 // type, rather than several `c.type === '...'` comparisons against the same `heritage` subtree in
@@ -319,4 +347,5 @@ let typeScriptLanguageAdapter: LanguageAdapter =
             with
             | Some heritage -> extendsTargetNames heritage @ implementsTargetNames heritage
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems }

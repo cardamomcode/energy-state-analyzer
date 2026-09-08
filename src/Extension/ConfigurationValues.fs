@@ -100,9 +100,32 @@ let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
       Inversion = { Enabled = reader.Bool "inversion" "enabled" defaultInversionThresholds.Enabled }
       ErrorShadowing =
         { Enabled = reader.Bool "errorShadowing" "enabled" defaultErrorShadowingThresholds.Enabled
-          Threshold = reader.Float "errorShadowing" "threshold" defaultErrorShadowingThresholds.Threshold
-          HighThreshold = reader.Float "errorShadowing" "highThreshold" defaultErrorShadowingThresholds.HighThreshold
-          MinNamedNodes = reader.Int "errorShadowing" "minNamedNodes" defaultErrorShadowingThresholds.MinNamedNodes }
+          ProtectedScope =
+            { Threshold =
+                reader.Float
+                    "errorShadowing.protectedScope"
+                    "threshold"
+                    defaultErrorShadowingThresholds.ProtectedScope.Threshold
+              HighThreshold =
+                reader.Float
+                    "errorShadowing.protectedScope"
+                    "highThreshold"
+                    defaultErrorShadowingThresholds.ProtectedScope.HighThreshold
+              MinItems =
+                reader.Int
+                    "errorShadowing.protectedScope"
+                    "minItems"
+                    defaultErrorShadowingThresholds.ProtectedScope.MinItems }
+          Recovery =
+            { Threshold =
+                reader.Float "errorShadowing.recovery" "threshold" defaultErrorShadowingThresholds.Recovery.Threshold
+              HighThreshold =
+                reader.Float
+                    "errorShadowing.recovery"
+                    "highThreshold"
+                    defaultErrorShadowingThresholds.Recovery.HighThreshold
+              MinItems =
+                reader.Int "errorShadowing.recovery" "minItems" defaultErrorShadowingThresholds.Recovery.MinItems } }
       MagicNumber =
         { Enabled = reader.Bool "magicNumber" "enabled" defaultMagicNumberOptions.Enabled
           Allowlist = magicNumberAllowlist reader

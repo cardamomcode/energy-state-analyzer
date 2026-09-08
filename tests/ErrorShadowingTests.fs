@@ -22,7 +22,7 @@ let tests =
         (cases
          |> List.map (fun (label, language, fixture) ->
              testAsync (
-                 (sprintf "%s: flags functions dominated by error handling only" label),
+                 (sprintf "%s: does not flag ordinary protected happy paths" label),
                  fun _ ->
                      toAsync (
                          task {
@@ -35,20 +35,37 @@ let tests =
                              let hits range =
                                  violationsIn violations range |> List.filter (fun v -> v.Type = ErrorShadowing)
 
-                             let highCount range =
-                                 hits range |> List.filter (fun v -> v.Severity = High) |> List.length
-
                              // decision: assertValidPositions runs over the whole file's violations, not just
                              // this detector's, so a malformed position from one detector still fails CI.
-                             assertThat (hits shadow |> List.length) (isGreaterOrEqual 1)
-                             assertThat (highCount shadow) (isGreaterOrEqual 1)
+                             assertThat (hits shadow |> List.length) (isEqualTo 0)
                              assertThat (hits clean |> List.length) (isEqualTo 0)
+
+                             let permissiveOptions =
+                                 { defaultAnalyzeOptions with
+                                     ErrorShadowing =
+                                         { defaultErrorShadowingThresholds with
+                                             ProtectedScope =
+                                                 { defaultErrorShadowingThresholds.ProtectedScope with
+                                                     Threshold = 0.0
+                                                     MinItems = 1 } } }
+
+                             let protectedFindings =
+                                 createTestContext source tree language fixture permissiveOptions
+                                 |> Energy.Core.Detectors.ErrorShadowing.analyzeErrorShadowing
+                                 |> _.Violations
+
+                             assertThat
+                                 (violationsIn protectedFindings shadow
+                                  |> List.filter (fun violation -> violation.Type = ErrorShadowing)
+                                  |> List.length)
+                                 (isGreaterOrEqual 1)
+
                              assertValidPositions violations source
                          }
                      )
              )))
         @ [ testAsync (
-                "does not attribute a nested function's error handling to its enclosing function",
+                "does not flag ordinary recovery inside a nested function",
                 fun _ ->
                     toAsync (
                         task {
@@ -63,10 +80,111 @@ let tests =
                                     "python/error_shadowing_nested.py"
                                 |> List.filter (fun v -> v.Type = ErrorShadowing)
 
-                            // The nested function is analyzed on its own, but its try/except must not
-                            // create a second finding for the enclosing function.
-                            assertThat (violations |> List.length) (isEqualTo 1)
+                            assertThat (violations |> List.length) (isEqualTo 0)
                             assertValidPositions violations source
+                        }
+                    )
+            )
+            testAsync (
+                "flags recovery-dominated functions while leaving their try body as happy-path work",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/error_shadowing_recovery_heavy.py"
+
+                            let violations =
+                                analyzeFixture
+                                    source
+                                    tree
+                                    Python.pythonLanguageAdapter
+                                    "python/error_shadowing_recovery_heavy.py"
+
+                            let dominated = findFunctionRange source (FunctionName "recoveryDominates")
+
+                            assertThat
+                                (violationsIn violations dominated
+                                 |> List.filter (fun v -> v.Type = ErrorShadowing && v.Severity = High)
+                                 |> List.length)
+                                (isGreaterOrEqual 1)
+
+                            assertValidPositions violations source
+                        }
+                    )
+            )
+            testAsync (
+                "reports protected scope, combined modes, and separate try boundaries independently",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/error_shadowing_recovery_heavy.py"
+
+                            let options =
+                                { defaultAnalyzeOptions with
+                                    ErrorShadowing =
+                                        { defaultErrorShadowingThresholds with
+                                            ProtectedScope =
+                                                { defaultErrorShadowingThresholds.ProtectedScope with
+                                                    Threshold = 0.4 } } }
+
+                            let violations =
+                                createTestContext
+                                    source
+                                    tree
+                                    Python.pythonLanguageAdapter
+                                    "python/error_shadowing_recovery_heavy.py"
+                                    options
+                                |> Energy.Core.Detectors.ErrorShadowing.analyzeErrorShadowing
+                                |> _.Violations
+                                |> List.filter (fun violation -> violation.Type = ErrorShadowing)
+
+                            let hits name =
+                                violationsIn violations (findFunctionRange source (FunctionName name))
+
+                            let broad = hits "broadBoundary"
+                            let combined = hits "combinedBoundary"
+                            let separate = hits "separateBoundaries"
+
+                            assertThat (broad |> List.length) (isEqualTo 1)
+                            assertThat (broad.Head.Message.Contains("protected scope")) isTrue
+                            assertThat (combined |> List.length) (isEqualTo 1)
+                            assertThat (combined.Head.Message.Contains("recovery/cleanup")) isTrue
+                            assertThat (separate |> List.length) (isEqualTo 2)
+                            assertValidPositions violations source
+                        }
+                    )
+            )
+            testAsync (
+                "counts F# finally cleanup as error handling",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (source, tree) =
+                                parseFixture FSharp.fSharpLanguageAdapter "fsharp/ErrorShadowingFinally.fs"
+
+                            let options =
+                                { defaultAnalyzeOptions with
+                                    ErrorShadowing =
+                                        { defaultErrorShadowingThresholds with
+                                            Recovery =
+                                                { defaultErrorShadowingThresholds.Recovery with
+                                                    Threshold = 0.0
+                                                    MinItems = 1 } } }
+
+                            let violations =
+                                createTestContext
+                                    source
+                                    tree
+                                    FSharp.fSharpLanguageAdapter
+                                    "fsharp/ErrorShadowingFinally.fs"
+                                    options
+                                |> Energy.Core.Detectors.ErrorShadowing.analyzeErrorShadowing
+                                |> _.Violations
+
+                            assertThat
+                                (violations |> List.filter (fun v -> v.Type = ErrorShadowing) |> List.length)
+                                (isGreaterOrEqual 1)
                         }
                     )
             )
@@ -81,7 +199,12 @@ let tests =
                                 { defaultAnalyzeOptions with
                                     ErrorShadowing =
                                         { defaultErrorShadowingThresholds with
-                                            Threshold = 0.0 } }
+                                            ProtectedScope =
+                                                { defaultErrorShadowingThresholds.ProtectedScope with
+                                                    Threshold = 0.0 }
+                                            Recovery =
+                                                { defaultErrorShadowingThresholds.Recovery with
+                                                    Threshold = 0.0 } } }
 
                             let violations =
                                 { Source = source
@@ -103,7 +226,12 @@ let tests =
                                 { options with
                                     ErrorShadowing =
                                         { options.ErrorShadowing with
-                                            Threshold = 1.0 } }
+                                            ProtectedScope =
+                                                { options.ErrorShadowing.ProtectedScope with
+                                                    Threshold = 1.0 }
+                                            Recovery =
+                                                { options.ErrorShadowing.Recovery with
+                                                    Threshold = 1.0 } } }
 
                             let strictViolations =
                                 { Source = source
