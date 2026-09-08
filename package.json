@@ -234,27 +234,47 @@
         "energyStateAnalyzer.errorShadowing.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to flag functions whose error handling (try/catch/except) occupies most of the body, shadowing the business logic it wraps."
+          "description": "Whether to flag overly broad protected try regions or recovery/cleanup that dominates a function."
         },
-        "energyStateAnalyzer.errorShadowing.threshold": {
+        "energyStateAnalyzer.errorShadowing.protectedScope.threshold": {
           "type": "number",
           "default": 0.5,
           "minimum": 0,
           "maximum": 1,
-          "description": "Share of a function's statements inside error-handling regions at which it is flagged (medium). Tunable in .esaconfig.json as errorShadowing.threshold."
+          "description": "Share of function logical items in one protected try region at which protected scope is medium energy."
         },
-        "energyStateAnalyzer.errorShadowing.highThreshold": {
+        "energyStateAnalyzer.errorShadowing.protectedScope.highThreshold": {
           "type": "number",
           "default": 0.7,
           "minimum": 0,
           "maximum": 1,
-          "description": "Share at which the finding is high severity. Tunable in .esaconfig.json as errorShadowing.highThreshold."
+          "description": "Share of function logical items in one protected try region at which protected scope is high energy."
         },
-        "energyStateAnalyzer.errorShadowing.minNamedNodes": {
+        "energyStateAnalyzer.errorShadowing.protectedScope.minItems": {
           "type": "number",
           "default": 8,
           "minimum": 1,
-          "description": "Minimum number of statements a function must have before error shadowing is considered, so tiny wrappers don't trip the rule. Tunable in .esaconfig.json as errorShadowing.minNamedNodes."
+          "description": "Minimum logical items in a protected try region before protected-scope analysis applies."
+        },
+        "energyStateAnalyzer.errorShadowing.recovery.threshold": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Share of function logical items in one catch/except/finally region at which recovery dominance is medium energy."
+        },
+        "energyStateAnalyzer.errorShadowing.recovery.highThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Share of function logical items in one catch/except/finally region at which recovery dominance is high energy."
+        },
+        "energyStateAnalyzer.errorShadowing.recovery.minItems": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Minimum logical recovery or cleanup items before recovery-dominance analysis applies."
         },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",

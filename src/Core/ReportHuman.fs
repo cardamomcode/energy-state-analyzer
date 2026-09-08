@@ -97,9 +97,7 @@ let private categoryBlurb =
     | MatchOpportunity -> Some "an if/elif chain on one variable that would read more clearly as a match/switch"
     | LogicalControlFlow -> Some "&&/|| used to hide an if statement"
     | OpaqueBoolean -> Some "a bare true/false at a call site that only makes sense by reading the callee"
-    | ErrorShadowing ->
-        Some
-            "error handling (try/catch/except) occupying most of a function's body, so the happy path it wraps is hard to read"
+    | ErrorShadowing -> Some "an overly broad protected try region or recovery/cleanup policy that dominates a function"
     | Suppression ->
         Some "an esa-ignore comment that names an unknown violation type, or no longer matches any violation"
     | Complexity

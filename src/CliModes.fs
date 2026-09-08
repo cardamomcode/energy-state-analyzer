@@ -7,6 +7,7 @@ open Fable.Core.JsInterop
 open Energy.CliNode
 open Energy.CliRuntime
 open Energy.Core.Analyze
+open Energy.Core.NodeInterop
 open Energy.Core.Esaignore
 open Energy.Core.Paths
 open Energy.Core.Report
@@ -14,6 +15,9 @@ open Energy.Core.ReportDiff
 open Energy.Core.ReportHuman
 open Energy.Core.Scan
 open Energy.Core.Violation
+// decision: mode dispatch intentionally re-opens every CLI surface (nodes, runtime, scan, reports,
+// languages) so each mode reads as one wiring block — splitting it would scatter the entry points.
+//esa-ignore: coherence
 open Energy.Languages.Registry
 
 // decision: the report format is a closed set of CLI choices, so it is a DU rather than a free
@@ -152,14 +156,16 @@ let private changedFilesFromGit baseRef =
 // decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
 // git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
 let private readAtRef reference filePath =
-    try
-        Some(
-            execFileSync
-                "git"
-                [| "show"; reference + ":" + filePath |]
-                (createObj [ "encoding" ==> "utf8"; "stdio" ==> [| "ignore"; "pipe"; "ignore" |] ])
-        )
-    with _ ->
+    // decision: use the safe exec binding so a missing/renamed ref becomes None (a normal new file)
+    // instead of a thrown exception — no try/with here for the error-shadowing detector to flag.
+    match
+        execFileSyncSafe
+            "git"
+            [| "show"; reference + ":" + filePath |]
+            (createObj [ "encoding" ==> "utf8"; "stdio" ==> [| "ignore"; "pipe"; "ignore" |] ])
+    with
+    | Ok output -> Some output
+    | Error _ ->
         error (
             "energy-state-cli: could not read "
             + filePath

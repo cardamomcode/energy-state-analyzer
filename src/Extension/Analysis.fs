@@ -31,11 +31,11 @@ let isDocumentIgnored (document: obj) =
         loadIgnorePatterns rootDir
         |> isIgnored (Energy.Core.Paths.Path(documentFileName document)) (Energy.Core.Paths.Path rootDir)
 
-let private parseDocument fileName parser source =
-    try
-        parse parser source |> rootNode |> Ok
-    with error ->
-        Error(ParseFailed(fileName, string<exn> error))
+// decision: tree-sitter's `parse` never throws — it returns a tree with an error child for invalid,
+// empty, or binary input. There is no failure to catch here, so the document boundary wraps the
+// parsed tree directly instead of pretending a parse can fail. Detectors later decide what those
+// error children mean; this layer only proves the tree was produced.
+let private parseDocument fileName parser source = Ok(parse parser source |> rootNode)
 
 let analyzeSourceWith thresholds loaded fileName source =
     // decision: presentation consumes the Core result directly. Optional Python type-information

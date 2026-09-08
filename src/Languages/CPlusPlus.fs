@@ -6,6 +6,36 @@ open System.Text.RegularExpressions
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+let private tryStatementNodeType = NodeType "try_statement"
+let private compoundStatementNodeType = NodeType "compound_statement"
+let private catchClauseNodeType = NodeType "catch_clause"
+
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match
+        children
+        |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
+    with
+    | Some body -> nodeNamedChildren body
+    | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedItems = bodyItems protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                |> List.collect bodyItems })
+
 // The C++ LanguageAdapter. Grammar node names and shapes below target the official
 // tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
 // the artifact. C++ declarators are recursive, so parameter extraction deliberately separates the
@@ -338,4 +368,5 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                 || nodeType child = NodeType "qualified_identifier")
             |> Option.map nodeText
       GetBaseClassNames = baseClassNames
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems }

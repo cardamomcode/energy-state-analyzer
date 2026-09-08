@@ -57,11 +57,15 @@ type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 // shares that float shape rather than an int count — a percentage of a function's body has no natural
 // integer unit, and a project should be able to retune exactly where "most of this function is error
 // handling" begins without editing detector code.
+type ErrorShadowingModeThresholds =
+    { Threshold: float
+      HighThreshold: float
+      MinItems: int }
+
 type ErrorShadowingThresholds =
     { Enabled: bool
-      Threshold: float
-      HighThreshold: float
-      MinNamedNodes: int }
+      ProtectedScope: ErrorShadowingModeThresholds
+      Recovery: ErrorShadowingModeThresholds }
 
 type ParameterCountThresholds =
     { Enabled: bool
@@ -149,14 +153,18 @@ let defaultAnalyzeOptions =
       OpaqueBoolean = { Enabled = true }
       LogicalControlFlow = { Enabled = true }
       Inversion = { Enabled = true }
-      // decision: 50% / 70% are the shares where a function's own body is more error handling than
-      // guarded work — enough that the happy path can no longer be read without wading through failure
-      // handling. MinNamedNodes keeps tiny wrappers (a single call under a try) from tripping it.
+      // decision: protected scope and recovery are different boundary smells, so each gets its own
+      // minimum size while retaining the same 50% / 70% severity shares.
       ErrorShadowing =
         { Enabled = true
-          Threshold = 0.5
-          HighThreshold = 0.7
-          MinNamedNodes = 8 }
+          ProtectedScope =
+            { Threshold = 0.5
+              HighThreshold = 0.7
+              MinItems = 8 }
+          Recovery =
+            { Threshold = 0.5
+              HighThreshold = 0.7
+              MinItems = 5 } }
       MagicNumber =
         { Enabled = true
           Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
@@ -249,10 +257,14 @@ type FileCoherence =
 
 type FileMatchOpportunity = { MinBranches: int option }
 
-type FileErrorShadowing =
+type FileErrorShadowingMode =
     { Threshold: float option
       HighThreshold: float option
-      MinNamedNodes: int option }
+      MinItems: int option }
+
+type FileErrorShadowing =
+    { ProtectedScope: FileErrorShadowingMode
+      Recovery: FileErrorShadowingMode }
 
 type FileParameterCount =
     { MediumThreshold: int option
@@ -303,9 +315,14 @@ let private emptyFileConfig: FileConfig =
           LargeFunctionSeverityMultiplier = None }
       MatchOpportunity = { MinBranches = None }
       ErrorShadowing =
-        { Threshold = None
-          HighThreshold = None
-          MinNamedNodes = None }
+        { ProtectedScope =
+            { Threshold = None
+              HighThreshold = None
+              MinItems = None }
+          Recovery =
+            { Threshold = None
+              HighThreshold = None
+              MinItems = None } }
       ParameterCount =
         { MediumThreshold = None
           HighThreshold = None }
@@ -317,6 +334,9 @@ let private emptyFileConfig: FileConfig =
 // decision: property access stays as two tiny `[<Emit>]` bindings rather than casting through a Map,
 // so arbitrary nested JSON navigates without Fable turning plain objects into .NET Maps.
 [<Emit("$0[$1]")>]
+// decision: config parsing intentionally spans many JSON shapes, so its functions don't collapse onto
+// one domain type — the breadth is the shape of configuration itself, not a cohesion failure.
+//esa-ignore: coherence
 let private getProp (value: obj) (key: string) : obj = nativeOnly
 
 [<Emit("$0 == null")>]
@@ -368,12 +388,11 @@ let readConfigJson (path: Path) : obj option =
     if not (existsSync path) then
         None
     else
-        try
-            let parsed = jsonParse (readFileSync path (Encoding "utf8"))
-
-            if isNullOrUndefined parsed then None else Some parsed
-        with _ ->
-            None
+        // decision: use the safe JSON binding so malformed config becomes "no value" rather than a
+        // thrown exception — no try/with here, so the error-shadowing detector stays quiet on this
+        // boundary and a typo'd .esaconfig.json simply keeps the built-in defaults. jsonParseSafe
+        // already maps both failure and null/undefined to None.
+        Energy.Core.NodeInterop.jsonParseSafe (readFileSync path (Encoding "utf8"))
 
 let parseFileConfig (raw: obj) : FileConfig =
     let nesting = field raw "nesting"
@@ -382,6 +401,13 @@ let parseFileConfig (raw: obj) : FileConfig =
     let coherence = field raw "coherence"
     let matchOpportunity = field raw "matchOpportunity"
     let errorShadowing = field raw "errorShadowing"
+
+    let protectedScope =
+        errorShadowing |> Option.bind (fun section -> field section "protectedScope")
+
+    let recovery =
+        errorShadowing |> Option.bind (fun section -> field section "recovery")
+
     let parameterCount = field raw "parameterCount"
     let magicNumber = field raw "magicNumber"
     let magicString = field raw "magicString"
@@ -413,9 +439,14 @@ let parseFileConfig (raw: obj) : FileConfig =
           LargeFunctionSeverityMultiplier = readNumber coherence "largeFunctionSeverityMultiplier" }
       MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
       ErrorShadowing =
-        { Threshold = readNumber errorShadowing "threshold"
-          HighThreshold = readNumber errorShadowing "highThreshold"
-          MinNamedNodes = readNumber errorShadowing "minNamedNodes" |> Option.map int }
+        { ProtectedScope =
+            { Threshold = readNumber protectedScope "threshold"
+              HighThreshold = readNumber protectedScope "highThreshold"
+              MinItems = readNumber protectedScope "minItems" |> Option.map int }
+          Recovery =
+            { Threshold = readNumber recovery "threshold"
+              HighThreshold = readNumber recovery "highThreshold"
+              MinItems = readNumber recovery "minItems" |> Option.map int } }
       ParameterCount =
         { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
           HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int }
@@ -492,9 +523,28 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
       // retune only the thresholds via .esaconfig.json — never switch the rule off from a repo config.
       ErrorShadowing =
         { Enabled = defaults.ErrorShadowing.Enabled
-          Threshold = Option.defaultValue defaults.ErrorShadowing.Threshold file.ErrorShadowing.Threshold
-          HighThreshold = Option.defaultValue defaults.ErrorShadowing.HighThreshold file.ErrorShadowing.HighThreshold
-          MinNamedNodes = Option.defaultValue defaults.ErrorShadowing.MinNamedNodes file.ErrorShadowing.MinNamedNodes }
+          ProtectedScope =
+            { Threshold =
+                Option.defaultValue
+                    defaults.ErrorShadowing.ProtectedScope.Threshold
+                    file.ErrorShadowing.ProtectedScope.Threshold
+              HighThreshold =
+                Option.defaultValue
+                    defaults.ErrorShadowing.ProtectedScope.HighThreshold
+                    file.ErrorShadowing.ProtectedScope.HighThreshold
+              MinItems =
+                Option.defaultValue
+                    defaults.ErrorShadowing.ProtectedScope.MinItems
+                    file.ErrorShadowing.ProtectedScope.MinItems }
+          Recovery =
+            { Threshold =
+                Option.defaultValue defaults.ErrorShadowing.Recovery.Threshold file.ErrorShadowing.Recovery.Threshold
+              HighThreshold =
+                Option.defaultValue
+                    defaults.ErrorShadowing.Recovery.HighThreshold
+                    file.ErrorShadowing.Recovery.HighThreshold
+              MinItems =
+                Option.defaultValue defaults.ErrorShadowing.Recovery.MinItems file.ErrorShadowing.Recovery.MinItems } }
       ParameterCount =
         { defaults.ParameterCount with
             MediumThreshold =

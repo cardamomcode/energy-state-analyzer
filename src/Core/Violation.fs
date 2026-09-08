@@ -25,8 +25,8 @@ type ViolationType =
     | MatchOpportunity
     | LogicalControlFlow
     | OpaqueBoolean
-    // Error handling that occupies so much of a function's body it shadows the business logic it
-    // wraps — a separation-of-concerns/cohesion signal, distinct from cyclomatic/cognitive complexity.
+    // An overly broad protected try region or dominating recovery policy — a separation-of-concerns/
+    // cohesion signal, distinct from cyclomatic/cognitive complexity.
     | ErrorShadowing
     | Suppression
 

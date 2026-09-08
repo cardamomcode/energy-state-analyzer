@@ -15,6 +15,9 @@ open Energy.Extension.Vscode.Diagnostics
 open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Identity
+// decision: composition root owns lifecycle, decorations, diagnostics, commands and every event
+// subscription, so it necessarily opens all Extension + Vscode bindings. The breadth is the role.
+//esa-ignore: coherence
 open Energy.Extension.Vscode.Workspace
 
 // Composition root: owns lifecycle state and event wiring only. Detection and presentation stay

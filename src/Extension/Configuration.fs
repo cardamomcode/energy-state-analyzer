@@ -64,7 +64,8 @@ let private fileIntAccessors =
       (("coherence", "largeFunctionLines"), (fun f -> f.Coherence.LargeFunctionLines))
       (("coherence", "maxLargeFunctions"), (fun f -> f.Coherence.MaxLargeFunctions))
       (("matchOpportunity", "minBranches"), (fun f -> f.MatchOpportunity.MinBranches))
-      (("errorShadowing", "minNamedNodes"), (fun f -> f.ErrorShadowing.MinNamedNodes))
+      (("errorShadowing.protectedScope", "minItems"), (fun f -> f.ErrorShadowing.ProtectedScope.MinItems))
+      (("errorShadowing.recovery", "minItems"), (fun f -> f.ErrorShadowing.Recovery.MinItems))
       (("parameterCount", "mediumThreshold"), (fun f -> f.ParameterCount.MediumThreshold))
       (("parameterCount", "highThreshold"), (fun f -> f.ParameterCount.HighThreshold))
       (("magicString", "minDuplicates"), (fun f -> f.MagicString.MinDuplicates)) ]
@@ -73,8 +74,10 @@ let private fileFloatAccessors =
     [ (("coherence", "singleDomainNameShare"), (fun f -> f.Coherence.SingleDomainNameShare))
       (("coherence", "maxTypeDiversityRatio"), (fun f -> f.Coherence.MaxTypeDiversityRatio))
       (("coherence", "minTypedCoverage"), (fun f -> f.Coherence.MinTypedCoverage))
-      (("errorShadowing", "threshold"), (fun f -> f.ErrorShadowing.Threshold))
-      (("errorShadowing", "highThreshold"), (fun f -> f.ErrorShadowing.HighThreshold)) ]
+      (("errorShadowing.protectedScope", "threshold"), (fun f -> f.ErrorShadowing.ProtectedScope.Threshold))
+      (("errorShadowing.protectedScope", "highThreshold"), (fun f -> f.ErrorShadowing.ProtectedScope.HighThreshold))
+      (("errorShadowing.recovery", "threshold"), (fun f -> f.ErrorShadowing.Recovery.Threshold))
+      (("errorShadowing.recovery", "highThreshold"), (fun f -> f.ErrorShadowing.Recovery.HighThreshold)) ]
 
 let private readFileInt (sectionKey: string * string) (file: FileConfig) : int option =
     match List.tryFind (fun (sk, _) -> sk = sectionKey) fileIntAccessors with
