@@ -65,126 +65,20 @@
           "default": false,
           "description": "Also flag magic numbers and magic strings in test files (test_*.py, *_test.py, *Test.py, *.test.ts, etc.). Off by default because test code is full of intentional literals."
         },
-        "energyStateAnalyzer.nesting.mediumThreshold": {
-          "type": "number",
-          "default": 3,
-          "minimum": 0,
-          "description": "Nesting depth above which control-flow blocks (if/for/while/with) are flagged as medium energy."
-        },
-        "energyStateAnalyzer.nesting.highThreshold": {
-          "type": "number",
-          "default": 5,
-          "minimum": 0,
-          "description": "Nesting depth above which control-flow blocks are flagged as high energy instead of medium."
-        },
-        "energyStateAnalyzer.cyclomaticComplexity.mediumThreshold": {
-          "type": "number",
-          "default": 10,
-          "minimum": 1,
-          "description": "Cyclomatic complexity above which a function is flagged as medium energy."
-        },
-        "energyStateAnalyzer.cyclomaticComplexity.highThreshold": {
-          "type": "number",
-          "default": 15,
-          "minimum": 1,
-          "description": "Cyclomatic complexity above which a function is flagged as high energy instead of medium."
-        },
-        "energyStateAnalyzer.cognitiveComplexity.mediumThreshold": {
-          "type": "number",
-          "default": 15,
-          "minimum": 1,
-          "description": "Cognitive complexity above which a function is flagged as medium energy."
-        },
-        "energyStateAnalyzer.cognitiveComplexity.highThreshold": {
-          "type": "number",
-          "default": 25,
-          "minimum": 1,
-          "description": "Cognitive complexity above which a function is flagged as high energy instead of medium."
-        },
-        "energyStateAnalyzer.coherence.largeFunctionLines": {
-          "type": "number",
-          "default": 20,
-          "minimum": 1,
-          "description": "Line count above which a function counts as 'large' for file coherence purposes."
-        },
-        "energyStateAnalyzer.coherence.maxLargeFunctions": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "description": "Number of large functions (see largeFunctionLines) a file can contain before it's flagged for coherence."
-        },
-        "energyStateAnalyzer.coherence.singleDomainNameShare": {
-          "type": "number",
-          "default": 0.7,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of a file's functions that must share a leading name word (e.g. extractFoo/extractBar) to treat the file as one coherent domain and skip the function-count sprawl check."
-        },
-        "energyStateAnalyzer.coherence.maxTypeDiversityRatio": {
-          "type": "number",
-          "default": 0.4,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Maximum ratio of distinct parameter/return base types to typed functions for a file to be treated as one type-cohesive module and skip the function-count sprawl check. A stronger signal than singleDomainNameShare when there's enough type-annotation coverage to trust it."
-        },
-        "energyStateAnalyzer.coherence.minTypedCoverage": {
-          "type": "number",
-          "default": 0.5,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Minimum share of a file's functions that must carry an explicit parameter or return-type annotation before typeCohesionShare is trusted; below this the detector falls back to singleDomainNameShare."
-        },
         "energyStateAnalyzer.magicNumber.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Whether to flag magic numbers."
-        },
-        "energyStateAnalyzer.magicNumber.allowlist": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          },
-          "default": [
-            0,
-            1,
-            -1,
-            2
-          ],
-          "description": "Additional numeric literals to exempt alongside the built-in structural values 0, 1, -1, and 2."
         },
         "energyStateAnalyzer.magicString.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Whether to flag magic strings (string literals compared, checked for membership, or used as a dict/object key)."
         },
-        "energyStateAnalyzer.magicString.minDuplicates": {
-          "type": "number",
-          "default": 2,
-          "minimum": 1,
-          "description": "Number of times the same string literal must recur at a decision point before it's flagged as a magic string."
-        },
-        "energyStateAnalyzer.magicString.allowlist": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "",
-            "utf-8",
-            "__main__"
-          ],
-          "description": "String literals that are never flagged as magic strings, regardless of context."
-        },
         "energyStateAnalyzer.includeFixtures": {
           "type": "boolean",
           "default": false,
           "description": "Analyze files that .esaignore excludes when opened in the editor, for visually verifying detector fixtures. Does not affect the CLI/CI scan, which always honors .esaignore."
-        },
-        "energyStateAnalyzer.matchOpportunity.minBranches": {
-          "type": "number",
-          "default": 3,
-          "minimum": 2,
-          "description": "Number of branches (if + elif/else-if) an if/elif chain must have, all keyed on the same variable, before it's flagged as a match/switch opportunity."
         },
         "energyStateAnalyzer.nesting.enabled": {
           "type": "boolean",
@@ -205,6 +99,11 @@
           "type": "boolean",
           "default": true,
           "description": "Whether to flag file coherence problems (function-count sprawl, god classes). Thresholds are set in .esaconfig.json."
+        },
+        "energyStateAnalyzer.matchOpportunity.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to flag repeated conditional chains that can become match/switch expressions. Thresholds are set in .esaconfig.json."
         },
         "energyStateAnalyzer.parameterCount.enabled": {
           "type": "boolean",
@@ -235,46 +134,6 @@
           "type": "boolean",
           "default": true,
           "description": "Whether to flag overly broad protected try regions or recovery/cleanup that dominates a function."
-        },
-        "energyStateAnalyzer.errorShadowing.protectedScope.threshold": {
-          "type": "number",
-          "default": 0.5,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of function logical items in one protected try region at which protected scope is medium energy."
-        },
-        "energyStateAnalyzer.errorShadowing.protectedScope.highThreshold": {
-          "type": "number",
-          "default": 0.7,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of function logical items in one protected try region at which protected scope is high energy."
-        },
-        "energyStateAnalyzer.errorShadowing.protectedScope.minItems": {
-          "type": "number",
-          "default": 8,
-          "minimum": 1,
-          "description": "Minimum logical items in a protected try region before protected-scope analysis applies."
-        },
-        "energyStateAnalyzer.errorShadowing.recovery.threshold": {
-          "type": "number",
-          "default": 0.5,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of function logical items in one catch/except/finally region at which recovery dominance is medium energy."
-        },
-        "energyStateAnalyzer.errorShadowing.recovery.highThreshold": {
-          "type": "number",
-          "default": 0.7,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of function logical items in one catch/except/finally region at which recovery dominance is high energy."
-        },
-        "energyStateAnalyzer.errorShadowing.recovery.minItems": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "description": "Minimum logical recovery or cleanup items before recovery-dominance analysis applies."
         },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",

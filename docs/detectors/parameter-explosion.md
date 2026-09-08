@@ -167,7 +167,7 @@ let createUserInStore = createUser dependencies
 
 ## Configuration
 
-The thresholds are configured at the same three levels as every other detector (see [Configuration](../configuration.md)): built-in defaults, a project's `.esaconfig.json`, and a host override (VS Code settings or CLI flags). The defaults are `5` (medium) / `8` (high).
+The shared thresholds are configured from built-in defaults and a project's `.esaconfig.json` (see [Configuration](../configuration.md)). The defaults are `5` (medium) / `8` (high); CLI invocation flags can temporarily override them for one scan.
 
 ```jsonc
 {
