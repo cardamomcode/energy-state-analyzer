@@ -61,6 +61,15 @@ order.
   analyzer input, including `.ts` and `.cpp` fixtures; it is not product or test implementation
   source in those languages.
 
+### Detector fixture parity
+
+Put realistic, multi-function analyzer examples under `src/test/fixtures/<language>/`. For every
+detector supported by multiple languages, add named positive and negative scenarios to
+`tests/DetectorFixtureMatrixTests.fs`; the matrix runs the complete registered pipeline and makes
+the cross-language contract readable in CI. State an unsupported language semantic explicitly as a
+clean limitation case rather than silently omitting it. Keep detector-specific tests for thresholds,
+configuration, and grammar edge cases alongside the detector's existing suite.
+
 The extension composition root owns lifecycle state, grammar caches, decorations, diagnostics,
 commands, and editor/document/configuration event subscriptions. Presentation never leaks into
 `Core/`; `Core/TreeSitter.fs` is the only web-tree-sitter facade.

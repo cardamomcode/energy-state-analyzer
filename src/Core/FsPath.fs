@@ -1,13 +1,16 @@
 module Energy.Core.FsPath
 
-// decision: single internal facade for the fs/path Node bindings shared by the scanning and
-// esaignore-loading modules. Fable's `[<Import>]` is the idiomatic way to bind a Node module, so
+// decision: single internal facade for filesystem, path, and working-directory Node bindings shared
+// by scanning, hosts, and tests. Fable's `[<Import>]` is the idiomatic way to bind a Node module, so
 // this keeps every `node:fs`/`node:path` reference in one place instead of duplicating it per file.
 // decision: path and encoding arguments are Core.Paths newtypes (erased to their backing strings)
 // so callers can no longer transpose a path with another string at the binding boundary.
 
 open Fable.Core
 open Energy.Core.Paths
+
+[<Emit("process.cwd()")>]
+let cwd () : string = nativeOnly
 
 [<Import("existsSync", "node:fs")>]
 let existsSync (path: Path) : bool = nativeOnly

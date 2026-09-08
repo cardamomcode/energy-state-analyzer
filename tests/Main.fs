@@ -27,5 +27,6 @@ let main _ =
           PrimitiveObsessionTests.tests
           ErrorShadowingTests.tests
           SuppressionsTests.tests
+          DetectorFixtureMatrixTests.tests
           ReportTests.tests
           ExtensionPresentationTests.tests ]

@@ -2,19 +2,14 @@ module Energy.Tests.TestUtils
 
 open System.Threading.Tasks
 open System
-// Fable.Core exposes [<Emit>]/[<Import>]/nativeOnly (mirrors SpikeTests, which also opens it).
 open Fable.Core
-
-open Fable.Core.JsInterop
-
-// Scriptorium.Nib.Assertion supplies assertThat/satisfy/isGreaterOrEqual/isLessThan; the type alias
-// keeps them in scope alongside the assertion combinators (mirrors SpikeTests).
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Context
+open Energy.Core.FsPath
 open Energy.Core.Position
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
@@ -25,13 +20,8 @@ open Energy.Core.LanguageAdapter
 // These helpers read fixtures from the source tree and drive the AnalysisInput pipeline against
 // real parsed trees — mirroring how the CLI/extension call analyzeWith, rather than exercising a
 // detector in isolation. The pure helpers below are reused by every
-// language's integration suite; only parseFixture is language-specific.
-
-[<Emit("process.cwd()")>]
-let cwd () : string = nativeOnly
-
-[<Import("readFileSync", "node:fs")>]
-let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
+// language's integration suite; only parseFixture is language-specific. Filesystem bindings come
+// from Core.FsPath so tests exercise the same Node boundary as product code.
 
 // A function identifier searched for within a fixture's source text.
 //
@@ -41,6 +31,21 @@ let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
 // representation.
 [<Erase>]
 type FunctionName = FunctionName of string
+
+/// A readable expectation for one named example inside a real-code fixture.
+///
+/// decision: keeps positive and negative examples together with their language and source file so
+/// reviewers can compare equivalent detector behaviour without reconstructing it from bespoke tests.
+/// invariant: every scenario asserts the complete registered pipeline, never a detector in isolation.
+type FixtureExpectation =
+    | StaysClean of FunctionName
+    | ProducesFinding of FunctionName * Severity option
+
+type LanguageFixtureCase =
+    { LanguageLabel: string
+      Language: LanguageAdapter
+      Fixture: string
+      Expectations: FixtureExpectation list }
 
 // Parse a fixture file with the given language adapter's grammar. Returns (sourceCode, tree).
 // Async because web-tree-sitter's Parser.init + Language.load are promises — parseWith bridges them
@@ -128,3 +133,48 @@ let assertValidPositions (violations: EnergyViolation list) (sourceCode: string)
         // serializable data rather than carrying live tree handles. sprintf never throws on a plain
         // record; asserting its output is non-empty confirms serialization produced the expected shape.
         assertThat (sprintf "%A" v) (satisfy (fun s -> s.Length > 0))
+
+/// Produce one parity test per language from a compact positive/negative fixture matrix.
+/// The test names deliberately include the fixture scenario, making failures readable in CI and in
+/// the source-side test runner.
+let detectorParityTests detectorName violationType cases =
+    cases
+    |> List.map (fun fixtureCase ->
+        let scenarioLabel =
+            fixtureCase.Expectations
+            |> List.map (function
+                | StaysClean(FunctionName name) -> name + " clean"
+                | ProducesFinding(FunctionName name, _) -> name + " flagged")
+            |> String.concat "; "
+
+        testAsync (
+            sprintf "%s: %s — %s" detectorName fixtureCase.LanguageLabel scenarioLabel,
+            fun _ ->
+                toAsync (
+                    task {
+                        let! (source, tree) = parseFixture fixtureCase.Language fixtureCase.Fixture
+                        let violations = analyzeFixture source tree fixtureCase.Language fixtureCase.Fixture
+                        assertValidPositions violations source
+
+                        for expectation in fixtureCase.Expectations do
+                            match expectation with
+                            | StaysClean functionName ->
+                                let range = findFunctionRange source functionName
+
+                                assertThat
+                                    (violationsIn violations range
+                                     |> List.filter (fun violation -> violation.Type = violationType)
+                                     |> List.length)
+                                    (isEqualTo 0)
+                            | ProducesFinding(functionName, expectedSeverity) ->
+                                let range = findFunctionRange source functionName
+
+                                assertThat
+                                    (violationsIn violations range
+                                     |> List.exists (fun violation ->
+                                         violation.Type = violationType
+                                         && (expectedSeverity |> Option.forall ((=) violation.Severity))))
+                                    isTrue
+                    }
+                )
+        ))

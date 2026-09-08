@@ -2,19 +2,11 @@ module Energy.Core.NodeInterop
 
 open Fable.Core
 open Fable.Core.JsInterop
+open Energy.Core.FsPath
 open Energy.Core.Paths
 
-// decision: the safe (never-throwing) counterparts to the Node bindings in CliNode.fs. Callers that
-// must not abort the run use these; the unsafe, throwing bindings stay in CliNode.fs for callers that
-// want exceptions — this is the safe/unsafe split the interop surface is organised around. Keeping the
-// safe variants here (not at each call site) means every boundary that must not throw goes through one
-// reviewed place, and none of them write `try/with` themselves.
-
-// decision: the safe wrappers here must call the throwing Node bindings, but Core cannot open the CLI
-// module (that would invert the dependency), so these erased re-bindings are declared locally. Path/
-// Encoding newtypes erase to their backing strings at runtime — identical signatures to CliNode.fs's.
-[<Import("readFileSync", "node:fs")>]
-let private unsafeReadFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
+// decision: the safe (never-throwing) counterparts to the Node bindings in FsPath/CliNode. Callers
+// that must not abort the run use these wrappers, keeping error conversion in one reviewed place.
 
 [<Import("execFileSync", "node:child_process")>]
 let private unsafeExecFileSync (command: string) (arguments: string array) (options: obj) : string = nativeOnly
@@ -37,7 +29,7 @@ let private attempt<'T> (fn: unit -> 'T) : Result<'T, string> =
         Error(string<exn> exn)
 
 let readFileSyncSafe (path: Path) (encoding: Encoding) : Result<string, string> =
-    attempt (fun () -> unsafeReadFileSync path encoding)
+    attempt (fun () -> readFileSync path encoding)
 
 let execFileSyncSafe (command: string) (arguments: string array) (options: obj) : Result<string, string> =
     attempt (fun () -> unsafeExecFileSync command arguments options)

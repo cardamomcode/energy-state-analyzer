@@ -6,17 +6,16 @@ open type Scriptorium.Quill.Test
 open Fable.Core
 
 open Energy.Core.Config
+open Energy.Core.FsPath
 open Energy.Core.Paths
 
 // decision: these pin the single source of truth in Config.fs. Every default threshold, magic
 // option, and color hex is declared once here — the tests assert that one definition rather than
 // re-deriving each detector's numbers from scattered module lets (the old duplicated design).
 
-// node:fs writeFileSync and node:os tmpdir for temp .esaconfig.json fixtures (mirrors TestUtils's
-// readFileSync idiom), so merge/allowlist tests exercise exactly what both hosts resolve through the
-// public path. Import (not Emit) is used because the test bundle is ESM, where `require` is absent.
-[<Import("writeFileSync", "node:fs")>]
-let private writeFileSync (path: Path) (contents: string) : unit = nativeOnly
+// node:os tmpdir supplies isolated temporary files; Core.FsPath performs their writes so tests use
+// the same filesystem boundary as product code. Import (not Emit) is used because the test bundle is
+// ESM, where `require` is absent.
 
 [<Import("tmpdir", "node:os")>]
 let private osTmpDir () : string = nativeOnly
@@ -27,7 +26,7 @@ let private loadTempConfig (json: string) : AnalyzeOptions =
     let path =
         Path(osTmpDir () + "/esa-config-test-" + Guid.NewGuid().ToString("N") + ".json")
 
-    writeFileSync path json
+    writeTextFile path json
     loadAnalyzeOptionsFromConfigPath path
 
 // decision: pin each default so a later edit to Config.fs cannot silently drift one detector's number.
