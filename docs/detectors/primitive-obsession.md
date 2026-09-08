@@ -215,6 +215,16 @@ enforced. Use `enum class` instead of string literals for a closed set of
 states; unlike an unscoped enum, its values do not implicitly convert to
 integers.
 
+## References
+
+- Martin Fowler, *[Refactoring: Improving the Design of Existing Code](https://martinfowler.com/books/refactoring.html)*, 2nd ed., “Primitive Obsession”.
+- Microsoft Learn, [Parameters and Arguments (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/parameters-and-arguments) — named arguments apply to methods, not `let`-bound functions, function values, or lambdas.
+- Microsoft Learn, [Records (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/records) and [Discriminated Unions (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions).
+- Python documentation: [`NewType`](https://docs.python.org/3/library/typing.html#newtype), [`dataclasses`](https://docs.python.org/3/library/dataclasses.html), and [`enum`](https://docs.python.org/3/library/enum.html).
+- TypeScript Handbook: [type compatibility](https://www.typescriptlang.org/docs/handbook/type-compatibility.html), [intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types), and [discriminated unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions). Brands are a conventional pattern composed from structural typing and intersections, not a built-in TypeScript feature.
+- Kotlin documentation: [inline value classes](https://kotlinlang.org/docs/inline-classes.html), [enum classes](https://kotlinlang.org/docs/enum-classes.html), and [sealed classes and interfaces](https://kotlinlang.org/docs/sealed-classes.html).
+- cppreference: [`explicit` specifier](https://en.cppreference.com/w/cpp/language/explicit) and [scoped enumerations](https://en.cppreference.com/w/cpp/language/enum).
+
 ## Known limitations
 
 The `in (a, b, c)`-style membership check for stringly-typed control flow only runs on Python; F#'s grammar has no direct equivalent, TypeScript's idiom (`[...].includes(x)`) is a call expression rather than a comparison node, and common C++ container membership checks are library calls that require semantic resolution. Type aliases and macro-expanded declarations are not resolved.
