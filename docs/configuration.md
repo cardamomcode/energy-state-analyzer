@@ -1,12 +1,12 @@
 # Configuration
 
-Analyzer behavior is configured at three levels, resolved in this order of increasing precedence:
+Detector detail is configured at two levels, resolved in this order of increasing precedence:
 
 ```text
-built-in defaults  <  .esaconfig.json  <  host override
+built-in defaults  <  .esaconfig.json
 ```
 
-The built-in defaults are the single source of truth for every threshold (see `src/Core/Config.fs`). A project's `.esaconfig.json` layers its values on top, and each host wins at its own boundary — VS Code settings in the editor, command-line flags in the CLI. Anything not set in the file falls back to the built-in default; anything set via a host override beats both.
+The built-in defaults are the single source of truth for every threshold (see `src/Core/Config.fs`). A project's `.esaconfig.json` layers its values on top for both the editor and CLI/CI. Anything not set in the file falls back to the built-in default.
 
 ## Choosing thresholds
 
@@ -35,7 +35,7 @@ npx energy-state-analyzer src --config path/to/.esaconfig.json   # CLI: skip the
 
 ### Schema
 
-Every section is optional; an absent key keeps its default. Numeric keys are camelCase and match the VS Code setting names (minus the `energyStateAnalyzer.` prefix).
+Every section is optional; an absent key keeps its default. Numeric keys are camelCase.
 
 ```jsonc
 {
@@ -103,7 +103,7 @@ This matches how the extension already extends its baseline: a project can add d
 
 ### Extension (VS Code settings)
 
-In the editor, `energyStateAnalyzer.*` VS Code settings sit above `.esaconfig.json`. The same keys apply — e.g. `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` overrides the file's value for the current workspace. Colors (`energyStateAnalyzer.colors.*`) and the toggles below are only ever read from VS Code, never from the file. Changes take effect immediately on the active editor.
+In the editor, `.esaconfig.json` supplies every threshold, ratio, and allowlist. Colors (`energyStateAnalyzer.colors.*`) and detector toggles are only ever read from VS Code, never from the file. Changes to those editor settings take effect immediately on the active editor.
 
 ### CLI (command-line flags)
 

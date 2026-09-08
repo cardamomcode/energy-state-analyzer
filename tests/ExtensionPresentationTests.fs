@@ -3,6 +3,7 @@ module Energy.Tests.ExtensionPresentationTests
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
+open Energy.Core.Config
 open Energy.Core.Violation
 open Energy.Extension.ConfigurationValues
 open Energy.Extension.DecorationModel
@@ -18,32 +19,21 @@ let private violation line column severity violationType message hotspots =
 
 let private defaults =
     { Bool = fun _ _ fallback -> fallback
-      Int = fun _ _ fallback -> fallback
       Float = fun _ _ fallback -> fallback
-      Floats = fun _ _ fallback -> fallback
       String = fun _ _ fallback -> fallback
-      Strings = fun _ _ fallback -> fallback
       GlobalBool = fun _ fallback -> fallback }
 
 let tests =
     testList (
         "Extension presentation and configuration",
         [ test (
-              "reads every configured threshold and color from an injected settings boundary",
+              "keeps project thresholds while reading editor toggles and colors from settings",
               fun _ ->
                   let reader =
                       { defaults with
-                          Int =
-                              fun section key fallback ->
-                                  match section, key with
-                                  | "nesting", "mediumThreshold" -> 4
-                                  | "matchOpportunity", "minBranches" -> 5
-                                  | _ -> fallback
                           Float =
                               fun section key fallback ->
                                   match section, key with
-                                  | "coherence", "singleDomainNameShare" -> 0.8
-                                  | "errorShadowing.protectedScope", "threshold" -> 0.6
                                   | "colors", "backgroundOpacity" -> 0.25
                                   | _ -> fallback
                           Bool =
@@ -58,12 +48,6 @@ let tests =
                                   match key with
                                   | "includeTestFiles" -> true
                                   | _ -> fallback
-                          Floats =
-                              fun section key fallback ->
-                                  if section = "magicNumber" && key = "allowlist" then
-                                      [ 3.0 ]
-                                  else
-                                      fallback
                           String =
                               fun section key fallback ->
                                   if section = "colors" && key = "highEnergy" then
@@ -71,7 +55,27 @@ let tests =
                                   else
                                       fallback }
 
-                  let thresholds = readAnalyzeThresholds reader
+                  let projectOptions =
+                      { defaultAnalyzeOptions with
+                          Nesting =
+                              { defaultNestingThresholds with
+                                  MediumThreshold = 4 }
+                          Coherence =
+                              { defaultCoherenceThresholds with
+                                  SingleDomainNameShare = 0.8 }
+                          MatchOpportunity =
+                              { defaultMatchOpportunityThresholds with
+                                  MinBranches = 5 }
+                          ErrorShadowing =
+                              { defaultErrorShadowingThresholds with
+                                  ProtectedScope =
+                                      { defaultErrorShadowingThresholds.ProtectedScope with
+                                          Threshold = 0.6 } }
+                          MagicNumber =
+                              { defaultMagicNumberOptions with
+                                  Allowlist = [ 0.0; 1.0; -1.0; 2.0; 3.0 ] } }
+
+                  let thresholds = readAnalyzeThresholds reader projectOptions
                   let colors = readEnergyColors reader
                   let nesting = thresholds.Nesting
                   let coherence = thresholds.Coherence
@@ -81,28 +85,6 @@ let tests =
                   let cyclomatic = thresholds.Cyclomatic
                   let errorShadowing = thresholds.ErrorShadowing
 
-                  let emptyMagicNumberAllowlist =
-                      readAnalyzeThresholds
-                          { defaults with
-                              Floats =
-                                  fun section key fallback ->
-                                      if section = "magicNumber" && key = "allowlist" then
-                                          []
-                                      else
-                                          fallback }
-                      |> _.MagicNumber
-
-                  let hostArrayMagicNumberAllowlist =
-                      readAnalyzeThresholds
-                          { defaults with
-                              Floats =
-                                  fun section key fallback ->
-                                      if section = "magicNumber" && key = "allowlist" then
-                                          floatsFromConfiguration [| 0.0; 1.0; -1.0; 2.0; 3.0 |]
-                                      else
-                                          fallback }
-                      |> _.MagicNumber
-
                   assertThat nesting.MediumThreshold (isEqualTo 4)
                   assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
                   assertThat magicNumber.Enabled isFalse
@@ -110,8 +92,6 @@ let tests =
                   assertThat nesting.Enabled isFalse
                   assertThat cyclomatic.Enabled isTrue
                   assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
-                  assertThat emptyMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0 ])
-                  assertThat hostArrayMagicNumberAllowlist.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
                   assertThat magicNumber.IncludeTestFiles isTrue
                   assertThat magicString.IncludeTestFiles isTrue
                   assertThat matchOpportunity.MinBranches (isEqualTo 5)

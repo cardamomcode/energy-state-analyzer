@@ -570,8 +570,8 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
 
 /// Public entry: resolve `.esaconfig.json` from `startDir` (walking up) and overlay it on the defaults.
 ///
-// decision: precedence is `defaults < .esaconfig.json < host override`, so a project file configures
-// both editor and CI while each host still wins at its own boundary (vscode settings, CLI flags).
+// decision: precedence is `defaults < .esaconfig.json`, so a project file configures the same
+// detector details for the editor and CI.
 let loadAnalyzeOptions (startDir: Path) : AnalyzeOptions =
     let fileConfig =
         findConfigFile startDir

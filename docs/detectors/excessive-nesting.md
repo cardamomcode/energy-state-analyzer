@@ -20,7 +20,7 @@ def process(orders):
 
 ## Known limitations
 
-Thresholds are not yet exposed as VS Code settings, unlike most other detectors. The medium/high thresholds (3/5) are currently fixed; they can only be overridden when using the [CLI](../cli.md) directly (`--medium-nesting`, `--high-nesting`).
+The medium/high thresholds default to `3` / `5` and are configured in a project's [`.esaconfig.json`](../configuration.md), so the editor and CLI/CI share them. CLI flags (`--medium-nesting`, `--high-nesting`) can temporarily override them for one scan.
 
 C++ code produced by macro expansion is not present in the syntax tree and therefore cannot add to
 the measured depth.

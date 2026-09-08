@@ -3,138 +3,60 @@ module Energy.Extension.ConfigurationValues
 open Energy.Core.Analyze
 open Energy.Core.Config
 
-// decision: the threshold/color defaults now live in Core.Config as the single source of truth; this
-// extension module imports them (rather than defining its own copy) so the editor and CLI can never
-// drift from one another. The pure mapping below stays injectable — it takes a SettingReader, not the
-// host — so F# tests verify the configuration contract without loading the VS Code module.
-
 type SettingReader =
     { Bool: string -> string -> bool -> bool
-      Int: string -> string -> int -> int
       Float: string -> string -> float -> float
-      Floats: string -> string -> float list -> float list
       String: string -> string -> string -> string
-      Strings: string -> string -> string list -> string list
       // decision: a top-level (non-namespaced) boolean reader for settings that apply across
       // detectors, e.g. includeTestFiles, which now governs both magic detectors.
       GlobalBool: string -> bool -> bool }
 
-// decision: converts host configuration arrays at the extension boundary because Fable's list
-// helpers require FSharpList values; passing VS Code's native arrays silently drops their values.
-let floatsFromConfiguration (values: float array) : float list = values |> Seq.toList
-
-let private magicNumberAllowlist (reader: SettingReader) =
-    let defaults = defaultMagicNumberOptions.Allowlist
-    let configured = reader.Floats "magicNumber" "allowlist" defaults
-
-    // decision: keeps the small structural literals exempt even when VS Code supplies an empty
-    // configuration array; the setting extends the baseline policy with domain-specific values.
-    defaults
-    @ (configured |> List.filter (fun value -> not (List.contains value defaults)))
-
-let private magicStringAllowlist (reader: SettingReader) =
-    let defaults = defaultMagicStringOptions.Allowlist
-    let configured = reader.Strings "magicString" "allowlist" defaults
-
-    defaults
-    @ (configured |> List.filter (fun value -> not (List.contains value defaults)))
-
-let readAnalyzeThresholds (reader: SettingReader) : AnalyzeThresholds =
-    { Nesting =
-        { Enabled = reader.Bool "nesting" "enabled" defaultNestingThresholds.Enabled
-          MediumThreshold = reader.Int "nesting" "mediumThreshold" defaultNestingThresholds.MediumThreshold
-          HighThreshold = reader.Int "nesting" "highThreshold" defaultNestingThresholds.HighThreshold }
-      Cyclomatic =
-        { Enabled = reader.Bool "cyclomaticComplexity" "enabled" defaultCyclomaticThresholds.Enabled
-          MediumThreshold =
-            reader.Int "cyclomaticComplexity" "mediumThreshold" defaultCyclomaticThresholds.MediumThreshold
-          HighThreshold = reader.Int "cyclomaticComplexity" "highThreshold" defaultCyclomaticThresholds.HighThreshold }
-      Cognitive =
-        { Enabled = reader.Bool "cognitiveComplexity" "enabled" defaultCognitiveThresholds.Enabled
-          MediumThreshold =
-            reader.Int "cognitiveComplexity" "mediumThreshold" defaultCognitiveThresholds.MediumThreshold
-          HighThreshold = reader.Int "cognitiveComplexity" "highThreshold" defaultCognitiveThresholds.HighThreshold }
-      Coherence =
-        { Enabled = reader.Bool "coherence" "enabled" defaultCoherenceThresholds.Enabled
-          LargeFunctionLines = reader.Int "coherence" "largeFunctionLines" defaultCoherenceThresholds.LargeFunctionLines
-          MaxLargeFunctions = reader.Int "coherence" "maxLargeFunctions" defaultCoherenceThresholds.MaxLargeFunctions
-          SingleDomainNameShare =
-            reader.Float "coherence" "singleDomainNameShare" defaultCoherenceThresholds.SingleDomainNameShare
-          MaxTypeDiversityRatio =
-            reader.Float "coherence" "maxTypeDiversityRatio" defaultCoherenceThresholds.MaxTypeDiversityRatio
-          MinTypedCoverage = reader.Float "coherence" "minTypedCoverage" defaultCoherenceThresholds.MinTypedCoverage
-          SiblingOpenThreshold =
-            reader.Int "coherence" "siblingOpenThreshold" defaultCoherenceThresholds.SiblingOpenThreshold
-          ImportBreadthThreshold =
-            reader.Int "coherence" "importBreadthThreshold" defaultCoherenceThresholds.ImportBreadthThreshold
-          HighImportBreadthThreshold =
-            reader.Int "coherence" "highImportBreadthThreshold" defaultCoherenceThresholds.HighImportBreadthThreshold
-          MemberImportFanOutThreshold =
-            reader.Int "coherence" "memberImportFanOutThreshold" defaultCoherenceThresholds.MemberImportFanOutThreshold
-          UtilsFileFunctionCount =
-            reader.Int "coherence" "utilsFileFunctionCount" defaultCoherenceThresholds.UtilsFileFunctionCount
-          GenericFunctionCount =
-            reader.Int "coherence" "genericFunctionCount" defaultCoherenceThresholds.GenericFunctionCount
-          HighFunctionCount = reader.Int "coherence" "highFunctionCount" defaultCoherenceThresholds.HighFunctionCount
-          MethodCountMedium =
-            reader.Int "coherence" "godClassMethodCountMedium" defaultCoherenceThresholds.MethodCountMedium
-          MethodCountHigh = reader.Int "coherence" "godClassMethodCountHigh" defaultCoherenceThresholds.MethodCountHigh
-          LargeFunctionSeverityMultiplier =
-            reader.Float
-                "coherence"
-                "largeFunctionSeverityMultiplier"
-                defaultCoherenceThresholds.LargeFunctionSeverityMultiplier }
-      MatchOpportunity =
-        { Enabled = reader.Bool "matchOpportunity" "enabled" defaultMatchOpportunityThresholds.Enabled
-          MinBranches = reader.Int "matchOpportunity" "minBranches" defaultMatchOpportunityThresholds.MinBranches }
-      ParameterCount =
-        { Enabled = reader.Bool "parameterCount" "enabled" defaultParameterCountThresholds.Enabled
-          MediumThreshold =
-            reader.Int "parameterCount" "mediumThreshold" defaultParameterCountThresholds.MediumThreshold
-          HighThreshold = reader.Int "parameterCount" "highThreshold" defaultParameterCountThresholds.HighThreshold }
-      PrimitiveObsession =
-        { Enabled = reader.Bool "primitiveObsession" "enabled" defaultPrimitiveObsessionThresholds.Enabled }
-      OpaqueBoolean = { Enabled = reader.Bool "opaqueBoolean" "enabled" defaultOpaqueBooleanThresholds.Enabled }
-      LogicalControlFlow =
-        { Enabled = reader.Bool "logicalControlFlow" "enabled" defaultLogicalControlFlowThresholds.Enabled }
-      Inversion = { Enabled = reader.Bool "inversion" "enabled" defaultInversionThresholds.Enabled }
-      ErrorShadowing =
-        { Enabled = reader.Bool "errorShadowing" "enabled" defaultErrorShadowingThresholds.Enabled
-          ProtectedScope =
-            { Threshold =
-                reader.Float
-                    "errorShadowing.protectedScope"
-                    "threshold"
-                    defaultErrorShadowingThresholds.ProtectedScope.Threshold
-              HighThreshold =
-                reader.Float
-                    "errorShadowing.protectedScope"
-                    "highThreshold"
-                    defaultErrorShadowingThresholds.ProtectedScope.HighThreshold
-              MinItems =
-                reader.Int
-                    "errorShadowing.protectedScope"
-                    "minItems"
-                    defaultErrorShadowingThresholds.ProtectedScope.MinItems }
-          Recovery =
-            { Threshold =
-                reader.Float "errorShadowing.recovery" "threshold" defaultErrorShadowingThresholds.Recovery.Threshold
-              HighThreshold =
-                reader.Float
-                    "errorShadowing.recovery"
-                    "highThreshold"
-                    defaultErrorShadowingThresholds.Recovery.HighThreshold
-              MinItems =
-                reader.Int "errorShadowing.recovery" "minItems" defaultErrorShadowingThresholds.Recovery.MinItems } }
-      MagicNumber =
-        { Enabled = reader.Bool "magicNumber" "enabled" defaultMagicNumberOptions.Enabled
-          Allowlist = magicNumberAllowlist reader
-          IncludeTestFiles = reader.GlobalBool "includeTestFiles" defaultMagicNumberOptions.IncludeTestFiles }
-      MagicString =
-        { Enabled = reader.Bool "magicString" "enabled" defaultMagicStringOptions.Enabled
-          MinDuplicates = reader.Int "magicString" "minDuplicates" defaultMagicStringOptions.MinDuplicates
-          Allowlist = magicStringAllowlist reader
-          IncludeTestFiles = reader.GlobalBool "includeTestFiles" defaultMagicStringOptions.IncludeTestFiles } }
+// decision: the project configuration is fully resolved by Core.Config before this boundary runs.
+// The extension changes only editor-specific toggles and test-file handling, so VS Code cannot make
+// its analysis disagree with the CLI or CI by overriding a project threshold or allowlist.
+let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) : AnalyzeThresholds =
+    { options with
+        Nesting =
+            { options.Nesting with
+                Enabled = reader.Bool "nesting" "enabled" options.Nesting.Enabled }
+        Cyclomatic =
+            { options.Cyclomatic with
+                Enabled = reader.Bool "cyclomaticComplexity" "enabled" options.Cyclomatic.Enabled }
+        Cognitive =
+            { options.Cognitive with
+                Enabled = reader.Bool "cognitiveComplexity" "enabled" options.Cognitive.Enabled }
+        Coherence =
+            { options.Coherence with
+                Enabled = reader.Bool "coherence" "enabled" options.Coherence.Enabled }
+        MatchOpportunity =
+            { options.MatchOpportunity with
+                Enabled = reader.Bool "matchOpportunity" "enabled" options.MatchOpportunity.Enabled }
+        ParameterCount =
+            { options.ParameterCount with
+                Enabled = reader.Bool "parameterCount" "enabled" options.ParameterCount.Enabled }
+        PrimitiveObsession =
+            { options.PrimitiveObsession with
+                Enabled = reader.Bool "primitiveObsession" "enabled" options.PrimitiveObsession.Enabled }
+        OpaqueBoolean =
+            { options.OpaqueBoolean with
+                Enabled = reader.Bool "opaqueBoolean" "enabled" options.OpaqueBoolean.Enabled }
+        LogicalControlFlow =
+            { options.LogicalControlFlow with
+                Enabled = reader.Bool "logicalControlFlow" "enabled" options.LogicalControlFlow.Enabled }
+        Inversion =
+            { options.Inversion with
+                Enabled = reader.Bool "inversion" "enabled" options.Inversion.Enabled }
+        ErrorShadowing =
+            { options.ErrorShadowing with
+                Enabled = reader.Bool "errorShadowing" "enabled" options.ErrorShadowing.Enabled }
+        MagicNumber =
+            { options.MagicNumber with
+                Enabled = reader.Bool "magicNumber" "enabled" options.MagicNumber.Enabled
+                IncludeTestFiles = reader.GlobalBool "includeTestFiles" options.MagicNumber.IncludeTestFiles }
+        MagicString =
+            { options.MagicString with
+                Enabled = reader.Bool "magicString" "enabled" options.MagicString.Enabled
+                IncludeTestFiles = reader.GlobalBool "includeTestFiles" options.MagicString.IncludeTestFiles } }
 
 // decision: colors stay a VS Code setting (not read from .esaconfig.json) — this mapping still pulls
 // its defaults from Core.Config, but the values themselves are host-only.
