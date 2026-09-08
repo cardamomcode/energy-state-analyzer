@@ -21,20 +21,32 @@ let private parserCache = Dictionary<string, Parser>()
 let private grammarPath relative =
     joinPath (joinPath bundleDirectory (Path "..")) (Path relative)
 
+// decision: contains only the tree-sitter boundary whose exceptions have a user-actionable
+// GrammarLoadFailed representation; cache mutation remains outside so programming failures surface.
+let private createParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
+    task {
+        try
+            do! init parserCtor
+            let! grammar = load languageCtor (grammarPath adapter.GrammarPath)
+            let parser = makeParser parserCtor
+            setLanguage parser grammar |> ignore
+            return Ok parser
+        with error ->
+            return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
+    }
+
 let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
         match parserCache.TryGetValue adapter.Id with
         | true, parser -> return Ok parser
         | false, _ ->
-            try
-                do! init parserCtor
-                let! grammar = load languageCtor (grammarPath adapter.GrammarPath)
-                let parser = makeParser parserCtor
-                setLanguage parser grammar |> ignore
+            let! parserResult = createParser adapter
+
+            match parserResult with
+            | Error error -> return Error error
+            | Ok parser ->
                 parserCache.Add(adapter.Id, parser)
                 return Ok parser
-            with error ->
-                return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
     }
 
 // decision: tree-sitter's `parse` never throws (it yields a tree with an error child for bad input),
