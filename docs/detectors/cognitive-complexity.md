@@ -39,11 +39,17 @@ The two scores can diverge on the same function: a flat function with many indep
 
 ## Configuration
 
-- `energyStateAnalyzer.cognitiveComplexity.mediumThreshold` (default `15`)
-- `energyStateAnalyzer.cognitiveComplexity.highThreshold` (default `25`)
+Set `cognitiveComplexity.mediumThreshold` (default `15`) and
+`cognitiveComplexity.highThreshold` (default `25`) in
+[`.esaconfig.json`](../configuration.md). The editor and CLI/CI use the same
+project thresholds.
 
 A progressive heatmap is also painted across a flagged function's body, mirroring the cyclomatic-complexity heatmap but weighted by nesting-adjusted contribution instead of flat count.
 
 For C++, `switch` is scored once as a nested decision, `catch` clauses contribute as nested
 decisions, and C++ lambdas contribute to their enclosing function rather than being analyzed as
 standalone functions. Macro-expanded control flow is not visible to this syntax-only analysis.
+
+## References
+
+- G. Ann Campbell, [*Cognitive Complexity*](https://www.sonarsource.com/resources/cognitive-complexity/), SonarSource white paper.
