@@ -3,10 +3,10 @@ module Energy.Extension.Grammar
 open System.Collections.Generic
 open System.Threading.Tasks
 
-open Fable.Core
 open Fable.Core.JS
 
 open Energy.Core.Analyze
+open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
 open Energy.Extension.Analysis
@@ -16,12 +16,6 @@ type GrammarContext =
     { ExtensionPath: string
       LoadedLanguages: Dictionary<string, LoadedLanguage>
       InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>> }
-
-// decision: path arguments and the Path result are Core.Paths.Path (erased to their backing
-// strings) so the message/path string pair can no longer be transposed and the result flows
-// straight into load/logPath without a string round-trip.
-[<Import("join", "node:path")>]
-let private joinPath (left: Path) (right: Path) : Path = nativeOnly
 
 let private logPath (message: string) (path: Path) : unit = console.log (message, path)
 

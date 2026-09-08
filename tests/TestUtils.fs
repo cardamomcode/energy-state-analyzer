@@ -2,20 +2,14 @@ module Energy.Tests.TestUtils
 
 open System.Threading.Tasks
 open System
-// Fable.Core exposes [<Emit>]/[<Import>]/nativeOnly (mirrors SpikeTests, which also opens it).
 open Fable.Core
-
-open Fable.Core.JsInterop
-
-open Scriptorium.Quill
-// Scriptorium.Nib.Assertion supplies assertThat/satisfy/isGreaterOrEqual/isLessThan; the type alias
-// keeps them in scope alongside the assertion combinators (mirrors SpikeTests).
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
 open Energy.Core.Context
+open Energy.Core.FsPath
 open Energy.Core.Position
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
@@ -26,13 +20,8 @@ open Energy.Core.LanguageAdapter
 // These helpers read fixtures from the source tree and drive the AnalysisInput pipeline against
 // real parsed trees — mirroring how the CLI/extension call analyzeWith, rather than exercising a
 // detector in isolation. The pure helpers below are reused by every
-// language's integration suite; only parseFixture is language-specific.
-
-[<Emit("process.cwd()")>]
-let cwd () : string = nativeOnly
-
-[<Import("readFileSync", "node:fs")>]
-let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
+// language's integration suite; only parseFixture is language-specific. Filesystem bindings come
+// from Core.FsPath so tests exercise the same Node boundary as product code.
 
 // A function identifier searched for within a fixture's source text.
 //

@@ -6,6 +6,7 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Scan
+open Energy.Core.FsPath
 open Energy.Core.TypeCohesion
 open Energy.Languages
 open Energy.Languages.Registry

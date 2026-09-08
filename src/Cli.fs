@@ -7,6 +7,7 @@ open Energy.CliModes
 open Energy.CliNode
 open Energy.Core.Analyze
 open Energy.Core.Config
+open Energy.Core.FsPath
 open Energy.Core.Paths
 
 type private ParsedArguments =

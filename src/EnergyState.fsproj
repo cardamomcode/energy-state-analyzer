@@ -13,10 +13,10 @@
          before Context, and TreeSitter precedes every module that reads it. -->
     <Compile Include="Core/Paths.fs" />
     <Compile Include="Core/FsPath.fs" />
-    <!-- NodeInterop sits after Paths (it uses the Path/Encoding newtypes) and before Config/Cli
-         callers that open it. It declares its own Fable [<Import>]/[<Emit>] bindings to node:fs,
-         node:child_process and JSON.parse directly (no hand-written JS), so keep it near the other
-         leaf interop modules rather than deep in the detector dependency graph. -->
+    <!-- NodeInterop sits after FsPath (it uses the shared filesystem bindings) and before Config/Cli
+         callers that open it. It owns safe Node error conversion plus the child-process and JSON
+         bindings, so keep it near the other leaf interop modules rather than deep in the detector
+         dependency graph. -->
     <Compile Include="Core/NodeInterop.fs" />
     <Compile Include="Core/Config.fs" />
     <Compile Include="Core/TreeSitter.fs" />

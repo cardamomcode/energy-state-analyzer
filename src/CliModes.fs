@@ -9,6 +9,7 @@ open Energy.CliRuntime
 open Energy.Core.Analyze
 open Energy.Core.NodeInterop
 open Energy.Core.Esaignore
+open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.Report
 open Energy.Core.ReportDiff

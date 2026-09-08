@@ -5,6 +5,7 @@ open System.Threading.Tasks
 
 open Energy.CliNode
 open Energy.Core.Analyze
+open Energy.Core.FsPath
 open Energy.Core.NodeInterop
 open Energy.Core.Paths
 open Energy.Core.LanguageAdapter
