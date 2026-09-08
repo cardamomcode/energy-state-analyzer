@@ -46,10 +46,17 @@ McCabe's original 1976 paper proposed risk bands that are still the closest thin
 
 ## Configuration
 
-- `energyStateAnalyzer.cyclomaticComplexity.mediumThreshold` (default `10`)
-- `energyStateAnalyzer.cyclomaticComplexity.highThreshold` (default `15`)
+Set `cyclomaticComplexity.mediumThreshold` (default `10`) and
+`cyclomaticComplexity.highThreshold` (default `15`) in
+[`.esaconfig.json`](../configuration.md). The editor and CLI/CI use the same
+project thresholds.
 
 A progressive heatmap is also painted across a flagged function's body: each contributing line is shaded by how much it drives up the score relative to that function's own worst line, so you can see which branches to break apart first.
 
 For C++, this is a syntax metric: preprocessor branches and control flow introduced by macro
 expansion are not counted.
+
+## References
+
+- Thomas J. McCabe, “[A Complexity Measure](https://doi.org/10.1109/TSE.1976.233837),” *IEEE Transactions on Software Engineering*, SE-2(4), 308–320 (1976).
+- T. J. McCabe, [*Structured Testing: A Software Testing Methodology Using the Cyclomatic Complexity Metric*](https://www.nist.gov/publications/structured-testing-software-testing-methodology-using-cyclomatic-complexity-metric), NIST Special Publication 500-99 (1982).

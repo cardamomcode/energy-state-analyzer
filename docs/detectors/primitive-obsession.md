@@ -6,7 +6,7 @@ Flags strings and numbers standing in for what should be a distinct, validated t
 
 **Parameter-swap risk.** Two adjacent parameters sharing the same unqualified primitive type (e.g. `lat: float, lon: float`) are indistinguishable at the call site: nothing stops a caller from passing them in the wrong order. Runs on Python, F#, TypeScript, Kotlin, and C++. C++ pointer, reference, array, and function-declarator shapes remain part of the extracted type identity, so `int`, `int*`, and `int&` do not collide.
 
-In Python, a pair is suppressed only when *both* parameters are keyword-only (after a bare `*` or `*args` in the signature), since the signature itself then makes a positional call impossible. Named-parameter naming is still a weaker mitigation than a distinct type (`NewType`, a dataclass, etc.), since nothing stops a future `**kwargs`-splat call from transposing the values by hand, but that gap isn't worth detecting. This suppression doesn't apply to TypeScript, Kotlin, or C++, which have no enforcing keyword-only boundary, or F#, whose named arguments are optional at the call site and so don't prevent a positional call.
+In Python, a pair is suppressed only when *both* parameters are keyword-only (after a bare `*` or `*args` in the signature), since the signature itself then makes a positional call impossible. Named-parameter naming is still a weaker mitigation than a distinct type (`NewType`, a dataclass, etc.), since nothing stops a future `**kwargs`-splat call from transposing the values by hand, but that gap isn't worth detecting. This suppression doesn't apply to TypeScript, Kotlin, or C++, which have no enforcing keyword-only boundary, or F#, whose named arguments are limited to member and constructor calls and do not prevent a positional call.
 
 **Stringly-typed control flow.** A variable compared against 3 or more distinct string literals within one function is a de facto enum encoded as strings, with no exhaustiveness checking and no typo protection at the type level. Runs on Python, F#, TypeScript, Kotlin, and C++; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, and F# additionally flags the idiomatic `match` on string-literal cases dispatching on one variable, since the two are the same de facto enum expressed in each language's dominant form.
 
@@ -82,6 +82,31 @@ let processOrder (userId: UserId) (orderId: OrderId) =
 
 For stringly-typed control flow, prefer a discriminated union so pattern
 matches are checked for exhaustiveness.
+
+#### F# named-argument alternatives
+
+Named arguments work for OO-style members and constructors, where they can
+make the call order-independent:
+
+```fsharp
+calculator.Divide(denominator = 2.0, numerator = 10.0)
+```
+
+They do not work for ordinary `let`-bound functions, lambdas, or function
+values: those use curried parameters and can be called positionally or
+partially applied. For a standard function where call-site labels improve
+readability, pass a record instead; its fields are explicit and
+order-independent. A static member is another option when an OO-style API is
+appropriate. Neither alternative replaces a single-case union when the values
+need distinct types.
+
+```fsharp
+type DivideArgs = { Numerator: float; Denominator: float }
+
+let divide args = args.Numerator / args.Denominator
+
+let result = divide { Denominator = 2.0; Numerator = 10.0 }
+```
 
 ### TypeScript: use branded types
 
@@ -189,6 +214,16 @@ Put validation and operations on the value type when the invariant needs to be
 enforced. Use `enum class` instead of string literals for a closed set of
 states; unlike an unscoped enum, its values do not implicitly convert to
 integers.
+
+## References
+
+- Martin Fowler, *[Refactoring: Improving the Design of Existing Code](https://martinfowler.com/books/refactoring.html)*, 2nd ed., “Primitive Obsession”.
+- Microsoft Learn, [Parameters and Arguments (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/parameters-and-arguments) — named arguments apply to methods, not `let`-bound functions, function values, or lambdas.
+- Microsoft Learn, [Records (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/records) and [Discriminated Unions (F#)](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions).
+- Python documentation: [`NewType`](https://docs.python.org/3/library/typing.html#newtype), [`dataclasses`](https://docs.python.org/3/library/dataclasses.html), and [`enum`](https://docs.python.org/3/library/enum.html).
+- TypeScript Handbook: [type compatibility](https://www.typescriptlang.org/docs/handbook/type-compatibility.html), [intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types), and [discriminated unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions). Brands are a conventional pattern composed from structural typing and intersections, not a built-in TypeScript feature.
+- Kotlin documentation: [inline value classes](https://kotlinlang.org/docs/inline-classes.html), [enum classes](https://kotlinlang.org/docs/enum-classes.html), and [sealed classes and interfaces](https://kotlinlang.org/docs/sealed-classes.html).
+- cppreference: [`explicit` specifier](https://en.cppreference.com/w/cpp/language/explicit) and [scoped enumerations](https://en.cppreference.com/w/cpp/language/enum).
 
 ## Known limitations
 
