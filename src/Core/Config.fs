@@ -341,18 +341,12 @@ let private emptyFileConfig: FileConfig =
         { MinDuplicates = None
           Allowlist = None } }
 
-// Read one property of a JSON object by key via bracket access.
-//
-// Expose a single JSON property read through a tiny [<Emit>] bracket binding.
-//
-// decision: property access stays as two tiny `[<Emit>]` bindings rather than casting through a Map,
-// so arbitrary nested JSON navigates without Fable turning plain objects into .NET Maps.
-[<Emit("$0[$1]")>]
-/// Parse config across many JSON shapes without collapsing onto one domain type.
+/// Read one property of a JSON object by key, exposed as a tiny [<Emit>] bracket binding.
 ///
-/// decision: config parsing intentionally spans many JSON shapes, so its functions don't collapse onto
-/// one domain type — the breadth is the shape of configuration itself, not a cohesion failure.
-///esa-ignore: coherence
+/// decision: property access stays as an [<Emit>] binding rather than casting through a Map, so
+/// arbitrary nested JSON navigates without Fable turning plain objects into .NET Maps.
+[<Emit("$0[$1]")>]
+//esa-ignore: coherence
 let private getProp (value: obj) (key: string) : obj = nativeOnly
 
 [<Emit("$0 == null")>]
