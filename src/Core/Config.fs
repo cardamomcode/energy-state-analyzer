@@ -352,9 +352,6 @@ let private getProp (value: obj) (key: string) : obj = nativeOnly
 [<Emit("$0 == null")>]
 let private isNullOrUndefined (value: obj) : bool = nativeOnly
 
-[<Emit("JSON.parse($0)")>]
-let private jsonParse (text: string) : obj = nativeOnly
-
 /// Read one property of a JSON object as an opaque value, None when the key is absent or null.
 let private field (parent: obj) (key: string) : obj option =
     let value = getProp parent key
