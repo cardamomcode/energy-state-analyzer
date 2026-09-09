@@ -1,6 +1,5 @@
 module Energy.Languages.Python
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 

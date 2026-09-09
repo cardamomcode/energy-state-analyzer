@@ -1,7 +1,6 @@
 module Energy.Core.NodeInterop
 
 open Fable.Core
-open Fable.Core.JsInterop
 open Energy.Core.FsPath
 open Energy.Core.Paths
 

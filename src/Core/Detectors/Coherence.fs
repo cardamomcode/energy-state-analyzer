@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.Coherence
 
-
 open Energy.Core
 open Energy.Core.Config
 

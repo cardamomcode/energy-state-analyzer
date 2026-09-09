@@ -2,7 +2,6 @@ module Energy.CliNode
 
 open Fable.Core
 open Fable.Core.JS
-open Fable.Core.JsInterop
 
 // Narrow Node interop surface shared by CLI mode modules.
 //
@@ -10,7 +9,6 @@ open Fable.Core.JsInterop
 // and output bindings so Node interop remains centralized without coupling Core to CLI behavior.
 
 open Energy.Core.Paths
-open Energy.Core.FsPath
 
 [<Import("execFileSync", "node:child_process")>]
 let execFileSync (command: string) (arguments: string array) (options: obj) : string = nativeOnly

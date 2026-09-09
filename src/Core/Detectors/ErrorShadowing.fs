@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.ErrorShadowing
 
-open Energy.Core
 open Energy.Core.Context
 open Energy.Core.Config
 open Energy.Core.Violation
