@@ -35,8 +35,10 @@ let private valueFlags =
           "medium-parameter-count"
           "high-parameter-count" ]
 
-// decision: recognized flags consume exactly one following value, leaving all other positional
-// arguments untouched so the CLI retains its intentionally small dependency-free parser.
+/// Parse value-consuming CLI flags into a paths list and a flag map.
+///
+/// decision: recognized flags consume exactly one following value, leaving all other positional
+/// arguments untouched so the CLI retains its intentionally small dependency-free parser.
 let private parseValues (arguments: string array) : string list * Map<string, string> =
     // decision: boolean flags are recognized by name and consume no value, so they can appear
     // anywhere in the argument list without shifting the positional paths.
@@ -90,9 +92,11 @@ let private parseArguments arguments =
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
 
-// decision: the CLI reads .esaconfig.json by default (searching up from the current directory), or an
-// explicit path via --config; threshold flags then override whatever that file set. This is why the
-// defaults now come from Core.Config — they are the same values a project's config overlays onto.
+/// Merge CLI threshold overrides onto the config-resolved base options.
+///
+/// decision: the CLI reads .esaconfig.json by default (searching up from the current directory), or an
+/// explicit path via --config; threshold flags then override whatever that file set. This is why the
+/// defaults now come from Core.Config — they are the same values a project's config overlays onto.
 let private buildThresholds parsed : AnalyzeOptions =
     let baseOptions =
         match parsed.ConfigFile with

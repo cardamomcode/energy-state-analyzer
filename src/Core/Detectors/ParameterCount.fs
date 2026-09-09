@@ -9,12 +9,16 @@ open Energy.Core.Context
 
 // Shared parameter-node lookup for the coherence pipeline's type-cohesion signal.
 //
+// Factor out the parameter-node lookup shared with the type-cohesion signal.
+//
 // decision: factors the parameter-node lookup out because the type-cohesion dependency needs it
 // transitively.
 
-// decision: searches direct children before descending — F#'s argument_patterns lives one level
-// below function_declaration_left, while direct lookup keeps the common grammars cheap. This matches
-// the existing detector and is shared with primitiveObsession's parameter-swap-risk check.
+/// Find a parameters node by checking direct children before descending into subtrees.
+///
+/// decision: searches direct children before descending — F#'s argument_patterns lives one level
+/// below function_declaration_left, while direct lookup keeps the common grammars cheap. This matches
+/// the existing detector and is shared with primitiveObsession's parameter-swap-risk check.
 let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option =
     // first look for a direct child of the exact parameters type ...
     match nodeChildren node |> List.tryFind (fun c -> nodeType c = parametersType) with
@@ -25,9 +29,9 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
         |> List.collect (fun c -> findParametersNode c parametersType |> Option.toList)
         |> List.tryHead
 
-// The "Parameter Explosion" detector. Flags a function past its medium threshold (5 by default),
-// escalating to high past the high threshold (8 by default); a violation is anchored at the function
-// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
+/// The "Parameter Explosion" detector. Flags a function past its medium threshold (5 by default),
+/// escalating to high past the high threshold (8 by default); a violation is anchored at the function
+/// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
 let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head

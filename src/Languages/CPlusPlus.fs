@@ -36,10 +36,10 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
                 |> List.filter (fun child -> nodeType child = catchClauseNodeType)
                 |> List.collect bodyItems })
 
-// The C++ LanguageAdapter. Grammar node names and shapes below target the official
-// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
-// the artifact. C++ declarators are recursive, so parameter extraction deliberately separates the
-// direct type specifier from the declarator shape instead of assuming a flat `type name` pair.
+/// The C++ LanguageAdapter. Grammar node names and shapes below target the official
+/// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
+/// the artifact. C++ declarators are recursive, so parameter extraction deliberately separates the
+/// direct type specifier from the declarator shape instead of assuming a flat `type name` pair.
 
 let private typeNodeTypes =
     Set.ofList
@@ -175,9 +175,13 @@ let private baseClassNames (node: Node) : string list =
     | Some clause -> nodeNamedChildren clause |> List.filter isTypeNode |> List.map nodeText
     | None -> []
 
-// decision: tree-sitter-cpp uses number_literal for both integral and floating literals; lexical
-// float markers are sufficient here because the parser has already validated the token. Hexadecimal
-// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
+/// Decide whether a literal can serve as a match/switch case label in C++.
+///
+/// decision: tree-sitter-cpp uses number_literal for both integral and floating literals; lexical
+/// float markers are sufficient here because the parser has already validated the token. Hexadecimal
+/// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
+/// float markers are sufficient here because the parser has already validated the token. Hexadecimal
+/// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
 let private isMatchCaseLiteral (node: Node) : bool =
     if nodeType node = NodeType "char_literal" then
         true

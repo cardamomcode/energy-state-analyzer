@@ -8,6 +8,8 @@ open Energy.Core.TreeSitter
 open Energy.Core.Context
 open Energy.Core.Config
 open Energy.Core.DetectorPipeline
+// Open every sibling analyzer module here because composing the full detector pipeline is this file's sole job.
+//
 // decision: Analyze.fs is the single detector composition point shared by the extension and CLI, so it
 // must open every sibling module to wire them — the breadth is its job, not a name-resolution smell.
 //esa-ignore: coherence

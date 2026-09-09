@@ -4,10 +4,10 @@ open System.Threading.Tasks
 
 open Fable.Core
 
-// The host-level portion of the small VS Code facade.
-//
-// decision: exposes only calls made by the extension so vscode remains an explicit, narrow
-// Fable interop boundary rather than leaking dynamic objects into the analyzer core.
+/// The host-level portion of the small VS Code facade.
+///
+/// decision: exposes only calls made by the extension so vscode remains an explicit, narrow
+/// Fable interop boundary rather than leaking dynamic objects into the analyzer core.
 
 [<Import("window", "vscode")>]
 let window: obj = nativeOnly

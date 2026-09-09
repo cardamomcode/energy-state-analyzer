@@ -7,9 +7,11 @@ open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 
-// decision: these inversion-detection thresholds are detector heuristics, not published or
-// user-tunable metric values, so they stay as named constants at the top of the module rather
-// than in Core.Config, keeping the rationale visible next to the module's other declarations.
+/// Named constants configuring the inversion-detection heuristics.
+///
+/// decision: these inversion-detection thresholds are detector heuristics, not published or
+/// user-tunable metric values, so they stay as named constants at the top of the module rather
+/// than in Core.Config, keeping the rationale visible next to the module's other declarations.
 let private maxNestedLevel = 4
 let private inversionRatioThreshold = 0.5
 let private deepIfDepthThreshold = 3

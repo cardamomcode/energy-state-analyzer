@@ -1,5 +1,8 @@
 module Energy.Core.FsPath
 
+// Internal facade exposing the filesystem, path, and working-directory Node bindings used across
+// scanning, hosts, and tests.
+//
 // decision: single internal facade for filesystem, path, and working-directory Node bindings shared
 // by scanning, hosts, and tests. Fable's `[<Import>]` is the idiomatic way to bind a Node module, so
 // this keeps every `node:fs`/`node:path` reference in one place instead of duplicating it per file.
@@ -39,8 +42,10 @@ let writeTextFile (path: Path) (contents: string) : unit = nativeOnly
 [<Import("basename", "node:path")>]
 let basename (path: Path) : string = nativeOnly
 
-// decision: path-producing bindings return Path so results flow straight into other bindings
-// (existsSync/readFileSync/joinPath) without a string round-trip at every call site.
+/// Return Path-typed results so path-producing bindings feed the other bindings directly.
+///
+/// decision: path-producing bindings return Path so results flow straight into other bindings
+/// (existsSync/readFileSync/joinPath) without a string round-trip at every call site.
 [<Import("join", "node:path")>]
 let joinPath (left: Path) (right: Path) : Path = nativeOnly
 

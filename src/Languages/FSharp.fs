@@ -15,11 +15,16 @@ open Energy.Core.LanguageAdapter
 // TreeSitter typed accessors; `.children` is an always-present list, read directly like Python's
 // port (detectors only ever hand these hooks real nodes reached from the root).
 
-// decision: shared by isFunctionDefinition/extractReturnType below — both check a node's type against
-// this grammar node-type name; a literal repeated across both would trip the magic-string detector's
-// own duplicate-string check.
+/// Name the F# function-definition head node type shared by several hooks.
+///
+/// decision: shared by isFunctionDefinition/extractReturnType below — both check a node's type against
+/// this grammar node-type name; a literal repeated across both would trip the magic-string detector's
+/// own duplicate-string check.
 let private functionDeclarationLeft = NodeType "function_declaration_left"
 
+// Recognize an F# function by its function_declaration_left head rather than the broader definition
+// node type, so nested `let`/`let!` bindings are not misread as their own functions.
+//
 // decision: checks for a function_declaration_left child in isFunctionDefinition rather than matching
 // function_or_value_defn alone — that node type also covers plain `let`/`let!` bindings (via
 // value_declaration_left), and without the check every nested `let`/`let!` inside a function body
@@ -32,16 +37,18 @@ let private functionDeclarationLeft = NodeType "function_declaration_left"
 // function_or_value_defn -> declaration_expression looks identical at every scope, but still aligned
 // with the detector's intent that `let NAME = ...` IS F#'s idiomatic way to name a constant.
 
-// decision: an F# `and`-binding (`let rec f ... and g ...`, a mutually recursive let) parses as ONE
-// function_or_value_defn holding several function_declaration_left heads, each with its own parameters
-// and body — verified against the tree-sitter-fsharp parse tree. The shared detectors analyze "one
-// function per definition node", so this splits the merged defn into one FunctionHead view per head:
-// ParametersRoot is the head whose children carry its argument_patterns, Body is the expression
-// immediately after that head's `=` (its own subtree, not the merged defn). A single-head defn — every
-// other F# function and every other language — yields one view wrapping the defn itself, preserving the
-// historical single-function behavior. Without this split, the second head's parameters are never
-// analyzed (false negative) and the heads' string-literal comparisons accumulate under one variable
-// name (false positive).
+/// Split a mutually recursive `and`-binding into one view per logical function head.
+///
+/// decision: an F# `and`-binding (`let rec f ... and g ...`, a mutually recursive let) parses as ONE
+/// function_or_value_defn holding several function_declaration_left heads, each with its own parameters
+/// and body — verified against the tree-sitter-fsharp parse tree. The shared detectors analyze "one
+/// function per definition node", so this splits the merged defn into one FunctionHead view per head:
+/// ParametersRoot is the head whose children carry its argument_patterns, Body is the expression
+/// immediately after that head's `=` (its own subtree, not the merged defn). A single-head defn — every
+/// other F# function and every other language — yields one view wrapping the defn itself, preserving the
+/// historical single-function behavior. Without this split, the second head's parameters are never
+/// analyzed (false negative) and the heads' string-literal comparisons accumulate under one variable
+/// name (false positive).
 let private functionHeads (defn: Node) : FunctionHead list =
     let children = nodeChildren defn
     let heads = children |> List.filter (fun c -> nodeType c = functionDeclarationLeft)
@@ -64,11 +71,13 @@ let private functionHeads (defn: Node) : FunctionHead list =
 
             { ParametersRoot = head; Body = body })
 
-// decision: the idiomatic F# stringly-typed dispatch is a `match` on string literals — the form the
-// if/elif-based stringly-typed check already catches is the non-idiomatic one. This extracts the
-// scrutinee (only when it is a simple variable, so the dispatch can be attributed to one name) and the
-// string-literal case patterns across the match's rules. A rule's pattern is its first named child;
-// a string case is one whose pattern is (or wraps, e.g. in a const node) a `string` literal.
+/// Extract the scrutinee variable and string-literal case patterns from a match/switch dispatch.
+///
+/// decision: the idiomatic F# stringly-typed dispatch is a `match` on string literals — the form the
+/// if/elif-based stringly-typed check already catches is the non-idiomatic one. This extracts the
+/// scrutinee (only when it is a simple variable, so the dispatch can be attributed to one name) and the
+/// string-literal case patterns across the match's rules. A rule's pattern is its first named child;
+/// a string case is one whose pattern is (or wraps, e.g. in a const node) a `string` literal.
 let private matchStringCases (node: Node) : (Node * Node list) option =
     if nodeType node <> NodeType "match_expression" then
         None
@@ -100,13 +109,15 @@ let private matchStringCases (node: Node) : (Node * Node list) option =
         | Some s, cs when cs.Length > 0 -> Some(s, cs)
         | _ -> None
 
-// decision: tree-sitter-fsharp parses a named-argument call `setField (name = "alpha")` as an
-// application_expression whose parenthesized argument is an infix_expression with infix_op "=" — the
-// identical shape of a genuine `a = b` comparison, which is why the equality hook (below) otherwise
-// counts it as `name = "alpha"`. A node is in named-argument position when its ancestor chain reaches
-// an application_expression while passing only through paren_expression/tuple_expression argument
-// wrappers, and it sits on the argument side (not the callee). Record literals are unaffected: `{ Name
-// = "one" }` parses as field_initializer, not infix_expression, so it never reaches this hook.
+/// Detect a named-argument call position so it is not miscounted as an equality comparison.
+///
+/// decision: tree-sitter-fsharp parses a named-argument call `setField (name = "alpha")` as an
+/// application_expression whose parenthesized argument is an infix_expression with infix_op "=" — the
+/// identical shape of a genuine `a = b` comparison, which is why the equality hook (below) otherwise
+/// counts it as `name = "alpha"`. A node is in named-argument position when its ancestor chain reaches
+/// an application_expression while passing only through paren_expression/tuple_expression argument
+/// wrappers, and it sits on the argument side (not the callee). Record literals are unaffected: `{ Name
+/// = "one" }` parses as field_initializer, not infix_expression, so it never reaches this hook.
 let private isNamedArgumentPosition (node: Node) : bool =
     let rec walk (n: Node) : bool =
         match nodeParent n with
@@ -129,8 +140,8 @@ let private declarationExpressionNodeType = NodeType "declaration_expression"
 let private rulesNodeType = NodeType "rules"
 let private ruleNodeType = NodeType "rule"
 
-// F# sequences `let` bindings through declaration_expression instead of a block. Expand only that
-// structural chain; applications, conditionals, and loops remain one logical item.
+/// F# sequences `let` bindings through declaration_expression instead of a block. Expand only that
+/// structural chain; applications, conditionals, and loops remain one logical item.
 let rec private logicalItems (node: Node) : Node list =
     match nodeType node with
     | kind when kind = declarationExpressionNodeType -> nodeNamedChildren node |> List.collect logicalItems

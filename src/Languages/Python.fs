@@ -13,20 +13,26 @@ open Energy.Core.LanguageAdapter
 // root (or via the null-safe nodeParent accessor), so we read members directly. Deeper navigation
 // still uses the null-safe accessors — nodeParent -> option, nodeChildren -> list.
 
-// decision: shared by ExtractTypedParameter/ExtractReturnType below — both check a node's type
-// against Python's grammar node-type name for a type annotation ('type', wrapping either a plain
-// identifier or a generic_type); factoring it into one binding keeps the literal to a single
-// occurrence (the magic-string detector's own duplicate-string check, when we dogfood on F#).
+/// Name Python's type-annotation node type shared across hooks.
+///
+/// decision: shared by ExtractTypedParameter/ExtractReturnType below — both check a node's type
+/// against Python's grammar node-type name for a type annotation ('type', wrapping either a plain
+/// identifier or a generic_type); factoring it into one binding keeps the literal to a single
+/// occurrence (the magic-string detector's own duplicate-string check, when we dogfood on F#).
 let private typeAnnotationNodeType = NodeType "type"
 
-// decision: shared by IsPositionalCallArgument and GetBaseClassNames below — both check a node's
-// type against Python's grammar node-type name for a call's parenthesized argument list (a function
-// call in the former, a class's base-class list in the latter, since Python's grammar reuses the
-// same node shape for both).
+/// Name Python's argument-list node type shared across hooks.
+///
+/// decision: shared by IsPositionalCallArgument and GetBaseClassNames below — both check a node's
+/// type against Python's grammar node-type name for a call's parenthesized argument list (a function
+/// call in the former, a class's base-class list in the latter, since Python's grammar reuses the
+/// same node shape for both).
 let private argumentListNodeType = NodeType "argument_list"
 
-// decision: shared by IsFormattedOrInterpolatedString and GetBaseClassNames below — both check a
-// node's type against Python's grammar node-type name for a dotted attribute access (`a.b.C`).
+/// Name Python's attribute-access node type shared across hooks.
+///
+/// decision: shared by IsFormattedOrInterpolatedString and GetBaseClassNames below — both check a
+/// node's type against Python's grammar node-type name for a dotted attribute access (`a.b.C`).
 let private attributeNodeType = NodeType "attribute"
 let private identifierNodeType = NodeType "identifier"
 let private typedDefaultParameterNodeType = NodeType "typed_default_parameter"

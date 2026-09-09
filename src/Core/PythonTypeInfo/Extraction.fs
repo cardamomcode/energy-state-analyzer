@@ -7,8 +7,10 @@ open Energy.Core.PythonTypeInfo.Functions
 open Energy.Core.PythonTypeInfo.Imports
 open Energy.Core.TreeSitter
 
-// decision: preserves the prior pre-order AST walk so the logged scaffolding remains stable for
-// future consumers even though it currently has no effect on violations.
+/// Walk a parsed Python AST in pre-order, collecting its functions, classes, variables, and imports.
+///
+/// decision: preserves the prior pre-order AST walk so the logged scaffolding remains stable for
+/// future consumers even though it currently has no effect on violations.
 let extractTypeInformation (tree: Tree) (positions: PositionLookup) : TypeInfo =
     let rec collect node info =
         let updated =

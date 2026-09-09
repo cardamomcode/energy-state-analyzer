@@ -8,8 +8,10 @@ open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
 open Energy.Languages.CPlusPlus
 
-// decision: the registry is keyed by VS Code language id; the extension receives that canonical
-// identifier directly, while the CLI resolves an extension through the same registry below.
+/// Register every supported language adapter, keyed by VS Code language id.
+///
+/// decision: the registry is keyed by VS Code language id; the extension receives that canonical
+/// identifier directly, while the CLI resolves an extension through the same registry below.
 let languages: Map<string, LanguageAdapter> =
     [ "python", pythonLanguageAdapter
       "fsharp", fSharpLanguageAdapter
@@ -18,10 +20,12 @@ let languages: Map<string, LanguageAdapter> =
       "cpp", cPlusPlusLanguageAdapter ]
     |> Map.ofList
 
-// decision: keep suffixes instead of extracting only the final extension so compound C++ template
-// names such as `config.hpp.in` retain their language identity. Longest-first matching makes this
-// deterministic if future suffixes overlap, while ordinal case-insensitive comparison preserves the
-// CLI's current case-insensitive behavior without locale-dependent filename rules.
+/// Map a file's trailing suffix to its language id, longest suffix first.
+///
+/// decision: keep suffixes instead of extracting only the final extension so compound C++ template
+/// names such as `config.hpp.in` retain their language identity. Longest-first matching makes this
+/// deterministic if future suffixes overlap, while ordinal case-insensitive comparison preserves the
+/// CLI's current case-insensitive behavior without locale-dependent filename rules.
 let private suffixToLanguageId =
     [ ".py", "python"
       ".fs", "fsharp"

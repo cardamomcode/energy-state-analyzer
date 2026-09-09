@@ -1,8 +1,10 @@
 module Energy.Core.Detectors.TestFile
 
-// decision: shared test-file recognition used by both magic detectors. Recognizes test files by
-// path segment (test/, tests/) and camel-case word boundaries in the filename stem rather than a
-// substring search — names such as latest_pricing.py must still be analyzed.
+/// Split a filename into words on separators and camel-case boundaries for test-file recognition.
+///
+/// decision: shared test-file recognition used by both magic detectors. Recognizes test files by
+/// path segment (test/, tests/) and camel-case word boundaries in the filename stem rather than a
+/// substring search — names such as latest_pricing.py must still be analyzed.
 let private splitIntoWords (text: string) : string list =
     let _, separated =
         text

@@ -3,9 +3,9 @@ module Energy.Core.Detectors.ImportCoherence
 open Energy.Core
 open Energy.Core.Config
 
-// F# `open` brings a module's members into lexical scope. A project-configured number of siblings
-// under one parent (seven by default) is therefore a different signal from unrelated dependencies:
-// their values can shadow each other and an unqualified reference no longer says where it came from.
+/// F# `open` brings a module's members into lexical scope. A project-configured number of siblings
+/// under one parent (seven by default) is therefore a different signal from unrelated dependencies:
+/// their values can shadow each other and an unqualified reference no longer says where it came from.
 let private mostOpenedFSharpSiblingNamespace
     (importSources: Set<string>)
     (siblingOpenThreshold: int)
@@ -62,9 +62,11 @@ let private importMessage
             "Import sprawl: %d distinct modules create a broad dependency surface. This can mean the file has multiple responsibilities, or that one cohesive capability is exposed through too many sibling modules. Review repeated sibling imports first; introduce a focused facade only when those imports serve one capability, and don't split the file merely to reduce the count."
             importSourceCount
 
-// decision: import breadth, member fan-out, and scope pollution are reported by one focused helper
-// so the whole-file traversal remains responsible only for collecting syntax facts. The signals share
-// an anchor and severity but need distinct messages because they imply different remediation.
+/// Report the single worst import-coherence signal for a file, or None when nothing crosses a threshold.
+///
+/// decision: import breadth, member fan-out, and scope pollution are reported by one focused helper
+/// so the whole-file traversal remains responsible only for collecting syntax facts. The signals share
+/// an anchor and severity but need distinct messages because they imply different remediation.
 let check
     (imports: LanguageAdapter.ImportInfo list)
     (firstImportNode: TreeSitter.Node option)

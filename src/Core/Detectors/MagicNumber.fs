@@ -10,11 +10,13 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
+// Read magic-number options from the shared config rather than re-exporting a module-level copy.
+//
 // decision: magic-number options live in Core.Config as the single source of truth; this detector
 // reads them from ctx.Options so it no longer re-exports a module-level copy.
 
-// The "Magic Number" detector exempts the small set of structural idioms where a literal is
-// self-explanatory, while keeping significant values outside named bindings visible.
+/// The "Magic Number" detector exempts the small set of structural idioms where a literal is
+/// self-explanatory, while keeping significant values outside named bindings visible.
 let private isNodeType (expected: NodeType option) (node: Node) : bool =
     expected |> Option.exists ((=) (nodeType node))
 

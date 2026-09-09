@@ -13,9 +13,11 @@ open Energy.Core.TreeSitter
 // analysis with no tree-sitter state, so they are reused both by coherence's function-count check
 // (looksLikeSingleDomain) and by classRelatedness's naming-affix fallback (looksLikeSingleDomainByNames).
 
-// decision: splits on underscores AND camelCase/acronym boundaries (extractFoo -> [extract, foo],
-// parse_json -> [parse, json], URLParser -> [url, parser]) rather than a plain leading `[a-z]+` run,
-// so a word boundary is recognized regardless of the file's naming convention.
+/// Tokenizes an identifier into its constituent words on underscore and camelCase/acronym boundaries.
+///
+/// decision: splits on underscores AND camelCase/acronym boundaries (extractFoo -> [extract, foo],
+/// parse_json -> [parse, json], URLParser -> [url, parser]) rather than a plain leading `[a-z]+` run,
+/// so a word boundary is recognized regardless of the file's naming convention.
 let private wordBoundaryPattern =
     Regex("[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|[0-9]+")
 
@@ -27,9 +29,11 @@ let private splitIntoWords (text: string) : string list =
     else
         [ for m in matches -> m.Value.ToLowerInvariant() ]
 
-// decision: splits the basename into words (on `_` and camelCase boundaries) and requires an exact
-// word match, rather than a substring `includes` check — `includes('common')` would also match an
-// unrelated file like `commonwealth.ts`, and `includes('util')` would match `futuleName.ts`.
+/// Generic helper-file words that mark a module as a utility rather than a coherent domain fact.
+///
+/// decision: splits the basename into words (on `_` and camelCase boundaries) and requires an exact
+/// word match, rather than a substring `includes` check — `includes('common')` would also match an
+/// unrelated file like `commonwealth.ts`, and `includes('util')` would match `futuleName.ts`.
 let private utilsFileWords =
     Set.ofList [ "util"; "utils"; "helper"; "helpers"; "common" ]
 
@@ -44,11 +48,13 @@ let isUtilsFileName (fileName: string) : bool =
     splitIntoWords withoutExtension
     |> List.exists (fun w -> utilsFileWords.Contains w)
 
-// decision: a raw function name is a weak signal on its own, but a *dominant leading or trailing
-// word* shared across most of a file's functions (extractFoo/extractBar, or fooParser/barParser) is
-// a cheap, AST-only proxy for "this file is one coherent domain factored into many small steps" —
-// exactly the case a raw function-count sprawl check would otherwise misflag. Checking both ends also
-// catches naming conventions that put the domain word last (parseDate/formatDate), not just first.
+/// Extract the tokenized words from a single function's identifier.
+///
+/// decision: a raw function name is a weak signal on its own, but a *dominant leading or trailing
+/// word* shared across most of a file's functions (extractFoo/extractBar, or fooParser/barParser) is
+/// a cheap, AST-only proxy for "this file is one coherent domain factored into many small steps" —
+/// exactly the case a raw function-count sprawl check would otherwise misflag. Checking both ends also
+/// catches naming conventions that put the domain word last (parseDate/formatDate), not just first.
 let private functionNameWords (node: Node) : string list =
     let nameNode =
         nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
@@ -70,9 +76,11 @@ let private dominantShare (words: string list) : float =
 
         float (wordCounts.Values |> Seq.max) / float words.Length
 
-// decision: shared by looksLikeSingleDomain (functions) and looksLikeSingleDomainByNames (classes,
-// see coherence.ts's checkClassRelatedness) — both want "does a dominant leading or trailing
-// word-boundary chunk recur across most of these names", just starting from a different source.
+/// Decide whether a dominant leading or trailing word recurs across most of a set of names.
+///
+/// decision: shared by looksLikeSingleDomain (functions) and looksLikeSingleDomainByNames (classes,
+/// see coherence.ts's checkClassRelatedness) — both want "does a dominant leading or trailing
+/// word-boundary chunk recur across most of these names", just starting from a different source.
 let looksLikeSingleDomainByNames (names: string list) (minShare: float) : bool =
     let leadingWords = ResizeArray<string>()
     let trailingWords = ResizeArray<string>()

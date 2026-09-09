@@ -6,9 +6,11 @@ open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Languages.Registry
 
-// decision: the dirent helpers below stay local — they are specific to reading a directory with
-// `{ withFileTypes: true }`, which the shared FsPath facade does not model. The plain fs/path
-// functions live in FsPath, where Scan and Esaignore already share them.
+/// Node bindings for reading a directory's typed entries, kept local to this module.
+///
+/// decision: the dirent helpers below stay local — they are specific to reading a directory with
+/// `{ withFileTypes: true }`, which the shared FsPath facade does not model. The plain fs/path
+/// functions live in FsPath, where Scan and Esaignore already share them.
 [<Emit("$0($1, { withFileTypes: true })")>]
 let private readDirectory (reader: obj) (directory: Path) : obj[] = nativeOnly
 
@@ -54,9 +56,11 @@ let private ignoredDirectoryNames =
           ".mypy_cache"
           ".ruff_cache" ]
 
-// decision: the walked file set stays a Path list end to end — joinPath's Path results flow
-// straight into isIgnored/recursive walks without string round-trips; the string world is only
-// reached at the input edge (argv) and in resolvePath's output.
+/// Holds the root directory and ignore patterns shared while walking the file tree.
+///
+/// decision: the walked file set stays a Path list end to end — joinPath's Path results flow
+/// straight into isIgnored/recursive walks without string round-trips; the string world is only
+/// reached at the input edge (argv) and in resolvePath's output.
 type private IgnoreContext =
     { RootDir: Path; Patterns: string list }
 
@@ -80,9 +84,11 @@ let rec private walkDirectory (directory: Path) ignore results =
                 files)
         results
 
-// decision: supports only a trailing `**/*.suffix`-style literal tail; preserving everything after
-// the final wildcard keeps compound suffixes such as `.hpp.in` exact without importing a full glob
-// engine with divergent semantics.
+/// Expand a single-level `**/*.suffix` wildcard into an explicit list of matching files.
+///
+/// decision: supports only a trailing `**/*.suffix`-style literal tail; preserving everything after
+/// the final wildcard keeps compound suffixes such as `.hpp.in` exact without importing a full glob
+/// engine with divergent semantics.
 let private expandGlobLike (pattern: string) ignore =
     let starIndex = pattern.IndexOf('*')
     let prefixEnd = pattern.LastIndexOf(pathSeparator.[0], starIndex)
