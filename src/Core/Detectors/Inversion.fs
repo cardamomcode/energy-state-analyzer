@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.Inversion
 
-
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position

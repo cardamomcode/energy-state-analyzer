@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.MagicNumber
 
-
 open System
 
 open Energy.Core.TreeSitter

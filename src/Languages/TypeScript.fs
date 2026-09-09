@@ -1,6 +1,5 @@
 module Energy.Languages.TypeScript
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 

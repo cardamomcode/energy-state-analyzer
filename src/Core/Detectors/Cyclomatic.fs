@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.Cyclomatic
 
-
 open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter

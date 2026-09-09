@@ -4,7 +4,6 @@ open Fable.Core.JS
 
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
-open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Extension.Configuration
 open Energy.Extension.Vscode.Document
