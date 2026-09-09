@@ -4,10 +4,12 @@ open System.Text.RegularExpressions
 open Energy.Core.Report
 open Energy.Core.Violation
 
-// decision: the score scale and risk boundaries are fixed parts of the published report/diff
-// metric rather than tunable detector thresholds, so they live as named constants at the top of
-// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
-// complexity bound stays an int to match extractComplexityValue's return type.
+/// Named constants fixing the report's score scale and risk-score boundaries.
+///
+/// decision: the score scale and risk boundaries are fixed parts of the published report/diff
+/// metric rather than tunable detector thresholds, so they live as named constants at the top of
+/// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
+/// complexity bound stays an int to match extractComplexityValue's return type.
 let private maxComplexityScore = 100
 let private scoreCeiling = 10.0
 let private lowThreshold = 4.0
@@ -103,8 +105,10 @@ let private categoryBlurb =
     | Complexity
     | Cognitive -> None
 
-// decision: derives the complexity value from the established detector message rather than
-// changing the public violation shape solely for a report-only view.
+/// Extract the numeric complexity value from a violation's detector message.
+///
+/// decision: derives the complexity value from the established detector message rather than
+/// changing the public violation shape solely for a report-only view.
 let private extractComplexityValue violation =
     match violation.Type with
     | Complexity
@@ -190,8 +194,10 @@ let private describeCategoryFindings violationType violations =
                 suffix
         )
 
-// invariant: non-complexity findings never produce Critical; that level remains reserved for
-// an extreme cyclomatic or cognitive score.
+/// Compute a single 0.0–10.0 risk score from one file's violations.
+///
+/// invariant: non-complexity findings never produce Critical; that level remains reserved for
+/// an extreme cyclomatic or cognitive score.
 let private fileScore violations =
     match violations |> List.choose extractComplexityValue |> List.sortDescending with
     | value :: _ -> complexityToScore value

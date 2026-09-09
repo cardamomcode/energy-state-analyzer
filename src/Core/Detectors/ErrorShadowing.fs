@@ -8,9 +8,9 @@ open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// ESA-013 measures two distinct error-boundary smells at each try construct: protected scope that
-// catches too much of a function, and recovery/cleanup that dominates it. Both are prompts to review
-// the boundary, not proof that a try block is inherently wrong.
+/// ESA-013 measures two distinct error-boundary smells at each try construct: protected scope that
+/// catches too much of a function, and recovery/cleanup that dominates it. Both are prompts to review
+/// the boundary, not proof that a try block is inherently wrong.
 
 let private atFunctionRoot = true
 let private descendIntoBody = false
@@ -32,9 +32,11 @@ let private regionsInFunction (language: LanguageAdapter) (fnNode: Node) : Error
 
     walk atFunctionRoot fnNode
 
-// decision: a try is expanded into its direct protected and recovery items for the function denominator,
-// while other compound statements remain one item. This measures exception-boundary breadth without AST
-// scaffolding (identifiers/calls/arguments) or nested control-flow internals changing the result.
+/// Count a function's logical items, expanding a try into its protected and recovery items for the denominator.
+///
+/// decision: a try is expanded into its direct protected and recovery items for the function denominator,
+/// while other compound statements remain one item. This measures exception-boundary breadth without AST
+/// scaffolding (identifiers/calls/arguments) or nested control-flow internals changing the result.
 let private functionItems (language: LanguageAdapter) (fnNode: Node) : Node list =
     let rec expand (item: Node) : Node list =
         match language.GetErrorHandlingRegion item with

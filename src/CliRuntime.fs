@@ -13,16 +13,18 @@ open Energy.Core.Report
 open Energy.Core.TreeSitter
 open Energy.Languages.Registry
 
-// Parser instances are cached by adapter so every scan/diff invocation pays each grammar's WASM
-// load at most once while preserving deterministic sequential report ordering.
+/// Parser instances are cached by adapter so every scan/diff invocation pays each grammar's WASM
+/// load at most once while preserving deterministic sequential report ordering.
 
 let private parserCache = Dictionary<string, Parser>()
 
 let private grammarPath relative =
     joinPath (joinPath bundleDirectory (Path "..")) (Path relative)
 
-// decision: contains only the tree-sitter boundary whose exceptions have a user-actionable
-// GrammarLoadFailed representation; cache mutation remains outside so programming failures surface.
+/// Initialize and load a grammar into a parser, mapping failures to GrammarLoadFailed.
+///
+/// decision: contains only the tree-sitter boundary whose exceptions have a user-actionable
+/// GrammarLoadFailed representation; cache mutation remains outside so programming failures surface.
 let private createParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
         try
@@ -49,15 +51,19 @@ let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> 
                 return Ok parser
     }
 
-// decision: tree-sitter's `parse` never throws (it yields a tree with an error child for bad input),
-// so there is no failure to catch — wrap the parsed tree directly. filePath stays a raw string because
-// it feeds AnalysisInput.Source; it is kept for call-site clarity even though nothing here reads it.
+/// Parse source text into a root node, wrapping the result so a parse can't fail.
+///
+/// decision: tree-sitter's `parse` never throws (it yields a tree with an error child for bad input),
+/// so there is no failure to catch — wrap the parsed tree directly. filePath stays a raw string because
+/// it feeds AnalysisInput.Source; it is kept for call-site clarity even though nothing here reads it.
 let private parseSource (filePath: string) (parser: Parser) (sourceText: string) =
     Ok(parse parser sourceText |> rootNode)
 
-// decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
-// `sourceText` stays a raw string (it feeds AnalysisInput.Source) — the distinct types remove
-// the swap risk the string/string pair had.
+/// Resolve, parse, and analyze one file's source as a task returning its violations.
+///
+/// decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
+/// `sourceText` stays a raw string (it feeds AnalysisInput.Source) — the distinct types remove
+/// the swap risk the string/string pair had.
 let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresholds) =
     task {
         match resolveLanguageForFile filePath with
@@ -95,8 +101,10 @@ let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
         | Ok sourceText -> return! analyzeFile filePath sourceText thresholds
     }
 
-// decision: analyzes files sequentially — grammar loads are cached and report rows retain source
-// order without relying on Fable Task.WhenAll support.
+/// Analyze a list of files sequentially, preserving source order in the report rows.
+///
+/// decision: analyzes files sequentially — grammar loads are cached and report rows retain source
+/// order without relying on Fable Task.WhenAll support.
 let rec analyzeFiles (files: Path list) (thresholds: AnalyzeThresholds) =
     task {
         match files with

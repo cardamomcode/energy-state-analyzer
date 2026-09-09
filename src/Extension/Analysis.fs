@@ -18,8 +18,8 @@ type LoadedLanguage =
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
 
-// A standalone document has no workspace root from which an .esaignore can be read, so it is
-// intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
+/// A standalone document has no workspace root from which an .esaignore can be read, so it is
+/// intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
 let isDocumentIgnored (document: obj) =
     match workspaceFolderFor workspace (documentUri document) with
     | null -> false
@@ -31,10 +31,12 @@ let isDocumentIgnored (document: obj) =
         loadIgnorePatterns rootDir
         |> isIgnored (Energy.Core.Paths.Path(documentFileName document)) (Energy.Core.Paths.Path rootDir)
 
-// decision: tree-sitter's `parse` never throws — it returns a tree with an error child for invalid,
-// empty, or binary input. There is no failure to catch here, so the document boundary wraps the
-// parsed tree directly instead of pretending a parse can fail. Detectors later decide what those
-// error children mean; this layer only proves the tree was produced.
+/// Parse source text into a root node, wrapping the result so a parse can't fail.
+///
+/// decision: tree-sitter's `parse` never throws — it returns a tree with an error child for invalid,
+/// empty, or binary input. There is no failure to catch here, so the document boundary wraps the
+/// parsed tree directly instead of pretending a parse can fail. Detectors later decide what those
+/// error children mean; this layer only proves the tree was produced.
 let private parseDocument fileName parser source = Ok(parse parser source |> rootNode)
 
 let analyzeSourceWith thresholds loaded fileName source =
@@ -54,8 +56,10 @@ let analyzeSource loaded fileName source =
 let private analyze loaded document =
     analyzeSource loaded (documentFileName document) (documentText document)
 
-// decision: handles typed boundary failures at the document boundary to retain the extension's
-// existing UX: report the error but clear decorations rather than leave stale findings visible.
+/// Analyze the active document, clearing decorations on a typed boundary failure.
+///
+/// decision: handles typed boundary failures at the document boundary to retain the extension's
+/// existing UX: report the error but clear decorations rather than leave stale findings visible.
 let analyzeDocument loaded document =
     match analyze loaded document with
     | Ok result -> result.Violations

@@ -5,23 +5,30 @@ open Fable.Core.JsInterop
 open Energy.Core.FsPath
 open Energy.Core.Paths
 
-// decision: the safe (never-throwing) counterparts to the Node bindings in FsPath/CliNode. Callers
-// that must not abort the run use these wrappers, keeping error conversion in one reviewed place.
+/// Safe, never-throwing wrappers around the throwing Node bindings in FsPath and CliNode.
+///
+/// decision: the safe (never-throwing) counterparts to the Node bindings in FsPath/CliNode. Callers
+/// that must not abort the run use these wrappers, keeping error conversion in one reviewed place.
 
 [<Import("execFileSync", "node:child_process")>]
 let private unsafeExecFileSync (command: string) (arguments: string array) (options: obj) : string = nativeOnly
 
-// decision: JSON.parse has no F#-side signature to coerce into, so this tiny binding mirrors the one
-// Config.fs used — erased to JSON.parse — before this module turns failures into data.
+/// Reports whether a Node value arrived as null or undefined.
 let private isNullOrUndefined (value: obj) : bool = value = null
 
+/// Parses JSON text, erased to the native JSON.parse binding.
+///
+/// decision: JSON.parse has no F#-side signature to coerce into, so this tiny binding mirrors the one
+/// Config.fs used — erased to JSON.parse — before this module turns failures into data.
 [<Emit("JSON.parse($0)")>]
 let private jsonParse (text: string) : obj = nativeOnly
 
-// decision: attempt runs a possibly-throwing thunk and turns any exception into an Error message. It is
-// the only try/with on this surface, and its whole body is the guarded operation plus its handler —
-// signature only outside the error region — so the error-shadowing detector skips it as a thin wrapper
-// with no unguarded business logic to shadow. Callers stay free of try/with and never abort the run.
+/// Run a possibly-throwing thunk and convert any exception into an Error message.
+///
+/// decision: attempt runs a possibly-throwing thunk and turns any exception into an Error message. It is
+/// the only try/with on this surface, and its whole body is the guarded operation plus its handler —
+/// signature only outside the error region — so the error-shadowing detector skips it as a thin wrapper
+/// with no unguarded business logic to shadow. Callers stay free of try/with and never abort the run.
 let private attempt<'T> (fn: unit -> 'T) : Result<'T, string> =
     try
         Ok(fn ())

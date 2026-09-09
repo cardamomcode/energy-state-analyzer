@@ -8,9 +8,11 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.ParameterCount
 
-// decision: these primitive-obsession thresholds are detector heuristics, not published or
-// user-tunable metric values, so they stay as named constants at the top of the module rather
-// than in Core.Config, keeping the rationale visible next to the module's other declarations.
+/// Named constants fixing the primitive-obsession heuristic minimums.
+///
+/// decision: these primitive-obsession thresholds are detector heuristics, not published or
+/// user-tunable metric values, so they stay as named constants at the top of the module rather
+/// than in Core.Config, keeping the rationale visible next to the module's other declarations.
 let private minDistinctValues = 3
 let private sampleSize = 4
 
@@ -20,10 +22,10 @@ type private TypedParameterNode =
       Node: Node
       KeywordOnly: bool }
 
-// Detects adjacent, identically typed primitive parameters that callers can accidentally transpose.
-//
-// decision: suppresses a pair only when both parameters occur after a language-level keyword-only
-// boundary — optional named call syntax cannot prevent a later positional call from swapping values.
+/// Detects adjacent, identically typed primitive parameters that callers can accidentally transpose.
+///
+/// decision: suppresses a pair only when both parameters occur after a language-level keyword-only
+/// boundary — optional named call syntax cannot prevent a later positional call from swapping values.
 let private findParameterCollisions (paramsNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
     let _, typed =
         nodeChildren paramsNode
@@ -72,10 +74,10 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
 
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)
 
-// Detects one function-local variable being compared to three or more distinct string literals.
-//
-// assumption: a variable name belongs only to its containing function for this analysis; names reused
-// in unrelated functions must not accumulate into one finding.
+/// Detects one function-local variable being compared to three or more distinct string literals.
+///
+/// assumption: a variable name belongs only to its containing function for this analysis; names reused
+/// in unrelated functions must not accumulate into one finding.
 let private findStringlyTypedControlFlow (functionNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
     let isStringLiteral node =
         language.NodeTypes.StringLiteral
@@ -159,8 +161,8 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
                         suffix
                   Hotspots = [] })
 
-// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
-// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
+/// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
+/// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
 let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head

@@ -3,10 +3,12 @@ module Energy.Core.Suppressions
 open System.Text.RegularExpressions
 open Energy.Core.Violation
 
-// decision: these are the capture-group indices of directivePattern (group 1 = comment marker,
-// group 2 = optional `-file`, group 3 = suppression types); named constants make the indexed reads
-// below self-documenting instead of bare magic numbers. They sit at the top of the module so this
-// choice is visible rather than hidden next to their use sites.
+/// Capture-group indices into the suppression-directive regular expression.
+///
+/// decision: these are the capture-group indices of directivePattern (group 1 = comment marker,
+/// group 2 = optional `-file`, group 3 = suppression types); named constants make the indexed reads
+/// below self-documenting instead of bare magic numbers. They sit at the top of the module so this
+/// choice is visible rather than hidden next to their use sites.
 let private scopeGroupIndex = 2
 let private typeGroupIndex = 3
 
@@ -29,9 +31,11 @@ type ApplySuppressionsResult =
 let private directivePattern =
     Regex("(//|#)\\s*esa-ignore(-file)?(?::\\s*([\\w,\\s-]+))?\\s*$")
 
-// decision: directive type names mirror `violationTypeName` (the JSON/report contract) rather than
-// the detector's internal `Name`, so a user copies the exact string from any report. Multi-word
-// types are kebab-case (`primitive-obsession`), matching docs and CLI output.
+/// Maps kebab-case directive names to their internal violation types.
+///
+/// decision: directive type names mirror `violationTypeName` (the JSON/report contract) rather than
+/// the detector's internal `Name`, so a user copies the exact string from any report. Multi-word
+/// types are kebab-case (`primitive-obsession`), matching docs and CLI output.
 let private knownTypes =
     [ "nesting", Nesting
       "complexity", Complexity
@@ -49,8 +53,8 @@ let private knownTypes =
       "suppression", Suppression ]
     |> Map.ofList
 
-// Parses a type list conservatively: a bare directive means every type, but a list containing only
-// misspellings means no type at all and therefore cannot accidentally suppress unrelated findings.
+/// Parses a type list conservatively: a bare directive means every type, but a list containing only
+/// misspellings means no type at all and therefore cannot accidentally suppress unrelated findings.
 let private parseTypeList (raw: string) =
     if System.String.IsNullOrWhiteSpace raw then
         None, []
@@ -72,8 +76,10 @@ let private parseTypeList (raw: string) =
 
         Some types, unknownTypes
 
-// decision: scans source text rather than AST comment nodes because the directive marker is identical
-// across languages while each tree-sitter grammar represents comments differently.
+/// Locate esa-ignore suppression directives in raw source text.
+///
+/// decision: scans source text rather than AST comment nodes because the directive marker is identical
+/// across languages while each tree-sitter grammar represents comments differently.
 let parseSuppressions (sourceText: string) : Suppression list =
     sourceText.Split('\n')
     |> Array.mapi (fun line lineText ->
@@ -108,8 +114,10 @@ let private coversLine suppression violationLine =
 let private matchesType suppression violationType =
     suppression.Types |> Option.forall (Set.contains violationType)
 
-// decision: emits a low-severity finding for unknown or unused directives so suppression debt is
-// visible; filtering a violation is never allowed to turn a stale comment into a silent no-op.
+/// Drop suppressed violations and flag unknown or unused suppression directives.
+///
+/// decision: emits a low-severity finding for unknown or unused directives so suppression debt is
+/// visible; filtering a violation is never allowed to turn a stale comment into a silent no-op.
 let applySuppressions (violations: EnergyViolation list) (sourceText: string) : ApplySuppressionsResult =
     let suppressions = parseSuppressions sourceText |> List.indexed
 

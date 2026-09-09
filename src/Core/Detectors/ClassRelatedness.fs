@@ -16,23 +16,27 @@ open Energy.Core.TypeCohesion
 // in the same file". It groups a file's classes into families using three independent signals, then
 // flags the file when those families can't be unified by a naming affix.
 
-// A class defined in the file, along with the methods nested directly (or transitively, through
-// non-class nesting like a method's own closures) inside it. `Methods` is mutable to mirror the TS
-// array that methods are pushed into during collection; read as a sequence elsewhere.
+/// A class defined in the file, along with the methods nested directly (or transitively, through
+/// non-class nesting like a method's own closures) inside it. `Methods` is mutable to mirror the TS
+/// array that methods are pushed into during collection; read as a sequence elsewhere.
 type ClassInfo =
     { Name: string option
       Node: Node
       BaseNames: string list
       mutable Methods: ResizeArray<Node> }
 
-// decision: a branded alias, not a bare `number` — two adjacent bare-`number` parameters would
-// themselves trip this project's own primitive-obsession swap-risk check (see primitiveObsession.ts),
-// and a union-find over array positions is exactly that shape.
+/// Zero-based index of a class within the file, branded so two can't be transposed.
+///
+/// decision: a branded alias, not a bare `number` — two adjacent bare-`number` parameters would
+/// themselves trip this project's own primitive-obsession swap-risk check (see primitiveObsession.ts),
+/// and a union-find over array positions is exactly that shape.
 type ClassIndex = int
 
-// decision: a tiny local union-find over the file's classes, not a general graph library — the only
-// operation needed is "merge these two classes' families" then "list the resulting families", which a
-// parent-pointer array covers in a few lines.
+/// A minimal union-find grouping the file's classes into families.
+///
+/// decision: a tiny local union-find over the file's classes, not a general graph library — the only
+/// operation needed is "merge these two classes' families" then "list the resulting families", which a
+/// parent-pointer array covers in a few lines.
 type private UnionFind =
     { Find: ClassIndex -> ClassIndex
       Union: ClassIndex -> ClassIndex -> unit }
@@ -57,8 +61,8 @@ let private unionFind (size: int) : UnionFind =
             if rootA <> rootB then
                 parent.[rootA] <- rootB }
 
-// Links two classes directly — one's base name is literally the other's own name (e.g. `class
-// CancellationToken(Disposable)` where `Disposable` is itself another class in this file).
+/// Links two classes directly — one's base name is literally the other's own name (e.g. `class
+/// CancellationToken(Disposable)` where `Disposable` is itself another class in this file).
 let private linkDirectInheritance (classes: ClassInfo list) (names: string option list) (uf: UnionFind) =
     classes
     |> List.iteri (fun i cls ->
@@ -70,9 +74,9 @@ let private linkDirectInheritance (classes: ClassInfo list) (names: string optio
             | Some baseIndex -> uf.Union i baseIndex
             | None -> ())
 
-// Links sibling classes that share a base name in common, even one not itself defined in this file at
-// all (e.g. a whole file of exception classes that all extend `Exception` but never reference each
-// other).
+/// Links sibling classes that share a base name in common, even one not itself defined in this file at
+/// all (e.g. a whole file of exception classes that all extend `Exception` but never reference each
+/// other).
 let private linkSharedBase (classes: ClassInfo list) (uf: UnionFind) =
     let indicesByBaseName = Dictionary<string, ResizeArray<int>>()
 
@@ -95,9 +99,9 @@ let private linkSharedBase (classes: ClassInfo list) (uf: UnionFind) =
         for k in 1 .. group.Count - 1 do
             uf.Union group.[0] group.[k]
 
-// Links two classes whenever a method's signature (via collectTypeSignals, the same signal
-// checkFunctionCountSprawl's type cohesion uses) touches another class defined in the file, as with a
-// token/token-source pair where one constructs or returns the other.
+/// Links two classes whenever a method's signature (via collectTypeSignals, the same signal
+/// checkFunctionCountSprawl's type cohesion uses) touches another class defined in the file, as with a
+/// token/token-source pair where one constructs or returns the other.
 let private linkTypeCrossReference
     (classes: ClassInfo list)
     (names: string option list)
@@ -119,9 +123,9 @@ let private linkTypeCrossReference
                 |> Option.map (fun relatedIndex -> classIndex, relatedIndex))))
     |> List.iter (fun (classIndex, relatedIndex) -> uf.Union classIndex relatedIndex)
 
-// Groups the file's classes into families using three independent signals, checked in this order
-// because each is progressively weaker evidence: (1) direct inheritance, (2) a shared base class,
-// (3) a type cross-reference between method signatures.
+/// Groups the file's classes into families using three independent signals, checked in this order
+/// because each is progressively weaker evidence: (1) direct inheritance, (2) a shared base class,
+/// (3) a type cross-reference between method signatures.
 let private groupClassesIntoFamilies (classes: ClassInfo list) (language: LanguageAdapter) : int list list =
     let names = classes |> List.map (fun c -> c.Name)
     let uf = unionFind classes.Length
@@ -149,23 +153,23 @@ let private groupDescription (groups: int list list) (names: string option list)
     |> List.map (String.concat ", " >> sprintf "{%s}")
     |> String.concat " vs "
 
-// Flag a file whose classes split into multiple families with no relationship to each other — the
-// class-level counterpart to checkFunctionCountSprawl's "unrelated types" message (coherence.ts), but
-// for a different shape of sprawl: several small, internally-cohesive classes that don't belong
-// together in the same file.
-//
-// decision: unlike checkFunctionCountSprawl, this has no minimum class count before it can fire — a
-// class is already a much stronger unit of cohesion than a single function (it's a whole type, not one
-// operation), so two totally unrelated classes are worth flagging even at just 2. If the three signals
-// still leave more than one family, a naming-affix fallback (shared prefix or suffix across class
-// names, same mechanism as looksLikeSingleDomain for functions) gets one last chance to unify the
-// whole file before it's flagged — unlike the function-level type-diversity signal, an unconnected
-// class graph is an absence of positive evidence, not a positive diversity measurement, so it's not
-// treated as authoritative over naming the way checkFunctionCountSprawl's type signal is. Takes only
-// the one threshold it needs (singleDomainNameShare) rather than the whole CoherenceThresholds object
-// — that type lives in coherence.ts, which itself needs ClassInfo and checkClassRelatedness from this
-// file; importing CoherenceThresholds back here would make the two files circularly dependent for no
-// reason beyond convenience.
+/// Flag a file whose classes split into multiple families with no relationship to each other — the
+/// class-level counterpart to checkFunctionCountSprawl's "unrelated types" message (coherence.ts), but
+/// for a different shape of sprawl: several small, internally-cohesive classes that don't belong
+/// together in the same file.
+///
+/// decision: unlike checkFunctionCountSprawl, this has no minimum class count before it can fire — a
+/// class is already a much stronger unit of cohesion than a single function (it's a whole type, not one
+/// operation), so two totally unrelated classes are worth flagging even at just 2. If the three signals
+/// still leave more than one family, a naming-affix fallback (shared prefix or suffix across class
+/// names, same mechanism as looksLikeSingleDomain for functions) gets one last chance to unify the
+/// whole file before it's flagged — unlike the function-level type-diversity signal, an unconnected
+/// class graph is an absence of positive evidence, not a positive diversity measurement, so it's not
+/// treated as authoritative over naming the way checkFunctionCountSprawl's type signal is. Takes only
+/// the one threshold it needs (singleDomainNameShare) rather than the whole CoherenceThresholds object
+/// — that type lives in coherence.ts, which itself needs ClassInfo and checkClassRelatedness from this
+/// file; importing CoherenceThresholds back here would make the two files circularly dependent for no
+/// reason beyond convenience.
 let checkClassRelatedness
     (classes: ClassInfo list)
     (singleDomainNameShare: float)
@@ -206,6 +210,8 @@ let checkClassRelatedness
 // logic inverted: there, cohesion *exempts* a file from flagging; here, diversity *triggers* the flag
 // on a single type.
 //
+// Per-analysis context passed to checkGodClass, bundling language, thresholds, and positions.
+//
 // decision: this emits ViolationType.Coherence rather than its own case — it is the class-level half
 // of the same single-responsibility concern, so inventing a new wire string and a new presentation
 // branch would duplicate work for no gain (DecorationModel already renders Coherence as a full-line
@@ -219,25 +225,31 @@ let checkClassRelatedness
 // signal at type granularity. This mirrors coherence's own rejection of count-only heuristics (the
 // entropy-dump message notes type-diversity alone isn't reliable below ~12 functions).
 
+// Take god-class thresholds from the shared coherence config so a project can retune them.
+//
 // decision: method-count bars come from CoherenceThresholds (MethodCountMedium/High) so a project can
 // retune where a single type's responsibility sprawl is flagged without editing this detector, exactly
 // like checkFunctionCountSprawl's configurable 8/12/15. The cohesion gate still reuses the existing
 // CoherenceThresholds (MaxTypeDiversityRatio/MinTypedCoverage); both live on GodClassCtx.Thresholds.
 
-// decision: carries the per-analysis context considerGodClass needs as one record so its signature stays
-// short — threading three separate arguments would push that function past the 20-line large-function bar.
-// Public because checkGodClass exposes it in its signature; Coherence.fs builds this record at the call site.
+/// Carry the per-analysis context considerGodClass needs as one record.
+///
+/// decision: carries the per-analysis context considerGodClass needs as one record so its signature stays
+/// short — threading three separate arguments would push that function past the 20-line large-function bar.
+/// Public because checkGodClass exposes it in its signature; Coherence.fs builds this record at the call site.
 type GodClassCtx =
     { Language: LanguageAdapter
       Thresholds: Energy.Core.Config.CoherenceThresholds
       Positions: PositionLookup }
 
-// decision: branded signals so the two int counts can't be silently transposed at the call site — this
-// project's own primitive-obsession detector flags adjacent bare-int params as a swap-risk pair.
+/// Method count and distinct-type count for a class, branded against transpose.
+///
+/// decision: branded signals so the two int counts can't be silently transposed at the call site — this
+/// project's own primitive-obsession detector flags adjacent bare-int params as a swap-risk pair.
 type private MethodSignals =
     { MethodCount: int; DistinctTypes: int }
 
-// A class that passed the god-class test, carrying what Create renders into a violation.
+/// A class that passed the god-class test, carrying what Create renders into a violation.
 type private GodClassCandidate =
     { Class: ClassInfo
       Signals: MethodSignals
@@ -259,16 +271,18 @@ type private GodClassCandidate =
                     candidate.Signals.DistinctTypes
               Hotspots = [] }
 
-// decision: a class must exceed the medium bar and contain at least one instance method before
-// type diversity can represent competing object responsibilities; all-static classes are function
-// namespaces and belong to neither god-class scoring nor free-function sprawl.
+/// Decide whether a class past the method-count bar is worth measuring for god-class diversity.
+///
+/// decision: a class must exceed the medium bar and contain at least one instance method before
+/// type diversity can represent competing object responsibilities; all-static classes are function
+/// namespaces and belong to neither god-class scoring nor free-function sprawl.
 let private shouldMeasureGodClass (ctx: GodClassCtx) (methods: Node list) : bool =
     methods.Length > ctx.Thresholds.MethodCountMedium
     && (methods |> List.exists (ctx.Language.IsStaticMethod >> not))
 
-// Returns the method/distinct-type counts when a class past the method-count bar is genuinely diverse
-// (non-cohesive); None otherwise, so cohesive value types and under-typed files stay quiet. Split out so
-// considerGodClass stays short — this match alone would push it past the 20-line large-function bar.
+/// Returns the method/distinct-type counts when a class past the method-count bar is genuinely diverse
+/// (non-cohesive); None otherwise, so cohesive value types and under-typed files stay quiet. Split out so
+/// considerGodClass stays short — this match alone would push it past the 20-line large-function bar.
 let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) option =
     let methods = List.ofSeq cls.Methods
     // decision: pass the cohesion thresholds as one value so the typeCohesionResult call stays a single line.
@@ -283,8 +297,8 @@ let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) op
         | Measured r when not r.Result -> Some(methods.Length, r.DistinctTypes)
         | _ -> None
 
-// Decides whether one class is a god class: diverse classes past the method-count bar become candidates,
-// tagged High only when they cross the higher bar. InsufficientData stays quiet rather than guessing.
+/// Decides whether one class is a god class: diverse classes past the method-count bar become candidates,
+/// tagged High only when they cross the higher bar. InsufficientData stays quiet rather than guessing.
 let private considerGodClass (ctx: GodClassCtx) (cls: ClassInfo) : GodClassCandidate option =
     match distinctSignals ctx cls with
     | Some(methodCount, distinctTypes) ->
@@ -300,9 +314,9 @@ let private considerGodClass (ctx: GodClassCtx) (cls: ClassInfo) : GodClassCandi
                     Medium }
     | _ -> None
 
-// Flag the worst single class whose methods span too many unrelated domain types (a god class), as one
-// coherence violation anchored at that class's start, or None when every class is cohesive enough to be
-// one coherent value/type. Takes its analysis context as one record so the signature stays a single line.
+/// Flag the worst single class whose methods span too many unrelated domain types (a god class), as one
+/// coherence violation anchored at that class's start, or None when every class is cohesive enough to be
+/// one coherent value/type. Takes its analysis context as one record so the signature stays a single line.
 let checkGodClass (classes: ClassInfo list) (ctx: GodClassCtx) : EnergyViolation option =
     let candidates = classes |> List.choose (considerGodClass ctx)
 

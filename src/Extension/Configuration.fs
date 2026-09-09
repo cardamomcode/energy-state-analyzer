@@ -12,8 +12,10 @@ let private setting section key fallback =
     getConfiguration workspace ("energyStateAnalyzer." + section)
     |> fun configuration -> getConfigurationValue configuration key fallback
 
-// decision: top-level settings live directly under energyStateAnalyzer (no sub-section), so the
-// global reader reads the base configuration object rather than a namespaced one.
+/// Read a top-level setting from the base energyStateAnalyzer configuration object.
+///
+/// decision: top-level settings live directly under energyStateAnalyzer (no sub-section), so the
+/// global reader reads the base configuration object rather than a namespaced one.
 let private globalSetting key fallback =
     getConfiguration workspace "energyStateAnalyzer"
     |> fun configuration -> getConfigurationValue configuration key fallback
@@ -38,13 +40,17 @@ let readAnalyzeThresholds () : AnalyzeThresholds =
     |> Option.defaultValue defaultAnalyzeOptions
     |> ConfigurationValues.readAnalyzeThresholds reader
 
-// decision: colors stay a VS Code setting — this reads them from the host only, never from .esaconfig.json.
+/// Read editor-only energy colors from the host settings.
+///
+/// decision: colors stay a VS Code setting — this reads them from the host only, never from .esaconfig.json.
 let getEnergyColors () =
     ConfigurationValues.readEnergyColors reader
 
 let private defaultIncludeFixtures = false
 
-// decision: name the boolean so it is not passed positionally as an opaque literal at the call site.
+/// Report whether magic-detector fixtures should be included, named for clarity at the call site.
+///
+/// decision: name the boolean so it is not passed positionally as an opaque literal at the call site.
 let includeFixtures () =
     getConfiguration workspace "energyStateAnalyzer"
     |> fun configuration -> getConfigurationValue configuration "includeFixtures" defaultIncludeFixtures

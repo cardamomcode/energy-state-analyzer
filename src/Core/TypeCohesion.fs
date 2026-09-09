@@ -17,35 +17,37 @@ open Energy.Core.Detectors.ParameterCount
 // both by coherence's function-count check (typeCohesionResult) and by classRelatedness's type
 // cross-reference signal (collectTypeSignals).
 
-// decision: excluded outright rather than counted as a "domain type" — each of these names the *shape*
-// of a value (a callback, an absent/untyped result), not what a function operates on. Confirmed
-// necessary empirically: running this detector against a real F#-style Python module initially still
-// misfired because ~45% of its functions take a Callable callback alongside their real domain type —
-// left uncounted, Callable would have out-voted the actual dominant type (Iterable).
+/// Base-type names that describe a value's shape rather than the domain a function works on.
+///
+/// decision: excluded outright rather than counted as a "domain type" — each of these names the *shape*
+/// of a value (a callback, an absent/untyped result), not what a function operates on. Confirmed
+/// necessary empirically: running this detector against a real F#-style Python module initially still
+/// misfired because ~45% of its functions take a Callable callback alongside their real domain type —
+/// left uncounted, Callable would have out-voted the actual dominant type (Iterable).
 let private nonDomainBaseTypes =
     Set.ofList [ "Callable"; "Function"; "Any"; "None"; "Unit"; "void" ]
 
 let private singleUpperPattern = Regex("^[A-Z]$")
 let private genericTypeParameterPattern = Regex("^_?T([A-Z]\\w*|\\d*)$")
 
-// PEP-484/TS/Kotlin generic type-parameter naming conventions (bare `T`/`U`/`K`/`V`, or Python's
-// leading-underscore `_TSource`/`_TState`/`_T1` convention) — these name "the same generic slot", not
-// a concrete type, and are excluded for the same reason as NON_DOMAIN_BASE_TYPES above.
+/// PEP-484/TS/Kotlin generic type-parameter naming conventions (bare `T`/`U`/`K`/`V`, or Python's
+/// leading-underscore `_TSource`/`_TState`/`_T1` convention) — these name "the same generic slot", not
+/// a concrete type, and are excluded for the same reason as NON_DOMAIN_BASE_TYPES above.
 let private isTypeParameterName (name: string) : bool =
     singleUpperPattern.IsMatch(name) || genericTypeParameterPattern.IsMatch(name)
 
-// Strips generic type arguments from a raw type-text blob down to a comparable base type name, e.g.
-// "Iterable<T>" -> "Iterable", "Iterable[_TSource]" -> "Iterable". Returns null for shapes that aren't
-// a plain (possibly dotted/qualified) named type — function types ("(x: T) => U"), tuple types
-// ("int * string") — since those don't represent "this function operates on domain type X" and
-// guessing would produce noise rather than signal. Also returns null for NON_DOMAIN_BASE_TYPES and
-// type-parameter-shaped names.
-//
-// known gap: wrapper generics (Optional[str], Dict[str, int]) normalize to their wrapper base
-// (Optional, Dict), not the wrapped domain type — same for F#'s postfix `int option` syntax, which has
-// no bracket at all and is rejected outright by the identifier check below. Left as a documented v1
-// limitation; unwrapping common wrappers per language would reopen the per-language special-casing
-// this shared, text-based helper is designed to avoid.
+/// Strips generic type arguments from a raw type-text blob down to a comparable base type name, e.g.
+/// "Iterable<T>" -> "Iterable", "Iterable[_TSource]" -> "Iterable". Returns null for shapes that aren't
+/// a plain (possibly dotted/qualified) named type — function types ("(x: T) => U"), tuple types
+/// ("int * string") — since those don't represent "this function operates on domain type X" and
+/// guessing would produce noise rather than signal. Also returns null for NON_DOMAIN_BASE_TYPES and
+/// type-parameter-shaped names.
+///
+/// known gap: wrapper generics (Optional[str], Dict[str, int]) normalize to their wrapper base
+/// (Optional, Dict), not the wrapped domain type — same for F#'s postfix `int option` syntax, which has
+/// no bracket at all and is rejected outright by the identifier check below. Left as a documented v1
+/// limitation; unwrapping common wrappers per language would reopen the per-language special-casing
+/// this shared, text-based helper is designed to avoid.
 let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option =
     let trimmed = typeText.Trim()
 
@@ -70,12 +72,14 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
         else
             Some head
 
-// Per-function set of distinct base types touched across its typed parameters and return type. A
-// function with no typed signals at all returns an empty set — that's "no data point", not "different
-// type", and is treated as such by typeCohesionResult below.
-// decision: threads both typed-signal sources through Option.bind/Option.map instead of nested match
-// arms, so a missing parameter type or an unbaseable annotation is dropped silently rather than
-// forcing another `| None -> ()` level. The added base types fold into one shared accumulator.
+/// Per-function set of distinct base types touched across its typed parameters and return type. A
+/// function with no typed signals at all returns an empty set — that's "no data point", not "different
+/// type", and is treated as such by typeCohesionResult below.
+/// Collect the distinct base types a single function touches across its typed parameters and return type.
+///
+/// decision: threads both typed-signal sources through Option.bind/Option.map instead of nested match
+/// arms, so a missing parameter type or an unbaseable annotation is dropped silently rather than
+/// forcing another `| None -> ()` level. The added base types fold into one shared accumulator.
 let collectTypeSignals (fn: Node) (language: LanguageAdapter) : HashSet<string> =
     let types = HashSet<string>()
 
@@ -101,8 +105,8 @@ let collectTypeSignals (fn: Node) (language: LanguageAdapter) : HashSet<string> 
 
     types
 
-// A measured type-cohesion result: `Result` is the cohesion verdict (true = cohesive), `DistinctTypes`
-// is the number of distinct base types observed, used by callers to report "spans N unrelated types".
+/// A measured type-cohesion result: `Result` is the cohesion verdict (true = cohesive), `DistinctTypes`
+/// is the number of distinct base types observed, used by callers to report "spans N unrelated types".
 type MeasuredTypeCohesion = { Result: bool; DistinctTypes: int }
 
 type TypeCohesionResult =
@@ -118,14 +122,16 @@ type TypeCohesionThresholds =
     { MaxDiversityRatio: float
       MinCoverage: float }
 
-// decision: measures cohesion as a type-*diversity* ratio (distinct base types / typed functions), not
-// "does one type dominate" — a single-dominant-type check was tried first and rejected after testing
-// against a real F#-style module (expression/collections/seq.py): its 80 typed functions span
-// Iterable/Seq/Iterator — three closely related sequence types, no single one reaching a 60%+ share —
-// which a one-dominant-type check misreads as diversity when it's actually reuse of a small, related
-// type vocabulary. The diversity ratio captures that correctly (seq.py: 8 distinct types / 80 typed
-// functions = 0.10, clearly cohesive) without needing to know in advance how many "related" types a
-// cohesive module is allowed to use.
+/// Score a module's cohesion from how concentrated its typed functions are around a small set of base types.
+///
+/// decision: measures cohesion as a type-*diversity* ratio (distinct base types / typed functions), not
+/// "does one type dominate" — a single-dominant-type check was tried first and rejected after testing
+/// against a real F#-style module (expression/collections/seq.py): its 80 typed functions span
+/// Iterable/Seq/Iterator — three closely related sequence types, no single one reaching a 60%+ share —
+/// which a one-dominant-type check misreads as diversity when it's actually reuse of a small, related
+/// type vocabulary. The diversity ratio captures that correctly (seq.py: 8 distinct types / 80 typed
+/// functions = 0.10, clearly cohesive) without needing to know in advance how many "related" types a
+/// cohesive module is allowed to use.
 let typeCohesionResult
     (functions: Node list)
     (language: LanguageAdapter)

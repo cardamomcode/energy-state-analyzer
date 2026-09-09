@@ -21,10 +21,12 @@ open Energy.Core.Violation
 //esa-ignore: coherence
 open Energy.Languages.Registry
 
-// decision: the report format is a closed set of CLI choices, so it is a DU rather than a free
-// string — this is what keeps the render dispatch below from being a stringly-typed match (the
-// primitive-obsession detector's stringly-control-flow check) and makes the selection exhaustive at
-// compile time. The `--report` flag still takes a string; parseReportFormat maps it onto the DU.
+/// Represent the renderable report formats plus agent-only JSON as an exhaustive DU.
+///
+/// decision: the report format is a closed set of CLI choices, so it is a DU rather than a free
+/// string — this is what keeps the render dispatch below from being a stringly-typed match (the
+/// primitive-obsession detector's stringly-control-flow check) and makes the selection exhaustive at
+/// compile time. The `--report` flag still takes a string; parseReportFormat maps it onto the DU.
 type ReportFormat =
     | Human
     | Markdown
@@ -67,8 +69,10 @@ let private violationJson violation =
           "message" ==> violation.Message
           "hotspots" ==> hotspots ]
 
-// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
-// receive the same location and remediation message as VS Code without changing summary consumers.
+/// Render per-file and aggregate JSON for agent consumers from raw results.
+///
+/// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
+/// receive the same location and remediation message as VS Code without changing summary consumers.
 let summaryJson results =
     let summary = summarize results
 
@@ -154,8 +158,10 @@ let private changedFilesFromGit baseRef =
         |> Array.filter ((<>) "")
         |> Array.toList
 
-// decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
-// git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
+/// Read a file's source at a git reference, treating a missing ref as a new or renamed file.
+///
+/// decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
+/// git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
 let private readAtRef reference filePath =
     // decision: use the safe exec binding so a missing/renamed ref becomes None (a normal new file)
     // instead of a thrown exception — no try/with here for the error-shadowing detector to flag.

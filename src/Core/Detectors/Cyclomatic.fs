@@ -15,8 +15,10 @@ open Energy.Core.Context
 // edge. A violation is anchored at the function's start position and carries per-line hotspots
 // weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
-// decision: cyclomatic thresholds live in Core.Config as the single source of truth; this detector
-// reads them from ctx.Options so it no longer re-exports a module-level copy.
+/// Read cyclomatic thresholds from the shared config rather than re-exporting a module-level copy.
+///
+/// decision: cyclomatic thresholds live in Core.Config as the single source of truth; this detector
+/// reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 type private FlowNode =
     | Entry
@@ -34,17 +36,21 @@ type private ControlFlowGraph =
       Edges: FlowEdge list
       ExitPredecessors: FlowNode list }
 
-// decision: represents a reduced control-flow multigraph so the reported value remains McCabe's
-// E - N + 2P while irrelevant straight-line statements do not inflate the graph.
-// invariant: every current path to Exit appears once in ExitPredecessors and has one matching edge.
+/// Seed the reduced control-flow graph with the single Entry→Exit path.
+///
+/// decision: represents a reduced control-flow multigraph so the reported value remains McCabe's
+/// E - N + 2P while irrelevant straight-line statements do not inflate the graph.
+/// invariant: every current path to Exit appears once in ExitPredecessors and has one matching edge.
 let private initialGraph =
     { Nodes = [ Entry; Exit ]
       Edges = [ { From = Entry; To = Exit } ]
       ExitPredecessors = [ Entry ] }
 
-// decision: names the fixed terms in McCabe's E - N + 2P so the calculation stays recognisable
-// without treating its mathematical constants as unexplained literals.
-// invariant: every function graph is connected, so P is exactly one.
+/// Name the fixed terms in McCabe's E - N + 2P formula.
+///
+/// decision: names the fixed terms in McCabe's E - N + 2P so the calculation stays recognisable
+/// without treating its mathematical constants as unexplained literals.
+/// invariant: every function graph is connected, so P is exactly one.
 let private connectedComponents = 1
 let private mccabeComponentMultiplier = 2
 
@@ -64,10 +70,10 @@ let private addDecision (outcomes: int) (graph: ControlFlowGraph) : ControlFlowG
         @ outcomeEdges
       ExitPredecessors = List.replicate outcomes decision }
 
-// A decision point is any of: a language-declared decision node type, a boolean operator (and/or —
-// matched separately since several grammars reuse one generic binary-expression node for every
-// infix operator instead of giving and/or their own), or a try-statement's else clause. Factored
-// into one predicate so graph construction and the hotspot walk agree on exactly what counts.
+/// A decision point is any of: a language-declared decision node type, a boolean operator (and/or —
+/// matched separately since several grammars reuse one generic binary-expression node for every
+/// infix operator instead of giving and/or their own), or a try-statement's else clause. Factored
+/// into one predicate so graph construction and the hotspot walk agree on exactly what counts.
 let private isDecisionPoint (language: LanguageAdapter) (node: Node) : bool =
     language.DecisionNodeTypes |> List.contains (nodeType node)
     || language.GetBooleanOperator node |> Option.isSome
@@ -79,9 +85,9 @@ let private decisionOutcomes (language: LanguageAdapter) (node: Node) : int =
     else
         language.CyclomaticBranchCount node |> Option.defaultValue 2
 
-// A nested named function/method's graph is never folded into its parent: it is scored separately
-// by analyzeFunctionComplexity's traversal. Each decision replaces the graph's current Exit edges
-// with its outcomes, which preserves a connected graph and makes multi-way branches explicit.
+/// A nested named function/method's graph is never folded into its parent: it is scored separately
+/// by analyzeFunctionComplexity's traversal. Each decision replaces the graph's current Exit edges
+/// with its outcomes, which preserves a connected graph and makes multi-way branches explicit.
 let rec private buildControlFlowGraph
     (language: LanguageAdapter)
     (node: Node)
@@ -101,16 +107,20 @@ let rec private buildControlFlowGraph
         nodeChildren node
         |> List.fold (fun current child -> buildControlFlowGraph language child NestedFunction current) nextGraph
 
-// decision: calculates McCabe complexity from the explicit reduced graph rather than treating an
-// AST decision count as the metric. Each function graph has one connected component (P = 1).
+/// Calculate McCabe complexity from the explicit reduced control-flow graph.
+///
+/// decision: calculates McCabe complexity from the explicit reduced graph rather than treating an
+/// AST decision count as the metric. Each function graph has one connected component (P = 1).
 let complexityOf (language: LanguageAdapter) (functionNode: Node) : int =
     let graph = buildControlFlowGraph language functionNode RootFunction initialGraph
 
     graph.Edges.Length - graph.Nodes.Length
     + mccabeComponentMultiplier * connectedComponents
 
-// decision: locate every decision point and weight it by nesting depth so callers can render a
-// per-line heatmap of where complexity piles up; multi-way branches carry their full contribution.
+/// Locate every decision point weighted by nesting depth so callers can render a per-line heatmap.
+///
+/// decision: locate every decision point and weight it by nesting depth so callers can render a
+/// per-line heatmap of where complexity piles up; multi-way branches carry their full contribution.
 let rec private findCyclomaticHotspots
     (language: LanguageAdapter)
     (positions: PositionLookup)

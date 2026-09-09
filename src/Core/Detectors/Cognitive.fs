@@ -21,12 +21,16 @@ open Energy.Core.Context
 //   - match/switch-like constructs and try/except are scored once as a whole, not per-case — see
 //     each LanguageAdapter for the exact node-type mapping (CognitiveNestedDecisionTypes).
 
+// Read cognitive thresholds from the shared config rather than re-exporting a module-level copy.
+//
 // decision: cognitive thresholds live in Core.Config as the single source of truth; this detector
 // reads them from ctx.Options so it no longer re-exports a module-level copy.
 
-// decision: compare a node against an optional grammar node type without leaking `option` into the
-// detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
-// simply never fires instead of needing a guard at every call site.
+/// Compare a node against an optional grammar node type without leaking `option` into detectors.
+///
+/// decision: compare a node against an optional grammar node type without leaking `option` into the
+/// detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
+/// simply never fires instead of needing a guard at every call site.
 let private hasNodeType (t: NodeType option) (node: Node) : bool =
     match t with
     | Some ty -> nodeType node = ty
@@ -58,10 +62,12 @@ let private classifyNode (language: LanguageAdapter) (node: Node) : CognitiveNod
     | None when hasNodeType language.NodeTypes.Lambda node -> Lambda
     | None -> Other
 
-// decision: the cognitive walk scores a node and then descends, branching on what kind of node it is.
-// A `rec ... and` pair mirrors the TS `walk`/`walkNested`: `cognitiveWalk` handles one node (and its
-// own children), while `cognitiveWalkChild` wraps a single child by first deciding whether that child
-// enters nested scope — the only place depth is incremented for if/for/while bodies.
+/// Recursively score one node's complexity, contributing for its kind and descending into children.
+///
+/// decision: the cognitive walk scores a node and then descends, branching on what kind of node it is.
+/// A `rec ... and` pair mirrors the TS `walk`/`walkNested`: `cognitiveWalk` handles one node (and its
+/// own children), while `cognitiveWalkChild` wraps a single child by first deciding whether that child
+/// enters nested scope — the only place depth is incremented for if/for/while bodies.
 let rec private cognitiveWalk
     (language: LanguageAdapter)
     (node: Node)
@@ -118,15 +124,19 @@ and private cognitiveWalkChild
 
     cognitiveWalk language child nextNesting contribute
 
-// decision: score a function by walking each of its top-level children at nesting 0 (the function
-// definition itself is never scored as a decision point — it is the thing being measured). The
-// `contribute` callback records where each increment comes from; scoring passes a no-op.
+/// Score a function by walking each of its top-level children at nesting zero.
+///
+/// decision: score a function by walking each of its top-level children at nesting 0 (the function
+/// definition itself is never scored as a decision point — it is the thing being measured). The
+/// `contribute` callback records where each increment comes from; scoring passes a no-op.
 let cognitiveScoreOf (language: LanguageAdapter) (functionNode: Node) : int =
     nodeChildren functionNode
     |> List.sumBy (fun child -> cognitiveWalk language child 0 (fun _ _ -> ()))
 
-// decision: re-runs the same walk used for scoring, but records where each point of score comes from
-// so callers can render a per-line heatmap across the function body instead of a single flat highlight.
+/// Find each scored cognitive point with its line and weight so callers can render a per-line heatmap.
+///
+/// decision: re-runs the same walk used for scoring, but records where each point of score comes from
+/// so callers can render a per-line heatmap across the function body instead of a single flat highlight.
 let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (positions: PositionLookup) : Hotspot list =
     let hotspots = ResizeArray()
 

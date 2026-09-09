@@ -4,8 +4,10 @@ open Energy.Core.Position
 open Energy.Core.PythonTypeInfo
 open Energy.Core.TreeSitter
 
-// decision: name the two `hasDefault` values so the call sites read self-descriptively instead of
-// passing bare true/false whose meaning only survives by reading `parameterInfo`'s signature.
+/// Named boolean flags for whether a Python parameter carries a default value.
+///
+/// decision: name the two `hasDefault` values so the call sites read self-descriptively instead of
+/// passing bare true/false whose meaning only survives by reading `parameterInfo`'s signature.
 let private parameterHasDefault = true
 let private parameterNoDefault = false
 

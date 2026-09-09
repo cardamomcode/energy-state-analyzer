@@ -23,8 +23,10 @@ let private logSuccess (message: string) : unit = console.log (message)
 
 let initializeParser () = init parserCtor
 
-// decision: shares the pending task as well as completed parsers; an edit event that arrives
-// while a grammar is loading cannot start another WASM load for the same language.
+/// Return the loaded grammar for a language, sharing an in-flight load instead of starting another.
+///
+/// decision: shares the pending task as well as completed parsers; an edit event that arrives
+/// while a grammar is loading cannot start another WASM load for the same language.
 let getOrLoadLanguage
     (languageId: string)
     (context: GrammarContext)

@@ -11,9 +11,11 @@ type SettingReader =
       // detectors, e.g. includeTestFiles, which now governs both magic detectors.
       GlobalBool: string -> bool -> bool }
 
-// decision: the project configuration is fully resolved by Core.Config before this boundary runs.
-// The extension changes only editor-specific toggles and test-file handling, so VS Code cannot make
-// its analysis disagree with the CLI or CI by overriding a project threshold or allowlist.
+/// Apply only editor-specific toggles and test-file handling at the extension boundary.
+///
+/// decision: the project configuration is fully resolved by Core.Config before this boundary runs.
+/// The extension changes only editor-specific toggles and test-file handling, so VS Code cannot make
+/// its analysis disagree with the CLI or CI by overriding a project threshold or allowlist.
 let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) : AnalyzeThresholds =
     { options with
         Nesting =
@@ -58,8 +60,10 @@ let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) :
                 Enabled = reader.Bool "magicString" "enabled" options.MagicString.Enabled
                 IncludeTestFiles = reader.GlobalBool "includeTestFiles" options.MagicString.IncludeTestFiles } }
 
-// decision: colors stay a VS Code setting (not read from .esaconfig.json) — this mapping still pulls
-// its defaults from Core.Config, but the values themselves are host-only.
+/// Read editor-only color settings, pulling defaults from Core.Config.
+///
+/// decision: colors stay a VS Code setting (not read from .esaconfig.json) — this mapping still pulls
+/// its defaults from Core.Config, but the values themselves are host-only.
 let readEnergyColors (reader: SettingReader) : EnergyColors =
     { HighEnergy = reader.String "colors" "highEnergy" defaultEnergyColors.HighEnergy
       MediumEnergy = reader.String "colors" "mediumEnergy" defaultEnergyColors.MediumEnergy

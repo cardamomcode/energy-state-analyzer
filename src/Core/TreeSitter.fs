@@ -53,9 +53,9 @@ type NodeType = NodeType of string
 /// from Core.Position ({ Line; Column }), the offset lookup result both share when opened together.
 type SourcePosition = { Row: int; Column: int }
 
-// ---------------------------------------------------------------------------
-// Module-level named imports (Parser and Language classes)
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/// Module-level named imports (Parser and Language classes)
+/// ---------------------------------------------------------------------------
 
 [<Import("Parser", "web-tree-sitter")>]
 let parserCtor: obj = nativeOnly
@@ -97,9 +97,9 @@ let parse (parser: Parser) (text: string) : Tree = nativeOnly
 [<Emit("$0.rootNode")>]
 let rootNode (tree: Tree) : Node = nativeOnly
 
-// ---------------------------------------------------------------------------
-// Typed node accessors (live JS object members, surfaced as typed F# values)
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/// Typed node accessors (live JS object members, surfaced as typed F# values)
+/// ---------------------------------------------------------------------------
 
 [<Emit("$0.type")>]
 let nodeType (node: Node) : NodeType = nativeOnly
@@ -124,8 +124,8 @@ let nodeStartIndex (node: Node) : int = nativeOnly
 [<Emit("$0.endIndex")>]
 let nodeEndIndex (node: Node) : int = nativeOnly
 
-// Positions surfaced as typed records. The raw row/column accessors below are the individual
-// `<Emit>` reads; the record builders compose them so callers see a `Position`.
+/// Positions surfaced as typed records. The raw row/column accessors below are the individual
+/// `<Emit>` reads; the record builders compose them so callers see a `Position`.
 [<Emit("$0.startPosition.row")>]
 let nodeStartRow (node: Node) : int = nativeOnly
 
@@ -146,9 +146,9 @@ let nodeEndPosition (node: Node) : SourcePosition =
     { Row = nodeEndRow node
       Column = nodeEndColumn node }
 
-// Children surfaced as F# lists — idiomatic for the detectors' List folds/patterns, and it
-// avoids the "empty-array ceremony" the coherence detector itself flags (§3.2). The JS
-// `.children`/`.namedChildren` are arrays; convert once at the accessor boundary.
+/// Children surfaced as F# lists — idiomatic for the detectors' List folds/patterns, and it
+/// avoids the "empty-array ceremony" the coherence detector itself flags (§3.2). The JS
+/// `.children`/`.namedChildren` are arrays; convert once at the accessor boundary.
 [<Emit("$0.children")>]
 let nodeChildrenRaw (node: Node) : Node[] = nativeOnly
 
@@ -163,8 +163,8 @@ let nodeNamedChildren (node: Node) : Node list =
 [<Emit("$0.child($1)")>]
 let nodeChild (node: Node) (index: int) : Node = nativeOnly
 
-// Parent as an Option: the root node's parent is null, which becomes None. Reads the member
-// once and maps null -> None at the boundary.
+/// Parent as an Option: the root node's parent is null, which becomes None. Reads the member
+/// once and maps null -> None at the boundary.
 [<Emit("$0.parent")>]
 let nodeParentRaw (node: Node) : obj = nativeOnly
 
@@ -177,12 +177,14 @@ let nodeParent (node: Node) : Node option =
 // Convenience: load a grammar and parse in one promise chain
 // ---------------------------------------------------------------------------
 
-// decision: convenience for the CLI and tests — inits the parser, loads the grammar, and
-// parses, all in one task { } block (each step really awaits, so the task block is warranted).
-// The extension uses the low-level bindings directly so it can cache the loaded grammar/parser
-// across documents (see Grammar.fs in Phase 3).
-// decision: the grammar path is a Core.Paths.Path, so this no longer presents a
-// swappable string/string parameter pair.
+/// Load a grammar and parse source text in one awaited promise chain.
+///
+/// decision: convenience for the CLI and tests — inits the parser, loads the grammar, and
+/// parses, all in one task { } block (each step really awaits, so the task block is warranted).
+/// The extension uses the low-level bindings directly so it can cache the loaded grammar/parser
+/// across documents (see Grammar.fs in Phase 3).
+/// decision: the grammar path is a Core.Paths.Path, so this no longer presents a
+/// swappable string/string parameter pair.
 let parseWith (grammarPath: Path) (source: string) : Task<Node> =
     task {
         do! init parserCtor

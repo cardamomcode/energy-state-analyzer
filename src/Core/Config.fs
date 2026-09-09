@@ -1,5 +1,7 @@
 module Energy.Core.Config
 
+// Define every analyzer default and load a project's `.esaconfig.json` over those defaults.
+//
 // decision: this file is the single source of truth for every analyzer config value and the loader
 // that overlays a project's `.esaconfig.json` on top of those defaults. Keeping all thresholds,
 // allowlists, ratios, and color hexes here — rather than as module vars scattered across Context,
@@ -10,13 +12,13 @@ open Fable.Core
 open Energy.Core.Paths
 open Energy.Core.FsPath
 
-// ---------------------------------------------------------------------------
-// a) Consolidated defaults: every threshold type + value, allowlist, ratio, and color.
-//
-// These are all primitive records (int/float/bool/string/lists), so this block is data — `let`
-// bindings, not functions — and leaves the rest of Core free to import from here instead of defining
-// its own config values. The named aliases below let hosts keep importing one small value at a time.
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/// a) Consolidated defaults: every threshold type + value, allowlist, ratio, and color.
+///
+/// These are all primitive records (int/float/bool/string/lists), so this block is data — `let`
+/// bindings, not functions — and leaves the rest of Core free to import from here instead of defining
+/// its own config values. The named aliases below let hosts keep importing one small value at a time.
+/// ---------------------------------------------------------------------------
 
 type NestingThresholds =
     { Enabled: bool
@@ -53,10 +55,12 @@ type CoherenceThresholds =
 
 type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 
-// decision: the error-shadowing share is a 0..1 ratio (like coherence's SingleDomainNameShare), so it
-// shares that float shape rather than an int count — a percentage of a function's body has no natural
-// integer unit, and a project should be able to retune exactly where "most of this function is error
-// handling" begins without editing detector code.
+/// A 0..1 ratio threshold with a high-water mark and minimum item count for error-handling regions.
+///
+/// decision: the error-shadowing share is a 0..1 ratio (like coherence's SingleDomainNameShare), so it
+/// shares that float shape rather than an int count — a percentage of a function's body has no natural
+/// integer unit, and a project should be able to retune exactly where "most of this function is error
+/// handling" begins without editing detector code.
 type ErrorShadowingModeThresholds =
     { Threshold: float
       HighThreshold: float
@@ -72,8 +76,10 @@ type ParameterCountThresholds =
       MediumThreshold: int
       HighThreshold: int }
 
-// decision: these four detectors have no tunable threshold, so their options record is just the
-// enable flag — a uniform shape that lets the pipeline guard every detector identically.
+/// Enable-only options shared by the four detectors that have no tunable threshold.
+///
+/// decision: these four detectors have no tunable threshold, so their options record is just the
+/// enable flag — a uniform shape that lets the pipeline guard every detector identically.
 type PrimitiveObsessionThresholds = { Enabled: bool }
 type OpaqueBooleanThresholds = { Enabled: bool }
 type LogicalControlFlowThresholds = { Enabled: bool }
@@ -106,14 +112,16 @@ type AnalyzeOptions =
       Inversion: InversionThresholds
       ErrorShadowing: ErrorShadowingThresholds }
 
-// decision: default nesting thresholds 3/5 mark the point where active conditions strain working memory.
-// decision: default cyclomatic thresholds 10/15 distinguish many paths from urgent extraction work.
-// decision: default cognitive thresholds 15/25 align the nesting-weighted metric with SonarSource defaults.
-// decision: coherence uses large-function count rather than raw function count because F# modules often have many small functions.
-// decision: the function-count sprawl thresholds (8 for utils/helper/common-named files, 12 generic, 15 high-severity) and the large-function severity multiplier are configurable so a project can retune exactly where sprawl is flagged without editing detector code.
-// decision: the god-class method-count bars (15 medium / 25 high) are configurable for the same reason — a project can retune where a single type's responsibility sprawl is flagged without editing the class-relatedness detector.
-// decision: magic-detector test files stay exempt by default because their literals are usually intentional.
-// decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
+/// The built-in detector thresholds, allowlists, and severity shares applied when no project config exists.
+///
+/// decision: default nesting thresholds 3/5 mark the point where active conditions strain working memory.
+/// decision: default cyclomatic thresholds 10/15 distinguish many paths from urgent extraction work.
+/// decision: default cognitive thresholds 15/25 align the nesting-weighted metric with SonarSource defaults.
+/// decision: coherence uses large-function count rather than raw function count because F# modules often have many small functions.
+/// decision: the function-count sprawl thresholds (8 for utils/helper/common-named files, 12 generic, 15 high-severity) and the large-function severity multiplier are configurable so a project can retune exactly where sprawl is flagged without editing detector code.
+/// decision: the god-class method-count bars (15 medium / 25 high) are configurable for the same reason — a project can retune where a single type's responsibility sprawl is flagged without editing the class-relatedness detector.
+/// decision: magic-detector test files stay exempt by default because their literals are usually intentional.
+/// decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
 let defaultAnalyzeOptions =
     { Nesting =
         { Enabled = true
@@ -201,9 +209,11 @@ let defaultMagicNumberOptions = defaultAnalyzeOptions.MagicNumber
 
 let defaultMagicStringOptions = defaultAnalyzeOptions.MagicString
 
-// decision: color defaults live here (not in the extension) so there is one definition of "default
-// amber"; the separate "colors stay a VS Code setting" decision only means colors are never *read*
-// from .esaconfig.json at runtime — this is where they are declared, not where hosts pull them from.
+/// Default editor energy-level colors and background opacity.
+///
+/// decision: color defaults live here (not in the extension) so there is one definition of "default
+/// amber"; the separate "colors stay a VS Code setting" decision only means colors are never *read*
+/// from .esaconfig.json at runtime — this is where they are declared, not where hosts pull them from.
 type EnergyColors =
     { HighEnergy: string
       MediumEnergy: string
@@ -216,16 +226,16 @@ let defaultEnergyColors =
       LowEnergy = "#99dd99"
       BackgroundOpacity = 0.1 }
 
-// ---------------------------------------------------------------------------
-// b) Load .esaconfig.json over those defaults. Fable-safe fs + path bindings via the FsPath/Paths
-// facade (the Esaignore.fs idiom), so one file drives both the editor and CI.
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/// b) Load .esaconfig.json over those defaults. Fable-safe fs + path bindings via the FsPath/Paths
+/// facade (the Esaignore.fs idiom), so one file drives both the editor and CI.
+/// ---------------------------------------------------------------------------
 
 let configFileName = ".esaconfig.json"
 
-// A parsed project config: an optional field per section, so a key can no longer be transposed with
-// its value and an absent key simply falls back to the default during merge. Public so the extension's
-// combined reader (Configuration.fs) can layer these values under vscode settings before merging.
+/// A parsed project config: an optional field per section, so a key can no longer be transposed with
+/// its value and an absent key simply falls back to the default during merge. Public so the extension's
+/// combined reader (Configuration.fs) can layer these values under vscode settings before merging.
 type FileNesting =
     { MediumThreshold: int option
       HighThreshold: int option }
@@ -331,11 +341,11 @@ let private emptyFileConfig: FileConfig =
         { MinDuplicates = None
           Allowlist = None } }
 
-// decision: property access stays as two tiny `[<Emit>]` bindings rather than casting through a Map,
-// so arbitrary nested JSON navigates without Fable turning plain objects into .NET Maps.
+/// Read one property of a JSON object by key, exposed as a tiny [<Emit>] bracket binding.
+///
+/// decision: property access stays as an [<Emit>] binding rather than casting through a Map, so
+/// arbitrary nested JSON navigates without Fable turning plain objects into .NET Maps.
 [<Emit("$0[$1]")>]
-// decision: config parsing intentionally spans many JSON shapes, so its functions don't collapse onto
-// one domain type — the breadth is the shape of configuration itself, not a cohesion failure.
 //esa-ignore: coherence
 let private getProp (value: obj) (key: string) : obj = nativeOnly
 
@@ -345,14 +355,16 @@ let private isNullOrUndefined (value: obj) : bool = nativeOnly
 [<Emit("JSON.parse($0)")>]
 let private jsonParse (text: string) : obj = nativeOnly
 
-// Read one property of a JSON object as an opaque value, None when the key is absent or null.
+/// Read one property of a JSON object as an opaque value, None when the key is absent or null.
 let private field (parent: obj) (key: string) : obj option =
     let value = getProp parent key
 
     if isNullOrUndefined value then None else Some value
 
-// decision: JSON has no int/float distinction at runtime — every number is a JS number — so read all
-// numerics as float (the safe unbox) and narrow to int only where a field is declared an int.
+/// Read a numeric config field as an optional float, narrowing to int only where the field is declared an int.
+///
+/// decision: JSON has no int/float distinction at runtime — every number is a JS number — so read all
+/// numerics as float (the safe unbox) and narrow to int only where a field is declared an int.
 let private readNumber (section: obj option) (key: string) : float option =
     section
     |> Option.bind (fun section -> field section key)
@@ -363,8 +375,10 @@ let private readList (section: obj option) (key: string) : obj list option =
     |> Option.bind (fun section -> field section key)
     |> Option.map (fun value -> unbox<obj array> value |> List.ofArray)
 
-// decision: walk up parent directories from the start dir until .esaconfig.json is found or root is
-// reached — the same ".gitignore" discovery a linter expects, so one file configures every subtree.
+/// Locate the nearest `.esaconfig.json` by walking up from the start directory.
+///
+/// decision: walk up parent directories from the start dir until .esaconfig.json is found or root is
+/// reached — the same ".gitignore" discovery a linter expects, so one file configures every subtree.
 let findConfigFile (startDir: Path) : Path option =
     let rec walkUp (dir: Path) : Path option =
         let candidate = joinPath dir (Path configFileName)
@@ -382,8 +396,10 @@ let findConfigFile (startDir: Path) : Path option =
 
     walkUp startDir
 
-// decision: a missing file yields None (not an error) and malformed JSON is swallowed, so a project
-// with no .esaconfig.json — or one with a typo — simply keeps the built-in defaults.
+/// Read and parse a `.esaconfig.json` file, returning None when it is absent or malformed.
+///
+/// decision: a missing file yields None (not an error) and malformed JSON is swallowed, so a project
+/// with no .esaconfig.json — or one with a typo — simply keeps the built-in defaults.
 let readConfigJson (path: Path) : obj option =
     if not (existsSync path) then
         None
@@ -455,9 +471,11 @@ let parseFileConfig (raw: obj) : FileConfig =
         { MinDuplicates = readNumber magicString "minDuplicates" |> Option.map int
           Allowlist = readList magicString "allowlist" |> Option.map (List.map unbox<string>) } }
 
-// decision: a provided allowlist is unioned with the structural/sentinel literals rather than
-// replacing them, so 0/1/-1/2 (magic number) and "" / "utf-8" / "__main__" (magic string) stay
-// exempt no matter what a project sets — matching how the extension already extends its baseline.
+/// Overlay a parsed project config onto the built-in defaults without dropping structural allowlists.
+///
+/// decision: a provided allowlist is unioned with the structural/sentinel literals rather than
+/// replacing them, so 0/1/-1/2 (magic number) and "" / "utf-8" / "__main__" (magic string) stay
+/// exempt no matter what a project sets — matching how the extension already extends its baseline.
 let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions =
     let structuralMagicNumberAllowlist = defaults.MagicNumber.Allowlist
 
@@ -570,8 +588,8 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
 
 /// Public entry: resolve `.esaconfig.json` from `startDir` (walking up) and overlay it on the defaults.
 ///
-// decision: precedence is `defaults < .esaconfig.json`, so a project file configures the same
-// detector details for the editor and CI.
+/// decision: precedence is `defaults < .esaconfig.json`, so a project file configures the same
+/// detector details for the editor and CI.
 let loadAnalyzeOptions (startDir: Path) : AnalyzeOptions =
     let fileConfig =
         findConfigFile startDir
@@ -581,8 +599,10 @@ let loadAnalyzeOptions (startDir: Path) : AnalyzeOptions =
 
     mergeOptions defaultAnalyzeOptions fileConfig
 
-// decision: load from an explicit config-file path (the CLI's --config flag) instead of searching
-// upward; returns the defaults when the file is missing or unreadable so callers can fall back.
+/// Load config from an explicit file path instead of searching upward for one.
+///
+/// decision: load from an explicit config-file path (the CLI's --config flag) instead of searching
+/// upward; returns the defaults when the file is missing or unreadable so callers can fall back.
 let loadAnalyzeOptionsFromConfigPath (path: Path) : AnalyzeOptions =
     match readConfigJson path with
     | Some config -> mergeOptions defaultAnalyzeOptions (parseFileConfig config)

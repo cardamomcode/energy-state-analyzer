@@ -20,8 +20,8 @@ open Energy.Extension.Vscode.Identity
 //esa-ignore: coherence
 open Energy.Extension.Vscode.Workspace
 
-// Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
-// in their domain modules, and the grammar caches are reset for every activation.
+/// Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
+/// in their domain modules, and the grammar caches are reset for every activation.
 
 type private ExtensionState =
     { Grammar: GrammarContext
@@ -42,8 +42,10 @@ let private isCurrentDocument document =
     | null -> false
     | editor -> sameObject (editorDocument editor) document
 
-// decision: re-reads the active editor after grammar loading because users can change tabs while
-// the promise is pending; decorations must never be written onto the newly active document.
+/// Analyze the active editor, re-reading it after grammar loads to avoid writing onto a tab switched during the await.
+///
+/// decision: re-reads the active editor after grammar loading because users can change tabs while
+/// the promise is pending; decorations must never be written onto the newly active document.
 let private analyzeActiveEditor () : Task<unit> =
     task {
         console.log ("🔍 Analyzing active editor...")

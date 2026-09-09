@@ -75,9 +75,11 @@ type ImportInfo =
       Source: string
       Bindings: ImportBinding list }
 
-// decision: uses `NodeType option` fields instead of required fields for grammar gaps (e.g. F#'s
-// missing block node, TypeScript's ternary not reused for if/else) — one field per current
-// LanguageNodeTypes member.
+/// Node-type fields per grammar, using options where a grammar has no equivalent node.
+///
+/// decision: uses `NodeType option` fields instead of required fields for grammar gaps (e.g. F#'s
+/// missing block node, TypeScript's ternary not reused for if/else) — one field per current
+/// LanguageNodeTypes member.
 type NodeTypes =
     { Block: NodeType option
       Parameters: NodeType
@@ -101,8 +103,10 @@ type NodeTypes =
       FloatLiteral: NodeType option
       StringLiteral: NodeType option }
 
-// decision: a function that decides something about a node takes the raw `Node` and returns a pure
-// F# value; null-returning hooks become `... option`. The record below is the full current surface.
+/// Per-grammar knowledge as a record of pure predicate hooks over tree-sitter nodes.
+///
+/// decision: a function that decides something about a node takes the raw `Node` and returns a pure
+/// F# value; null-returning hooks become `... option`. The record below is the full current surface.
 type LanguageAdapter =
     { Id: string
       // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
