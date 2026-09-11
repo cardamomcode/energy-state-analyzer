@@ -1,7 +1,7 @@
 {
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
-  "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++)",
+  "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++, C#)",
   "version": "0.15.3",
   "publisher": "cardamom-code",
   "license": "MIT",
@@ -24,6 +24,7 @@
     "typescript",
     "kotlin",
     "c++",
+    "csharp",
     "code quality",
     "cyclomatic complexity",
     "cognitive complexity",
@@ -36,7 +37,8 @@
     "onLanguage:fsharp",
     "onLanguage:typescript",
     "onLanguage:kotlin",
-    "onLanguage:cpp"
+    "onLanguage:cpp",
+    "onLanguage:csharp"
   ],
   "main": "./dist/extension.js",
   "bin": {

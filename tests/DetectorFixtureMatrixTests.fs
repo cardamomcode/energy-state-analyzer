@@ -13,19 +13,37 @@ let private fixture languageLabel language fixture expectations =
       Fixture = fixture
       Expectations = expectations }
 
-let private allLanguages python typeScript fsharp kotlin cPlusPlus =
+let private cSharpFunctionName (name: FunctionName) =
+    let (FunctionName text) = name
+    FunctionName(System.Char.ToUpperInvariant(text.[0]).ToString() + text.Substring(1))
+
+let private expectationsFor
+    (language: Energy.Core.LanguageAdapter.LanguageAdapter)
+    (expectations: FixtureExpectation list)
+    =
+    if language.Id = "csharp" then
+        expectations
+        |> List.map (function
+            | StaysClean name -> StaysClean(cSharpFunctionName name)
+            | ProducesFinding(name, severity) -> ProducesFinding(cSharpFunctionName name, severity))
+    else
+        expectations
+
+let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
     [ fixture "Python" Python.pythonLanguageAdapter python []
       fixture "TypeScript" TypeScript.typeScriptLanguageAdapter typeScript []
       fixture "F#" FSharp.fSharpLanguageAdapter fsharp []
       fixture "Kotlin" Kotlin.kotlinLanguageAdapter kotlin []
-      fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus [] ]
+      fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus []
+      fixture "C#" CSharp.cSharpLanguageAdapter cSharp [] ]
 
 type private FixturePaths =
     { Python: string
       TypeScript: string
       FSharp: string
       Kotlin: string
-      CPlusPlus: string }
+      CPlusPlus: string
+      CSharp: string }
 
 let private commonCases (paths: FixturePaths) expectations =
     allLanguages
@@ -34,9 +52,10 @@ let private commonCases (paths: FixturePaths) expectations =
         ("fsharp/" + paths.FSharp)
         ("kotlin/" + paths.Kotlin)
         ("cpp/" + paths.CPlusPlus)
+        ("csharp/" + paths.CSharp)
     |> List.map (fun item ->
         { item with
-            Expectations = expectations })
+            Expectations = expectationsFor item.Language expectations })
 
 // decision: keeps the cross-language detector contract in one compact, source-oriented catalogue.
 // A reviewer can read each named function in the fixture beside its positive or negative outcome.
@@ -49,7 +68,8 @@ let tests =
               TypeScript = "magicNumber.ts"
               FSharp = "MagicNumber.fs"
               Kotlin = "MagicNumber.kt"
-              CPlusPlus = "magic_number.cpp" }
+              CPlusPlus = "magic_number.cpp"
+              CSharp = "MagicNumber.cs" }
             [ StaysClean(FunctionName "cleanCommonValues")
               StaysClean(FunctionName "cleanNegativeValue")
               ProducesFinding(FunctionName "flaggedMagicNumbers", None) ]
@@ -60,7 +80,8 @@ let tests =
               TypeScript = "magicString.ts"
               FSharp = "MagicString.fs"
               Kotlin = "MagicString.kt"
-              CPlusPlus = "magic_string.cpp" }
+              CPlusPlus = "magic_string.cpp"
+              CSharp = "MagicString.cs" }
             [ StaysClean(FunctionName "cleanValues")
               ProducesFinding(FunctionName "flaggedMagicString", None) ]
 
@@ -70,7 +91,8 @@ let tests =
               TypeScript = "nesting.ts"
               FSharp = "Nesting.fs"
               Kotlin = "Nesting.kt"
-              CPlusPlus = "nesting.cpp" }
+              CPlusPlus = "nesting.cpp"
+              CSharp = "Nesting.cs" }
             [ StaysClean(FunctionName "cleanShallowNesting")
               ProducesFinding(FunctionName "flaggedDeepNesting", Some Medium)
               ProducesFinding(FunctionName "flaggedSevereNesting", Some High)
@@ -82,7 +104,8 @@ let tests =
               TypeScript = "cyclomaticComplexity.ts"
               FSharp = "CyclomaticComplexity.fs"
               Kotlin = "CyclomaticComplexity.kt"
-              CPlusPlus = "cyclomatic_complexity.cpp" }
+              CPlusPlus = "cyclomatic_complexity.cpp"
+              CSharp = "CyclomaticComplexity.cs" }
             [ StaysClean(FunctionName "cleanSimpleFunction")
               ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
               ProducesFinding(FunctionName "flaggedSevereFunction", Some High) ]
@@ -93,7 +116,8 @@ let tests =
               TypeScript = "cognitiveComplexity.ts"
               FSharp = "CognitiveComplexity.fs"
               Kotlin = "CognitiveComplexity.kt"
-              CPlusPlus = "cognitive_complexity.cpp" }
+              CPlusPlus = "cognitive_complexity.cpp"
+              CSharp = "CognitiveComplexity.cs" }
             [ StaysClean(FunctionName "cleanSimpleFunction")
               ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
               ProducesFinding(FunctionName "flaggedSevereFunction", Some High) ]
@@ -104,7 +128,8 @@ let tests =
               TypeScript = "parameterCount.ts"
               FSharp = "ParameterCount.fs"
               Kotlin = "ParameterCount.kt"
-              CPlusPlus = "parameter_count.cpp" }
+              CPlusPlus = "parameter_count.cpp"
+              CSharp = "ParameterCount.cs" }
             [ StaysClean(FunctionName "cleanFewParams")
               ProducesFinding(FunctionName "flaggedManyParams", Some Medium)
               ProducesFinding(FunctionName "flaggedTooManyParams", Some High) ]
@@ -115,7 +140,8 @@ let tests =
               TypeScript = "primitiveObsession.ts"
               FSharp = "PrimitiveObsession.fs"
               Kotlin = "PrimitiveObsession.kt"
-              CPlusPlus = "primitive_obsession.cpp" }
+              CPlusPlus = "primitive_obsession.cpp"
+              CSharp = "PrimitiveObsession.cs" }
             [ StaysClean(FunctionName "cleanDistinctTypes")
               ProducesFinding(FunctionName "flaggedSwapRisk", None)
               ProducesFinding(FunctionName "flaggedStringlyTyped", None) ]
@@ -127,6 +153,7 @@ let tests =
             "fsharp/OpaqueBoolean.fs"
             "kotlin/OpaqueBoolean.kt"
             "cpp/opaque_boolean.cpp"
+            "csharp/OpaqueBoolean.cs"
         |> List.mapi (fun index item ->
             { item with
                 Expectations =
@@ -138,11 +165,15 @@ let tests =
                                 "suppressedObjectLiteralField"
                                 "suppressedNamedArgument"
                                 "suppressedNamedArgument"
-                                "suppressedLabeledAggregateField" ]
+                                "suppressedLabeledAggregateField"
+                                "suppressedNonCallUsage" ]
                               |> List.item index
                           )
                       )
                       StaysClean(FunctionName "suppressedNonCallUsage") ] })
+        |> List.map (fun item ->
+            { item with
+                Expectations = expectationsFor item.Language item.Expectations })
 
     let logicalControlFlow =
         [ fixture
@@ -165,7 +196,14 @@ let tests =
               "cpp/logical_control_flow.cpp"
               [ StaysClean(FunctionName "cleanExplicitIf")
                 ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
-                ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low) ] ]
+                ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low) ]
+          // C# rejects bare `condition && action()` and `condition || action()` expressions as
+          // statements, so the source-level shorthand this detector recognizes is unavailable.
+          fixture
+              "C#"
+              CSharp.cSharpLanguageAdapter
+              "csharp/LogicalControlFlow.cs"
+              [ StaysClean(FunctionName "CleanExplicitIf") ] ]
 
     let matchOpportunity =
         commonCases
@@ -173,7 +211,8 @@ let tests =
               TypeScript = "matchOpportunity.ts"
               FSharp = "MatchOpportunity.fs"
               Kotlin = "MatchOpportunity.kt"
-              CPlusPlus = "match_opportunity.cpp" }
+              CPlusPlus = "match_opportunity.cpp"
+              CSharp = "MatchOpportunity.cs" }
             [ StaysClean(FunctionName "cleanMixedConditions")
               ProducesFinding(FunctionName "flaggedThreeWayChain", None) ]
 
@@ -212,7 +251,14 @@ let tests =
               "F# (grammar limitation)"
               FSharp.fSharpLanguageAdapter
               "fsharp/Inversion.fs"
-              [ StaysClean(FunctionName "unflaggedValidationChain") ] ]
+              [ StaysClean(FunctionName "unflaggedValidationChain") ]
+          fixture
+              "C#"
+              CSharp.cSharpLanguageAdapter
+              "csharp/Inversion.cs"
+              [ StaysClean(FunctionName "CleanEarlyReturn")
+                ProducesFinding(FunctionName "FlaggedDominantIf", None)
+                ProducesFinding(FunctionName "FlaggedValidationChain", None) ] ]
 
     let errorShadowing =
         allLanguages
@@ -221,11 +267,13 @@ let tests =
             "fsharp/ErrorShadowing.fs"
             "kotlin/error_shadowing.kt"
             "cpp/error_shadowing.cpp"
+            "csharp/ErrorShadowing.cs"
         |> List.map (fun item ->
             { item with
                 Expectations =
                     [ StaysClean(FunctionName "cleanPath")
-                      StaysClean(FunctionName "shadowedByError") ] })
+                      StaysClean(FunctionName "shadowedByError") ]
+                    |> expectationsFor item.Language })
         |> List.append
             [ fixture
                   "Python (recovery-dominated regression)"

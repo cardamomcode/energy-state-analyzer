@@ -12,6 +12,7 @@
     <Compile Include="TestUtils.fs" />
     <Compile Include="ConfigTests.fs" />
     <Compile Include="CPlusPlusTests.fs" />
+    <Compile Include="CSharpTests.fs" />
     <Compile Include="NestingTests.fs" />
     <Compile Include="CyclomaticTests.fs" />
     <Compile Include="CognitiveTests.fs" />
