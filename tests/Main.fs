@@ -11,6 +11,7 @@ let main _ =
         [ SpikeTests.tests
           ConfigTests.tests
           CPlusPlusTests.tests
+          CSharpTests.tests
           NestingTests.tests
           NestingTests.gatingTests
           CyclomaticTests.tests

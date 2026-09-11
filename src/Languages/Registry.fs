@@ -7,6 +7,7 @@ open Energy.Languages.TypeScript
 open Energy.Languages.FSharp
 open Energy.Languages.Kotlin
 open Energy.Languages.CPlusPlus
+open Energy.Languages.CSharp
 
 /// Register every supported language adapter, keyed by VS Code language id.
 ///
@@ -17,7 +18,8 @@ let languages: Map<string, LanguageAdapter> =
       "fsharp", fSharpLanguageAdapter
       "typescript", typeScriptLanguageAdapter
       "kotlin", kotlinLanguageAdapter
-      "cpp", cPlusPlusLanguageAdapter ]
+      "cpp", cPlusPlusLanguageAdapter
+      "csharp", cSharpLanguageAdapter ]
     |> Map.ofList
 
 /// Map a file's trailing suffix to its language id, longest suffix first.
@@ -32,6 +34,8 @@ let private suffixToLanguageId =
       ".fsx", "fsharp"
       ".fsi", "fsharp"
       ".ts", "typescript"
+      ".cs", "csharp"
+      ".csx", "csharp"
       ".kt", "kotlin"
       ".kts", "kotlin"
       ".cpp", "cpp"

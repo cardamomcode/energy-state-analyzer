@@ -3,7 +3,7 @@
 The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean. Published to npm, so no clone or install step is required:
 
 ```bash
-npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .hpp
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
 ```
 
 Or install it as a project/global dependency and call it directly:
@@ -30,6 +30,7 @@ All threshold flags are optional: `--medium-nesting`, `--high-nesting`, `--mediu
 | Python | `.py` |
 | F# | `.fs`, `.fsx`, `.fsi` |
 | TypeScript | `.ts` |
+| C# | `.cs`, `.csx` |
 | Kotlin | `.kt`, `.kts` |
 | C++ | `.cpp`, `.cppm`, `.cc`, `.ccm`, `.cxx`, `.cxxm`, `.c++`, `.c++m`, `.hpp`, `.hh`, `.hxx`, `.h++`, `.h`, `.ii`, `.ino`, `.inl`, `.ipp`, `.ixx`, `.mpp`, `.mxx`, `.tpp`, `.txx`, `.hpp.in`, `.h.in` |
 
