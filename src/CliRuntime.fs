@@ -6,7 +6,6 @@ open System.Threading.Tasks
 open Energy.CliNode
 open Energy.Core.Analyze
 open Energy.Core.FsPath
-open Energy.Core.NodeInterop
 open Energy.Core.Paths
 open Energy.Core.LanguageAdapter
 open Energy.Core.Report
@@ -28,7 +27,7 @@ let private grammarPath relative =
 let private createParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
         try
-            do! init parserCtor
+            do! init ()
             let! grammar = load languageCtor (grammarPath adapter.GrammarPath)
             let parser = makeParser parserCtor
             setLanguage parser grammar |> ignore
@@ -51,14 +50,6 @@ let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> 
                 return Ok parser
     }
 
-/// Parse source text into a root node, wrapping the result so a parse can't fail.
-///
-/// decision: tree-sitter's `parse` never throws (it yields a tree with an error child for bad input),
-/// so there is no failure to catch — wrap the parsed tree directly. filePath stays a raw string because
-/// it feeds AnalysisInput.Source; it is kept for call-site clarity even though nothing here reads it.
-let private parseSource (filePath: string) (parser: Parser) (sourceText: string) =
-    Ok(parse parser sourceText |> rootNode)
-
 /// Resolve, parse, and analyze one file's source as a task returning its violations.
 ///
 /// decision: `filePath` is a Core.Paths.Path destructured to its backing string, while
@@ -73,20 +64,21 @@ let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresho
 
             return
                 parserResult
-                |> Result.bind (fun parser -> parseSource filePath parser sourceText)
-                |> Result.map (fun tree ->
-                    { Source = sourceText
-                      Tree = tree
-                      Language = adapter
-                      FileName = filePath }
-                    |> analyzeWith thresholds
-                    |> _.Violations)
+                |> Result.map (fun parser ->
+                    withParsedTree parser sourceText (fun tree ->
+                        { Source = sourceText
+                          Tree = tree
+                          Language = adapter
+                          FileName = filePath }
+                        |> analyzeWith thresholds
+                        |> _.Violations))
     }
 
+/// Read source safely so missing or unreadable files produce a typed boundary error.
 let private readSource (filePath: Path) : Result<string, AnalysisError> =
     // decision: use the safe Node binding so a missing/unreadable file becomes an Error payload
     // instead of a thrown exception — no try/with here for the error-shadowing detector to flag.
-    match readFileSyncSafe filePath (Encoding "utf8") with
+    match Energy.Core.NodeInterop.readFileSyncSafe filePath (Encoding "utf8") with
     | Ok sourceText -> Ok sourceText
     | Error message ->
         // decision: the error payload is the string edge of this module — unwrap once here for the

@@ -29,3 +29,14 @@ RELEASING.md
 Justfile
 AGENT_DECISION_COMMENTS.md
 .npmignore
+
+# Local analysis artifacts and contributor tooling are not package contents.
+.probe/**
+fsharp-analyzer-reports/**
+.energy-state/**
+.agents/**
+.codex/**
+AGENTS.md
+Directory.Build.props
+Directory.Build.targets
+.markdownlint*

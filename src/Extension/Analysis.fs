@@ -22,7 +22,7 @@ let private logError (message: string) (analysisError: AnalysisError) : unit =
 let isDocumentIgnored (document: obj) =
     match workspaceFolderFor workspace (documentUri document) with
     | null -> false
-    | folder when includeFixtures () -> false
+    | folder when includeFixtures (documentUri document) -> false
     | folder ->
         let rootDir = workspaceFolderUri folder |> uriFsPath
         // decision: fully qualified instead of an `open` — this file sits at the coherence
@@ -30,30 +30,28 @@ let isDocumentIgnored (document: obj) =
         loadIgnorePatterns rootDir
         |> isIgnored (Energy.Core.Paths.Path(documentFileName document)) (Energy.Core.Paths.Path rootDir)
 
-/// Parse source text into a root node, wrapping the result so a parse can't fail.
-///
-/// decision: tree-sitter's `parse` never throws — it returns a tree with an error child for invalid,
-/// empty, or binary input. There is no failure to catch here, so the document boundary wraps the
-/// parsed tree directly instead of pretending a parse can fail. Detectors later decide what those
-/// error children mean; this layer only proves the tree was produced.
-let private parseDocument fileName parser source = Ok(parse parser source |> rootNode)
-
+/// Analyze source while keeping native syntax-tree ownership within this synchronous call.
 let analyzeSourceWith thresholds loaded fileName source =
     // decision: presentation consumes the Core result directly. Optional Python type-information
     // logging is not part of analysis, so it must never turn valid findings into an empty editor.
-    parseDocument fileName loaded.Parser source
-    |> Result.map (fun root ->
+    withParsedTree loaded.Parser source (fun root ->
         { Source = source
           Tree = root
           Language = loaded.Adapter
           FileName = fileName }
-        |> analyzeWith thresholds)
+        |> analyzeWith thresholds
+        |> Ok)
 
 let analyzeSource loaded fileName source =
     analyzeSourceWith (readAnalyzeThresholds ()) loaded fileName source
 
+/// Analyze an editor document with the configuration of its own workspace folder.
 let private analyze loaded document =
-    analyzeSource loaded (documentFileName document) (documentText document)
+    analyzeSourceWith
+        (readAnalyzeThresholdsFor (documentUri document))
+        loaded
+        (documentFileName document)
+        (documentText document)
 
 /// Analyze the active document, clearing decorations on a typed boundary failure.
 ///

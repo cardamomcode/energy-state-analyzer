@@ -11,6 +11,10 @@ let workspaceFolderUri (workspaceFolder: obj) : obj = nativeOnly
 [<Emit("$0.getConfiguration($1)")>]
 let getConfiguration (hostWorkspace: obj) (section: string) : obj = nativeOnly
 
+/// Read settings in the scope of the document or workspace folder being analyzed.
+[<Emit("$0.getConfiguration($1, $2)")>]
+let getConfigurationFor (hostWorkspace: obj) (section: string) (resource: obj) : obj = nativeOnly
+
 /// Expose the raw workspaceFolders array for root discovery before any document is open.
 ///
 /// decision: read the raw workspaceFolders array so a project's .esaconfig.json can be discovered from

@@ -167,7 +167,7 @@
     "fable-tests": "rm -rf fable-tests && dotnet fable tests/EnergyState.Tests.fsproj --lang javascript --outDir fable-tests --noCache && echo '{\"type\":\"module\"}' > fable-tests/package.json",
     "compile": "npm run fable && webpack",
     "watch": "npm run compile && (dotnet fable watch src/EnergyState.fsproj --lang javascript --outDir fable-out/extension --noCache --runWatch npx webpack & dotnet fable watch cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out/cli --noCache)",
-    "package": "npm run fable && webpack --mode production --devtool hidden-source-map",
+    "package": "rm -rf dist && npm run fable && webpack --mode production --devtool hidden-source-map",
     "lint": "dotnet fantomas src tests cli --check",
     "format": "dotnet fantomas src tests cli",
     "format-check": "dotnet fantomas src tests cli --check",

@@ -28,3 +28,14 @@ dist/tree-sitter.wasm
 **/*.map
 *.vsix
 *.tgz
+
+# Local analysis artifacts and contributor tooling are not package contents.
+.probe/**
+fsharp-analyzer-reports/**
+.energy-state/**
+.agents/**
+.codex/**
+AGENTS.md
+Directory.Build.props
+Directory.Build.targets
+.markdownlint*
