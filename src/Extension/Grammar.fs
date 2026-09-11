@@ -21,7 +21,8 @@ let private logPath (message: string) (path: Path) : unit = console.log (message
 
 let private logSuccess (message: string) : unit = console.log (message)
 
-let initializeParser () = init parserCtor
+/// Await the shared parser runtime before activating editor analysis.
+let initializeParser () = init ()
 
 /// Return the loaded grammar for a language, sharing an in-flight load instead of starting another.
 ///

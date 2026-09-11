@@ -2,6 +2,8 @@ module Energy.Tests.SpikeTests
 
 open System.Threading.Tasks
 
+open Fable.Core.JsInterop
+
 open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
@@ -15,7 +17,41 @@ open Energy.Core.TreeSitter
 let tests =
     testList (
         "TreeSitter binding",
-        [ testAsync (
+        [ test (
+              "releases a parsed tree after consuming its root",
+              fun _ ->
+                  let mutable deleted = false
+                  let root = createObj [ "type" ==> "module" ]
+
+                  let tree =
+                      createObj [ "rootNode" ==> root; "delete" ==> (fun () -> deleted <- true) ]
+
+                  let parser = createObj [ "parse" ==> (fun (_: string) -> tree) ]
+
+                  let result = withParsedTree parser "source" nodeType
+                  assertThat result (isEqualTo (NodeType "module"))
+                  assertThat deleted isTrue
+          )
+          test (
+              "releases a parsed tree when its consumer throws",
+              fun _ ->
+                  let mutable deleted = false
+
+                  let tree =
+                      createObj [ "rootNode" ==> obj (); "delete" ==> (fun () -> deleted <- true) ]
+
+                  let parser = createObj [ "parse" ==> (fun (_: string) -> tree) ]
+                  let mutable message = ""
+
+                  try
+                      withParsedTree parser "source" (fun _ -> failwith "consumer failed")
+                  with error ->
+                      message <- error.Message
+
+                  assertThat message (isEqualTo "consumer failed")
+                  assertThat deleted isTrue
+          )
+          testAsync (
               "parses a Python fixture and reports the root node type",
               (fun _ ->
                   toAsync (

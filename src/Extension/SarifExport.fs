@@ -81,7 +81,9 @@ let createCommand getGrammar () : Task<unit> =
         | None, _ -> showErrorMessage window "Open a workspace folder before exporting a SARIF report."
         | _, None -> showErrorMessage window "Energy State Analyzer is not ready to export a SARIF report."
         | Some root, Some grammar ->
-            let! result = export (Path root) grammar (Energy.Extension.Configuration.readAnalyzeThresholds ())
+            let resource = Energy.Extension.Vscode.Presentation.uriFromFilePath root
+            let thresholds = Energy.Extension.Configuration.readAnalyzeThresholdsFor resource
+            let! result = export (Path root) grammar thresholds
 
             match result with
             | Error analysisError ->

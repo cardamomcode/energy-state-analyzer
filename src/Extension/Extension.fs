@@ -63,14 +63,18 @@ let private analyzeActiveEditor () : Task<unit> =
                 let! loaded = getOrLoadLanguage (documentLanguageId document) current.Grammar
 
                 match loaded with
+                | _ when
+                    not (isCurrentDocument document)
+                    || not (state |> Option.exists (fun active -> sameObject active current))
+                    ->
+                    ()
                 | Error analysisError ->
                     console.error ("Error loading grammar:", analysisErrorMessage analysisError)
                     applyDecorations editor current.Decorations []
                     updateProblemsPanel current.Diagnostics document []
                 | Ok None ->
                     console.log ("⚠️ Unsupported language: " + documentLanguageId document)
-                    clearDiagnostics current.Diagnostics
-                | Ok(Some _) when not (isCurrentDocument document) -> ()
+                    clearIgnored editor current
                 | Ok(Some loaded) ->
                     console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document

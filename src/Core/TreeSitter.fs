@@ -69,7 +69,16 @@ let languageCtor: obj = nativeOnly
 
 /// `Parser.init()` — one-time WASM bootstrap. Promise<void>.
 [<Emit("$0.init()")>]
-let init (ctor: obj) : Task<unit> = nativeOnly
+let private initialize (ctor: obj) : Task<unit> = nativeOnly
+
+/// Share WASM initialization across concurrent grammar requests.
+///
+/// decision: caches the pending task, because concurrent Parser.init calls can create separate
+/// WASM heaps before the upstream runtime has cached its initialized module.
+let private initialization = lazy (initialize parserCtor)
+
+/// Await the one shared parser runtime before constructing parsers or loading languages.
+let init () : Task<unit> = initialization.Value
 
 /// `Language.load(path)` — load a grammar WASM from a path. Promise<Language>.
 ///
@@ -96,6 +105,21 @@ let parse (parser: Parser) (text: string) : Tree = nativeOnly
 /// `tree.rootNode` — the root Node of a parsed tree.
 [<Emit("$0.rootNode")>]
 let rootNode (tree: Tree) : Node = nativeOnly
+
+/// Release the native memory owned by a syntax tree.
+[<Emit("$0.delete()")>]
+let deleteTree (tree: Tree) : unit = nativeOnly
+
+/// Consume a parsed tree synchronously and release its native memory even if analysis fails.
+///
+/// invariant: the callback returns detached data; nodes must not escape the tree's lifetime.
+let withParsedTree parser source consume =
+    let tree = parse parser source
+
+    try
+        consume (rootNode tree)
+    finally
+        deleteTree tree
 
 /// ---------------------------------------------------------------------------
 /// Typed node accessors (live JS object members, surfaced as typed F# values)
@@ -187,7 +211,7 @@ let nodeParent (node: Node) : Node option =
 /// swappable string/string parameter pair.
 let parseWith (grammarPath: Path) (source: string) : Task<Node> =
     task {
-        do! init parserCtor
+        do! init ()
         let! grammar = load languageCtor grammarPath
         let parser = makeParser parserCtor
         setLanguage parser grammar |> ignore
