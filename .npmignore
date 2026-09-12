@@ -1,4 +1,5 @@
 .vscode/**
+.devcontainer/**
 .vscode-test/**
 .vscode-test.mjs
 out/**
