@@ -1,0 +1,2 @@
+# Keep repository text files LF everywhere, including Windows checkouts and devcontainers.
+* text=auto eol=lf
