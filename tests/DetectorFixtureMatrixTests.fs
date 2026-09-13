@@ -113,15 +113,20 @@ let tests =
                         @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
                             ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
             elif item.Language.Id = "kotlin" then
-                // Kotlin-only: a nullable parameter must stay visible to the identity check, matching
-                // the C#/C++/TS verdict on the same isNullOrEmpty-guarded shape.
+                // Kotlin-only: a nullable parameter must stay visible to the identity check
+                // (flaggedNullable), while a null-check-by-call stays clean like the literal null
+                // comparisons (cleanNullable).
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
+                        @ [ StaysClean(FunctionName "cleanNullable")
+                            ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
-                    Expectations = item.Expectations @ [ StaysClean(FunctionName "public CheckedAmount") ] }
+                    Expectations =
+                        item.Expectations
+                        @ [ StaysClean(FunctionName "CleanNullCheck")
+                            StaysClean(FunctionName "public CheckedAmount") ] }
             else
                 item)
 

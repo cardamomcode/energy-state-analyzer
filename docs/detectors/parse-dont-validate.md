@@ -77,8 +77,9 @@ checked property belongs in the public contract before introducing a domain type
   resolve. Check-only validators require an absent or recognized no-value return
   annotation.
 - Null checks with identity returns are skipped because language-level narrowing
-  can already preserve that information. Check-only null validators remain
-  candidates because no narrowed value is returned.
+  can already preserve that information, including the common null-check calls
+  (Kotlin `isNullOrEmpty`/`isNull`, C# `IsNullOrEmpty`/`IsNull`). Check-only null
+  validators remain candidates because no narrowed value is returned.
 - The analyzer does not resolve aliases, infer types, follow callers, prove
   predicate purity, or resolve shadowed F# failure-function names.
 

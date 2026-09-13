@@ -21,6 +21,23 @@ let private parameters language head =
         | Some parameter -> parameter.Name, Some parameter.Type
         | None -> nodeText node, None)
 
+/// Null-check markers: literal null tokens plus common null-check callee names.
+///
+/// decision: exact node-text matching so a guard that rejects null in any spelling skips the
+/// identity return — `value === null`, `value.isNullOrEmpty()`, and `string.IsNullOrEmpty(value)`
+/// all narrow away nullability through language-level smart-casting, which already carries the
+/// guarantee. Without the callee names the skip depended on the null-check spelling, so the same
+/// semantics flagged in C#/Kotlin while the literal comparisons stayed clean (review finding).
+let private nullCheckMarkers =
+    [ "null"
+      "None"
+      "nil"
+      "nullptr"
+      "isNull"
+      "isNullOrEmpty"
+      "IsNull"
+      "IsNullOrEmpty" ]
+
 /// Identify parameters whose checked property is not carried by the success result.
 ///
 /// tradeoff: identity returns still require an annotation; check-only validators also accept simple untyped parameters because they expose no result to refine.
@@ -49,7 +66,7 @@ let private checkedParameter (language: LanguageAdapter) head candidate =
                    |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
                && not (
                    references
-                   |> List.exists (fun node -> List.contains (nodeText node) [ "null"; "None"; "nil"; "nullptr" ])
+                   |> List.exists (fun node -> List.contains (nodeText node) nullCheckMarkers)
                ))
 
 /// Report discarded guard information, leaving domain construction and ordinary computation alone.

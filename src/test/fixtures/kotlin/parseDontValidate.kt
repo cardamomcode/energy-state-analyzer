@@ -51,8 +51,13 @@ fun cleanNull(value: String?): String {
     return value
 }
 
-fun flaggedNullable(value: String?, limit: Int): String? {
+fun cleanNullable(value: String?, limit: Int): String? {
     if (value.isNullOrEmpty()) { throw Exception("missing") }
+    return value
+}
+
+fun flaggedNullable(value: String?, limit: Int): String? {
+    if (value?.isEmpty() == true) { throw Exception("empty") }
     return value
 }
 

@@ -54,6 +54,11 @@ string CleanNull(string? value) {
     return value;
 }
 
+string? CleanNullCheck(string? value) {
+    if (string.IsNullOrEmpty(value)) { throw new Exception("missing"); }
+    return value;
+}
+
 
 void FlaggedCheckOnly(int amount) {
     if (amount <= 0) { throw new Exception("bad"); }
