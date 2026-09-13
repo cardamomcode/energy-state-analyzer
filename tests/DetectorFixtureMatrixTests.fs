@@ -99,6 +99,7 @@ let tests =
                             StaysClean(FunctionName "cleanAssertion")
                             StaysClean(FunctionName "constructor(readonly")
                             ProducesFinding(FunctionName "flaggedOpaqueNullCheck", Some Low)
+                            ProducesFinding(FunctionName "flaggedOpaqueNullArgument", Some Low)
                             ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low) ] }
             elif item.Language.Id = "python" then
                 // Python-only: a leading docstring is non-executable documentation and must not

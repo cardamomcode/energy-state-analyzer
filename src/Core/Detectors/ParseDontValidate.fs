@@ -21,11 +21,27 @@ let private parameters language head =
         | Some parameter -> parameter.Name, Some parameter.Type
         | None -> nodeText node, None)
 
-/// Null-check markers that represent literal null values.
+/// Identify a direct comparison that rejects a parameter's null value.
 ///
-/// decision: recognize literal null spellings but never predicate names — user-defined methods such
-/// as `isNull()` return ordinary booleans and do not prove a compiler-enforced refined result.
-let private nullCheckMarkers = [ "null"; "None"; "nil"; "nullptr" ]
+/// decision: require a parameter, a null literal, and a null-equality operator as siblings of one
+/// expression node — calls such as `value.isNull()` or `isMissing(value, null)` are opaque
+/// predicates, not compiler-enforced type narrowing.
+let private rejectsNull language name condition =
+    let conditionChildren = nodeChildren condition
+
+    let isParameter node =
+        nodeText node = name
+        && List.contains (nodeType node) language.VariableReferenceNodeTypes
+
+    let isNullLiteral node =
+        List.contains (nodeText node) [ "null"; "None"; "nil"; "nullptr" ]
+
+    let isNullEqualityOperator node =
+        List.contains (nodeText node) [ "=="; "==="; "is"; "=" ]
+
+    conditionChildren |> List.exists isParameter
+    && conditionChildren |> List.exists isNullLiteral
+    && conditionChildren |> List.exists isNullEqualityOperator
 
 /// Identify parameters whose checked property is not carried by the success result.
 ///
@@ -53,10 +69,7 @@ let private checkedParameter (language: LanguageAdapter) head candidate =
                && List.contains (nodeType value) language.VariableReferenceNodeTypes
                && (parameterType
                    |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
-               && not (
-                   references
-                   |> List.exists (fun node -> List.contains (nodeText node) nullCheckMarkers)
-               ))
+               && not (rejectsNull language name candidate.Condition))
 
 /// Report discarded guard information, leaving domain construction and ordinary computation alone.
 let private inspect ctx head =

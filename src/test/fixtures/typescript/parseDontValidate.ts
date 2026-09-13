@@ -62,6 +62,15 @@ function flaggedOpaqueNullCheck(value: Checked): Checked {
     return value;
 }
 
+function hasMissingValue(_value: string | null, _marker: null): boolean {
+    return true;
+}
+
+function flaggedOpaqueNullArgument(value: string | null): string | null {
+    if (hasMissingValue(value, null)) { throw new Error("missing"); }
+    return value;
+}
+
 function flaggedDispatch(command: string): string {
     if (command === "quit") { throw new Error("bye"); }
     return command;
