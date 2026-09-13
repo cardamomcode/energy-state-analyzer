@@ -6,122 +6,94 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.TreeSitter
 open Energy.Core.Context
 
-// Cognitive complexity (SonarSource): unlike cyclomatic complexity, every decision point is
-// weighted by how deeply it is nested, and early-return guard clauses are not penalized. This
-// tracks how hard code is to *read*, not just how many paths it has.
-//
-// decision: implements a simplified subset of the SonarSource spec rather than the full algorithm,
-// acceptable for a first pass — each assumption below is called out at its point of use:
-//   - `for`/`while` `else` clauses (where a grammar has them) are scored like `if`/`else`, even
-//     though they aren't really a decision point.
-//   - boolean-operator chain merging ("a and b and c" = one increment) only checks the immediate
-//     parent's operator, not the full chain direction.
-//   - recursive calls to the enclosing function are not specially detected.
-//   - match/switch-like constructs and try/except are scored once as a whole, not per-case — see
-//     each LanguageAdapter for the exact node-type mapping (CognitiveNestedDecisionTypes).
+// An independent syntax-based implementation modeled on SonarSource's Cognitive Complexity.
+// Recursion cycles and Appendix A's compensating function wrappers are not resolved.
 
-// Read cognitive thresholds from the shared config rather than re-exporting a module-level copy.
-//
-// decision: cognitive thresholds live in Core.Config as the single source of truth; this detector
-// reads them from ctx.Options so it no longer re-exports a module-level copy.
+/// One part of a boolean expression in source order, with parentheses removed.
+type private BooleanPart =
+    | Operator of Node * BooleanOperator
+    | Operand of Node
 
-/// Compare a node against an optional grammar node type without leaking `option` into detectors.
+/// Anchor an operator run on its token so multiline conditions receive accurate heatmap lines.
+let private operatorAnchor node left right =
+    nodeChildren node
+    |> List.tryFind (fun child ->
+        nodeStartIndex child >= nodeEndIndex left
+        && nodeEndIndex child <= nodeStartIndex right)
+    |> Option.defaultValue node
+
+/// Flatten binary operators in source order, preserving non-boolean operands as separate walks.
 ///
-/// decision: compare a node against an optional grammar node type without leaking `option` into the
-/// detectors — a None field (a grammar gap) degrades to "never matches", so the corresponding check
-/// simply never fires instead of needing a guard at every call site.
-let private hasNodeType (t: NodeType option) (node: Node) : bool =
-    match t with
-    | Some ty -> nodeType node = ty
-    | None -> false
+/// decision: parentheses preserve a sequence; negations and other expressions remain operands so
+/// their internal boolean sequences are scored independently.
+let rec private booleanParts (language: LanguageAdapter) node =
+    match language.GetBooleanOperator node, language.GetCognitiveStructure node with
+    | Some operator, _ ->
+        let operands = nodeNamedChildren node
 
-type private CognitiveNodeKind =
-    | BooleanOperator of int
-    | NestedDecision
-    | ElseClause
-    | ConditionalExpression
-    | FunctionDefinition
-    | Lambda
-    | Other
+        match List.tryHead operands, List.tryLast operands with
+        | Some left, Some right when nodeId left <> nodeId right ->
+            booleanParts language left
+            @ [ Operator(operatorAnchor node left right, operator) ]
+            @ booleanParts language right
+        | _ -> operands |> List.map Operand
+    | None, Some(BooleanGroup inner) -> booleanParts language inner
+    | _ -> [ Operand node ]
 
-let private classifyNode (language: LanguageAdapter) (node: Node) : CognitiveNodeKind =
-    let operatorContribution operator =
-        nodeParent node
-        |> Option.bind language.GetBooleanOperator
-        |> Option.filter ((<>) operator)
-        |> Option.map (fun _ -> 1)
-        |> Option.defaultValue (if Option.isNone (nodeParent node) then 1 else 0)
+/// Count operator runs while recursively scoring operands outside the current boolean sequence.
+let private scoreBooleanParts walk contribute parts =
+    parts
+    |> List.fold
+        (fun (total, previous) part ->
+            match part with
+            | Operator(anchor, operator) ->
+                let amount = if previous = Some operator then 0 else 1
 
-    match language.GetBooleanOperator node with
-    | Some operator -> BooleanOperator(operatorContribution operator)
-    | None when List.contains (nodeType node) language.CognitiveNestedDecisionTypes -> NestedDecision
-    | None when hasNodeType language.NodeTypes.ElseClause node -> ElseClause
-    | None when hasNodeType language.NodeTypes.ConditionalExpression node -> ConditionalExpression
-    | None when language.IsFunctionDefinition node -> FunctionDefinition
-    | None when hasNodeType language.NodeTypes.Lambda node -> Lambda
-    | None -> Other
+                if amount > 0 then
+                    contribute anchor amount
 
-/// Recursively score one node's complexity, contributing for its kind and descending into children.
-///
-/// decision: the cognitive walk scores a node and then descends, branching on what kind of node it is.
-/// A `rec ... and` pair mirrors the TS `walk`/`walkNested`: `cognitiveWalk` handles one node (and its
-/// own children), while `cognitiveWalkChild` wraps a single child by first deciding whether that child
-/// enters nested scope — the only place depth is incremented for if/for/while bodies.
+                total + amount, Some operator
+            | Operand operand -> total + walk operand, previous)
+        (0, None)
+    |> fst
+
+/// Score syntax and record positive contributions through the same walk used by the heatmap.
 let rec private cognitiveWalk
     (language: LanguageAdapter)
     (node: Node)
     (nesting: int)
     (contribute: Node -> int -> unit)
     : int =
-    let walkChildren walker =
+    let walkChildren nested =
         nodeChildren node
-        |> List.sumBy (fun child -> walker language child nesting contribute)
+        |> List.sumBy (fun child ->
+            let depth = if nested child then nesting + 1 else nesting
+            cognitiveWalk language child depth contribute)
 
-    let contributeAndWalk contribution walker =
-        contribute node contribution
-        contribution + walkChildren walker
+    let add amount =
+        if amount > 0 then
+            contribute node amount
 
-    match classifyNode language node with
-    | BooleanOperator contribution -> contributeAndWalk contribution cognitiveWalk
-    | NestedDecision -> contributeAndWalk (1 + nesting) cognitiveWalkChild
-    | ElseClause -> contributeAndWalk 1 cognitiveWalkChild
-    | ConditionalExpression ->
-        contribute node (1 + nesting)
+        amount
 
-        1
-        + nesting
-        + (nodeChildren node
-           |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute))
-    | FunctionDefinition ->
-        let contribution = 1 + nesting
-        contribute node contribution
-        contribution
-    | Lambda ->
-        // decision: unlike NestedDecision, a lambda/closure is not itself a scored decision point
-        // (SonarSource's spec only scores if/for/while/switch/catch/logical chains) — it only raises
-        // the nesting level for whatever decision points live inside it. Nesting bumps unconditionally
-        // here (rather than via cognitiveWalkChild's EntersNestedScope gate) because several grammars
-        // (Kotlin's lambda_literal, Python's lambda, TS's expression-bodied arrow) hold their body as
-        // direct children with no wrapping block node, so the gate would never fire for them.
-        nodeChildren node
-        |> List.sumBy (fun child -> cognitiveWalk language child (nesting + 1) contribute)
-    | Other -> walkChildren cognitiveWalk
+    match language.GetBooleanOperator node with
+    | Some _ ->
+        booleanParts language node
+        |> scoreBooleanParts (fun operand -> cognitiveWalk language operand nesting contribute) contribute
+    | None ->
+        match language.GetCognitiveStructure node with
+        | Some(Flow(increment, nested)) ->
+            let amount =
+                match increment with
+                | Structural -> 1 + nesting
+                | Hybrid
+                | Fundamental -> 1
 
-and private cognitiveWalkChild
-    (language: LanguageAdapter)
-    (child: Node)
-    (nesting: int)
-    (contribute: Node -> int -> unit)
-    : int =
-    // a child enters nested scope only where the language says so (Python/TS have an explicit body
-    // node; F# has none, so every child is nested content). The increment applies to the walk's depth.
-    let nextNesting =
-        if language.EntersNestedScope child then
-            nesting + 1
-        else
-            nesting
-
-    cognitiveWalk language child nextNesting contribute
+            add amount
+            + walkChildren (fun child -> nested |> List.exists (fun body -> nodeId body = nodeId child))
+        | Some Closure -> walkChildren (fun _ -> true)
+        | _ when language.IsFunctionDefinition node -> walkChildren (fun _ -> true)
+        | _ -> walkChildren (fun _ -> false)
 
 /// Score a function by walking each of its top-level children at nesting zero.
 ///
@@ -149,6 +121,7 @@ let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (posi
 
     hotspots |> List.ofSeq
 
+/// Report named functions whose cognitive score exceeds the configured threshold.
 let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
@@ -186,6 +159,7 @@ let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse ctx.Tree
     addViolations findings ctx
 
+/// Register cognitive scoring in the shared detector pipeline.
 let detector: Detector =
     { Name = "cognitive"
       Run = analyzeCognitiveComplexity }

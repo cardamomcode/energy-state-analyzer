@@ -178,6 +178,7 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
                 |> Some
             | _ -> None
 
+/// Map F# grammar constructs to the shared detector contracts.
 let fSharpLanguageAdapter: LanguageAdapter =
     { Id = "fsharp"
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
@@ -231,13 +232,13 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     rules |> List.exists (fun rule -> nodeText rule |> _.Contains("_ ->"))
 
                 Some(rules.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_expression"
-          NodeType "elif_expression"
-          NodeType "for_expression"
-          NodeType "while_expression"
-          NodeType "try_expression"
-          NodeType "match_expression" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_expression"
+              NodeType "elif_expression"
+              NodeType "for_expression"
+              NodeType "while_expression"
+              NodeType "match_expression" ]
       NestingControlTypes =
         [ NodeType "if_expression"
           NodeType "elif_expression"
@@ -258,8 +259,6 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     elif t = "||" then Some Or
                     else None
                 | None -> None
-      // No block wrapper exists, so every child of a decision point is nested content.
-      EntersNestedScope = fun _ -> true
       // F#'s try_expression has no else-branch construct.
       IsTryElseClause = fun _ -> false
       // long_identifier_or_op's own .text is already the bare (possibly dotted) name, so it's used as

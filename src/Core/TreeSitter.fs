@@ -138,6 +138,10 @@ let nodeValue (node: Node) : string = nativeOnly
 [<Emit("$0.isNamed")>]
 let nodeIsNamed (node: Node) : bool = nativeOnly
 
+/// Report parser errors anywhere below a node, including missing required syntax.
+[<Emit("$0.hasError")>]
+let nodeHasError (node: Node) : bool = nativeOnly
+
 /// Stable node id (used by the position lookup to map nodes back to source ranges).
 [<Emit("$0.id")>]
 let nodeId (node: Node) : int = nativeOnly
@@ -186,6 +190,16 @@ let nodeNamedChildren (node: Node) : Node list =
 
 [<Emit("$0.child($1)")>]
 let nodeChild (node: Node) (index: int) : Node = nativeOnly
+
+/// Look up a grammar field, preserving missing fields as None at the facade boundary.
+[<Emit("$0.childForFieldName($1)")>]
+let private nodeFieldRaw (node: Node) (field: string) : obj = nativeOnly
+
+/// Return the child occupying a named grammar field, if present.
+let nodeField (field: string) (node: Node) : Node option =
+    match nodeFieldRaw node field with
+    | null -> None
+    | child -> Some child
 
 /// Parent as an Option: the root node's parent is null, which becomes None. Reads the member
 /// once and maps null -> None at the boundary.
