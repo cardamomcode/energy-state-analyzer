@@ -39,17 +39,49 @@ let private findings language source tree fixture threshold =
     |> _.Violations
     |> List.filter (fun violation -> violation.Type = Cognitive)
 
+/// Immutable parsed input and pipeline results shared by one fixture's named rule cases.
+type private RuleFixture =
+    { Tree: Node
+      Positions: PositionLookup
+      FindingsAtThreshold: int -> EnergyViolation list }
+
+/// Parse each fixture once and run its complete pipeline once per distinct threshold.
+///
+/// decision: share the pending task as well as its result because Quill starts named cases in
+/// parallel; repeated grammar loads and whole-file scans otherwise exhaust CI's test timeout.
+/// invariant: every case retains its assertions and each cached result belongs to one fixture
+/// and one threshold; the syntax tree is read-only for the lifetime of these tests.
+let private prepareFixture language fixture =
+    lazy
+        (task {
+            let! source, tree = parseFixture language fixture
+            let mutable results = Map.empty
+
+            let findingsAtThreshold threshold =
+                match Map.tryFind threshold results with
+                | Some cached -> cached
+                | None ->
+                    let computed = findings language source tree fixture threshold
+                    results <- Map.add threshold computed results
+                    computed
+
+            return
+                { Tree = tree
+                  Positions = createPositionLookup source
+                  FindingsAtThreshold = findingsAtThreshold }
+        })
+
 /// Check exact scores, heatmap accounting, and both sides of the reporting threshold.
-let private ruleTest language fixture (name, expected) =
+let private ruleTest language (prepared: System.Lazy<_>) (name, expected) =
     testAsync (
         sprintf "%s: %s scores %d" language.Id name expected,
         fun _ ->
             toAsync (
                 task {
-                    let! source, tree = parseFixture language fixture
-                    assertThat (nodeHasError tree) (isEqualTo false)
-                    let fn = findFunction language name tree |> Option.get
-                    let positions = createPositionLookup source
+                    let! (fixture: RuleFixture) = prepared.Value
+                    assertThat (nodeHasError fixture.Tree) (isEqualTo false)
+                    let fn = findFunction language name fixture.Tree |> Option.get
+                    let positions = fixture.Positions
                     let line = (positions.toPosition (nodeStartIndex fn)).Line
                     let atFunction = List.filter (fun violation -> violation.Line = line)
                     assertThat (cognitiveScoreOf language fn) (isEqualTo expected)
@@ -61,19 +93,17 @@ let private ruleTest language fixture (name, expected) =
 
                     assertThat (hotspots |> List.forall (fun point -> point.Weight > 0)) (isEqualTo true)
 
-                    assertThat
-                        (findings language source tree fixture expected |> atFunction |> List.length)
-                        (isEqualTo 0)
+                    assertThat (fixture.FindingsAtThreshold expected |> atFunction |> List.length) (isEqualTo 0)
 
                     if expected > 0 then
-                        let reported = findings language source tree fixture (expected - 1) |> atFunction
+                        let reported = fixture.FindingsAtThreshold(expected - 1) |> atFunction
                         assertThat reported.Length (isEqualTo 1)
                         assertThat reported.Head.Severity (isEqualTo Medium)
                         assertThat reported.Head.Hotspots (isEqualTo hotspots)
                         assertThat (reported.Head.Message.Contains(sprintf ": %d." expected)) (isEqualTo true)
 
                     if expected > 1 then
-                        let high = findings language source tree fixture (expected - 2) |> atFunction
+                        let high = fixture.FindingsAtThreshold(expected - 2) |> atFunction
                         assertThat high.Head.Severity (isEqualTo High)
                 }
             )
@@ -82,4 +112,6 @@ let private ruleTest language fixture (name, expected) =
 /// Named positive and negative rule scenarios shared with the detector fixture matrix.
 let fixtureTests =
     CognitiveRuleCases.cases
-    |> List.collect (fun (language, fixture, cases) -> cases |> List.map (ruleTest language fixture))
+    |> List.collect (fun (language, fixture, cases) ->
+        let prepared = prepareFixture language fixture
+        cases |> List.map (ruleTest language prepared))
