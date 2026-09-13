@@ -21,14 +21,11 @@ let private parameters language head =
         | Some parameter -> parameter.Name, Some parameter.Type
         | None -> nodeText node, None)
 
-/// Null-check markers: literal null tokens plus common null-check callee names.
+/// Null-check markers that represent literal null values.
 ///
-/// decision: exact node-text matching so a guard that rejects null in any spelling skips the
-/// identity return — `value === null` and `value.isNull()` both narrow away nullability through
-/// language-level smart-casting, which already carries the guarantee. Helpers such as
-/// `isNullOrEmpty` remain findings because the returned primitive does not encode non-emptiness.
-let private nullCheckMarkers =
-    [ "null"; "None"; "nil"; "nullptr"; "isNull"; "IsNull" ]
+/// decision: recognize literal null spellings but never predicate names — user-defined methods such
+/// as `isNull()` return ordinary booleans and do not prove a compiler-enforced refined result.
+let private nullCheckMarkers = [ "null"; "None"; "nil"; "nullptr" ]
 
 /// Identify parameters whose checked property is not carried by the success result.
 ///

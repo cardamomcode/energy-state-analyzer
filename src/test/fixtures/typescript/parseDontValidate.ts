@@ -53,6 +53,15 @@ function cleanNull(value: string | null): string {
     return value;
 }
 
+interface Checked {
+    isNull(): boolean;
+}
+
+function flaggedOpaqueNullCheck(value: Checked): Checked {
+    if (value.isNull()) { throw new Error("missing"); }
+    return value;
+}
+
 function flaggedDispatch(command: string): string {
     if (command === "quit") { throw new Error("bye"); }
     return command;
