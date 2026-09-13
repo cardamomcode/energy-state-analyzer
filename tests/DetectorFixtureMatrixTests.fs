@@ -105,6 +105,13 @@ let tests =
                     Expectations =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
+            elif item.Language.Id = "fsharp" then
+                // F#-only: the printf-style failure variants must reject like their unformatted bases.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
                     Expectations = item.Expectations @ [ StaysClean(FunctionName "public CheckedAmount") ] }
