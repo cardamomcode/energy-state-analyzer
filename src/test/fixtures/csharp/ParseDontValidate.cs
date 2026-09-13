@@ -59,6 +59,11 @@ string? CleanNullCheck(string? value) {
     return value;
 }
 
+string FlaggedDispatch(string command) {
+    if (command == "quit") { throw new Exception("bye"); }
+    return command;
+}
+
 
 void FlaggedCheckOnly(int amount) {
     if (amount <= 0) { throw new Exception("bad"); }

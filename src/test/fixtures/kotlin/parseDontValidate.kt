@@ -61,6 +61,11 @@ fun flaggedNullable(value: String?, limit: Int): String? {
     return value
 }
 
+fun flaggedDispatch(command: String): String {
+    if (command == "quit") { throw Exception("bye") }
+    return command
+}
+
 
 fun flaggedCheckOnly(amount: Int): Unit {
     if (amount <= 0) { throw Exception("bad") }

@@ -76,6 +76,9 @@ checked property belongs in the public contract before introducing a domain type
   outside the named-function scan.
 - Constructors, transformed returns, intervening statements, and conditional
   throws nested inside the guard are skipped.
+- Dispatch and routing guards (a string-equality check with an identity return)
+  are flagged like validation guards; the checked property is routing, not a
+  domain constraint. Suppress deliberately when the plain value is intentional.
 - Identity returns with an explicit annotation different from the parameter's
   annotation are skipped: they may represent a refinement the analyzer cannot
   resolve. Check-only validators require an absent or recognized no-value return

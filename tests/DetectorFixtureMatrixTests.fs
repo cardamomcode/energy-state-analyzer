@@ -80,6 +80,7 @@ let tests =
               StaysClean(FunctionName "cleanInterveningWork")
               ProducesFinding(FunctionName "flaggedNonEmpty", Some Low)
               StaysClean(FunctionName "cleanNull")
+              ProducesFinding(FunctionName "flaggedDispatch", Some Low)
               ProducesFinding(FunctionName "flaggedCheckOnly", Some Low)
               ProducesFinding(FunctionName "flaggedExplicitEmpty", Some Low)
               ProducesFinding(FunctionName "flaggedBareReturn", Some Low)

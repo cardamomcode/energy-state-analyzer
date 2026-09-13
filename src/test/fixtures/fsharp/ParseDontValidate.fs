@@ -76,6 +76,13 @@ let cleanNull (value: string) =
     value
 
 
+let flaggedDispatch (command: string) =
+    if command = "quit" then
+        failwith "bye"
+
+    command
+
+
 let flaggedCheckOnly (amount: int) =
     if amount <= 0 then
         invalidArg "amount" "bad"

@@ -63,6 +63,12 @@ def cleanNull(value: str | None):
     return value
 
 
+def flaggedDispatch(command: str) -> str:
+    if command == "quit":
+        raise SystemExit("bye")
+    return command
+
+
 def flaggedCheckOnly(amount: int) -> None:
     if amount <= 0:
         raise ValueError("bad")

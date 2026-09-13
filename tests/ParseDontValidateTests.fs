@@ -32,7 +32,7 @@ let tests =
                           let findings =
                               enabled.Violations |> List.filter (fun v -> v.Type = ParseDontValidate)
 
-                          assertThat findings.Length (isEqualTo 7)
+                          assertThat findings.Length (isEqualTo 8)
 
                           let options =
                               { defaultAnalyzeOptions with
@@ -48,7 +48,7 @@ let tests =
                           let suppressed =
                               Energy.Core.Suppressions.applySuppressions findings (String.concat "\n" lines)
 
-                          assertThat suppressed.Violations.Length (isEqualTo 6)
+                          assertThat suppressed.Violations.Length (isEqualTo 7)
                           assertThat suppressed.SuppressionNotes.Length (isEqualTo 0)
 
                           // File-level suppression: a reasoned esa-ignore-file directive triages the
