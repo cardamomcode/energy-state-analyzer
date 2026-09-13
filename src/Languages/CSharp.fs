@@ -43,7 +43,7 @@ let private switchBranchCount (node: Node) : int option =
 
         let hasFallback =
             sections
-            |> List.exists (fun section -> (nodeText section).StartsWith("default:"))
+            |> List.exists (fun section -> (nodeText section).StartsWith("default:", System.StringComparison.Ordinal))
 
         Some(sections.Length + if hasFallback then 0 else 1)
 
