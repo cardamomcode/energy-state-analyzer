@@ -1,0 +1,37 @@
+{
+  "name": "Energy State Analyzer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  // decision: match CI's SDK and Node major versions so local builds use the same toolchain.
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0"
+    },
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "22"
+    }
+  },
+  "remoteUser": "vscode",
+  "containerUser": "vscode",
+  "init": true,
+  // decision: isolate Linux dependencies and caches per workspace, including agent worktrees.
+  // Keep generated output directories on the workspace because build scripts delete them.
+  "mounts": [
+    "source=esa-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=esa-${devcontainerId}-npm-cache,target=/home/vscode/.npm,type=volume",
+    "source=esa-${devcontainerId}-nuget-cache,target=/home/vscode/.nuget/packages,type=volume"
+  ],
+  "postCreateCommand": ["bash", ".devcontainer/post-create.sh"],
+  "waitFor": "postCreateCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Ionide.Ionide-fsharp"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
