@@ -43,7 +43,7 @@ The same detectors also run headlessly, without VS Code, useful for CI or for an
 npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
 ```
 
-See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch.
+See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch. See [docs/agent-integration.md](docs/agent-integration.md) for wiring the CLI into an AI coding agent's edit-and-verify loop.
 
 ## Requirements
 
