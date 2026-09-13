@@ -73,41 +73,40 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
 
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)
 
+/// Normalize either orientation of a variable-to-string equality into one aggregation entry.
+let private stringEquality (language: LanguageAdapter) (comparison: EqualityComparison) =
+    let isVariable node =
+        List.contains (nodeType node) language.VariableReferenceNodeTypes
+
+    let isString node =
+        language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
+
+    match
+        isVariable comparison.Left, isString comparison.Right, isVariable comparison.Right, isString comparison.Left
+    with
+    | true, true, _, _ -> Some(comparison.Left, stripQuotes (nodeText comparison.Right))
+    | _, _, true, true -> Some(comparison.Right, stripQuotes (nodeText comparison.Left))
+    | _ -> None
+
+/// Merge values under their variable name while keeping the first source occurrence.
+let private recordStringValues (variable: Node) (values: string list) state =
+    let key = nodeText variable
+
+    match Map.tryFind key state with
+    | Some(existingValues, firstOccurrence) ->
+        Map.add key (Set.union existingValues (Set.ofList values), firstOccurrence) state
+    | None -> Map.add key (Set.ofList values, variable) state
+
 /// Detects one function-local variable being compared to three or more distinct string literals.
 ///
 /// assumption: a variable name belongs only to its containing function for this analysis; names reused
 /// in unrelated functions must not accumulate into one finding.
 let private findStringlyTypedControlFlow (functionNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
-    let isStringLiteral node =
-        language.NodeTypes.StringLiteral
-        |> Option.exists (fun stringLiteralType -> nodeType node = stringLiteralType)
-
-    let record (variable: Node) (values: string list) state =
-        let key = nodeText variable
-
-        match Map.tryFind key state with
-        | Some(existingValues, firstOccurrence) ->
-            Map.add key (Set.union existingValues (Set.ofList values), firstOccurrence) state
-        | None -> Map.add key (Set.ofList values, variable) state
-
     let rec traverse (node: Node) state =
         let withEqualities =
             language.GetEqualityComparisons node
-            |> List.fold
-                (fun acc comparison ->
-                    if
-                        List.contains (nodeType comparison.Left) language.VariableReferenceNodeTypes
-                        && isStringLiteral comparison.Right
-                    then
-                        record comparison.Left [ stripQuotes (nodeText comparison.Right) ] acc
-                    elif
-                        List.contains (nodeType comparison.Right) language.VariableReferenceNodeTypes
-                        && isStringLiteral comparison.Left
-                    then
-                        record comparison.Right [ stripQuotes (nodeText comparison.Left) ] acc
-                    else
-                        acc)
-                state
+            |> List.choose (stringEquality language)
+            |> List.fold (fun acc (variable, value) -> recordStringValues variable [ value ] acc) state
 
         let withMembership =
             language.GetMembershipComparisons node
@@ -117,7 +116,7 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
                         List.contains (nodeType comparison.Left) language.VariableReferenceNodeTypes
                         && not comparison.Values.IsEmpty
                     then
-                        record comparison.Left comparison.Values acc
+                        recordStringValues comparison.Left comparison.Values acc
                     else
                         acc)
                 withEqualities
@@ -130,7 +129,7 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
         let withMatchCases =
             match language.GetMatchStringCases node with
             | Some(scrutinee, caseNodes) ->
-                record scrutinee (caseNodes |> List.map (stripQuotes << nodeText)) withMembership
+                recordStringValues scrutinee (caseNodes |> List.map (stripQuotes << nodeText)) withMembership
             | None -> withMembership
 
         nodeChildren node
