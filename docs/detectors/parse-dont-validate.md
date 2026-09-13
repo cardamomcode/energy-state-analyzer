@@ -68,8 +68,12 @@ This is a syntax heuristic, not a proof about domain invariants. Review whether 
 checked property belongs in the public contract before introducing a domain type.
 
 - Untyped identity returns, multiple guards, `if/else` result expressions,
-  `Ok input`, Boolean validators, assertion statements, and indirect validation
-  calls are not yet recognized. Arrow functions and lambdas are outside the named-function scan.
+  `Ok input`, Boolean validators, and assertion statements are not yet
+  recognized. Indirect validation calls are recognized: a guard whose condition
+  delegates the check to an opaque callee (for example
+  `if not valid(amount): raise …`) is still flagged, because the analyzer
+  assumes the callee performs the check. Arrow functions and lambdas are
+  outside the named-function scan.
 - Constructors, transformed returns, intervening statements, and conditional
   throws nested inside the guard are skipped.
 - Identity returns with an explicit annotation different from the parameter's
