@@ -44,6 +44,17 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
 
+/// Information exposed after a rejecting guard succeeds.
+type ValidationSuccess =
+    | UnchangedInput of Node
+    | NoValue
+
+/// A syntactically established rejecting guard and its success result.
+type GuardedValidation =
+    { Anchor: Node
+      Condition: Node
+      Success: ValidationSuccess }
+
 /// One logical function inside a definition node. Most grammars have exactly one (the definition
 /// node itself). F#'s `and`-binding (a mutually recursive `let rec f ... and g ...`) parses as a
 /// single `function_or_value_defn` holding several `function_declaration_left` heads, each with its
@@ -254,4 +265,6 @@ type LanguageAdapter =
       // Given a class-definition node, returns the names of every class it directly extends/implements, as
       // written in source (not resolved against imports). Used two ways by checkClassRelatedness: linked
       // directly if one's base is the other's name; linked as siblings if they share a base name in common.
-      GetBaseClassNames: Node -> string list }
+      GetBaseClassNames: Node -> string list
+      // Parse a narrow validator body into facts shared by the domain-refinement detector.
+      GetGuardedValidation: FunctionHead -> GuardedValidation option }

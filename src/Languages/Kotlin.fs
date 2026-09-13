@@ -208,15 +208,10 @@ let kotlinLanguageAdapter: LanguageAdapter =
                     nodeChildren node |> List.tryFind isUserType
                 with
                 | Some nameNode, Some typeNode ->
-                    match
-                        nodeChildren typeNode
-                        |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
-                    with
-                    | Some ti ->
-                        Some
-                            { Name = nodeText nameNode
-                              Type = nodeText ti }
-                    | None -> None
+                    // Preserve generic arguments so a collection parameter and its return type agree.
+                    Some
+                        { Name = nodeText nameNode
+                          Type = nodeText typeNode }
                 | _ -> None
       ExtractReturnType =
         fun node ->
@@ -396,4 +391,13 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 |> List.choose delegationSpecifierName
             | None -> []
       GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems }
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "function_body"; NodeType "block" ]
+              Conditional = NodeType "if_expression"
+              Rejections = [ NodeType "throw_expression" ]
+              Return = Some(NodeType "return_expression")
+              FailureCalls = []
+              EmptyValues = [ "Unit" ]
+              PreservesCheckedInformation = fun _ -> false } }

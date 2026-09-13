@@ -49,6 +49,7 @@ let private knownTypes =
       "match-opportunity", MatchOpportunity
       "logical-control-flow", LogicalControlFlow
       "opaque-boolean", OpaqueBoolean
+      "parse-dont-validate", ParseDontValidate
       "error-shadowing", ErrorShadowing
       "suppression", Suppression ]
     |> Map.ofList

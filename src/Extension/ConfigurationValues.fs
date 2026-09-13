@@ -39,6 +39,9 @@ let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) :
         PrimitiveObsession =
             { options.PrimitiveObsession with
                 Enabled = reader.Bool "primitiveObsession" "enabled" options.PrimitiveObsession.Enabled }
+        ParseDontValidate =
+            { options.ParseDontValidate with
+                Enabled = reader.Bool "parseDontValidate" "enabled" options.ParseDontValidate.Enabled }
         OpaqueBoolean =
             { options.OpaqueBoolean with
                 Enabled = reader.Bool "opaqueBoolean" "enabled" options.OpaqueBoolean.Enabled }

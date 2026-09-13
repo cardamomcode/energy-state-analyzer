@@ -117,6 +117,11 @@
           "default": true,
           "description": "Whether to flag primitive obsession (too many primitive arguments or returns in a function)."
         },
+        "energyStateAnalyzer.parseDontValidate.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest domain types when a rejecting guard returns its input unchanged or returns no useful value."
+        },
         "energyStateAnalyzer.opaqueBoolean.enabled": {
           "type": "boolean",
           "default": true,

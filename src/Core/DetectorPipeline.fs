@@ -20,6 +20,7 @@ let private runWhen
 let detectorPipeline (ctx: AnalysisContext) : AnalysisContext =
     ctx
     |> runWhen ctx.Options.PrimitiveObsession.Enabled Detectors.PrimitiveObsession.detector.Run
+    |> runWhen ctx.Options.ParseDontValidate.Enabled Detectors.ParseDontValidate.detector.Run
     |> runWhen ctx.Options.OpaqueBoolean.Enabled Detectors.OpaqueBoolean.detector.Run
     |> runWhen ctx.Options.LogicalControlFlow.Enabled Detectors.LogicalControlFlow.detector.Run
     |> runWhen ctx.Options.MatchOpportunity.Enabled Detectors.MatchOpportunity.detector.Run

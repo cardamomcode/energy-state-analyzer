@@ -448,4 +448,13 @@ let fSharpLanguageAdapter: LanguageAdapter =
       GetClassName = fun _ -> None
       GetBaseClassNames = fun _ -> []
       GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = logicalItems }
+      GetFunctionLogicalItems = logicalItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "sequential_expression" ]
+              Conditional = NodeType "if_expression"
+              Rejections = []
+              Return = None
+              FailureCalls = [ "invalidArg"; "failwith"; "raise" ]
+              EmptyValues = [ "()"; "None" ]
+              PreservesCheckedInformation = fun _ -> false } }

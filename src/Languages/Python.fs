@@ -408,4 +408,13 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> List.map nodeText
             | None -> []
       GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems }
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "block" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "raise_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = [ "None" ]
+              PreservesCheckedInformation = fun _ -> false } }

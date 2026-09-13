@@ -29,6 +29,7 @@ type ViolationType =
     // cohesion signal, distinct from cyclomatic/cognitive complexity.
     | ErrorShadowing
     | Suppression
+    | ParseDontValidate
 
 /// A single source line's severity weight, used to paint a progressive heatmap across a function body.
 ///
@@ -63,6 +64,7 @@ let violationTypeName =
     | LogicalControlFlow -> "logical-control-flow"
     | OpaqueBoolean -> "opaque-boolean"
     | ErrorShadowing -> "error-shadowing"
+    | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
 
 /// Stable, user-facing identifiers for analyzer rules.
@@ -84,6 +86,7 @@ let violationRuleId =
     | OpaqueBoolean -> "ESA-012"
     | ErrorShadowing -> "ESA-013"
     | Suppression -> "ESA-014"
+    | ParseDontValidate -> "ESA-015"
 
 /// Canonical documentation for each user-facing analyzer rule.
 /// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
@@ -112,6 +115,8 @@ let violationHelpUri =
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/opaque-boolean-literal.md"
     | ErrorShadowing ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/error-shadowing.md"
+    | ParseDontValidate ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/parse-dont-validate.md"
     | Suppression -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/suppression.md"
 
 let severityName =

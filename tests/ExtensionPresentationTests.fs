@@ -39,6 +39,7 @@ let tests =
                           Bool =
                               fun section key fallback ->
                                   match section, key with
+                                  | "parseDontValidate", "enabled" -> false
                                   | "magicNumber", "enabled" -> false
                                   | "nesting", "enabled" -> false
                                   | "cyclomaticComplexity", "enabled" -> true
@@ -76,6 +77,7 @@ let tests =
                                   Allowlist = [ 0.0; 1.0; -1.0; 2.0; 3.0 ] } }
 
                   let thresholds = readAnalyzeThresholds reader projectOptions
+                  assertThat thresholds.ParseDontValidate.Enabled isFalse
                   let colors = readEnergyColors reader
                   let nesting = thresholds.Nesting
                   let coherence = thresholds.Coherence
