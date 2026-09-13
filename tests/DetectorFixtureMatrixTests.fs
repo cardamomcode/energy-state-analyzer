@@ -57,10 +57,12 @@ let private commonCases (paths: FixturePaths) expectations =
         { item with
             Expectations = expectationsFor item.Language expectations })
 
-// decision: keeps the cross-language detector contract in one compact, source-oriented catalogue.
-// A reviewer can read each named function in the fixture beside its positive or negative outcome.
-// invariant: a detector added to the product has either a parity row here or an explicitly
-// language-specific regression test explaining why a shared example is not meaningful.
+/// Exercise named positive and negative detector scenarios through the registered pipeline.
+///
+/// decision: keeps the cross-language detector contract in one compact, source-oriented catalogue.
+/// A reviewer can read each named function in the fixture beside its positive or negative outcome.
+/// invariant: a detector added to the product has either a parity row here or an explicitly
+/// language-specific regression test explaining why a shared example is not meaningful.
 let tests =
     let parseDontValidate =
         commonCases
@@ -330,6 +332,40 @@ let tests =
                 ProducesFinding(FunctionName "FlaggedDominantIf", None)
                 ProducesFinding(FunctionName "FlaggedValidationChain", None) ] ]
 
+    // These scenarios distinguish terminal guard candidates from optional work and alternatives.
+    let inversionFeedback =
+        commonCases
+            { Python = "inversion_feedback.py"
+              TypeScript = "inversionFeedback.ts"
+              FSharp = "Inversion.fs"
+              Kotlin = "InversionFeedback.kt"
+              CPlusPlus = "inversion_feedback.cpp"
+              CSharp = "InversionFeedback.cs" }
+            [ StaysClean(FunctionName "cleanRequiredFollowup")
+              StaysClean(FunctionName "cleanDominantFollowup")
+              StaysClean(FunctionName "cleanInterveningWork")
+              StaysClean(FunctionName "cleanAlternativeBranch")
+              StaysClean(FunctionName "cleanFlatAlternatives")
+              StaysClean(FunctionName "cleanTwoLevels")
+              StaysClean(FunctionName "cleanCommentHeavyBlock")
+              StaysClean(FunctionName "cleanNestedFunction")
+              ProducesFinding(FunctionName "flaggedAlternativeBody", Some Medium)
+              ProducesFinding(FunctionName "flaggedThreeLevels", Some Medium)
+              ProducesFinding(FunctionName "flaggedFourLevels", Some Medium)
+              ProducesFinding(FunctionName "flaggedFiveGuards", Some Medium)
+              ProducesFinding(FunctionName "flaggedNestedElse", Some Medium)
+              ProducesFinding(FunctionName "flaggedImplicitFallthrough", Some Medium) ]
+        // The existing inversion matrix above explicitly asserts the F# grammar limitation.
+        |> List.filter (fun fixtureCase -> fixtureCase.LanguageLabel <> "F#")
+        |> List.map (fun item ->
+            if item.Language.Id = "python" then
+                item
+            else
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ expectationsFor item.Language [ StaysClean(FunctionName "cleanUnbracedElse") ] })
+
     let errorShadowing =
         allLanguages
             "python/error_shadowing.py"
@@ -369,5 +405,6 @@ let tests =
           yield! detectorParityTests "logical control flow" LogicalControlFlow logicalControlFlow
           yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity
           yield! detectorParityTests "inversion" Inversion inversion
+          yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
           yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing ]
     )
