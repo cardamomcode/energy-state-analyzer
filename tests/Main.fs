@@ -23,6 +23,7 @@ let main _ =
           MatchOpportunityTests.tests
           LogicalControlFlowTests.tests
           OpaqueBooleanTests.tests
+          ParseDontValidateTests.tests
           ParameterCountTests.tests
           ParameterCountTests.configOverrideTests
           PrimitiveObsessionTests.tests

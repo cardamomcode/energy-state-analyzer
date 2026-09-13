@@ -62,6 +62,76 @@ let private commonCases (paths: FixturePaths) expectations =
 // invariant: a detector added to the product has either a parity row here or an explicitly
 // language-specific regression test explaining why a shared example is not meaningful.
 let tests =
+    let parseDontValidate =
+        commonCases
+            { Python = "parse_dont_validate.py"
+              TypeScript = "parseDontValidate.ts"
+              FSharp = "ParseDontValidate.fs"
+              Kotlin = "parseDontValidate.kt"
+              CPlusPlus = "parse_dont_validate.cpp"
+              CSharp = "ParseDontValidate.cs" }
+            [ ProducesFinding(FunctionName "flaggedPositive", Some Low)
+              ProducesFinding(FunctionName "flaggedUpperBound", Some Low)
+              StaysClean(FunctionName "cleanConstructed")
+              StaysClean(FunctionName "cleanTransformed")
+              StaysClean(FunctionName "cleanIdentity")
+              StaysClean(FunctionName "cleanOtherInput")
+              StaysClean(FunctionName "cleanNestedThrow")
+              StaysClean(FunctionName "cleanInterveningWork")
+              ProducesFinding(FunctionName "flaggedNonEmpty", Some Low)
+              StaysClean(FunctionName "cleanNull")
+              ProducesFinding(FunctionName "flaggedDispatch", Some Low)
+              ProducesFinding(FunctionName "flaggedCheckOnly", Some Low)
+              ProducesFinding(FunctionName "flaggedExplicitEmpty", Some Low)
+              ProducesFinding(FunctionName "flaggedBareReturn", Some Low)
+              StaysClean(FunctionName "cleanGuardThenWork")
+              StaysClean(FunctionName "cleanNoCheck")
+              StaysClean(FunctionName "cleanConditionalThrow")
+              StaysClean(FunctionName "cleanUnconditionalThrow") ]
+        |> List.map (fun item ->
+            if item.Language.Id = "typescript" then
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ StaysClean(FunctionName "cleanRefined")
+                            StaysClean(FunctionName "cleanUntyped")
+                            StaysClean(FunctionName "cleanCommentOnly")
+                            StaysClean(FunctionName "cleanAssertion")
+                            StaysClean(FunctionName "constructor(readonly")
+                            ProducesFinding(FunctionName "flaggedOpaqueNullCheck", Some Low)
+                            ProducesFinding(FunctionName "flaggedOpaqueNullArgument", Some Low)
+                            ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low) ] }
+            elif item.Language.Id = "python" then
+                // Python-only: a leading docstring is non-executable documentation and must not
+                // break the guard shape; the other languages document with comments, already discarded.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
+            elif item.Language.Id = "fsharp" then
+                // F#-only: the printf-style failure variants must reject like their unformatted bases.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
+            elif item.Language.Id = "kotlin" then
+                // Kotlin-only: nullable parameters whose identity returns discard a non-empty
+                // guarantee are findings, whether the guard is a call or explicit check.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "cleanNullable", Some Low)
+                            ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
+            elif item.Language.Id = "csharp" then
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
+                            StaysClean(FunctionName "public CheckedAmount") ] }
+            else
+                item)
+
     let magicNumbers =
         commonCases
             { Python = "magic_number.py"
@@ -265,7 +335,7 @@ let tests =
             "python/error_shadowing.py"
             "typescript/errorShadowing.ts"
             "fsharp/ErrorShadowing.fs"
-            "kotlin/error_shadowing.kt"
+            "kotlin/errorShadowing.kt"
             "cpp/error_shadowing.cpp"
             "csharp/ErrorShadowing.cs"
         |> List.map (fun item ->
@@ -290,6 +360,7 @@ let tests =
           yield! detectorParityTests "cognitive complexity" Cognitive cognitive
           yield! detectorParityTests "parameter count" Parameters parameters
           yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
+          yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
           yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean
           yield! detectorParityTests "logical control flow" LogicalControlFlow logicalControlFlow
           yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity

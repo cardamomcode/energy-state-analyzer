@@ -82,6 +82,9 @@ type ParameterCountThresholds =
 /// enable flag — a uniform shape that lets the pipeline guard every detector identically.
 type PrimitiveObsessionThresholds = { Enabled: bool }
 type OpaqueBooleanThresholds = { Enabled: bool }
+
+/// Enable the advisory for checks whose result loses the checked property.
+type ParseDontValidateThresholds = { Enabled: bool }
 type LogicalControlFlowThresholds = { Enabled: bool }
 type InversionThresholds = { Enabled: bool }
 
@@ -108,6 +111,7 @@ type AnalyzeOptions =
       MagicString: MagicStringOptions
       PrimitiveObsession: PrimitiveObsessionThresholds
       OpaqueBoolean: OpaqueBooleanThresholds
+      ParseDontValidate: ParseDontValidateThresholds
       LogicalControlFlow: LogicalControlFlowThresholds
       Inversion: InversionThresholds
       ErrorShadowing: ErrorShadowingThresholds }
@@ -159,6 +163,7 @@ let defaultAnalyzeOptions =
           HighThreshold = 8 }
       PrimitiveObsession = { Enabled = true }
       OpaqueBoolean = { Enabled = true }
+      ParseDontValidate = { Enabled = true }
       LogicalControlFlow = { Enabled = true }
       Inversion = { Enabled = true }
       // decision: protected scope and recovery are different boundary smells, so each gets its own
@@ -580,6 +585,7 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
       // detectors pass their built-in defaults straight through the merge untouched.
       PrimitiveObsession = defaults.PrimitiveObsession
       OpaqueBoolean = defaults.OpaqueBoolean
+      ParseDontValidate = defaults.ParseDontValidate
       LogicalControlFlow = defaults.LogicalControlFlow
       Inversion = defaults.Inversion }
 

@@ -81,6 +81,7 @@ let private categoryLabel =
     | LogicalControlFlow -> "Logical operator as control flow"
     | OpaqueBoolean -> "Opaque boolean literals"
     | ErrorShadowing -> "Error handling shadows logic"
+    | ParseDontValidate -> "Parse, don't validate"
     | Suppression -> "Suppression directives"
 
 let private categoryBlurb =
@@ -100,6 +101,7 @@ let private categoryBlurb =
     | LogicalControlFlow -> Some "&&/|| used to hide an if statement"
     | OpaqueBoolean -> Some "a bare true/false at a call site that only makes sense by reading the callee"
     | ErrorShadowing -> Some "an overly broad protected try region or recovery/cleanup policy that dominates a function"
+    | ParseDontValidate -> Some "a checked property that is not preserved in the returned type"
     | Suppression ->
         Some "an esa-ignore comment that names an unknown violation type, or no longer matches any violation"
     | Complexity

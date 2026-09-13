@@ -355,4 +355,20 @@ let typeScriptLanguageAdapter: LanguageAdapter =
             | Some heritage -> extendsTargetNames heritage @ implementsTargetNames heritage
             | None -> []
       GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems }
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "statement_block" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "throw_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = [ "undefined" ]
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation =
+                fun node ->
+                    nodeNamedChildren node
+                    |> List.exists (fun child ->
+                        nodeType child = NodeType "asserts_annotation"
+                        || (nodeType child = NodeType "property_identifier"
+                            && nodeText child = "constructor")) } }

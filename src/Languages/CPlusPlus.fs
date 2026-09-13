@@ -373,4 +373,14 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
             |> Option.map nodeText
       GetBaseClassNames = baseClassNames
       GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems }
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "compound_statement" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "throw_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = []
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation = fun _ -> false } }

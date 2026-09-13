@@ -115,7 +115,8 @@ let tests =
                         LogicalControlFlow
                         OpaqueBoolean
                         ErrorShadowing
-                        Suppression ]
+                        Suppression
+                        ParseDontValidate ]
                       |> List.map violationRuleId
 
                   assertThat
@@ -134,7 +135,8 @@ let tests =
                             "ESA-011"
                             "ESA-012"
                             "ESA-013"
-                            "ESA-014" ])
+                            "ESA-014"
+                            "ESA-015" ])
 
                   assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
           )
@@ -155,7 +157,8 @@ let tests =
                         LogicalControlFlow, "logical-operator-control-flow.md"
                         OpaqueBoolean, "opaque-boolean-literal.md"
                         ErrorShadowing, "error-shadowing.md"
-                        Suppression, "suppression.md" ]
+                        Suppression, "suppression.md"
+                        ParseDontValidate, "parse-dont-validate.md" ]
 
                   documentation
                   |> List.iter (fun (violationType, document) ->

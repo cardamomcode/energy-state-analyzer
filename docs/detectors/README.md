@@ -30,6 +30,7 @@ type checking remain the compiler's job.
 - [ESA-008: Inversion opportunities](inversion-opportunities.md), nested conditionals that could be guard clauses.
 - [ESA-010: Match opportunities](match-opportunities.md), if/elif chains that could be a match/switch.
 - [ESA-011: Logical operator as control flow](logical-operator-control-flow.md), an `if` hidden behind `&&`/`||`.
+- [ESA-015: Parse, don't validate](parse-dont-validate.md), checks whose successful return loses the checked property.
 - [ESA-012: Opaque boolean literal](opaque-boolean-literal.md), an unlabeled `true`/`false` at a call site.
 
 ## Suppression
