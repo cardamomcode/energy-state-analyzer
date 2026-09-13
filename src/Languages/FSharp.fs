@@ -457,4 +457,5 @@ let fSharpLanguageAdapter: LanguageAdapter =
               Return = None
               FailureCalls = [ "invalidArg"; "failwith"; "raise" ]
               EmptyValues = [ "()"; "None" ]
+              IsNonExecutable = fun _ -> false
               PreservesCheckedInformation = fun _ -> false } }

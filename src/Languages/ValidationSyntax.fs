@@ -11,25 +11,27 @@ type GuardSyntax =
       Return: NodeType option
       FailureCalls: string list
       EmptyValues: string list
+      IsNonExecutable: Node -> bool
       PreservesCheckedInformation: Node -> bool }
 
-/// Discard comments while retaining every executable statement.
-let private children node =
+/// Discard comments and non-executable statements while retaining every executable statement.
+let private children syntax node =
     nodeNamedChildren node
     |> List.filter (fun child ->
-        not (List.contains (nodeType child) [ NodeType "comment"; NodeType "line_comment"; NodeType "block_comment" ]))
+        not (List.contains (nodeType child) [ NodeType "comment"; NodeType "line_comment"; NodeType "block_comment" ])
+        && not (syntax.IsNonExecutable child))
 
 /// Unwrap only grammar containers, never loops, handlers, or nested declarations.
 let rec private statements syntax node =
     if List.contains (nodeType node) syntax.Containers then
-        children node |> List.collect (statements syntax)
+        children syntax node |> List.collect (statements syntax)
     else
         [ node ]
 
 /// Recognize F# failure applications by their leftmost callee, not text inside arguments.
-let rec private callee node =
+let rec private callee syntax node =
     if nodeType node = NodeType "application_expression" then
-        children node |> List.tryHead |> Option.bind callee
+        children syntax node |> List.tryHead |> Option.bind (callee syntax)
     else
         Some(nodeText node)
 
@@ -39,7 +41,7 @@ let private rejects syntax node =
     | [ statement ] ->
         List.contains (nodeType statement) syntax.Rejections
         || (nodeType statement = NodeType "application_expression"
-            && (callee statement
+            && (callee syntax statement
                 |> Option.exists (fun name -> List.contains name syntax.FailureCalls)))
     | _ -> false
 
@@ -48,7 +50,7 @@ let private success syntax returned =
     let value =
         match syntax.Return with
         | Some kind when nodeType returned = kind ->
-            match children returned with
+            match children syntax returned with
             | [] -> Some NoValue
             | [ value ] ->
                 if List.contains (nodeText value) syntax.EmptyValues then
@@ -73,7 +75,7 @@ let private bodyItems syntax (head: FunctionHead) =
     then
         statements syntax head.Body
     else
-        children head.Body
+        children syntax head.Body
         |> List.filter (fun node ->
             List.contains (nodeType node) syntax.Containers
             || nodeType node = syntax.Conditional)
@@ -99,7 +101,7 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
         if nodeType guard <> syntax.Conditional then
             None
         else
-            match children guard with
+            match children syntax guard with
             | [ condition; rejection ] when rejects syntax rejection ->
                 Some
                     { Anchor = guard

@@ -98,6 +98,13 @@ let tests =
                             StaysClean(FunctionName "cleanAssertion")
                             StaysClean(FunctionName "constructor(readonly")
                             ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low) ] }
+            elif item.Language.Id = "python" then
+                // Python-only: a leading docstring is non-executable documentation and must not
+                // break the guard shape; the other languages document with comments, already discarded.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
                     Expectations = item.Expectations @ [ StaysClean(FunctionName "public CheckedAmount") ] }

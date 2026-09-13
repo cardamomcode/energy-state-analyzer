@@ -58,8 +58,8 @@ through type narrowing or the constructed instance.
 
 The rejecting branch must consist of a throw/raise statement, or an F# application
 of `invalidArg`, `failwith`, or `raise`. F# implicit final expressions are supported.
-Comments do not count as executable items. Numeric bounds and non-empty collection
-checks are covered by the cross-language fixture matrix.
+Comments and Python docstrings do not count as executable items. Numeric bounds and
+non-empty collection checks are covered by the cross-language fixture matrix.
 
 ## Limits
 

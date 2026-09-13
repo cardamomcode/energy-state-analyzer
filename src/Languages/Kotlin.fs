@@ -400,4 +400,5 @@ let kotlinLanguageAdapter: LanguageAdapter =
               Return = Some(NodeType "return_expression")
               FailureCalls = []
               EmptyValues = [ "Unit" ]
+              IsNonExecutable = fun _ -> false
               PreservesCheckedInformation = fun _ -> false } }

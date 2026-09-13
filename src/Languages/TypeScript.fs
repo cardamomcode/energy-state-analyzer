@@ -364,6 +364,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
               Return = Some(NodeType "return_statement")
               FailureCalls = []
               EmptyValues = [ "undefined" ]
+              IsNonExecutable = fun _ -> false
               PreservesCheckedInformation =
                 fun node ->
                     nodeNamedChildren node
