@@ -183,6 +183,39 @@ let private readAtRef reference filePath =
 
         None
 
+/// Collect base and head summaries while preserving the first analysis failure.
+let rec private analyzeChanged baseRef thresholds files bases heads =
+    task {
+        match files with
+        | [] -> return Ok(List.rev bases, List.rev heads)
+        | filePath :: remaining ->
+            let! headAnalysis = analyzePath (Path filePath) thresholds
+
+            match headAnalysis with
+            | Error analysisError -> return Error analysisError
+            | Ok headViolations ->
+                let head =
+                    summarizeFile
+                        { FilePath = filePath
+                          Violations = headViolations }
+
+                match readAtRef baseRef filePath with
+                | None -> return! analyzeChanged baseRef thresholds remaining bases (head :: heads)
+                | Some baseSource ->
+                    let! baseAnalysis = analyzeFile (Path filePath) baseSource thresholds
+
+                    match baseAnalysis with
+                    | Error analysisError -> return Error analysisError
+                    | Ok baseViolations ->
+                        let baseSummary =
+                            summarizeFile
+                                { FilePath = filePath
+                                  Violations = baseViolations }
+
+                        return! analyzeChanged baseRef thresholds remaining (baseSummary :: bases) (head :: heads)
+    }
+
+/// Analyze changed files and render their score differences against a git reference.
 let runDiff
     (baseRef: string)
     (explicitPaths: string list)
@@ -202,38 +235,7 @@ let runDiff
                 resolveLanguageForFile filePath |> Option.isSome && existsSync (Path filePath))
             |> List.filter (fun filePath -> not (isIgnored (resolvePath (Path filePath)) (Path rootDir) patterns))
 
-        let rec analyzeChanged files bases heads =
-            task {
-                match files with
-                | [] -> return Ok(List.rev bases, List.rev heads)
-                | filePath :: remaining ->
-                    let! headAnalysis = analyzePath (Path filePath) thresholds
-
-                    match headAnalysis with
-                    | Error analysisError -> return Error analysisError
-                    | Ok headViolations ->
-                        let head =
-                            summarizeFile
-                                { FilePath = filePath
-                                  Violations = headViolations }
-
-                        match readAtRef baseRef filePath with
-                        | None -> return! analyzeChanged remaining bases (head :: heads)
-                        | Some baseSource ->
-                            let! baseAnalysis = analyzeFile (Path filePath) baseSource thresholds
-
-                            match baseAnalysis with
-                            | Error analysisError -> return Error analysisError
-                            | Ok baseViolations ->
-                                let baseSummary =
-                                    summarizeFile
-                                        { FilePath = filePath
-                                          Violations = baseViolations }
-
-                                return! analyzeChanged remaining (baseSummary :: bases) (head :: heads)
-            }
-
-        let! analysis = analyzeChanged changed [] []
+        let! analysis = analyzeChanged baseRef thresholds changed [] []
 
         match analysis with
         | Error analysisError ->
