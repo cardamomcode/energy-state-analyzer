@@ -53,6 +53,11 @@ function cleanNull(value: string | null): string {
     return value;
 }
 
+function flaggedDispatch(command: string): string {
+    if (command === "quit") { throw new Error("bye"); }
+    return command;
+}
+
 function cleanRefined(value: "ready" | "pending"): "ready" {
     if (value === "pending") { throw new Error("not ready"); }
     return value;

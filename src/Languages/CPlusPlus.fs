@@ -382,4 +382,5 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
               Return = Some(NodeType "return_statement")
               FailureCalls = []
               EmptyValues = []
+              IsNonExecutable = fun _ -> false
               PreservesCheckedInformation = fun _ -> false } }

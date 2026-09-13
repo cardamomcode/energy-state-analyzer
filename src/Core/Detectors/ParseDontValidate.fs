@@ -21,6 +21,15 @@ let private parameters language head =
         | Some parameter -> parameter.Name, Some parameter.Type
         | None -> nodeText node, None)
 
+/// Null-check markers: literal null tokens plus common null-check callee names.
+///
+/// decision: exact node-text matching so a guard that rejects null in any spelling skips the
+/// identity return — `value === null` and `value.isNull()` both narrow away nullability through
+/// language-level smart-casting, which already carries the guarantee. Helpers such as
+/// `isNullOrEmpty` remain findings because the returned primitive does not encode non-emptiness.
+let private nullCheckMarkers =
+    [ "null"; "None"; "nil"; "nullptr"; "isNull"; "IsNull" ]
+
 /// Identify parameters whose checked property is not carried by the success result.
 ///
 /// tradeoff: identity returns still require an annotation; check-only validators also accept simple untyped parameters because they expose no result to refine.
@@ -49,7 +58,7 @@ let private checkedParameter (language: LanguageAdapter) head candidate =
                    |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
                && not (
                    references
-                   |> List.exists (fun node -> List.contains (nodeText node) [ "null"; "None"; "nil"; "nullptr" ])
+                   |> List.exists (fun node -> List.contains (nodeText node) nullCheckMarkers)
                ))
 
 /// Report discarded guard information, leaving domain construction and ordinary computation alone.

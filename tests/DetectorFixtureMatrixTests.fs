@@ -80,6 +80,7 @@ let tests =
               StaysClean(FunctionName "cleanInterveningWork")
               ProducesFinding(FunctionName "flaggedNonEmpty", Some Low)
               StaysClean(FunctionName "cleanNull")
+              ProducesFinding(FunctionName "flaggedDispatch", Some Low)
               ProducesFinding(FunctionName "flaggedCheckOnly", Some Low)
               ProducesFinding(FunctionName "flaggedExplicitEmpty", Some Low)
               ProducesFinding(FunctionName "flaggedBareReturn", Some Low)
@@ -98,9 +99,34 @@ let tests =
                             StaysClean(FunctionName "cleanAssertion")
                             StaysClean(FunctionName "constructor(readonly")
                             ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low) ] }
+            elif item.Language.Id = "python" then
+                // Python-only: a leading docstring is non-executable documentation and must not
+                // break the guard shape; the other languages document with comments, already discarded.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
+            elif item.Language.Id = "fsharp" then
+                // F#-only: the printf-style failure variants must reject like their unformatted bases.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
+            elif item.Language.Id = "kotlin" then
+                // Kotlin-only: nullable parameters whose identity returns discard a non-empty
+                // guarantee are findings, whether the guard is a call or explicit check.
+                { item with
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "cleanNullable", Some Low)
+                            ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
-                    Expectations = item.Expectations @ [ StaysClean(FunctionName "public CheckedAmount") ] }
+                    Expectations =
+                        item.Expectations
+                        @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
+                            StaysClean(FunctionName "public CheckedAmount") ] }
             else
                 item)
 

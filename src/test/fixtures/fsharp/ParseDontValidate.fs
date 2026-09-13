@@ -14,6 +14,20 @@ let flaggedUpperBound (amount: int) (limit: int) =
 
     amount
 
+
+let flaggedFailWithFormat (amount: int) (limit: int) =
+    if amount <= 0 then
+        failwithf "amount %d must be positive" amount
+
+    amount
+
+
+let flaggedInvalidArgFormat (amount: int) (limit: int) =
+    if amount <= 0 then
+        invalidArgf "amount" "%d must be positive" amount
+
+    amount
+
 let cleanConstructed (amount: int) (limit: int) =
     if amount <= 0 then
         invalidArg "amount" "positive"
@@ -60,6 +74,13 @@ let cleanNull (value: string) =
         invalidArg "value" "missing"
 
     value
+
+
+let flaggedDispatch (command: string) =
+    if command = "quit" then
+        failwith "bye"
+
+    command
 
 
 let flaggedCheckOnly (amount: int) =

@@ -42,6 +42,18 @@ let private tryStatementNodeType = NodeType "try_statement"
 let private exceptClauseNodeType = NodeType "except_clause"
 let private finallyClauseNodeType = NodeType "finally_clause"
 
+/// Recognize a docstring — a bare string-literal statement — so it is discarded like a comment.
+///
+/// decision: a docstring is documentation, not executable work. Without this filter the strict
+/// guard [+ return] shape breaks on a leading docstring and the verdict flips based on docstring
+/// presence (with-docstring clean, without flagged); discarding it anywhere matches the comment
+/// treatment in ValidationSyntax.children.
+let private isDocstring (node: Node) : bool =
+    nodeType node = NodeType "expression_statement"
+    && (match nodeNamedChildren node with
+        | [ s ] -> nodeType s = NodeType "string"
+        | _ -> false)
+
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -417,4 +429,5 @@ let pythonLanguageAdapter: LanguageAdapter =
               Return = Some(NodeType "return_statement")
               FailureCalls = []
               EmptyValues = [ "None" ]
+              IsNonExecutable = isDocstring
               PreservesCheckedInformation = fun _ -> false } }

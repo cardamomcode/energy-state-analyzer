@@ -14,6 +14,13 @@ def flaggedUpperBound(amount: int, limit: int):
         raise ValueError("positive")
     return amount
 
+
+def flaggedDocstring(amount: int, limit: int):
+    """Reject non-positive amounts."""
+    if amount <= 0:
+        raise ValueError("positive")
+    return amount
+
 def cleanConstructed(amount: int, limit: int):
     if amount <= 0:
         raise ValueError("positive")
@@ -54,6 +61,12 @@ def cleanNull(value: str | None):
     if value is None:
         raise ValueError("missing")
     return value
+
+
+def flaggedDispatch(command: str) -> str:
+    if command == "quit":
+        raise SystemExit("bye")
+    return command
 
 
 def flaggedCheckOnly(amount: int) -> None:

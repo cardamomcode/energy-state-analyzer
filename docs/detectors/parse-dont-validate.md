@@ -57,9 +57,10 @@ signatures and constructors are excluded: these can already carry the guarantee
 through type narrowing or the constructed instance.
 
 The rejecting branch must consist of a throw/raise statement, or an F# application
-of `invalidArg`, `failwith`, or `raise`. F# implicit final expressions are supported.
-Comments do not count as executable items. Numeric bounds and non-empty collection
-checks are covered by the cross-language fixture matrix.
+of `invalidArg`, `invalidArgf`, `failwith`, `failwithf`, or `raise`. F# implicit
+final expressions are supported. Comments and Python docstrings do not count as
+executable items. Numeric bounds and non-empty collection checks are covered by the
+cross-language fixture matrix.
 
 ## Limits
 
@@ -67,17 +68,25 @@ This is a syntax heuristic, not a proof about domain invariants. Review whether 
 checked property belongs in the public contract before introducing a domain type.
 
 - Untyped identity returns, multiple guards, `if/else` result expressions,
-  `Ok input`, Boolean validators, assertion statements, and indirect validation
-  calls are not yet recognized. Arrow functions and lambdas are outside the named-function scan.
+  `Ok input`, Boolean validators, and assertion statements are not yet
+  recognized. Indirect validation calls are recognized: a guard whose condition
+  delegates the check to an opaque callee (for example
+  `if not valid(amount): raise …`) is still flagged, because the analyzer
+  assumes the callee performs the check. Arrow functions and lambdas are
+  outside the named-function scan.
 - Constructors, transformed returns, intervening statements, and conditional
   throws nested inside the guard are skipped.
+- Dispatch and routing guards (a string-equality check with an identity return)
+  are flagged like validation guards; the checked property is routing, not a
+  domain constraint. Suppress deliberately when the plain value is intentional.
 - Identity returns with an explicit annotation different from the parameter's
   annotation are skipped: they may represent a refinement the analyzer cannot
   resolve. Check-only validators require an absent or recognized no-value return
   annotation.
 - Null checks with identity returns are skipped because language-level narrowing
-  can already preserve that information. Check-only null validators remain
-  candidates because no narrowed value is returned.
+  can already preserve that information, including the common null-check calls
+  (Kotlin `isNullOrEmpty`/`isNull`, C# `IsNullOrEmpty`/`IsNull`). Check-only null
+  validators remain candidates because no narrowed value is returned.
 - The analyzer does not resolve aliases, infer types, follow callers, prove
   predicate purity, or resolve shadowed F# failure-function names.
 
@@ -96,6 +105,11 @@ let checkedItems (items: int list) =
     if List.isEmpty items then invalidArg "items" "Must not be empty"
     items
 ```
+
+Validation layers that are deliberately plain-data boundaries usually triage at
+module scope instead: a reasoned file-level directive, `esa-ignore-file` or the
+typed `esa-ignore-file: parse-dont-validate`, suppresses the rule for the whole
+file rather than every guard.
 
 ## Reference
 

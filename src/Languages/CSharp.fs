@@ -257,4 +257,5 @@ let cSharpLanguageAdapter: LanguageAdapter =
               Return = Some(NodeType "return_statement")
               FailureCalls = []
               EmptyValues = []
+              IsNonExecutable = fun _ -> false
               PreservesCheckedInformation = fun node -> nodeType node = NodeType "constructor_declaration" } }

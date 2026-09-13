@@ -59,6 +59,12 @@ int* cleanNull(int* value) {
 }
 
 
+std::string flaggedDispatch(std::string command) {
+    if (command == "quit") { throw std::invalid_argument("bye"); }
+    return command;
+}
+
+
 void flaggedCheckOnly(int amount) {
     if (amount <= 0) { throw std::invalid_argument("bad"); }
 }
