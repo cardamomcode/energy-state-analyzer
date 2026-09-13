@@ -60,6 +60,17 @@ let private expectedInfixIdentifierCount = 3
 /// detector's stringly-typed-control-flow check flags as a switch-like branch on an ad hoc string tag.
 let private isUserType (node: Node) : bool = nodeType node = NodeType "user_type"
 
+/// Detect a parameter's type annotation, accepting both plain and nullable forms.
+///
+/// decision: a nullable parameter (`String?`) wraps its user_type in a nullable_type node, so
+/// matching only user_type made nullable parameters invisible to typed-parameter consumers — the
+/// identity-return check in particular could never agree a `String?` parameter with a `String?`
+/// return, while the C#/C++/TS equivalents were flagged (review inconsistency). Matching either
+/// form keeps the exact type text (the `?` included): `String?` agrees with `String?`, never
+/// with `String`.
+let private isParameterType (node: Node) : bool =
+    nodeType node = NodeType "user_type" || nodeType node = NodeType "nullable_type"
+
 let private isConstPropertyDeclaration (node: Node) : bool =
     match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "modifiers") with
     | Some modifiers ->
@@ -205,10 +216,11 @@ let kotlinLanguageAdapter: LanguageAdapter =
             else
                 match
                     nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier"),
-                    nodeChildren node |> List.tryFind isUserType
+                    nodeChildren node |> List.tryFind isParameterType
                 with
                 | Some nameNode, Some typeNode ->
-                    // Preserve generic arguments so a collection parameter and its return type agree.
+                    // Preserve generic arguments and the nullable marker so a parameter and its
+                    // return type agree exactly.
                     Some
                         { Name = nodeText nameNode
                           Type = nodeText typeNode }

@@ -51,6 +51,11 @@ fun cleanNull(value: String?): String {
     return value
 }
 
+fun flaggedNullable(value: String?, limit: Int): String? {
+    if (value.isNullOrEmpty()) { throw Exception("missing") }
+    return value
+}
+
 
 fun flaggedCheckOnly(amount: Int): Unit {
     if (amount <= 0) { throw Exception("bad") }
