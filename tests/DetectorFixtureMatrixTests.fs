@@ -114,19 +114,18 @@ let tests =
                         @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
                             ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
             elif item.Language.Id = "kotlin" then
-                // Kotlin-only: a nullable parameter must stay visible to the identity check
-                // (flaggedNullable), while a null-check-by-call stays clean like the literal null
-                // comparisons (cleanNullable).
+                // Kotlin-only: nullable parameters whose identity returns discard a non-empty
+                // guarantee are findings, whether the guard is a call or explicit check.
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ StaysClean(FunctionName "cleanNullable")
+                        @ [ ProducesFinding(FunctionName "cleanNullable", Some Low)
                             ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ StaysClean(FunctionName "CleanNullCheck")
+                        @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
                             StaysClean(FunctionName "public CheckedAmount") ] }
             else
                 item)

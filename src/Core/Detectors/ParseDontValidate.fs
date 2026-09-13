@@ -24,19 +24,11 @@ let private parameters language head =
 /// Null-check markers: literal null tokens plus common null-check callee names.
 ///
 /// decision: exact node-text matching so a guard that rejects null in any spelling skips the
-/// identity return — `value === null`, `value.isNullOrEmpty()`, and `string.IsNullOrEmpty(value)`
-/// all narrow away nullability through language-level smart-casting, which already carries the
-/// guarantee. Without the callee names the skip depended on the null-check spelling, so the same
-/// semantics flagged in C#/Kotlin while the literal comparisons stayed clean (review finding).
+/// identity return — `value === null` and `value.isNull()` both narrow away nullability through
+/// language-level smart-casting, which already carries the guarantee. Helpers such as
+/// `isNullOrEmpty` remain findings because the returned primitive does not encode non-emptiness.
 let private nullCheckMarkers =
-    [ "null"
-      "None"
-      "nil"
-      "nullptr"
-      "isNull"
-      "isNullOrEmpty"
-      "IsNull"
-      "IsNullOrEmpty" ]
+    [ "null"; "None"; "nil"; "nullptr"; "isNull"; "IsNull" ]
 
 /// Identify parameters whose checked property is not carried by the success result.
 ///
