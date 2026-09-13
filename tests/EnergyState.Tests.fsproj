@@ -16,6 +16,8 @@
     <Compile Include="NestingTests.fs" />
     <Compile Include="CyclomaticTests.fs" />
     <Compile Include="CognitiveTests.fs" />
+    <Compile Include="CognitiveRuleCases.fs" />
+    <Compile Include="CognitiveRuleTests.fs" />
     <Compile Include="CoherenceTests.fs" />
     <Compile Include="MagicNumberTests.fs" />
     <Compile Include="MagicStringTests.fs" />

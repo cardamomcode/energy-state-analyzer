@@ -201,6 +201,7 @@ let private isClassDefinition (node: Node) : bool =
     && (nodeChildren node
         |> List.exists (fun child -> nodeType child = NodeType "field_declaration_list"))
 
+/// Map C++ grammar constructs to the shared detector contracts.
 let cPlusPlusLanguageAdapter: LanguageAdapter =
     { Id = "cpp"
       GrammarPath = "grammars/tree-sitter-cpp.wasm"
@@ -241,14 +242,15 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           NodeType "conditional_expression"
           NodeType "switch_statement" ]
       CyclomaticBranchCount = switchBranchCount
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_range_loop"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "catch_clause"
-          NodeType "switch_statement" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "for_statement"
+              NodeType "for_range_loop"
+              NodeType "while_statement"
+              NodeType "do_statement"
+              NodeType "catch_clause"
+              NodeType "switch_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -270,13 +272,6 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                     | NodeType "||"
                     | NodeType "or" -> Some Or
                     | _ -> None)
-      EntersNestedScope =
-        fun node ->
-            match nodeType node with
-            | NodeType kind ->
-                kind = "compound_statement"
-                || kind = "for_range_loop"
-                || kind.EndsWith("_statement", StringComparison.Ordinal)
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes =
         [ NodeType "identifier"

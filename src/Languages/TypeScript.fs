@@ -95,11 +95,6 @@ let private implementsTargetNames (heritage: Node) : string list =
 /// add structural nesting in cognitive complexity but aren't analyzed by parameter-count/complexity/
 /// coherence themselves (same limitation Python already has for its own lambdas); only named
 /// `function_declaration`s and class `method_definition`s count as "a function" for those detectors.
-///
-/// tradeoff: accepts a slightly higher cognitive-complexity score for `else if` chains (else_clause's
-/// flat +1 plus the nested if's `1 + nesting`) instead of unwrapping single-if else-clauses specially
-/// — TypeScript's `else if` parses as `else_clause` wrapping a nested `if_statement`, unlike Python's
-/// flat elif sibling.
 let typeScriptLanguageAdapter: LanguageAdapter =
     { Id = "typescript"
       GrammarPath = "grammars/tree-sitter-typescript.wasm"
@@ -157,12 +152,15 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                     |> List.exists (fun caseClause -> nodeType caseClause = NodeType "switch_default")
 
                 Some(cases.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_in_statement"
-          NodeType "while_statement"
-          NodeType "catch_clause" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "for_statement"
+              NodeType "for_in_statement"
+              NodeType "while_statement"
+              NodeType "catch_clause"
+              NodeType "switch_statement"
+              NodeType "do_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -177,7 +175,6 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                 nodeChildren node
                 |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
                 |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = NodeType "statement_block"
       // JS/TS try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_expression" ]

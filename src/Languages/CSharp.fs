@@ -135,14 +135,15 @@ let cSharpLanguageAdapter: LanguageAdapter =
           NodeType "conditional_expression"
           NodeType "switch_statement" ]
       CyclomaticBranchCount = switchBranchCount
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "foreach_statement"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "catch_clause"
-          NodeType "switch_statement" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "for_statement"
+              NodeType "foreach_statement"
+              NodeType "while_statement"
+              NodeType "do_statement"
+              NodeType "catch_clause"
+              NodeType "switch_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -162,7 +163,6 @@ let cSharpLanguageAdapter: LanguageAdapter =
                     | NodeType "&&" -> Some And
                     | NodeType "||" -> Some Or
                     | _ -> None)
-      EntersNestedScope = fun node -> nodeType node = blockNodeType
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_access_expression" ]
       ExtractTypedParameter = extractTypedParameter

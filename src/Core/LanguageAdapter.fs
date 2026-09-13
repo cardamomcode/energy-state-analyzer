@@ -22,6 +22,18 @@ type BooleanOperator =
     | And
     | Or
 
+/// The contribution made by a control-flow construct before its body is visited.
+type CognitiveIncrement =
+    | Structural
+    | Hybrid
+    | Fundamental
+
+/// Grammar-normalized cognitive structure; only the listed children enter nested control flow.
+type CognitiveStructure =
+    | Flow of CognitiveIncrement * Node list
+    | Closure
+    | BooleanGroup of Node
+
 /// A parameter's declared name + type text, when it carries an explicit annotation.
 type TypedParameter = { Name: string; Type: string }
 
@@ -150,16 +162,11 @@ type LanguageAdapter =
       // decisions, which therefore have two outcomes. This makes match/switch/when use their real
       // branch count for McCabe complexity instead of contributing one unconditionally.
       CyclomaticBranchCount: Node -> int option
-      // Node types that add "1 + current nesting depth" to cognitive complexity AND descend into
-      // nested scope (if/elif/for/while/except/match-like).
-      CognitiveNestedDecisionTypes: NodeType list
+      // Grammar-specific branches and bodies, independent of optional block wrappers.
+      GetCognitiveStructure: Node -> CognitiveStructure option
       // Control-flow node types that count toward nesting-depth violations.
       NestingControlTypes: NodeType list
       GetBooleanOperator: Node -> BooleanOperator option
-      // Whether a child of a decision-point node counts as "inside" it for nesting-depth purposes.
-      // Grammars with an explicit block/body node (Python, TypeScript) only nest on that child; F#
-      // has no such wrapper, so every child of a decision node is nested content.
-      EntersNestedScope: Node -> bool
       // Whether this node is specifically a try-statement's `else` clause, as opposed to if/for/while's
       // `else` (several grammars reuse one else-clause node type for all of them). Only a try's else is
       // a cyclomatic decision point; always false for grammars with no try-else construct.

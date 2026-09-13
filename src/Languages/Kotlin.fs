@@ -186,12 +186,14 @@ let kotlinLanguageAdapter: LanguageAdapter =
                     entries |> List.exists (fun entry -> nodeText entry |> _.Contains("else ->"))
 
                 Some(entries.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_expression"
-          NodeType "for_statement"
-          NodeType "while_statement"
-          NodeType "when_expression"
-          NodeType "catch_block" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_expression"
+              NodeType "for_statement"
+              NodeType "while_statement"
+              NodeType "when_expression"
+              NodeType "catch_block"
+              NodeType "do_while_statement" ]
       NestingControlTypes =
         [ NodeType "if_expression"
           NodeType "for_statement"
@@ -205,7 +207,6 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 nodeChildren node
                 |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
                 |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = NodeType "block"
       // Kotlin's try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "navigation_expression" ]

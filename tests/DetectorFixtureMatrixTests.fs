@@ -358,6 +358,10 @@ let tests =
           yield! detectorParityTests "nesting" Nesting nesting
           yield! detectorParityTests "cyclomatic complexity" Complexity cyclomatic
           yield! detectorParityTests "cognitive complexity" Cognitive cognitive
+          // Exact-score parity includes straight-line, boolean, branch, loop, dispatch and closure
+          // scenarios. Python/F# lack do-while syntax; C++ uses lambdas instead of local named functions.
+          // F# has no early-return statement; its unit conditional is tested without claiming a guard exit.
+          yield! CognitiveRuleTests.fixtureTests
           yield! detectorParityTests "parameter count" Parameters parameters
           yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
           yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate

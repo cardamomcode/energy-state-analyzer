@@ -108,6 +108,7 @@ let private isFormattedStringParent (node: Node) (parent: Node) =
     | nodeType when nodeType = attributeNodeType -> firstChild && isFormatCall parent
     | _ -> false
 
+/// Map Python grammar constructs to the shared detector contracts.
 let pythonLanguageAdapter: LanguageAdapter =
     { Id = "python"
       GrammarPath = "grammars/tree-sitter-python.wasm"
@@ -165,13 +166,14 @@ let pythonLanguageAdapter: LanguageAdapter =
                     |> List.exists (fun caseClause -> nodeText caseClause |> _.Contains("case _"))
 
                 Some(cases.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "elif_clause"
-          NodeType "for_statement"
-          NodeType "while_statement"
-          NodeType "except_clause"
-          NodeType "match_statement" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "elif_clause"
+              NodeType "for_statement"
+              NodeType "while_statement"
+              NodeType "except_clause"
+              NodeType "match_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -187,7 +189,6 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> Option.map (fun c -> if nodeType c = andOperatorNodeType then And else Or)
             else
                 None
-      EntersNestedScope = fun node -> nodeType node = NodeType "block"
       // decision: `else_clause` is shared by if/for/while/try in tree-sitter-python, but only a
       // try's else is a real decision point (mirrors ruff's C901: a non-vacuous try-else adds 1).
       // if/for/while's else already scores 0 via DecisionNodeTypes — this predicate exists to avoid

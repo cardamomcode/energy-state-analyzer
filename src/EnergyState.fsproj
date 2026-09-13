@@ -30,6 +30,7 @@
     <Compile Include="Core/LanguageAdapter.fs" />
     <Compile Include="Core/Context.fs" />
     <Compile Include="Languages/ValidationSyntax.fs" />
+    <Compile Include="Languages/CognitiveSyntax.fs" />
     <Compile Include="Languages/Python.fs" />
     <Compile Include="Languages/TypeScript.fs" />
     <Compile Include="Languages/FSharp.fs" />
