@@ -84,6 +84,7 @@ let private categoryLabel =
     | ParseDontValidate -> "Parse, don't validate"
     | Suppression -> "Suppression directives"
 
+/// Explain the reading burden behind each reported category.
 let private categoryBlurb =
     function
     | Nesting ->
@@ -95,7 +96,9 @@ let private categoryBlurb =
             "the file mixes too many responsibilities (too many functions/imports, or too many large functions) to read as one coherent unit"
     | Magic -> Some "unnamed literals standing in for a value that deserves a name"
     | Parameters -> Some "a function with enough parameters that call sites are easy to get wrong"
-    | Inversion -> Some "validation/guard logic that would read more clearly as early returns"
+    | Inversion ->
+        Some
+            "terminal conditionals or deep if-nesting that may be easier to read with guard clauses or a named operation"
     | PrimitiveObsession -> Some "adjacent same-typed values a caller could silently swap without the compiler noticing"
     | MatchOpportunity -> Some "an if/elif chain on one variable that would read more clearly as a match/switch"
     | LogicalControlFlow -> Some "&&/|| used to hide an if statement"
