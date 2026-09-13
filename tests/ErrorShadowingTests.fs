@@ -14,7 +14,7 @@ let tests =
         [ "Python", Python.pythonLanguageAdapter, "python/error_shadowing.py"
           "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/errorShadowing.ts"
           "F#", FSharp.fSharpLanguageAdapter, "fsharp/ErrorShadowing.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/error_shadowing.kt"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/errorShadowing.kt"
           "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/error_shadowing.cpp" ]
 
     testList (

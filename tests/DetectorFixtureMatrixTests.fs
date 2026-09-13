@@ -65,11 +65,11 @@ let tests =
     let parseDontValidate =
         commonCases
             { Python = "parse_dont_validate.py"
-              TypeScript = "parse_dont_validate.ts"
-              FSharp = "parse_dont_validate.fs"
-              Kotlin = "parse_dont_validate.kt"
+              TypeScript = "parseDontValidate.ts"
+              FSharp = "ParseDontValidate.fs"
+              Kotlin = "parseDontValidate.kt"
               CPlusPlus = "parse_dont_validate.cpp"
-              CSharp = "parse_dont_validate.cs" }
+              CSharp = "ParseDontValidate.cs" }
             [ ProducesFinding(FunctionName "flaggedPositive", Some Low)
               ProducesFinding(FunctionName "flaggedUpperBound", Some Low)
               StaysClean(FunctionName "cleanConstructed")
@@ -307,7 +307,7 @@ let tests =
             "python/error_shadowing.py"
             "typescript/errorShadowing.ts"
             "fsharp/ErrorShadowing.fs"
-            "kotlin/error_shadowing.kt"
+            "kotlin/errorShadowing.kt"
             "cpp/error_shadowing.cpp"
             "csharp/ErrorShadowing.cs"
         |> List.map (fun item ->
