@@ -29,6 +29,39 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
         |> List.collect (fun c -> findParametersNode c parametersType |> Option.toList)
         |> List.tryHead
 
+/// Score one logical function head and anchor a finding at that head's declaration.
+let private analyzeHead (ctx: AnalysisContext) (head: FunctionHead) =
+    match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
+    | Some parameters ->
+        let parameterCount =
+            nodeChildren parameters
+            |> List.filter (fun child -> ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
+            |> List.length
+
+        // decision: thresholds live in Core.Config as the single source of truth; this detector
+        // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can
+        // retune without editing code — past medium is medium energy, past high escalates to high.
+        let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
+        let highThreshold = ctx.Options.ParameterCount.HighThreshold
+
+        if parameterCount > mediumThreshold then
+            // Anchor at the head (the function name), not the merged defn, so an `and`-bound
+            // function's finding lands on its own declaration.
+            let position = ctx.Positions.toPosition (nodeStartIndex head.ParametersRoot)
+
+            [ { Line = position.Line
+                Column = position.Column
+                Type = Parameters
+                Severity = if parameterCount > highThreshold then High else Medium
+                Message =
+                  sprintf
+                      "Parameter explosion: %d parameters. Consider using objects or builder pattern."
+                      parameterCount
+                Hotspots = [] } ]
+        else
+            []
+    | None -> []
+
 /// The "Parameter Explosion" detector. Flags a function past its medium threshold (5 by default),
 /// escalating to high past the high threshold (8 by default); a violation is anchored at the function
 /// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
@@ -40,39 +73,7 @@ let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
         // behavior is unchanged.
         let ownViolations =
             if ctx.Language.IsFunctionDefinition node then
-                ctx.Language.GetFunctionHeads node
-                |> List.collect (fun head ->
-                    match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
-                    | Some parameters ->
-                        let parameterCount =
-                            nodeChildren parameters
-                            |> List.filter (fun child ->
-                                ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
-                            |> List.length
-
-                        // decision: thresholds live in Core.Config as the single source of truth; this detector
-                        // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can
-                        // retune without editing code — past medium is medium energy, past high escalates to high.
-                        let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
-                        let highThreshold = ctx.Options.ParameterCount.HighThreshold
-
-                        if parameterCount > mediumThreshold then
-                            // Anchor at the head (the function name), not the merged defn, so an `and`-bound
-                            // function's finding lands on its own declaration.
-                            let position = ctx.Positions.toPosition (nodeStartIndex head.ParametersRoot)
-
-                            [ { Line = position.Line
-                                Column = position.Column
-                                Type = Parameters
-                                Severity = if parameterCount > highThreshold then High else Medium
-                                Message =
-                                  sprintf
-                                      "Parameter explosion: %d parameters. Consider using objects or builder pattern."
-                                      parameterCount
-                                Hotspots = [] } ]
-                        else
-                            []
-                    | None -> [])
+                ctx.Language.GetFunctionHeads node |> List.collect (analyzeHead ctx)
             else
                 []
 

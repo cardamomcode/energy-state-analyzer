@@ -64,40 +64,32 @@ let private nestedValidation (language: LanguageAdapter) (body: Node) =
 
     collect body 0 [] |> List.rev
 
-let private deepestIf (language: LanguageAdapter) (body: Node) =
-    let rec walk node depth =
-        if language.IsFunctionDefinition node then
-            0, None
-        else
-            let ownDepth, ownNode =
-                if hasType language.NodeTypes.IfStatement node then
-                    depth, Some node
-                else
-                    0, None
+/// Keep the first deepest location when several branches have the same depth.
+let private deeper first second =
+    if fst second > fst first then second else first
 
-            let childDepth = if ownNode.IsSome then depth + 1 else depth
-
-            nodeChildren node
-            |> List.fold
-                (fun (bestDepth, bestNode) child ->
-                    let candidateDepth, candidateNode = walk child childDepth
-
-                    if candidateDepth > bestDepth then
-                        candidateDepth, candidateNode
-                    else
-                        bestDepth, bestNode)
-                (ownDepth, ownNode)
-
-    nodeChildren body
-    |> List.fold
-        (fun (bestDepth, bestNode) child ->
-            let depth, location = walk child 0
-
-            if depth > bestDepth then
-                depth, location
+/// Find the deepest conditional without descending into nested function definitions.
+let rec private deepestIfNode (language: LanguageAdapter) node depth =
+    if language.IsFunctionDefinition node then
+        0, None
+    else
+        let own =
+            if hasType language.NodeTypes.IfStatement node then
+                depth, Some node
             else
-                bestDepth, bestNode)
-        (0, None)
+                0, None
+
+        let childDepth = if (snd own).IsSome then depth + 1 else depth
+
+        nodeChildren node
+        |> List.map (fun child -> deepestIfNode language child childDepth)
+        |> List.fold deeper own
+
+/// Find the deepest conditional across the function body's direct statements.
+let private deepestIf (language: LanguageAdapter) (body: Node) =
+    nodeChildren body
+    |> List.map (fun child -> deepestIfNode language child 0)
+    |> List.fold deeper (0, None)
 
 let private analyzeFunction (positions: PositionLookup) (language: LanguageAdapter) (functionNode: Node) =
     match findBody language functionNode with

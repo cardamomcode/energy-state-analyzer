@@ -70,6 +70,17 @@ let private functionHeads (defn: Node) : FunctionHead list =
 
             { ParametersRoot = head; Body = body })
 
+/// Extract a literal string pattern from one F# match rule.
+let private stringCaseOf (rule: Node) : Node option =
+    match nodeNamedChildren rule |> List.tryHead with
+    | Some pattern ->
+        if nodeType pattern = NodeType "string" then
+            Some pattern
+        else
+            nodeNamedChildren pattern
+            |> List.tryFind (fun c -> nodeType c = NodeType "string")
+    | None -> None
+
 /// Extract the scrutinee variable and string-literal case patterns from a match/switch dispatch.
 ///
 /// decision: the idiomatic F# stringly-typed dispatch is a `match` on string literals — the form the
@@ -85,16 +96,6 @@ let private matchStringCases (node: Node) : (Node * Node list) option =
 
         let scrutinee =
             named |> List.tryFind (fun c -> nodeType c = NodeType "long_identifier_or_op")
-
-        let stringCaseOf (rule: Node) : Node option =
-            match nodeNamedChildren rule |> List.tryHead with
-            | Some pattern ->
-                if nodeType pattern = NodeType "string" then
-                    Some pattern
-                else
-                    nodeNamedChildren pattern
-                    |> List.tryFind (fun c -> nodeType c = NodeType "string")
-            | None -> None
 
         let cases =
             named
