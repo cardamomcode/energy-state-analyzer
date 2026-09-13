@@ -14,7 +14,7 @@ let tests =
     testList (
         "Parse, don't validate configuration",
         [ testAsync (
-              "disabled rule produces no findings and suppression consumes the guard finding",
+              "disabled rule produces no findings and line and file suppressions consume the findings",
               fun _ ->
                   toAsync (
                       task {
@@ -50,6 +50,16 @@ let tests =
 
                           assertThat suppressed.Violations.Length (isEqualTo 6)
                           assertThat suppressed.SuppressionNotes.Length (isEqualTo 0)
+
+                          // File-level suppression: a reasoned esa-ignore-file directive triages the
+                          // whole validation module instead of every guard (the documented pattern).
+                          let fileSuppressed =
+                              Energy.Core.Suppressions.applySuppressions
+                                  findings
+                                  (source + "\n# esa-ignore-file: parse-dont-validate")
+
+                          assertThat fileSuppressed.Violations.Length (isEqualTo 0)
+                          assertThat fileSuppressed.SuppressionNotes.Length (isEqualTo 0)
                       }
                   )
           ) ]

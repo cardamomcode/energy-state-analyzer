@@ -103,6 +103,11 @@ let checkedItems (items: int list) =
     items
 ```
 
+Validation layers that are deliberately plain-data boundaries usually triage at
+module scope instead: a reasoned file-level directive, `esa-ignore-file` or the
+typed `esa-ignore-file: parse-dont-validate`, suppresses the rule for the whole
+file rather than every guard.
+
 ## Reference
 
 The design principle comes from Alexis King's
