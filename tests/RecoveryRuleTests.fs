@@ -79,7 +79,13 @@ let tests =
                       assertThat oversized.Length (isEqualTo 1)
                       assertThat broad.Head.Line (isEqualTo dominance.Head.Line)
                       assertThat (source.Split('\n').[broad.Head.Line].Trim()) (isEqualTo "try:")
-                      assertThat (source.Split('\n').[oversized.Head.Line].Trim().StartsWith("except")) isTrue
+
+                      assertThat
+                          (source
+                              .Split('\n')
+                              .[oversized.Head.Line].Trim()
+                              .StartsWith("except", System.StringComparison.Ordinal))
+                          isTrue
 
                       for disabled in
                           [ { options.ErrorShadowing with
