@@ -40,6 +40,7 @@ let private bodyItems (node: Node) : Node list =
     | Some block -> nodeNamedChildren block
     | None -> children
 
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
 let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
     if nodeType node <> tryStatementNodeType then
         None
@@ -50,12 +51,20 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         |> List.tryFind (fun child -> nodeType child = statementBlockNodeType)
         |> Option.map (fun protectedBody ->
             { Anchor = node
-              ProtectedItems = bodyItems protectedBody
+              ProtectedBody = nodeNamedChildren protectedBody
+              ProtectedItems = nodeNamedChildren protectedBody
               RecoveryItems =
                 children
                 |> List.filter (fun child ->
                     nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.collect bodyItems })
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
 
 /// Extract the extends_clause target names from a class heritage subtree.
 ///

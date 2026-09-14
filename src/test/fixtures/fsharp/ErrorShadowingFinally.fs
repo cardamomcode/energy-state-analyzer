@@ -5,5 +5,6 @@ let cleanupOnly () =
 
     try
         performBusinessWork ()
+        completeBusinessWork ()
     finally
         cleanUpResources ()

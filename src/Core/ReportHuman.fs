@@ -84,7 +84,9 @@ let private categoryLabel =
     | MatchOpportunity -> "Match opportunities"
     | LogicalControlFlow -> "Logical operator as control flow"
     | OpaqueBoolean -> "Opaque boolean literals"
-    | ErrorShadowing -> "Error handling shadows logic"
+    | ErrorShadowing -> "Broad Protected Scope"
+    | RecoveryDominance -> "Recovery Dominance"
+    | OversizedRecoveryBlock -> "Oversized Recovery Block"
     | ParseDontValidate -> "Parse, don't validate"
     | Suppression -> "Suppression directives"
 
@@ -107,7 +109,9 @@ let private categoryBlurb =
     | MatchOpportunity -> Some "an if/elif chain on one variable that would read more clearly as a match/switch"
     | LogicalControlFlow -> Some "&&/|| used to hide an if statement"
     | OpaqueBoolean -> Some "a bare true/false at a call site that only makes sense by reading the callee"
-    | ErrorShadowing -> Some "an overly broad protected try region or recovery/cleanup policy that dominates a function"
+    | ErrorShadowing -> Some "an overly broad protected try region"
+    | RecoveryDominance -> Some "recovery/cleanup policy that dominates a function"
+    | OversizedRecoveryBlock -> Some "an individual handler or cleanup body exceeding the configured line limit"
     | ParseDontValidate -> Some "a checked property that is not preserved in the returned type"
     | Suppression ->
         Some "an esa-ignore comment that names an unknown violation type, or no longer matches any violation"

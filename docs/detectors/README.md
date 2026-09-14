@@ -16,7 +16,9 @@ type checking remain the compiler's job.
 - [ESA-007: Parameter explosion](parameter-explosion.md), functions with too many parameters.
 - [ESA-005: File coherence](file-coherence.md), files that have lost a single responsibility.
 - [ESA-005: God class](god-class.md), one type whose methods span too many unrelated domains (the class-level half of file coherence).
-- [ESA-013: Error shadowing](error-shadowing.md), error handling that overwhelms a function's happy path.
+- [ESA-013: Broad Protected Scope](error-shadowing.md), overly broad protected try bodies.
+- [ESA-016: Recovery Dominance](recovery-dominance.md), recovery policy that dominates a function.
+- [ESA-017: Oversized Recovery Block](oversized-recovery-block.md), individual handlers or cleanup bodies exceeding their line limit.
 
 ## Naming and literals
 

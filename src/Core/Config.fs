@@ -66,10 +66,17 @@ type ErrorShadowingModeThresholds =
       HighThreshold: float
       MinItems: int }
 
+/// Limit each individual recovery body independently of its function share.
+type RecoveryBlockThresholds = { MaxLines: int }
+
+/// Configure the error-boundary family and its independent recovery rules.
 type ErrorShadowingThresholds =
     { Enabled: bool
       ProtectedScope: ErrorShadowingModeThresholds
-      Recovery: ErrorShadowingModeThresholds }
+      Recovery: ErrorShadowingModeThresholds
+      RecoveryDominanceEnabled: bool
+      OversizedRecoveryBlockEnabled: bool
+      RecoveryBlock: RecoveryBlockThresholds }
 
 type ParameterCountThresholds =
     { Enabled: bool
@@ -177,7 +184,10 @@ let defaultAnalyzeOptions =
           Recovery =
             { Threshold = 0.5
               HighThreshold = 0.7
-              MinItems = 5 } }
+              MinItems = 5 }
+          RecoveryDominanceEnabled = true
+          OversizedRecoveryBlockEnabled = true
+          RecoveryBlock = { MaxLines = 20 } }
       MagicNumber =
         { Enabled = true
           Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
@@ -277,9 +287,11 @@ type FileErrorShadowingMode =
       HighThreshold: float option
       MinItems: int option }
 
+/// Optional project thresholds for the independent error-boundary rules.
 type FileErrorShadowing =
     { ProtectedScope: FileErrorShadowingMode
-      Recovery: FileErrorShadowingMode }
+      Recovery: FileErrorShadowingMode
+      RecoveryBlockMaxLines: int option }
 
 type FileParameterCount =
     { MediumThreshold: int option
@@ -302,6 +314,7 @@ type FileConfig =
       MagicNumber: FileMagicNumber
       MagicString: FileMagicString }
 
+/// Represent a project with no threshold overrides.
 let private emptyFileConfig: FileConfig =
     { Nesting =
         { MediumThreshold = None
@@ -337,7 +350,8 @@ let private emptyFileConfig: FileConfig =
           Recovery =
             { Threshold = None
               HighThreshold = None
-              MinItems = None } }
+              MinItems = None }
+          RecoveryBlockMaxLines = None }
       ParameterCount =
         { MediumThreshold = None
           HighThreshold = None }
@@ -412,6 +426,7 @@ let readConfigJson (path: Path) : obj option =
         // already maps both failure and null/undefined to None.
         Energy.Core.NodeInterop.jsonParseSafe (readFileSync path (Encoding "utf8"))
 
+/// Read supported project threshold fields from the parsed JSON object.
 let parseFileConfig (raw: obj) : FileConfig =
     let nesting = field raw "nesting"
     let cyclomatic = field raw "cyclomaticComplexity"
@@ -425,6 +440,9 @@ let parseFileConfig (raw: obj) : FileConfig =
 
     let recovery =
         errorShadowing |> Option.bind (fun section -> field section "recovery")
+
+    let recoveryBlock =
+        errorShadowing |> Option.bind (fun section -> field section "recoveryBlock")
 
     let parameterCount = field raw "parameterCount"
     let magicNumber = field raw "magicNumber"
@@ -464,7 +482,8 @@ let parseFileConfig (raw: obj) : FileConfig =
           Recovery =
             { Threshold = readNumber recovery "threshold"
               HighThreshold = readNumber recovery "highThreshold"
-              MinItems = readNumber recovery "minItems" |> Option.map int } }
+              MinItems = readNumber recovery "minItems" |> Option.map int }
+          RecoveryBlockMaxLines = readNumber recoveryBlock "maxLines" |> Option.map int }
       ParameterCount =
         { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
           HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int }
@@ -542,29 +561,36 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
       // decision: enable/disable is host-only (like the threshold-less detectors), so a project can
       // retune only the thresholds via .esaconfig.json — never switch the rule off from a repo config.
       ErrorShadowing =
-        { Enabled = defaults.ErrorShadowing.Enabled
-          ProtectedScope =
-            { Threshold =
-                Option.defaultValue
-                    defaults.ErrorShadowing.ProtectedScope.Threshold
-                    file.ErrorShadowing.ProtectedScope.Threshold
-              HighThreshold =
-                Option.defaultValue
-                    defaults.ErrorShadowing.ProtectedScope.HighThreshold
-                    file.ErrorShadowing.ProtectedScope.HighThreshold
-              MinItems =
-                Option.defaultValue
-                    defaults.ErrorShadowing.ProtectedScope.MinItems
-                    file.ErrorShadowing.ProtectedScope.MinItems }
-          Recovery =
-            { Threshold =
-                Option.defaultValue defaults.ErrorShadowing.Recovery.Threshold file.ErrorShadowing.Recovery.Threshold
-              HighThreshold =
-                Option.defaultValue
-                    defaults.ErrorShadowing.Recovery.HighThreshold
-                    file.ErrorShadowing.Recovery.HighThreshold
-              MinItems =
-                Option.defaultValue defaults.ErrorShadowing.Recovery.MinItems file.ErrorShadowing.Recovery.MinItems } }
+        { defaults.ErrorShadowing with
+            ProtectedScope =
+                { Threshold =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.ProtectedScope.Threshold
+                        file.ErrorShadowing.ProtectedScope.Threshold
+                  HighThreshold =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.ProtectedScope.HighThreshold
+                        file.ErrorShadowing.ProtectedScope.HighThreshold
+                  MinItems =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.ProtectedScope.MinItems
+                        file.ErrorShadowing.ProtectedScope.MinItems }
+            Recovery =
+                { Threshold =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.Recovery.Threshold
+                        file.ErrorShadowing.Recovery.Threshold
+                  HighThreshold =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.Recovery.HighThreshold
+                        file.ErrorShadowing.Recovery.HighThreshold
+                  MinItems =
+                    Option.defaultValue defaults.ErrorShadowing.Recovery.MinItems file.ErrorShadowing.Recovery.MinItems }
+            RecoveryBlock =
+                { MaxLines =
+                    Option.defaultValue
+                        defaults.ErrorShadowing.RecoveryBlock.MaxLines
+                        file.ErrorShadowing.RecoveryBlockMaxLines } }
       ParameterCount =
         { defaults.ParameterCount with
             MediumThreshold =

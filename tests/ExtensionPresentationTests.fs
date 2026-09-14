@@ -39,6 +39,8 @@ let tests =
                           Bool =
                               fun section key fallback ->
                                   match section, key with
+                                  | "recoveryDominance", "enabled" -> false
+                                  | "oversizedRecoveryBlock", "enabled" -> false
                                   | "parseDontValidate", "enabled" -> false
                                   | "magicNumber", "enabled" -> false
                                   | "nesting", "enabled" -> false
@@ -97,9 +99,28 @@ let tests =
                   assertThat magicNumber.IncludeTestFiles isTrue
                   assertThat magicString.IncludeTestFiles isTrue
                   assertThat matchOpportunity.MinBranches (isEqualTo 5)
+                  assertThat errorShadowing.RecoveryDominanceEnabled isFalse
+                  assertThat errorShadowing.OversizedRecoveryBlockEnabled isFalse
+                  assertThat errorShadowing.Enabled isTrue
                   assertThat errorShadowing.ProtectedScope.Threshold (isEqualTo 0.6)
                   assertThat colors.HighEnergy (isEqualTo "#112233")
                   assertThat colors.BackgroundOpacity (isEqualTo 0.25)
+          )
+          test (
+              "error-boundary Problems retain all independent rule codes",
+              fun _ ->
+                  let findings =
+                      [ violation 2 4 Medium ErrorShadowing "Broad protected scope" []
+                        violation 2 4 High RecoveryDominance "Recovery dominance" []
+                        violation 8 4 Medium OversizedRecoveryBlock "Oversized recovery block" [] ]
+
+                  let specs = diagnosticSpecs findings
+                  assertThat specs.Length (isEqualTo 2)
+                  let boundary = specs |> List.find (fun spec -> spec.Range.Line = 2)
+                  assertThat (boundary.Code.Contains("ESA-013")) isTrue
+                  assertThat (boundary.Code.Contains("ESA-016")) isTrue
+                  let handler = specs |> List.find (fun spec -> spec.Range.Line = 8)
+                  assertThat handler.Code (isEqualTo "ESA-017")
           )
           test (
               "maps violation categories to their editor ranges and rejects malformed colors",

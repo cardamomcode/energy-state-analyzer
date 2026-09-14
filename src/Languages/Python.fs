@@ -61,6 +61,7 @@ let private bodyItems (node: Node) : Node list =
     | Some block -> nodeNamedChildren block
     | None -> children
 
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
 let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
     if nodeType node <> tryStatementNodeType then
         None
@@ -70,17 +71,25 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         let protectedItems =
             children
             |> List.tryFind (fun child -> nodeType child = NodeType "block")
-            |> Option.map bodyItems
+            |> Option.map nodeNamedChildren
 
         protectedItems
         |> Option.map (fun protectedItems ->
             { Anchor = node
+              ProtectedBody = protectedItems
               ProtectedItems = protectedItems
               RecoveryItems =
                 children
                 |> List.filter (fun child ->
                     nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.collect bodyItems })
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
 
 let private isFirstChild (node: Node) (parent: Node) =
     parent

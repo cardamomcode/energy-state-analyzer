@@ -20,6 +20,7 @@ let private bodyItems (node: Node) : Node list =
     | Some body -> nodeNamedChildren body
     | None -> children
 
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
 let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
     if nodeType node <> tryStatementNodeType then
         None
@@ -30,11 +31,18 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
         |> Option.map (fun protectedBody ->
             { Anchor = node
-              ProtectedItems = bodyItems protectedBody
+              ProtectedBody = nodeNamedChildren protectedBody
+              ProtectedItems = nodeNamedChildren protectedBody
               RecoveryItems =
                 children
                 |> List.filter (fun child -> nodeType child = catchClauseNodeType)
-                |> List.collect bodyItems })
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
 
 /// The C++ LanguageAdapter. Grammar node names and shapes below target the official
 /// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
