@@ -118,7 +118,7 @@ let private shareFinding ctx (region: ErrorHandlingRegion) totalItems rule =
 let private oversizedFindings ctx (region: ErrorHandlingRegion) =
     let thresholds = ctx.Options.ErrorShadowing
 
-    if not thresholds.OversizedRecoveryBlockEnabled then
+    if not thresholds.Enabled || not thresholds.OversizedRecoveryBlockEnabled then
         []
     else
         region.RecoveryBodies
