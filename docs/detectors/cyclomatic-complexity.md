@@ -1,8 +1,8 @@
 # Cyclomatic Complexity
 
-Counts independent paths through a function's control-flow graph and flags counts above
-configured review thresholds. It describes one aspect of testing effort, regardless of
-how deeply the decisions are nested.
+Counts independent paths through a function's control-flow graph and flags functions with
+too many decisions under the configured thresholds. More independent paths increase the
+work needed for structural testing, regardless of how deeply the decisions are nested.
 
 ## What it flags
 
@@ -44,10 +44,17 @@ It can guide structural testing, but does not supply a complete test count or es
 that all paths are feasible. A loop can produce many execution traces without increasing
 the metric for each iteration. Input values, contracts, and interactions still need review.
 
-Use the configured thresholds to identify functions whose control flow deserves attention.
-The CLI human report also maps complexity values onto a fixed 0.0–10.0 review score; that
-mapping is a reporting heuristic, not a validated boundary between testable and untestable
-code. See [the human report](../cli.md#a-report-for-humans---report-human) for its scale.
+When a function is flagged, simplify redundant conditions and separate independent
+responsibilities into operations that can be understood and tested independently. Use the
+reported hotspots to locate contributing decisions, then verify the affected branches and
+boundary cases. Moving decisions into arbitrary helpers merely to lower the count leaves
+the original reasoning burden in place.
+
+The CLI human report maps complexity values onto the familiar CVSS 0.0–10.0 severity bands,
+with guidance from keeping changes small at Low to restructuring extremely complex code
+at Critical. This is the analyzer's complexity score, not a security vulnerability score
+or proof that code is untestable. See [the human report](../cli.md#a-report-for-humans---report-human)
+for its scale. Detector thresholds remain project-configurable; the report curve is fixed.
 
 ## Configuration
 

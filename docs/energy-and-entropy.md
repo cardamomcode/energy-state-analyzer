@@ -69,7 +69,7 @@ harder to understand.
 The analyzer detects selected places where meaning remains implicit. It cannot determine
 everything a reader knows or needs to know, so its findings cover only part of this model.
 
-## Use findings to review the design
+## Use findings to improve the design
 
 A useful refactoring removes illegal or unnecessary possibilities, preserves domain
 knowledge, or keeps change local. Extracting a function, grouping parameters, or splitting
@@ -81,7 +81,10 @@ Some complexity serves the work: exploration, performance-sensitive code, and in
 boundaries may need it. Review whether that complexity is necessary and contained, and
 preserve the reason for a deliberate exception.
 
-Severity expresses the analyzer's review priority under the configured rules. Scores help
-locate findings and compare runs; a lower score does not establish a better design, and
-no findings does not establish code quality. Review the code's purpose and contracts,
-verify behavior, and reassess the findings after a change.
+Severity communicates the seriousness of the detected readability and maintainability
+risks under the configured rules. Use each finding's location and remediation guidance to
+fix the issue, verify behavior, and re-analyze. Document legitimate exceptions and report
+suspected detector errors with a concrete example. Scores help locate findings and compare
+runs; check that a reduction reflects simpler reasoning or safer contracts rather than
+moving complexity elsewhere. No findings means no enabled rule found a problem within its
+coverage, so behavior verification and review of the code's purpose remain necessary.

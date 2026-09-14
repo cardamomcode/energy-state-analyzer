@@ -58,14 +58,17 @@ let private riskLabel =
     | HighRisk -> "High"
     | Critical -> "Critical"
 
-/// Describe the report band as review priority without inferring testability.
+/// Explain the complexity burden and the action appropriate to each severity band.
+///
+/// decision: severity descriptions give agents remediation guidance without treating either
+/// complexity metric as proof that code is exhaustively testable or untestable.
 let private riskDescription =
     function
     | NoRisk -> "no violations found"
-    | LowRisk -> "lower review priority"
-    | MediumRisk -> "moderate review priority"
-    | HighRisk -> "high review priority"
-    | Critical -> "highest review priority"
+    | LowRisk -> "relatively simple; keep changes small and verify behavior"
+    | MediumRisk -> "becoming harder to understand and test; simplify branching or nesting"
+    | HighRisk -> "complex and difficult to verify; separate responsibilities and test decisions independently"
+    | Critical -> "extremely complex; restructure into smaller, independently understandable and testable units"
 
 let private categoryLabel =
     function
@@ -225,24 +228,24 @@ let private renderFileSection result =
     @ sections
     |> String.concat "\n"
 
-/// Explain the report scale and its limits as a review heuristic.
+/// Explain the familiar severity bands, remediation guidance, and score calculation.
 let private scoreLegend =
     [ "## Score legend"
       ""
-      "_The 0.0–10.0 report score prioritizes review using None/Low/Medium/High/Critical labels. It does not measure defect probability, testability, or overall code quality._"
+      "_Scores use the familiar [CVSS 0–10 severity bands](https://www.first.org/cvss/v3.1/specification-document#t5) to communicate the seriousness of analyzer findings. These are code complexity and maintainability scores, not security vulnerability scores._"
       ""
-      "| Score | Risk label | Review priority | Cyclomatic/cognitive input |"
+      "| Score | Severity | Meaning and action | Cyclomatic/cognitive input |"
       "| --- | --- | --- | --- |"
       "| 0.0 | None | No violations found | — |"
-      "| 0.1–3.9 | Low | Lower review priority | 1–10 |"
-      "| 4.0–6.9 | Medium | Moderate review priority | 11–20 |"
-      "| 7.0–8.9 | High | High review priority | 21–50 |"
-      "| 9.0–10.0 | Critical | Highest review priority | 50+ |"
+      "| 0.1–3.9 | Low | Relatively simple; keep changes small and verify behavior | 1–10 |"
+      "| 4.0–6.9 | Medium | Becoming harder to understand and test; simplify branching or nesting | 11–20 |"
+      "| 7.0–8.9 | High | Complex and difficult to verify; separate responsibilities and test decisions independently | 21–50 |"
+      "| 9.0–10.0 | Critical | Extremely complex; restructure into smaller, independently understandable and testable units | 50+ |"
       ""
       "_Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates reading effort. The report applies the same numeric curve to both as a prioritization heuristic, not evidence that they measure equivalent effort. A file with no complexity violations instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
     |> String.concat "\n"
 
-/// Render findings and review priorities as a human-readable Markdown report.
+/// Render findings, severity, and remediation guidance as a human-readable Markdown report.
 let renderHumanReport results =
     let flagged =
         results

@@ -1,8 +1,8 @@
 # Integrating with an AI coding agent
 
 The analyzer ships as a CLI that runs headlessly, so an AI coding agent (Claude Code, OpenAI
-Codex, Cursor, Copilot, etc.) can use it to review the code it just wrote, check the effect of a
-refactoring, or review a PR before it lands. This document covers the integration points that
+Codex, Cursor, Copilot, etc.) can use it to fix findings in the code it just wrote, verify the
+result, or review a PR before it lands. This document covers the integration points that
 matter to agents: machine-readable output, exit codes for gating loops, shared
 configuration, and a couple of example workflows.
 
@@ -13,10 +13,10 @@ built and run against its own F# source.
 
 Generated code can contain deep nesting, long functions, magic numbers, and `if` chains that
 could be a match. The analyzer turns those patterns into concrete, line-numbered findings
-with remediation guidance, so an agent can include them in its review:
+with remediation guidance, so an agent can act on them and verify the result:
 
 ```text
-write/edit code  →  analyze  →  review findings  →  make justified changes  →  verify and re-analyze
+write/edit code  →  analyze  →  triage findings  →  fix valid findings  →  verify and re-analyze
 ```
 
 Review each finding in the context of the code's purpose. A useful refactoring removes
@@ -25,9 +25,13 @@ function, grouping parameters, or splitting a file helps when the resulting boun
 represents a coherent responsibility. A lower local score can still leave more scattered
 dependencies or a harder-to-understand abstraction.
 
-Verify behavior and reassess findings after each change. For a legitimate exception, preserve
-the reason and use a supported suppression if project policy permits it; do not suppress a
-finding merely to pass a gate. Report suspected detector errors and unresolved findings.
+Fix valid findings using the detector's remediation guidance. For a legitimate exception,
+preserve the reason and use a supported suppression if project policy permits it; do not
+suppress a finding merely to pass a gate. For a suspected detector error or unsuitable
+threshold, provide a concrete example and seek a detector or configuration correction.
+Verify behavior and re-analyze after each fix. Continue until every finding is fixed or has
+an explicit disposition. If a fix is blocked, report the remaining finding and the blocker;
+do not present the run as complete merely because the exit code is `0`.
 A successful analysis with no findings establishes only that no enabled rule reported a
 pattern under the current configuration and language coverage. It does not establish code
 quality. See [Energy and Entropy](energy-and-entropy.md) for the model behind this review.
@@ -39,7 +43,7 @@ See [docs/detectors](detectors/README.md) for what each detector checks.
 
 The simplest integration scans one file and prints violations as JSON to stdout, exiting `1` when
 any medium/high-severity violation is found (`0` otherwise). That exit code lets an agent gate a
-review loop; inspect the report to distinguish findings from analysis failures:
+refinement loop; inspect the report to distinguish findings from analysis failures:
 
 ```bash
 npx energy-state-analyzer path/to/file.py --report json   # or .fs / .fsx / .ts / .kt / .cpp / .cs
@@ -48,7 +52,7 @@ echo $?   # 0 = no blocking findings; 1 = blocking findings or analysis failure
 
 Findings live under `files[].violations` in the JSON report. Each finding includes its zero-based `line` and `column`, the violation `type`, its
 `severity`, the detector `message` (which contains a concrete suggested fix), and any `hotspots`.
-The agent uses the locations to review the code, makes justified changes, verifies behavior,
+The agent uses the locations and suggested fixes to resolve valid findings, verifies behavior,
 and re-runs. Low-severity findings can remain even when the exit code is `0`.
 
 Override the thresholds inline instead of editing a config file:
@@ -96,7 +100,7 @@ for the open workspace.
 ## Sharing thresholds with the agent
 
 Set thresholds and allowlists in an `.esaconfig.json` at your project root so the editor, the CLI,
-and every agent run use the same review thresholds. The keys are all optional; an absent key
+and every agent run agree on which patterns need fixing and their severity. The keys are all optional; an absent key
 keeps its default:
 
 ```json
@@ -154,9 +158,11 @@ repeat:
   capture stdout, stderr, and the exit code
   if stdout is not a valid successful report: surface the failure and stop
   read findings from files[].violations in stdout, including low-severity findings
-  review their relevance to the code's purpose, contracts, and boundaries
-  if no justified change remains: report accepted or unresolved findings and stop
-  make a justified change and verify behavior
+  triage each finding: valid issue, legitimate exception, or detector/configuration problem
+  record reasons for exceptions and concrete examples for detector/configuration problems
+  if no valid issues remain: report the dispositions and stop
+  if the remaining fixes are blocked: report unresolved findings and blockers and stop
+  fix a valid issue using its remediation guidance and verify behavior
   if verification fails: correct or revert the change before continuing
 ```
 
@@ -172,8 +178,9 @@ npx energy-state-analyzer src/foo.ts --report json
 ```
 
 The `message` field already contains the suggested fix (e.g. "extract this branch into a guard
-clause"), so the agent can evaluate the suggestion against return values, side effects, and
-scope before editing. For a whole-repo audit, run scan mode and post the `md` report as a summary.
+clause"), so the agent can apply it while preserving return values, side effects, and scope,
+then verify behavior and re-analyze. For a whole-repo audit, run scan mode and post the `md`
+report as a summary.
 
 ### GitHub Actions for PR review
 
@@ -260,8 +267,8 @@ npx lint-staged
 
 Either way the hook passes the staged file paths to the CLI; it exits non-zero on a violation and
 `git commit` is aborted. The analyzer does not rewrite or suppress findings. A developer (or
-agent) must triage the findings under project policy and resolve analysis failures before
-re-staging and committing.
+agent) must fix valid findings, document legitimate exceptions under project policy, and
+resolve analysis failures before re-staging and committing.
 
 ## Notes on coverage
 
@@ -271,5 +278,6 @@ re-staging and committing.
   detectors (named declarations and methods are). See the "Known limitations" section of each
   [detector doc](detectors/README.md) and the README's Known Issues.
 - The per-file **score** (`1×low + 4×medium + 9×high`) is a hotspot-spotting heuristic for tracking
-  changes in findings over time. Severity expresses configured review priority; neither the score
-  nor the counts measure overall code quality or the maintainer's knowledge.
+  changes in findings over time. Severity communicates the seriousness of the detected
+  readability and maintainability risks; individual messages explain what to fix. The score
+  and counts cover the enabled rules, not every aspect of code quality.

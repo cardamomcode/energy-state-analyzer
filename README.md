@@ -39,15 +39,16 @@ The analyzer highlights selected signs of that work: branching, nesting, broad s
 implicit meanings, and dependency breadth. These are related signals, not interchangeable
 quantities on a common scale, and source code has no thermodynamic unit.
 
-Use findings to ask whether a change removes unnecessary possibilities, preserves domain
-knowledge, or keeps change local. Severity expresses review priority under the configured
-rules; a lower score does not establish a better design. See
+Use findings to remove unnecessary possibilities, preserve domain knowledge, and keep
+change local. Severity communicates the seriousness of the detected readability and
+maintainability risks under the configured rules. Fix valid findings and document legitimate
+exceptions; verify that each change improves the code rather than merely lowering a score. See
 [Energy and Entropy](docs/energy-and-entropy.md) for the model, the maintainer's role in
 interpreting code, and what the metrics reveal.
 
 ## Command-Line Usage
 
-The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent reviewing code it just generated and checking the effect of a refactoring:
+The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent fixing findings in code it just generated and verifying the result:
 
 ```bash
 npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs

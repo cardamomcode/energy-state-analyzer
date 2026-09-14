@@ -1,6 +1,6 @@
 # Command-Line Usage
 
-The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to review code it just generated and check the effect of a refactoring. Published to npm, so no clone or install step is required:
+The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to fix findings in code it just generated and verify the result. Published to npm, so no clone or install step is required:
 
 ```bash
 npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
@@ -60,7 +60,7 @@ npx energy-state-analyzer src --report md
 **Total score: 13** (1 high, 1 medium, 0 low)
 ```
 
-`--report json` prints the same data as a structured `{ files, totalScore, totalCounts }` object instead. Every file also has a `violations` array: each finding includes its zero-based `line` and `column`, `type`, `severity`, detector `message` (including its suggested fix), and any `hotspots`. This makes the JSON report suitable for coding agents as well as scripts. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a measure of overall code quality. Severity expresses review priority under the configured rules. No findings means no enabled rule reported a pattern within its coverage; it does not establish that the code is easy to understand or safe to change. See [Energy and Entropy](energy-and-entropy.md) for how to interpret these signals.
+`--report json` prints the same data as a structured `{ files, totalScore, totalCounts }` object instead. Every file also has a `violations` array: each finding includes its zero-based `line` and `column`, `type`, `severity`, detector `message` (including its suggested fix), and any `hotspots`. This makes the JSON report suitable for coding agents as well as scripts. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a measure of overall code quality. Severity communicates the seriousness of detected readability and maintainability risks under the configured rules; use each finding's location and suggested fix to resolve it. No findings means no enabled rule reported a pattern within its coverage; it does not establish that the code is easy to understand or safe to change. See [Energy and Entropy](energy-and-entropy.md) for how to interpret these signals.
 
 ### Default report for agents and code scanning: SARIF
 
@@ -102,26 +102,26 @@ npx energy-state-analyzer src --report human
 
 ## Score legend
 
-| Score | Risk label | Review priority | Cyclomatic/cognitive input |
+| Score | Severity | Meaning and action | Cyclomatic/cognitive input |
 | --- | --- | --- | --- |
 | 0.0 | None | No violations found | — |
-| 0.1–3.9 | Low | Lower review priority | 1–10 |
-| 4.0–6.9 | Medium | Moderate review priority | 11–20 |
-| 7.0–8.9 | High | High review priority | 21–50 |
-| 9.0–10.0 | Critical | Highest review priority | 50+ |
+| 0.1–3.9 | Low | Relatively simple; keep changes small and verify behavior | 1–10 |
+| 4.0–6.9 | Medium | Becoming harder to understand and test; simplify branching or nesting | 11–20 |
+| 7.0–8.9 | High | Complex and difficult to verify; separate responsibilities and test decisions independently | 21–50 |
+| 9.0–10.0 | Critical | Extremely complex; restructure into smaller, independently understandable and testable units | 50+ |
 
 **25 files scanned** — 8 with no findings, 17 flagged
 
 ## src/foo.py — High (score 7.8)
 
-- **Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): high review priority.
+- **Cyclomatic complexity**: 1 function scores 34 — score 7.8 (High): complex and difficult to verify; separate responsibilities and test decisions independently.
 - **Primitive obsession**: 2 findings (2 medium) — adjacent same-typed values a caller could silently swap without the compiler noticing.
 
 ...
 
 ## Total evaluation
 
-**Repo score: 7.8 (High)** — driven by the worst file in the scan, `src/foo.py` (high review priority).
+**Repo score: 7.8 (High)** — driven by the worst file in the scan, `src/foo.py` (complex and difficult to verify; separate responsibilities and test decisions independently).
 
 | Risk | Files |
 | --- | --- |
@@ -134,18 +134,20 @@ npx energy-state-analyzer src --report human
 **51 total findings** (1 high, 25 medium, 25 low) — breadth of issues across the scan, independent of peak severity.
 ```
 
-The human report uses a **0.0–10.0 review score**, distinct from the weighted finding totals
-in JSON, compact Markdown, and diff reports. Its None/Low/Medium/High/Critical risk labels
-express review priority, not defect probability or a verdict on testability. Cyclomatic
-complexity describes independent control-flow paths; cognitive complexity estimates reading
-effort. Applying the same numeric curve to them is a reporting heuristic, not evidence that
-they measure equivalent effort.
+The human report uses a **0.0–10.0 complexity and maintainability score**, distinct from the
+weighted finding totals in JSON, compact Markdown, and diff reports. It adopts the familiar
+[CVSS severity bands](https://www.first.org/cvss/v3.1/specification-document#t5):
+None, Low, Medium, High, and Critical. The bands communicate the seriousness of analyzer
+findings and pair it with remediation guidance; these are not security vulnerability scores.
+Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates
+reading effort. Applying the same numeric curve to them is a reporting heuristic, not evidence
+that they measure equivalent effort or establish whether code is testable.
 
 The existing curve uses linear interpolation through `(0, 0.0)`, `(10, 3.9)`, `(20, 6.9)`,
 `(50, 8.9)`, and `(100, 10.0)`, capped at 10.0. Other detectors report pattern findings; a file
 with only non-complexity findings gets a fixed score from its worst finding (Low 2.0 / Medium
-5.0 / High 7.5). These scores help order review, while the individual findings explain what
-to investigate.
+5.0 / High 7.5). Use the severity to tackle the most serious findings first, and the individual
+messages to identify what to fix. Verify behavior and re-analyze after each change.
 
 Both the per-file score and the repo-wide "Repo score" are the **maximum** found, not an average. Averaging a file's (or a repo's) scores lets one severely complex function or file hide behind many trivial ones, nine functions at complexity 2 and one at 60 average to about 8 (which itself would still misleadingly read as "Low"), hiding exactly the function most worth fixing. Total finding counts are reported separately as a breadth indicator, deliberately not folded into the same number. Flagged files are listed worst-first.
 
