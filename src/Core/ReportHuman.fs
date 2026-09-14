@@ -58,13 +58,14 @@ let private riskLabel =
     | HighRisk -> "High"
     | Critical -> "Critical"
 
+/// Describe the report band as review priority without inferring testability.
 let private riskDescription =
     function
     | NoRisk -> "no violations found"
-    | LowRisk -> "simple, easy to test exhaustively"
-    | MediumRisk -> "getting harder to cover with tests"
-    | HighRisk -> "complex, testing all paths is impractical"
-    | Critical -> "effectively untestable"
+    | LowRisk -> "lower review priority"
+    | MediumRisk -> "moderate review priority"
+    | HighRisk -> "high review priority"
+    | Critical -> "highest review priority"
 
 let private categoryLabel =
     function
@@ -224,29 +225,31 @@ let private renderFileSection result =
     @ sections
     |> String.concat "\n"
 
+/// Explain the report scale and its limits as a review heuristic.
 let private scoreLegend =
     [ "## Score legend"
       ""
-      "_Risk is reported on a 0.0–10.0 complexity score, sorted into the same None/Low/Medium/High/Critical levels already used elsewhere in this tool._"
+      "_The 0.0–10.0 report score prioritizes review using None/Low/Medium/High/Critical labels. It does not measure defect probability, testability, or overall code quality._"
       ""
-      "| Score | Risk | Roughly | Cyclomatic/cognitive complexity |"
+      "| Score | Risk label | Review priority | Cyclomatic/cognitive input |"
       "| --- | --- | --- | --- |"
       "| 0.0 | None | No violations found | — |"
-      "| 0.1–3.9 | Low | Simple, easy to test exhaustively | 1–10 |"
-      "| 4.0–6.9 | Medium | Getting harder to cover with tests | 11–20 |"
-      "| 7.0–8.9 | High | Complex, testing all paths is impractical | 21–50 |"
-      "| 9.0–10.0 | Critical | Effectively untestable | 50+ |"
+      "| 0.1–3.9 | Low | Lower review priority | 1–10 |"
+      "| 4.0–6.9 | Medium | Moderate review priority | 11–20 |"
+      "| 7.0–8.9 | High | High review priority | 21–50 |"
+      "| 9.0–10.0 | Critical | Highest review priority | 50+ |"
       ""
-      "_Cyclomatic and cognitive complexity numbers are converted to the score using the ranges above. Other detectors flag a pattern rather than a path count, so a file with no complexity violations of its own instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
+      "_Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates reading effort. The report applies the same numeric curve to both as a prioritization heuristic, not evidence that they measure equivalent effort. A file with no complexity violations instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
     |> String.concat "\n"
 
+/// Render findings and review priorities as a human-readable Markdown report.
 let renderHumanReport results =
     let flagged =
         results
         |> List.filter (fun result -> not result.Violations.IsEmpty)
         |> List.sortByDescending (fun result -> fileScore result.Violations)
 
-    let cleanCount = results.Length - flagged.Length
+    let noFindingsCount = results.Length - flagged.Length
 
     let fileScores =
         results |> List.map (fun result -> result.FilePath, fileScore result.Violations)
@@ -289,7 +292,12 @@ let renderHumanReport results =
       ""
       scoreLegend
       ""
-      sprintf "**%d file%s scanned** — %d clean, %d flagged" results.Length filesSuffix cleanCount flagged.Length
+      sprintf
+          "**%d file%s scanned** — %d with no findings, %d flagged"
+          results.Length
+          filesSuffix
+          noFindingsCount
+          flagged.Length
       "" ]
     @ (flagged |> List.collect (fun result -> [ renderFileSection result; "" ]))
     @ [ "## Total evaluation"

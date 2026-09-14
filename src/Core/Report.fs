@@ -78,8 +78,9 @@ let summarize results =
 
 let hasBlockingViolations counts = counts.Medium > 0 || counts.High > 0
 
+/// Render finding counts and weighted scores as a Markdown report.
 let renderMarkdownReport summary =
-    let cleanCount =
+    let noFindingsCount =
         summary.Files |> List.filter (fun file -> file.Score = 0) |> List.length
 
     let fileCount = summary.Files.Length
@@ -99,11 +100,11 @@ let renderMarkdownReport summary =
     [ "# Energy State Report"
       ""
       sprintf
-          "**%d file%s scanned** — %d clean, %d with violations"
+          "**%d file%s scanned** — %d with no findings, %d with findings"
           fileCount
           suffix
-          cleanCount
-          (fileCount - cleanCount)
+          noFindingsCount
+          (fileCount - noFindingsCount)
       ""
       "| File | Score | High | Medium | Low |"
       "| --- | --- | --- | --- | --- |" ]

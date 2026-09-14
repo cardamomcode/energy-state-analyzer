@@ -33,11 +33,21 @@ For functions flagged as too complex (cyclomatic or cognitive), a progressive he
 
 ## Energy and Entropy
 
-The name is a deliberate analogy to thermodynamics: a function's "energy" is its complexity, nesting, and parameter count, while its "entropy" is how many ways it can be called, misunderstood, or silently broken by a change. Primitive obsession raises entropy too: broad, interchangeable strings and numbers admit invalid calls and swaps, and force the reader to retain conventions that distinct, validated domain types could express. See [docs/energy-and-entropy.md](docs/energy-and-entropy.md) for the full explanation of why cyclomatic and cognitive complexity are tracked as separate metrics rather than one score.
+The energy-state model asks which possibilities a maintainer must distinguish, what knowledge
+they need, and how relationships in a design allow a change to have unintended consequences.
+The analyzer highlights selected signs of that work: branching, nesting, broad signatures,
+implicit meanings, and dependency breadth. These are related signals, not interchangeable
+quantities on a common scale, and source code has no thermodynamic unit.
+
+Use findings to ask whether a change removes unnecessary possibilities, preserves domain
+knowledge, or keeps change local. Severity expresses review priority under the configured
+rules; a lower score does not establish a better design. See
+[Energy and Entropy](docs/energy-and-entropy.md) for the model, the maintainer's role in
+interpreting code, and what the metrics reveal.
 
 ## Command-Line Usage
 
-The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean:
+The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent reviewing code it just generated and checking the effect of a refactoring:
 
 ```bash
 npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
