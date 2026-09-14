@@ -3,6 +3,9 @@ last_commit_released: 94105c06c3a96d2ab1bce15729fb26a64da92154
 name: energy-state-analyzer
 updaters:
   - command: npm version {version} --no-git-tag-version --allow-same-version
+  - regex:
+      file: src/Core/ReportSarif.fs
+      pattern: (?<=let private toolVersion = ").*(?=")
 ---
 
 # Change Log
