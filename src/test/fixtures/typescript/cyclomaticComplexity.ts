@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 function cleanSimpleFunction(x: number): number {
     if (x > 0) {
         return 1;
@@ -5,6 +6,7 @@ function cleanSimpleFunction(x: number): number {
     return 0;
 }
 
+// flagged — cyclomatic complexity (medium)
 function flaggedComplexFunction(status: string): number {
     if (status === "a") {
         return 1;
@@ -32,6 +34,7 @@ function flaggedComplexFunction(status: string): number {
     return 0;
 }
 
+// flagged — cyclomatic complexity (high)
 function flaggedSevereFunction(status: string): number {
     if (status === "a") {
         return 1;

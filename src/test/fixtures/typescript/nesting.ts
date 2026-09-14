@@ -1,3 +1,4 @@
+// clean — not flagged by nesting
 function cleanShallowNesting(x: number): number {
     if (x > 0) {
         if (x > 10) {
@@ -7,6 +8,7 @@ function cleanShallowNesting(x: number): number {
     return 0;
 }
 
+// flagged — nesting (medium)
 function flaggedDeepNesting(x: number): number {
     if (x > 0) {
         if (x > 1) {
@@ -22,6 +24,7 @@ function flaggedDeepNesting(x: number): number {
     return 0;
 }
 
+// flagged — nesting (high)
 function flaggedSevereNesting(x: number): number {
     if (x > 0) {
         if (x > 1) {
@@ -41,6 +44,7 @@ function flaggedSevereNesting(x: number): number {
     return 0;
 }
 
+// flagged — nesting
 function flaggedTryNesting(x: number): number {
     try {
         try {

@@ -1,3 +1,4 @@
+// clean — not flagged by match opportunity
 fun cleanMixedConditions(a: Int, b: String, c: String?): Int {
     if (a > 10) {
         return 1
@@ -9,6 +10,7 @@ fun cleanMixedConditions(a: Int, b: String, c: String?): Int {
     return 0
 }
 
+// flagged — match opportunity (low)
 fun flaggedThreeWayChain(status: String): Int {
     if (status == "open") {
         return 1

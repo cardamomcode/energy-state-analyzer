@@ -1,5 +1,6 @@
 class MixedConditions
 {
+    // clean — not flagged by match opportunity
     static int CleanMixedConditions(int a, string b, object c)
     {
         if (a > 10) return 1;
@@ -12,6 +13,7 @@ class MixedConditions
 
 class ThreeWayChain
 {
+    // flagged — match opportunity (low)
     static int FlaggedThreeWayChain(int status)
     {
         if (status == 254) return 1;

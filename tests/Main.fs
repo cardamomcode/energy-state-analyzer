@@ -28,6 +28,7 @@ let main _ =
           ParameterCountTests.configOverrideTests
           PrimitiveObsessionTests.tests
           ErrorShadowingTests.tests
+          RecoveryRuleTests.tests
           SuppressionsTests.tests
           DetectorFixtureMatrixTests.tests
           ReportTests.tests

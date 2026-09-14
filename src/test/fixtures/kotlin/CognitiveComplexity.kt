@@ -1,3 +1,4 @@
+// clean — not flagged by cognitive complexity
 fun cleanSimpleFunction(x: Int): Int {
     if (x > 0) {
         return 1
@@ -5,6 +6,7 @@ fun cleanSimpleFunction(x: Int): Int {
     return 0
 }
 
+// flagged — cognitive complexity (medium)
 fun flaggedComplexFunction(x: Int): Int {
     if (x > 0) {
         if (x > 1) {
@@ -22,6 +24,7 @@ fun flaggedComplexFunction(x: Int): Int {
     return 0
 }
 
+// flagged — cognitive complexity (high)
 fun flaggedSevereFunction(x: Int): Int {
     if (x > 0) {
         if (x > 1) {

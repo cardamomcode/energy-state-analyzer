@@ -25,7 +25,7 @@
          extracts the DLL to disk; the CLI locates it via the analyzers-path flag (using $(
         NuGetPackageRoot)) in Directory.Build.targets. RunAnalyzers=false above keeps it from
          running at build time. -->
-    <PackageReference Include="G-Research.FSharp.Analyzers" Version="0.23.0">
+    <PackageReference Include="G-Research.FSharp.Analyzers" Version="0.25.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

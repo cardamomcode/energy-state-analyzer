@@ -6,6 +6,7 @@ class Derived : Base, IWorker
 {
     private const int DefaultRetries = 3;
 
+    // flagged — magic number
     public static string Process(string mode, int retries = 3, bool verbose = false)
     {
         try

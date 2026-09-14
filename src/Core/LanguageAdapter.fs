@@ -40,11 +40,16 @@ type TypedParameter = { Name: string; Type: string }
 /// The bracket characters wrapping generic type arguments (`[` `]` for Python, `<` `>` for TS/Kotlin/F#).
 type GenericBrackets = { Open: string; Close: string }
 
+/// One handler or cleanup clause, with body syntax separated from its header.
+type RecoveryBody = { Anchor: Node; Items: Node list }
+
 /// One try boundary expressed in language-neutral logical work items.
 type ErrorHandlingRegion =
     { Anchor: Node
+      ProtectedBody: Node list
       ProtectedItems: Node list
-      RecoveryItems: Node list }
+      RecoveryItems: Node list
+      RecoveryBodies: RecoveryBody list }
 
 /// One direct equality comparison (== / === / F#'s single =) a node represents. A list rather than
 /// a single pair because Python's chained `a == b == c` parses as one comparison_operator holding

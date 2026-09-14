@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 fun cleanSimpleFunction(x: Int): Int {
     if (x > 0) {
         return 1
@@ -5,6 +6,7 @@ fun cleanSimpleFunction(x: Int): Int {
     return 0
 }
 
+// flagged — cyclomatic complexity (medium)
 fun flaggedComplexFunction(status: String): Int {
     if (status == "a") {
         return 1
@@ -32,6 +34,7 @@ fun flaggedComplexFunction(status: String): Int {
     return 0
 }
 
+// flagged — cyclomatic complexity (high)
 fun flaggedSevereFunction(status: String): Int {
     if (status == "a") {
         return 1

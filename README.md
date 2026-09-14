@@ -15,7 +15,9 @@ Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, or C# file
 - [Magic numbers](docs/detectors/magic-numbers.md), unnamed numeric literals.
 - [Magic strings](docs/detectors/magic-strings.md), unnamed string literals at decision points.
 - [Parameter explosion](docs/detectors/parameter-explosion.md), functions with too many parameters.
-- [Error shadowing](docs/detectors/error-shadowing.md), error handling that overwhelms a function's happy path.
+- [Broad Protected Scope](docs/detectors/error-shadowing.md), overly broad protected try bodies.
+- [Recovery Dominance](docs/detectors/recovery-dominance.md), recovery policy that dominates a function.
+- [Oversized Recovery Block](docs/detectors/oversized-recovery-block.md), individual handlers or cleanup bodies exceeding their line limit.
 - [Inversion opportunities](docs/detectors/inversion-opportunities.md), nested conditionals that could be guard clauses.
 - [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type.
 - [Match opportunities](docs/detectors/match-opportunities.md), if/elif chains that could be a match/switch.
@@ -33,11 +35,22 @@ For functions flagged as too complex (cyclomatic or cognitive), a progressive he
 
 ## Energy and Entropy
 
-The name is a deliberate analogy to thermodynamics: a function's "energy" is its complexity, nesting, and parameter count, while its "entropy" is how many ways it can be called, misunderstood, or silently broken by a change. Primitive obsession raises entropy too: broad, interchangeable strings and numbers admit invalid calls and swaps, and force the reader to retain conventions that distinct, validated domain types could express. See [docs/energy-and-entropy.md](docs/energy-and-entropy.md) for the full explanation of why cyclomatic and cognitive complexity are tracked as separate metrics rather than one score.
+The energy-state model asks which possibilities a maintainer must distinguish, what knowledge
+they need, and how relationships in a design allow a change to have unintended consequences.
+The analyzer highlights selected signs of that work: branching, nesting, broad signatures,
+implicit meanings, and dependency breadth. These are related signals, not interchangeable
+quantities on a common scale, and source code has no thermodynamic unit.
+
+Use findings to remove unnecessary possibilities, preserve domain knowledge, and keep
+change local. Severity communicates the seriousness of the detected readability and
+maintainability risks under the configured rules. Fix valid findings and document legitimate
+exceptions; verify that each change improves the code rather than merely lowering a score. See
+[Energy and Entropy](docs/energy-and-entropy.md) for the model, the maintainer's role in
+interpreting code, and what the metrics reveal.
 
 ## Command-Line Usage
 
-The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean:
+The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent fixing findings in code it just generated and verifying the result:
 
 ```bash
 npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
@@ -85,7 +98,9 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 - `energyStateAnalyzer.opaqueBoolean.enabled` (`true`)
 - `energyStateAnalyzer.logicalControlFlow.enabled` (`true`)
 - `energyStateAnalyzer.inversion.enabled` (`true`)
-- `energyStateAnalyzer.errorShadowing.enabled` (`true`)
+- `energyStateAnalyzer.errorShadowing.enabled` (`true`, family switch)
+- `energyStateAnalyzer.recoveryDominance.enabled` (`true`)
+- `energyStateAnalyzer.oversizedRecoveryBlock.enabled` (`true`)
 - `energyStateAnalyzer.magicNumber.enabled` (`true`)
 - `energyStateAnalyzer.magicString.enabled` (`true`)
 - `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` (`#fb8500` / `#ffb703` / `#99dd99`)
@@ -102,6 +117,7 @@ Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.jso
 - `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
 - `errorShadowing.protectedScope.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `8`)
 - `errorShadowing.recovery.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `5`)
+- `errorShadowing.recoveryBlock.maxLines` (`20`)
 - `magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
 

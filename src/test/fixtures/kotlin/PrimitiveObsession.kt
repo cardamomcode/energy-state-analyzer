@@ -1,11 +1,14 @@
+// clean — not flagged by primitive obsession
 fun cleanDistinctTypes(name: String, age: Int): String {
     return "$name:$age"
 }
 
+// flagged — primitive obsession
 fun flaggedSwapRisk(x: Int, y: Int): Int {
     return x + y
 }
 
+// flagged — primitive obsession (low)
 fun flaggedStringlyTyped(status: String): Int {
     if (status == "pending") {
         return 1

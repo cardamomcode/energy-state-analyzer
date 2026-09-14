@@ -52,7 +52,8 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
   "matchOpportunity": { "minBranches": 3 },
   "errorShadowing": {
     "protectedScope": { "threshold": 0.5, "highThreshold": 0.7, "minItems": 8 },
-    "recovery": { "threshold": 0.5, "highThreshold": 0.7, "minItems": 5 }
+    "recovery": { "threshold": 0.5, "highThreshold": 0.7, "minItems": 5 },
+    "recoveryBlock": { "maxLines": 20 }
   },
   "parameterCount": { "mediumThreshold": 5, "highThreshold": 8 },
   "magicNumber": { "allowlist": [1024, 4096] },
@@ -82,6 +83,7 @@ Every section is optional; an absent key keeps its default. Numeric keys are cam
 | `errorShadowing.recovery` | `threshold` | `0.5` | Share of a function's logical items inside one recovery or cleanup region at which it is flagged as medium energy. |
 | `errorShadowing.recovery` | `highThreshold` | `0.7` | Share at which recovery dominance is high energy. |
 | `errorShadowing.recovery` | `minItems` | `5` | Minimum logical recovery or cleanup items before it is evaluated. |
+| `errorShadowing.recoveryBlock` | `maxLines` | `20` | Maximum nonblank, noncomment lines in each handler or cleanup body. |
 | `parameterCount` | `mediumThreshold` | `5` | Parameter count above which a function is flagged for parameter explosion as medium energy. |
 | `parameterCount` | `highThreshold` | `8` | Parameter count above which a parameter-explosion violation is flagged as high energy instead of medium. |
 | `magicNumber` | `allowlist` | `[0, 1, -1, 2]` | Additional numeric literals to exempt alongside the structural values (see below). The `enabled` toggle stays in VS Code settings. |

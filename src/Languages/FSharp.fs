@@ -140,21 +140,26 @@ let private declarationExpressionNodeType = NodeType "declaration_expression"
 let private rulesNodeType = NodeType "rules"
 let private ruleNodeType = NodeType "rule"
 
-/// F# sequences `let` bindings through declaration_expression instead of a block. Expand only that
-/// structural chain; applications, conditionals, and loops remain one logical item.
+/// Expand F# binding and statement sequence scaffolding into direct logical items.
+/// Applications, conditionals, and loops remain one logical item.
+///
+/// decision: function signatures and computation-expression builders are scaffolding, not work;
+/// unwrap their bodies so task boundaries use the same denominator as synchronous functions.
 let rec private logicalItems (node: Node) : Node list =
     match nodeType node with
-    | kind when kind = declarationExpressionNodeType -> nodeNamedChildren node |> List.collect logicalItems
+    | kind when kind = declarationExpressionNodeType || kind = NodeType "sequential_expression" ->
+        nodeNamedChildren node |> List.collect logicalItems
     | kind when kind = rulesNodeType -> nodeNamedChildren node |> List.collect logicalItems
     | kind when kind = ruleNodeType -> [ node ]
     | kind when kind = NodeType "function_or_value_defn" ->
-        nodeNamedChildren node
-        |> List.filter (fun child ->
-            nodeType child <> functionDeclarationLeft
-            && nodeType child <> NodeType "value_declaration_left")
+        nodeChildren node
+        |> List.skipWhile (fun child -> nodeText child <> "=")
+        |> List.filter (fun child -> nodeText child <> "=")
         |> List.collect logicalItems
+    | kind when kind = NodeType "ce_expression" -> nodeNamedChildren node |> List.skip 1 |> List.collect logicalItems
     | _ -> [ node ]
 
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
 let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
     if nodeType node <> tryExpressionNodeType then
         None
@@ -167,15 +172,36 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         match rulesIndex with
         | Some index ->
             { Anchor = node
+              ProtectedBody = children |> List.take index
               ProtectedItems = children |> List.take index |> List.collect logicalItems
-              RecoveryItems = children |> List.skip index |> List.collect logicalItems }
+              RecoveryItems = children |> List.skip index |> List.collect logicalItems
+              RecoveryBodies =
+                children
+                |> List.skip index
+                |> List.collect nodeNamedChildren
+                |> List.filter (fun rule -> nodeType rule = ruleNodeType)
+                |> List.map (fun rule ->
+                    { Anchor = rule
+                      Items =
+                        nodeChildren rule
+                        |> List.skipWhile (fun child -> nodeText child <> "->")
+                        |> function
+                            | [] -> []
+                            | _ :: body -> body }) }
             |> Some
         | None ->
             match children with
             | protectedBody :: cleanupBody :: _ ->
                 { Anchor = node
+                  ProtectedBody = [ protectedBody ]
                   ProtectedItems = logicalItems protectedBody
-                  RecoveryItems = logicalItems cleanupBody }
+                  RecoveryItems = logicalItems cleanupBody
+                  RecoveryBodies =
+                    [ { Anchor =
+                          nodeChildren node
+                          |> List.tryFind (fun child -> nodeText child = "finally")
+                          |> Option.defaultValue cleanupBody
+                        Items = [ cleanupBody ] } ] }
                 |> Some
             | _ -> None
 

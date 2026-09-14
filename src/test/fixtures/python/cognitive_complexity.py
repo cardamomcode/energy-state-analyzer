@@ -1,9 +1,11 @@
+# clean — not flagged by cognitive complexity
 def cleanSimpleFunction(x):
     if x > 0:
         return 1
     return 0
 
 
+# flagged — cognitive complexity (medium)
 def flaggedComplexFunction(x):
     if x > 0:
         if x > 1:
@@ -15,6 +17,7 @@ def flaggedComplexFunction(x):
     return 0
 
 
+# flagged — cognitive complexity (high)
 def flaggedSevereFunction(x):
     if x > 0:
         if x > 1:

@@ -1,11 +1,13 @@
 module Nesting
 
+// clean — not flagged by nesting
 let cleanShallowNesting (x: int) =
     if x > 0 then
         if x > 10 then x else 0
     else
         0
 
+// flagged — nesting (medium)
 let flaggedDeepNesting (x: int) =
     if x > 0 then
         if x > 1 then
@@ -21,6 +23,7 @@ let flaggedDeepNesting (x: int) =
     else
         0
 
+// flagged — nesting (high)
 let flaggedSevereNesting (x: int) =
     if x > 0 then
         if x > 1 then
@@ -42,6 +45,7 @@ let flaggedSevereNesting (x: int) =
     else
         0
 
+// flagged — nesting
 let flaggedTryNesting (x: int) =
     try
         try

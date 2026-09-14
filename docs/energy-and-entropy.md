@@ -1,16 +1,90 @@
 # Energy and Entropy
 
-The name is a deliberate analogy to thermodynamics, not just a metaphor for "bad code."
+Energy State Analyzer uses energy and entropy as an engineering model for the work of
+understanding and changing software. The model asks three questions: which possibilities
+must a maintainer distinguish, what knowledge do they need to distinguish them, and how
+can relationships in the design make a change have unintended consequences?
 
-In physics, energy constrains which microstates a system can occupy, and entropy counts how many of those microstates are compatible with what we observe: `S(E) = k_B ln Ω(E)`. Adding energy usually increases entropy, because there are more ways to distribute it, but *how* it's distributed matters just as much as how much there is. A hot object next to a cold one has lower entropy than the same total energy spread evenly across both, which is why heat spontaneously flows from hot to cold: the system moves toward the macrostate with more compatible microstates.
+## Possibilities, relationships, and stored work
 
-Code behaves the same way. A function's "energy" here is its cyclomatic/cognitive complexity, nesting depth, parameter count, and so on: the raw amount of decision-making and structure packed into it. Its "entropy" is the number of possible calls a reader must distinguish, the number of code paths a change can silently break, and the information a maintainer must hold at once to reason about it correctly. Just as in physics, higher energy tends to raise entropy: a function with more branches and deeper nesting generally has more ways to go wrong. But it's not purely amount, *how* that complexity is arranged matters too:
+In this model, **entropy** concerns the possibilities that remain open given the information
+available to a maintainer. **Structural complexity** concerns how parts constrain and affect
+each other. **Energy** describes the stored work in a design: interactions and implicit
+contracts that a future change may force us to understand and coordinate.
 
-- A long function with 20 sequential, flat `if`s is high cyclomatic complexity but comparatively low entropy: each branch is independent and easy to reason about in isolation (the "evenly spread" case).
-- The same 20 decision points nested five deep inside each other is high *cognitive* complexity: the reader must hold all five levels in mind simultaneously, which is a much higher-entropy (harder to predict, easier to break) arrangement of the same energy.
+These are related signals, not interchangeable quantities on a common scale, and source
+code has no thermodynamic unit. The analyzer surfaces selected signs of that work through
+branching, nesting, broad signatures, implicit meanings, and dependency breadth. It does
+not calculate the entropy or stored work of a codebase.
 
-Primitive obsession adds entropy independently of control flow. A function that accepts `string` or `int` admits every combination of those values at its call sites, even when the domain permits only a small subset. When distinct domain concepts share that primitive representation, the type checker cannot distinguish their permutations: an order ID can occupy a user-ID parameter without error. The observer must therefore learn and retain extra conventions—format, range, position, and meaning—to identify a valid call. Distinct, validated domain types express that information in the signature, constrain the call space, and make the substitution a type error. The [primitive-obsession detector](detectors/primitive-obsession.md) looks for a few observable forms of this risk.
+A short deployment function can still coordinate provisioning, publication, and health
+checks. If publication succeeds but the health check times out, a retry must account for
+partial completion, resource ownership, and which operations are safe to repeat. That work
+comes from the operations' relationships, even when the function has few branches.
 
-This is why the extension tracks cyclomatic and cognitive complexity as separate metrics rather than one score: they capture the *energy* and its *arrangement* respectively. Guard clauses, extracted functions, and early returns don't necessarily remove energy from a codebase; they redistribute it into a lower-entropy arrangement, the code equivalent of letting a hot and cold object equilibrate: same total energy, fewer surprising configurations, easier to hold a correct mental model of.
+## What the metrics reveal
 
-Entropy here also depends on the observer, not just the code. A function's energy is fixed by what's written, but its entropy, the number of arrangements consistent with what someone currently knows, can grow over time even if the code never changes: the original author forgets the reasoning, or a new developer inherits the file with no context. This detector only measures the static, code-side half of that (the energy and its arrangement); the knowledge-decay half is a reason to keep energy low in the first place, since low-entropy code is cheaper to relearn from scratch.
+[Cyclomatic complexity](detectors/cyclomatic-complexity.md) measures independent paths
+through a control-flow graph. It describes one aspect of testing effort, rather than every
+possible execution or a complete test count.
+
+[Cognitive complexity](detectors/cognitive-complexity.md) estimates reading effort through
+breaks in linear control flow and nesting. It does not directly measure cognition. Two
+functions can have similar cyclomatic complexity but different cognitive complexity:
+nested decisions require the reader to track their enclosing conditions.
+
+The metrics answer different questions, so the analyzer reports them separately. Neither
+is an entropy measurement. Flattening control flow can reduce nesting while leaving the
+necessary decisions intact; its benefit depends on preserving behavior and making the
+operation easier to follow.
+
+## The call space and its constraints
+
+Possibilities also enter through a function's signature. Three independent Boolean
+parameters admit eight combinations, even when the domain permits only three. Two string
+parameters representing an order ID and a user ID allow a positional swap that their types
+cannot distinguish. The caller must supply the missing knowledge about valid combinations,
+meaning, and position.
+
+Distinct domain types can preserve those distinctions. Validated constructors can restrict
+which values are admitted, while a representation such as a non-empty list can make an
+invalid state unrepresentable. A type alias or an unrestricted wrapper alone does not
+validate a value. The [primitive-obsession](detectors/primitive-obsession.md) and
+[parse-don't-validate](detectors/parse-dont-validate.md) detectors identify selected syntax
+patterns where a stronger contract may help.
+
+## The maintainer supplies the decoder
+
+The same code can be straightforward to its author and difficult for someone who lacks
+its domain knowledge, conventions, or rationale. That knowledge acts as a **decoder**:
+it connects the representation to the problem the code is supposed to solve. More
+interpretations remain plausible when less of that knowledge is available.
+
+Types, names, contracts, and decision comments can preserve some of this knowledge close
+to the code. A comment explaining why retries reuse an event ID can clarify a deduplication
+operation without changing its complexity score. An abstraction helps when it preserves
+the distinctions its reader needs; hiding those distinctions can make a shorter program
+harder to understand.
+
+The analyzer detects selected places where meaning remains implicit. It cannot determine
+everything a reader knows or needs to know, so its findings cover only part of this model.
+
+## Use findings to improve the design
+
+A useful refactoring removes illegal or unnecessary possibilities, preserves domain
+knowledge, or keeps change local. Extracting a function, grouping parameters, or splitting
+a file helps when the resulting boundary represents a coherent responsibility. Forcing
+similar-looking code into one abstraction can hide different contracts and make independent
+behavior change together, even if a local metric falls.
+
+Some complexity serves the work: exploration, performance-sensitive code, and integration
+boundaries may need it. Review whether that complexity is necessary and contained, and
+preserve the reason for a deliberate exception.
+
+Severity communicates the seriousness of the detected readability and maintainability
+risks under the configured rules. Use each finding's location and remediation guidance to
+fix the issue, verify behavior, and re-analyze. Document legitimate exceptions and report
+suspected detector errors with a concrete example. Scores help locate findings and compare
+runs; check that a reduction reflects simpler reasoning or safer contracts rather than
+moving complexity elsewhere. No findings means no enabled rule found a problem within its
+coverage, so behavior verification and review of the code's purpose remain necessary.
