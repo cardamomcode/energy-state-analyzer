@@ -2,9 +2,11 @@ module Energy.Core.Report
 
 open Energy.Core.Violation
 
-// decision: scoring weights are the published report/diff continuity metric (1/4/9); only the
-// low weight is 1, so the medium and high weights become named constants at the top of the module
-// rather than in Core.Config, keeping them visible next to the module's other declarations.
+/// Scoring weights for severity counts, kept as named constants at the top of this module.
+///
+/// decision: scoring weights are the published report/diff continuity metric (1/4/9); only the
+/// low weight is 1, so the medium and high weights become named constants at the top of the module
+/// rather than in Core.Config, keeping them visible next to the module's other declarations.
 let private mediumWeight = 4
 let private highWeight = 9
 
@@ -38,8 +40,10 @@ let private addViolation counts violation =
 let private score counts =
     counts.Low + mediumWeight * counts.Medium + highWeight * counts.High
 
-// invariant: weights 1/4/9 are the published report/diff continuity metric; only structured
-// severity contributes, never numbers embedded in detector messages.
+/// Aggregate one file's violations into a weighted score, severity counts, and per-type breakdown.
+///
+/// invariant: weights 1/4/9 are the published report/diff continuity metric; only structured
+/// severity contributes, never numbers embedded in detector messages.
 let summarizeFile result =
     let counts = result.Violations |> List.fold addViolation emptyCounts
 
@@ -74,8 +78,9 @@ let summarize results =
 
 let hasBlockingViolations counts = counts.Medium > 0 || counts.High > 0
 
+/// Render finding counts and weighted scores as a Markdown report.
 let renderMarkdownReport summary =
-    let cleanCount =
+    let noFindingsCount =
         summary.Files |> List.filter (fun file -> file.Score = 0) |> List.length
 
     let fileCount = summary.Files.Length
@@ -95,11 +100,11 @@ let renderMarkdownReport summary =
     [ "# Energy State Report"
       ""
       sprintf
-          "**%d file%s scanned** — %d clean, %d with violations"
+          "**%d file%s scanned** — %d with no findings, %d with findings"
           fileCount
           suffix
-          cleanCount
-          (fileCount - cleanCount)
+          noFindingsCount
+          (fileCount - noFindingsCount)
       ""
       "| File | Score | High | Medium | Low |"
       "| --- | --- | --- | --- | --- |" ]

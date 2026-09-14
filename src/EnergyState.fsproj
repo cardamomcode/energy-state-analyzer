@@ -13,6 +13,11 @@
          before Context, and TreeSitter precedes every module that reads it. -->
     <Compile Include="Core/Paths.fs" />
     <Compile Include="Core/FsPath.fs" />
+    <!-- NodeInterop sits after FsPath (it uses the shared filesystem bindings) and before Config/Cli
+         callers that open it. It owns safe Node error conversion plus the child-process and JSON
+         bindings, so keep it near the other leaf interop modules rather than deep in the detector
+         dependency graph. -->
+    <Compile Include="Core/NodeInterop.fs" />
     <Compile Include="Core/Config.fs" />
     <Compile Include="Core/TreeSitter.fs" />
     <Compile Include="Core/Violation.fs" />
@@ -24,11 +29,14 @@
     <Compile Include="Core/PythonTypeInfo/Extraction.fs" />
     <Compile Include="Core/LanguageAdapter.fs" />
     <Compile Include="Core/Context.fs" />
+    <Compile Include="Languages/ValidationSyntax.fs" />
+    <Compile Include="Languages/CognitiveSyntax.fs" />
     <Compile Include="Languages/Python.fs" />
     <Compile Include="Languages/TypeScript.fs" />
     <Compile Include="Languages/FSharp.fs" />
     <Compile Include="Languages/Kotlin.fs" />
     <Compile Include="Languages/CPlusPlus.fs" />
+    <Compile Include="Languages/CSharp.fs" />
     <Compile Include="Languages/Registry.fs" />
     <Compile Include="Core/Detectors/Nesting.fs" />
     <Compile Include="Core/Detectors/Cyclomatic.fs" />
@@ -48,6 +56,8 @@
     <Compile Include="Core/Detectors/LogicalControlFlow.fs" />
     <Compile Include="Core/Detectors/OpaqueBoolean.fs" />
     <Compile Include="Core/Detectors/PrimitiveObsession.fs" />
+    <Compile Include="Core/Detectors/ParseDontValidate.fs" />
+    <Compile Include="Core/BodyLines.fs" />
     <Compile Include="Core/Detectors/ErrorShadowing.fs" />
     <Compile Include="Core/Suppressions.fs" />
     <Compile Include="Core/Esaignore.fs" />

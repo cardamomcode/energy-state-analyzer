@@ -1,9 +1,11 @@
+# clean — not flagged by cyclomatic complexity
 def cleanSimpleFunction(x):
     if x > 0:
         return 1
     return 0
 
 
+# flagged — cyclomatic complexity (medium)
 def flaggedComplexFunction(status):
     if status == "a":
         return 1
@@ -30,6 +32,7 @@ def flaggedComplexFunction(status):
     return 0
 
 
+# flagged — cyclomatic complexity (high)
 def flaggedSevereFunction(status):
     if status == "a":
         return 1

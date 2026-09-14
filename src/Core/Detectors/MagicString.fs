@@ -8,8 +8,10 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.TestFile
 
-// decision: magic-string options live in Core.Config as the single source of truth; this detector
-// reads them from ctx.Options so it no longer re-exports a module-level copy.
+/// Remove the surrounding quote characters from a string literal's text.
+///
+/// decision: magic-string options live in Core.Config as the single source of truth; this detector
+/// reads them from ctx.Options so it no longer re-exports a module-level copy.
 
 let private stripQuotes (text: string) =
     if text.Length >= 2 then

@@ -1,17 +1,21 @@
+// clean — not flagged by error shadowing
 function compute(): number {
     return 1;
 }
 
+// clean — not flagged by error shadowing
 function transform(value: number): number {
     return value + 1;
 }
 
+// clean — not flagged by error shadowing
 function finalize(value: number): number {
     return value * 2;
 }
 
-// decision: most of this function's named nodes live inside the try/catch region, so error handling
-// shadows the (tiny) unguarded business logic — the error-shadowing detector should flag it High.
+// decision: the protected try body is happy-path work and the small catch arm is recovery, so the
+// error-shadowing detector should stay quiet.
+// clean — not flagged by error shadowing
 export function shadowedByError(): number {
     let result = 0;
     try {
@@ -24,11 +28,13 @@ export function shadowedByError(): number {
     return result;
 }
 
+// clean — not flagged by error shadowing
 function handleValueError(_err: unknown): number {
     return -1;
 }
 
 // control: no error handling at all, so nothing should be flagged.
+// clean — not flagged by error shadowing
 export function cleanPath(): number {
     const a = compute();
     const b = transform(a);

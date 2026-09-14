@@ -1,13 +1,17 @@
 module ErrorShadowing
 
+// clean — not flagged by error shadowing
 let private compute () = 1
 
+// clean — not flagged by error shadowing
 let private transform value = value + 1
 
+// clean — not flagged by error shadowing
 let private finalize value = value * 2
 
-// decision: most of this function's named nodes live inside the try/except region, so error handling
-// shadows the (tiny) unguarded business logic — the error-shadowing detector should flag it High.
+// decision: the protected try body is happy-path work and the small with rules are recovery, so the
+// error-shadowing detector should stay quiet.
+// clean — not flagged by error shadowing
 let shadowedByError () =
     let result =
         try
@@ -20,11 +24,14 @@ let shadowedByError () =
 
     result
 
+// clean — not flagged by error shadowing
 let private handleValueError _err = -1
 
+// clean — not flagged by error shadowing
 let private handleKeyError _err = -2
 
 // control: no error handling at all, so nothing should be flagged.
+// clean — not flagged by error shadowing
 let cleanPath () =
     let a = compute ()
     let b = transform a

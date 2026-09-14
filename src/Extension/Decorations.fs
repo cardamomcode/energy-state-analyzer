@@ -5,7 +5,6 @@ open Fable.Core.JsInterop
 
 open Energy.Core.Violation
 open Energy.Core.Config
-open Energy.Extension.ConfigurationValues
 open Energy.Extension.DecorationModel
 open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host

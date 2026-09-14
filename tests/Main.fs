@@ -11,6 +11,7 @@ let main _ =
         [ SpikeTests.tests
           ConfigTests.tests
           CPlusPlusTests.tests
+          CSharpTests.tests
           NestingTests.tests
           NestingTests.gatingTests
           CyclomaticTests.tests
@@ -22,10 +23,13 @@ let main _ =
           MatchOpportunityTests.tests
           LogicalControlFlowTests.tests
           OpaqueBooleanTests.tests
+          ParseDontValidateTests.tests
           ParameterCountTests.tests
           ParameterCountTests.configOverrideTests
           PrimitiveObsessionTests.tests
           ErrorShadowingTests.tests
+          RecoveryRuleTests.tests
           SuppressionsTests.tests
+          DetectorFixtureMatrixTests.tests
           ReportTests.tests
           ExtensionPresentationTests.tests ]

@@ -1,44 +1,35 @@
-# Error Shadowing
+# Broad Protected Scope
 
-Flags functions where error handling occupies so much of the body that the happy path is difficult to see. This is a cohesion signal, not another complexity score: a function can have few branches yet still mix recovery policy and business work into one hard-to-read unit.
+ESA013 flags a protected `try` body containing at least 8 logical items and at least 50% of its enclosing function's logical work. Severity is high at 70%; otherwise it is medium. Narrow the protected region to operations whose failures the adjacent handlers can recover from.
 
-## What it flags
+Each boundary is evaluated independently and anchored at `try`. Nested functions are evaluated separately. Logical items are direct statements or expressions, including F# handler arms; identifiers, arguments, and punctuation do not inflate the measurement. Nested `try` boundaries are expanded for the function denominator; other control-flow constructs remain one logical item.
 
-The detector measures the share of a function's named syntax nodes that occur inside a `try` construct or its `catch`, `except`, or `finally` arms. It reports a finding when that share reaches the configured threshold and the function contains enough named nodes to make the proportion meaningful.
+The public report and suppression identity remains `error-shadowing` for compatibility. Use `esa-ignore: error-shadowing` with a reason when a broad boundary is deliberate.
 
-The finding points at the first error-handling construct, rather than the function declaration, so the reader lands on the region doing the shadowing. A function without error handling is never flagged, even if its configured threshold is `0`.
+## Independent recovery rules
 
-## Example
-
-```python
-def load_profile(user_id):
-    try:
-        response = client.fetch(user_id)
-        profile = decode(response)
-        validate(profile)
-        save(profile)
-        return profile
-    except NetworkError:
-        retry_later(user_id)
-    except DecodeError:
-        record_bad_response(user_id)
-    finally:
-        metrics.flush()
-```
-
-The fetch, decoding, validation, persistence, recovery, and cleanup policy are all interleaved under one error-handling region. Extracting the happy path or moving recovery into a boundary-specific helper makes each concern easier to follow.
+[Recovery Dominance (ESA016)](recovery-dominance.md) measures recovery's share of a function. [Oversized Recovery Block (ESA017)](oversized-recovery-block.md) limits each handler or cleanup body. A boundary can produce separate findings for all qualifying rules, including separate ESA013 and ESA016 findings when both logical-share checks qualify. Multiple `try` regions receive separate findings at their own locations. Nested functions and nested `try` regions are evaluated independently.
 
 ## Configuration
 
-- `energyStateAnalyzer.errorShadowing.enabled` (default `true`) enables or disables the detector in VS Code.
-- `errorShadowing.threshold` (default `0.5`) is the medium-severity share in `.esaconfig.json`.
-- `errorShadowing.highThreshold` (default `0.7`) is the high-severity share in `.esaconfig.json`.
-- `errorShadowing.minNamedNodes` (default `8`) avoids reporting tiny wrappers whose ratio is not meaningful.
+Thresholds belong in `.esaconfig.json`:
 
-The editor and CLI share the three detail values through `.esaconfig.json`. An explicitly configured VS Code setting such as `energyStateAnalyzer.errorShadowing.threshold` overrides the file for that workspace; an unmodified VS Code default does not. See [Configuration](../configuration.md) for the complete schema and precedence.
+```json
+{
+  "errorShadowing": {
+    "protectedScope": { "threshold": 0.5, "highThreshold": 0.7, "minItems": 8 },
+    "recovery": { "threshold": 0.5, "highThreshold": 0.7, "minItems": 5 },
+    "recoveryBlock": { "maxLines": 20 }
+  }
+}
+```
+
+`energyStateAnalyzer.errorShadowing.enabled` is the VS Code family switch. The individual `energyStateAnalyzer.recoveryDominance.enabled` and `energyStateAnalyzer.oversizedRecoveryBlock.enabled` switches both default to `true`. The matching protected-scope and recovery thresholds live under `energyStateAnalyzer.errorShadowing.protectedScope.*` and `energyStateAnalyzer.errorShadowing.recovery.*`; this replaces the former `threshold`, `highThreshold`, and `minNamedNodes` settings.
+
+## Guidance
+
+Keep the protected region focused on operations whose failures the adjacent handlers can actually recover from. In Python, an `else` clause can keep successful continuation work outside the protected clause. In every language, preserve a deliberate broad boundary when the recovery policy genuinely applies to the whole unit of work; ESA013 is a review prompt, not proof that extraction is required.
 
 ## Known limitations
 
-This is syntax-only analysis. It does not know whether a `catch` is reachable, whether a helper can throw, or whether a `finally` arm is operationally essential. It measures named syntax nodes rather than language-specific statements so that the same approximation works across Python, TypeScript, F#, Kotlin, and C++.
-
-As a result, deeply nested expressions and declarations count toward the share, while punctuation and other unnamed grammar tokens do not. Treat a finding as a prompt to examine responsibility boundaries, not proof that every `try` block should be split.
+These are syntax-based review prompts. They cannot determine which operations throw, whether a handler is reachable, or whether cleanup is operationally essential. Logical-share checks measure direct work items, while the recovery-block limit intentionally measures source lines.

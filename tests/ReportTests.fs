@@ -70,7 +70,7 @@ let tests =
                       |> renderMarkdownReport
 
                   assertThat (markdown.Contains("| a.py | 9 | 1 | 0 | 0 |")) isTrue
-                  assertThat (markdown.Contains("1 clean, 1 with violations")) isTrue
+                  assertThat (markdown.Contains("1 with no findings, 1 with findings")) isTrue
           )
           test (
               "JSON report retains actionable finding locations and messages",
@@ -115,26 +115,32 @@ let tests =
                         LogicalControlFlow
                         OpaqueBoolean
                         ErrorShadowing
-                        Suppression ]
+                        Suppression
+                        ParseDontValidate
+                        RecoveryDominance
+                        OversizedRecoveryBlock ]
                       |> List.map violationRuleId
 
                   assertThat
                       ids
                       (isEqualTo
-                          [ "ESA-001"
-                            "ESA-002"
-                            "ESA-003"
-                            "ESA-004"
-                            "ESA-005"
-                            "ESA-006"
-                            "ESA-007"
-                            "ESA-008"
-                            "ESA-009"
-                            "ESA-010"
-                            "ESA-011"
-                            "ESA-012"
-                            "ESA-013"
-                            "ESA-014" ])
+                          [ "ESA001"
+                            "ESA002"
+                            "ESA003"
+                            "ESA004"
+                            "ESA005"
+                            "ESA006"
+                            "ESA007"
+                            "ESA008"
+                            "ESA009"
+                            "ESA010"
+                            "ESA011"
+                            "ESA012"
+                            "ESA013"
+                            "ESA014"
+                            "ESA015"
+                            "ESA016"
+                            "ESA017" ])
 
                   assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
           )
@@ -155,7 +161,10 @@ let tests =
                         LogicalControlFlow, "logical-operator-control-flow.md"
                         OpaqueBoolean, "opaque-boolean-literal.md"
                         ErrorShadowing, "error-shadowing.md"
-                        Suppression, "suppression.md" ]
+                        RecoveryDominance, "recovery-dominance.md"
+                        OversizedRecoveryBlock, "oversized-recovery-block.md"
+                        Suppression, "suppression.md"
+                        ParseDontValidate, "parse-dont-validate.md" ]
 
                   documentation
                   |> List.iter (fun (violationType, document) ->
@@ -178,8 +187,8 @@ let tests =
                       |> Energy.CliNode.stringify
 
                   assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
-                  assertThat (sarif.Contains("\"ruleId\": \"ESA-006\"")) isTrue
-                  assertThat (sarif.Contains("\"id\": \"ESA-006\"")) isTrue
+                  assertThat (sarif.Contains("\"ruleId\": \"ESA006\"")) isTrue
+                  assertThat (sarif.Contains("\"id\": \"ESA006\"")) isTrue
 
                   assertThat
                       (sarif.Contains(
@@ -190,6 +199,29 @@ let tests =
                   assertThat (sarif.Contains("\"startLine\": 6")) isTrue
                   assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
                   assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue
+          )
+          test (
+              "error-boundary rules retain independent CLI and SARIF identities",
+              fun _ ->
+                  let findings =
+                      [ violation Medium ErrorShadowing "Broad protected scope"
+                        violation High RecoveryDominance "Recovery dominance"
+                        violation Medium OversizedRecoveryBlock "Oversized recovery block" ]
+
+                  let results =
+                      [ { FilePath = "recovery.py"
+                          Violations = findings } ]
+
+                  let sarif =
+                      results |> Energy.Core.ReportSarif.renderSarif |> Energy.CliNode.stringify
+
+                  let json = results |> Energy.CliModes.summaryJson |> Energy.CliNode.stringify
+
+                  for kind in [ ErrorShadowing; RecoveryDominance; OversizedRecoveryBlock ] do
+                      assertThat (sarif.Contains(violationRuleId kind)) isTrue
+                      assertThat (sarif.Contains(violationDisplayName kind)) isTrue
+                      assertThat (sarif.Contains(violationHelpUri kind)) isTrue
+                      assertThat (json.Contains(violationTypeName kind)) isTrue
           )
           test (
               "diff identifies every status and renders deltas",
@@ -227,6 +259,7 @@ let tests =
                             { FilePath = "clean.py"
                               Violations = [] } ]
 
+                  assertThat (report.Contains("4 files scanned** — 1 with no findings, 3 flagged")) isTrue
                   assertThat (report.Contains("## severe.py — Critical (score 9.1)")) isTrue
                   assertThat (report.Contains("## pattern.py — High (score 7.5)")) isTrue
 

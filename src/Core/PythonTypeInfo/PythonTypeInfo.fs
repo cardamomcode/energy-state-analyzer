@@ -2,8 +2,8 @@ module Energy.Core.PythonTypeInfo
 
 open Energy.Core.TreeSitter
 
-// Python-only type-information scaffolding. It is intentionally independent of VS Code and is
-// logged by the extension without affecting detector output.
+/// Python-only type-information scaffolding. It is intentionally independent of VS Code and is
+/// logged by the extension without affecting detector output.
 
 type ParameterTypeInfo =
     { Name: string

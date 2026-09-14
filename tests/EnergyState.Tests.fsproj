@@ -12,9 +12,12 @@
     <Compile Include="TestUtils.fs" />
     <Compile Include="ConfigTests.fs" />
     <Compile Include="CPlusPlusTests.fs" />
+    <Compile Include="CSharpTests.fs" />
     <Compile Include="NestingTests.fs" />
     <Compile Include="CyclomaticTests.fs" />
     <Compile Include="CognitiveTests.fs" />
+    <Compile Include="CognitiveRuleCases.fs" />
+    <Compile Include="CognitiveRuleTests.fs" />
     <Compile Include="CoherenceTests.fs" />
     <Compile Include="MagicNumberTests.fs" />
     <Compile Include="MagicStringTests.fs" />
@@ -24,8 +27,11 @@
     <Compile Include="OpaqueBooleanTests.fs" />
     <Compile Include="ParameterCountTests.fs" />
     <Compile Include="PrimitiveObsessionTests.fs" />
+    <Compile Include="ParseDontValidateTests.fs" />
     <Compile Include="ErrorShadowingTests.fs" />
+    <Compile Include="RecoveryRuleTests.fs" />
     <Compile Include="SuppressionsTests.fs" />
+    <Compile Include="DetectorFixtureMatrixTests.fs" />
     <Compile Include="ReportTests.fs" />
     <Compile Include="ExtensionPresentationTests.fs" />
     <Compile Include="Main.fs" />

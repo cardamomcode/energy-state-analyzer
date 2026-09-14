@@ -1,15 +1,15 @@
 module Energy.Core.Position
 
-// Offset-to-line/column conversion.
-//
-// decision: host-independent — it reads nothing but the source string, so the same lookup drives
-// detectors inside the VS Code extension and in the headless CLI, which has no
-// vscode.TextDocument to call positionAt on. It binary-searches precomputed line-start offsets
-// rather than delegating to a host API.
-//
-// NOTE on naming: this `Position` ({ Line; Column }) is deliberately distinct from
-// TreeSitter.SourcePosition ({ Row; Column }), the raw node source position — two different
-// concepts that would otherwise collide when a detector opens both modules.
+/// Offset-to-line/column conversion.
+///
+/// decision: host-independent — it reads nothing but the source string, so the same lookup drives
+/// detectors inside the VS Code extension and in the headless CLI, which has no
+/// vscode.TextDocument to call positionAt on. It binary-searches precomputed line-start offsets
+/// rather than delegating to a host API.
+///
+/// NOTE on naming: this `Position` ({ Line; Column }) is deliberately distinct from
+/// TreeSitter.SourcePosition ({ Row; Column }), the raw node source position — two different
+/// concepts that would otherwise collide when a detector opens both modules.
 
 type Position = { Line: int; Column: int }
 

@@ -1,3 +1,4 @@
+// clean — not flagged by cognitive complexity
 function cleanSimpleFunction(x: number): number {
     if (x > 0) {
         return 1;
@@ -5,6 +6,7 @@ function cleanSimpleFunction(x: number): number {
     return 0;
 }
 
+// flagged — cognitive complexity (medium)
 function flaggedComplexFunction(x: number): number {
     if (x > 0) {
         if (x > 1) {
@@ -22,6 +24,7 @@ function flaggedComplexFunction(x: number): number {
     return 0;
 }
 
+// flagged — cognitive complexity (high)
 function flaggedSevereFunction(x: number): number {
     if (x > 0) {
         if (x > 1) {

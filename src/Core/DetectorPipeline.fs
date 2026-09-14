@@ -2,12 +2,14 @@ module Energy.Core.DetectorPipeline
 
 open Energy.Core.Context
 
-// decision: each detector transforms one immutable context, keeping the pipeline's data flow
-// explicit instead of encoding it in continuation handlers.
-// invariant: violations accumulate in reverse order until Analyze reverses them before suppression.
-//
-// A disabled detector is skipped entirely (its stage is a no-op), so enabling or disabling one has
-// no effect on the others — the flags are independent toggles, not a master switch.
+/// Run a detector stage only when its flag is enabled, threading the shared immutable context.
+///
+/// decision: each detector transforms one immutable context, keeping the pipeline's data flow
+/// explicit instead of encoding it in continuation handlers.
+/// invariant: violations accumulate in reverse order until Analyze reverses them before suppression.
+///
+/// A disabled detector is skipped entirely (its stage is a no-op), so enabling or disabling one has
+/// no effect on the others — the flags are independent toggles, not a master switch.
 let private runWhen
     (enabled: bool)
     (stage: AnalysisContext -> AnalysisContext)
@@ -18,6 +20,7 @@ let private runWhen
 let detectorPipeline (ctx: AnalysisContext) : AnalysisContext =
     ctx
     |> runWhen ctx.Options.PrimitiveObsession.Enabled Detectors.PrimitiveObsession.detector.Run
+    |> runWhen ctx.Options.ParseDontValidate.Enabled Detectors.ParseDontValidate.detector.Run
     |> runWhen ctx.Options.OpaqueBoolean.Enabled Detectors.OpaqueBoolean.detector.Run
     |> runWhen ctx.Options.LogicalControlFlow.Enabled Detectors.LogicalControlFlow.detector.Run
     |> runWhen ctx.Options.MatchOpportunity.Enabled Detectors.MatchOpportunity.detector.Run

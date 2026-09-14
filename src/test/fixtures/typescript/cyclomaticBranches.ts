@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 function classify(value: string): number {
     switch (value) {
         case "a":
@@ -9,6 +10,7 @@ function classify(value: string): number {
     }
 }
 
+// clean — not flagged by cyclomatic complexity
 function classifyWithoutFallback(value: string): number {
     switch (value) {
         case "a":

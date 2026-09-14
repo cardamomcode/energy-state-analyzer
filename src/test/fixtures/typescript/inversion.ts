@@ -1,3 +1,4 @@
+// clean — not flagged by inversion
 function cleanEarlyReturn(a: boolean, b: boolean): number {
     if (!a) {
         return 0;
@@ -8,6 +9,7 @@ function cleanEarlyReturn(a: boolean, b: boolean): number {
     return 1;
 }
 
+// flagged — inversion
 function flaggedDominantIf(x: number): number {
     if (x > 0) {
         const a = 1;
@@ -20,6 +22,7 @@ function flaggedDominantIf(x: number): number {
     return 0;
 }
 
+// flagged — inversion
 function flaggedValidationChain(a: boolean, b: boolean, c: boolean): number {
     if (a) {
         if (b) {
@@ -33,6 +36,7 @@ function flaggedValidationChain(a: boolean, b: boolean, c: boolean): number {
 
 // Regression fixture: a for-of loop sibling to a 2-deep nested if should not be mistaken
 // for a validation chain — the for-of loop is unrelated control flow, not another guard step.
+// clean — not flagged by inversion
 function cleanForOfSibling(items: number[]): number {
     if (items.length > 0) {
         if (items[0] > 0) {

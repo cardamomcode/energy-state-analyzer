@@ -6,10 +6,48 @@ open System.Text.RegularExpressions
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// The C++ LanguageAdapter. Grammar node names and shapes below target the official
-// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
-// the artifact. C++ declarators are recursive, so parameter extraction deliberately separates the
-// direct type specifier from the declarator shape instead of assuming a flat `type name` pair.
+let private tryStatementNodeType = NodeType "try_statement"
+let private compoundStatementNodeType = NodeType "compound_statement"
+let private catchClauseNodeType = NodeType "catch_clause"
+
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match
+        children
+        |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
+    with
+    | Some body -> nodeNamedChildren body
+    | None -> children
+
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedBody = nodeNamedChildren protectedBody
+              ProtectedItems = nodeNamedChildren protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
+
+/// The C++ LanguageAdapter. Grammar node names and shapes below target the official
+/// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
+/// the artifact. C++ declarators are recursive, so parameter extraction deliberately separates the
+/// direct type specifier from the declarator shape instead of assuming a flat `type name` pair.
 
 let private typeNodeTypes =
     Set.ofList
@@ -145,9 +183,13 @@ let private baseClassNames (node: Node) : string list =
     | Some clause -> nodeNamedChildren clause |> List.filter isTypeNode |> List.map nodeText
     | None -> []
 
-// decision: tree-sitter-cpp uses number_literal for both integral and floating literals; lexical
-// float markers are sufficient here because the parser has already validated the token. Hexadecimal
-// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
+/// Decide whether a literal can serve as a match/switch case label in C++.
+///
+/// decision: tree-sitter-cpp uses number_literal for both integral and floating literals; lexical
+/// float markers are sufficient here because the parser has already validated the token. Hexadecimal
+/// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
+/// float markers are sufficient here because the parser has already validated the token. Hexadecimal
+/// integers may contain `e`, so only `p` is an exponent marker after a 0x prefix.
 let private isMatchCaseLiteral (node: Node) : bool =
     if nodeType node = NodeType "char_literal" then
         true
@@ -167,6 +209,7 @@ let private isClassDefinition (node: Node) : bool =
     && (nodeChildren node
         |> List.exists (fun child -> nodeType child = NodeType "field_declaration_list"))
 
+/// Map C++ grammar constructs to the shared detector contracts.
 let cPlusPlusLanguageAdapter: LanguageAdapter =
     { Id = "cpp"
       GrammarPath = "grammars/tree-sitter-cpp.wasm"
@@ -190,6 +233,8 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           FloatLiteral = None
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      // C++ has no merged-binding shape: one function_definition is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes =
         [ NodeType "parameter_declaration"
@@ -205,14 +250,15 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           NodeType "conditional_expression"
           NodeType "switch_statement" ]
       CyclomaticBranchCount = switchBranchCount
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_range_loop"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "catch_clause"
-          NodeType "switch_statement" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "for_statement"
+              NodeType "for_range_loop"
+              NodeType "while_statement"
+              NodeType "do_statement"
+              NodeType "catch_clause"
+              NodeType "switch_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -234,13 +280,6 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                     | NodeType "||"
                     | NodeType "or" -> Some Or
                     | _ -> None)
-      EntersNestedScope =
-        fun node ->
-            match nodeType node with
-            | NodeType kind ->
-                kind = "compound_statement"
-                || kind = "for_range_loop"
-                || kind.EndsWith("_statement", StringComparison.Ordinal)
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes =
         [ NodeType "identifier"
@@ -290,6 +329,9 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
       KeywordOnlyBoundaryTypes = []
       DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
       GetEqualityComparisons = equalityComparisons
+      // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
+      // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       GetMembershipComparisons = fun _ -> []
       IsMatchCaseLiteral = isMatchCaseLiteral
       GetElseIfBranches = fun _ -> []
@@ -333,4 +375,15 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                 || nodeType child = NodeType "qualified_identifier")
             |> Option.map nodeText
       GetBaseClassNames = baseClassNames
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "compound_statement" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "throw_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = []
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation = fun _ -> false } }

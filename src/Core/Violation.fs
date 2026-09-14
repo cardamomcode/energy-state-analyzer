@@ -1,11 +1,11 @@
 module Energy.Core.Violation
 
-// Shared violation model for the detector pipeline.
-//
-// decision: discriminated unions replace the string-literal unions of types.ts — the detectors
-// pattern-match on Severity/ViolationType instead of comparing wire strings, which deletes the
-// `as any` casts and makes an unknown type/severity a compile error rather than a runtime miss.
-// The CLI's JSON contract maps these DUs back to the established wire strings.
+/// Shared violation model for the detector pipeline.
+///
+/// decision: discriminated unions replace the string-literal unions of types.ts — the detectors
+/// pattern-match on Severity/ViolationType instead of comparing wire strings, which deletes the
+/// `as any` casts and makes an unknown type/severity a compile error rather than a runtime miss.
+/// The CLI's JSON contract maps these DUs back to the established wire strings.
 
 type Severity =
     | Low
@@ -25,14 +25,18 @@ type ViolationType =
     | MatchOpportunity
     | LogicalControlFlow
     | OpaqueBoolean
-    // Error handling that occupies so much of a function's body it shadows the business logic it
-    // wraps — a separation-of-concerns/cohesion signal, distinct from cyclomatic/cognitive complexity.
+    // Independent exception-boundary breadth, recovery-share, and recovery-body size signals.
     | ErrorShadowing
+    | RecoveryDominance
+    | OversizedRecoveryBlock
     | Suppression
+    | ParseDontValidate
 
-// decision: per-line weighted hotspots (nesting depth for cognitive, decision density for
-// cyclomatic) alongside the flat complexity score — lets callers paint a progressive heatmap
-// across the function body instead of a single flat highlight, so the worst lines stand out.
+/// A single source line's severity weight, used to paint a progressive heatmap across a function body.
+///
+/// decision: per-line weighted hotspots (nesting depth for cognitive, decision density for
+/// cyclomatic) alongside the flat complexity score — lets callers paint a progressive heatmap
+/// across the function body instead of a single flat highlight, so the worst lines stand out.
 type Hotspot = { Line: int; Weight: int }
 
 type EnergyViolation =
@@ -60,32 +64,68 @@ let violationTypeName =
     | MatchOpportunity -> "match-opportunity"
     | LogicalControlFlow -> "logical-control-flow"
     | OpaqueBoolean -> "opaque-boolean"
+    | RecoveryDominance -> "recovery-dominance"
+    | OversizedRecoveryBlock -> "oversized-recovery-block"
     | ErrorShadowing -> "error-shadowing"
+    | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
 
+/// Pascal-case rule name for SARIF's tool.driver.rules[].name, kept distinct from
+/// violationTypeName's kebab-case identifier since that one is a public JSON/esa-ignore contract.
+let violationRuleName =
+    function
+    | Nesting -> "Nesting"
+    | Complexity -> "Complexity"
+    | Cognitive -> "Cognitive"
+    | Naming -> "Naming"
+    | Coherence -> "Coherence"
+    | Magic -> "Magic"
+    | Parameters -> "Parameters"
+    | Inversion -> "Inversion"
+    | PrimitiveObsession -> "PrimitiveObsession"
+    | MatchOpportunity -> "MatchOpportunity"
+    | LogicalControlFlow -> "LogicalControlFlow"
+    | OpaqueBoolean -> "OpaqueBoolean"
+    | ErrorShadowing -> "ErrorShadowing"
+    | RecoveryDominance -> "RecoveryDominance"
+    | OversizedRecoveryBlock -> "OversizedRecoveryBlock"
+    | ParseDontValidate -> "ParseDontValidate"
+    | Suppression -> "Suppression"
+
+/// Display error-boundary rule names while preserving their public wire identities.
+let violationDisplayName kind =
+    match kind with
+    | ErrorShadowing -> "Broad Protected Scope"
+    | RecoveryDominance -> "Recovery Dominance"
+    | OversizedRecoveryBlock -> "Oversized Recovery Block"
+    | _ -> violationTypeName kind
+
 /// Stable, user-facing identifiers for analyzer rules.
-// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
-// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
+/// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
+/// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
 let violationRuleId =
     function
-    | Nesting -> "ESA-001"
-    | Complexity -> "ESA-002"
-    | Cognitive -> "ESA-003"
-    | Naming -> "ESA-004"
-    | Coherence -> "ESA-005"
-    | Magic -> "ESA-006"
-    | Parameters -> "ESA-007"
-    | Inversion -> "ESA-008"
-    | PrimitiveObsession -> "ESA-009"
-    | MatchOpportunity -> "ESA-010"
-    | LogicalControlFlow -> "ESA-011"
-    | OpaqueBoolean -> "ESA-012"
-    | ErrorShadowing -> "ESA-013"
-    | Suppression -> "ESA-014"
+    | Nesting -> "ESA001"
+    | Complexity -> "ESA002"
+    | Cognitive -> "ESA003"
+    | Naming -> "ESA004"
+    | Coherence -> "ESA005"
+    | Magic -> "ESA006"
+    | Parameters -> "ESA007"
+    | Inversion -> "ESA008"
+    | PrimitiveObsession -> "ESA009"
+    | MatchOpportunity -> "ESA010"
+    | LogicalControlFlow -> "ESA011"
+    | OpaqueBoolean -> "ESA012"
+    | ErrorShadowing -> "ESA013"
+    | Suppression -> "ESA014"
+    | ParseDontValidate -> "ESA015"
+    | RecoveryDominance -> "ESA016"
+    | OversizedRecoveryBlock -> "ESA017"
 
 /// Canonical documentation for each user-facing analyzer rule.
-// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
-// renderer change cannot silently send users to the generic detector index.
+/// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
+/// renderer change cannot silently send users to the generic detector index.
 let violationHelpUri =
     function
     | Nesting -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/excessive-nesting.md"
@@ -108,8 +148,14 @@ let violationHelpUri =
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/logical-operator-control-flow.md"
     | OpaqueBoolean ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/opaque-boolean-literal.md"
+    | RecoveryDominance ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/recovery-dominance.md"
+    | OversizedRecoveryBlock ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/oversized-recovery-block.md"
     | ErrorShadowing ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/error-shadowing.md"
+    | ParseDontValidate ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/parse-dont-validate.md"
     | Suppression -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/suppression.md"
 
 let severityName =

@@ -8,14 +8,14 @@ for versioning.
 
 PR titles must follow the conventional commit format (enforced by CI):
 
-| Prefix    | Version bump | Example                            |
-| --------- | ------------ | ----------------------------------- |
-| `feat:`   | minor        | `feat: add PHP support`             |
-| `fix:`    | patch        | `fix: correct nesting depth count`  |
-| `feat!:`  | major        | `feat!: rename config namespace`    |
-| `chore:`  | patch        | `chore: update dependencies`        |
-| `docs:`   | patch        | `docs: update README`               |
-| `refactor:` | patch      | `refactor: simplify detector walk`  |
+| Prefix      | Version bump | Example                            |
+| ----------- | ------------ | ---------------------------------- |
+| `feat:`     | minor        | `feat: add PHP support`            |
+| `fix:`      | patch        | `fix: correct nesting depth count` |
+| `feat!:`    | major        | `feat!: rename config namespace`   |
+| `chore:`    | patch        | `chore: update dependencies`       |
+| `docs:`     | patch        | `docs: update README`              |
+| `refactor:` | patch        | `refactor: simplify detector walk` |
 
 Other valid prefixes: `test`, `perf`, `ci`, `build`, `style`, `revert`.
 
@@ -26,7 +26,10 @@ Releases are driven entirely by CI — there's nothing to run locally:
 1. Merge PRs to `main` with conventional-commit titles.
 2. On every push to `main`, ShipIt analyzes commits since the last release and
    opens/updates a `chore: release energy-state-analyzer@<version>` PR that bumps
-   `package.json`'s version (via `npm version`) and updates `CHANGELOG.md`.
+   `package.json`'s version (via `npm version`), the `toolVersion` constant in
+   `src/Core/ReportSarif.fs` (via a regex updater), and updates `CHANGELOG.md`.
+   Configure additional updaters in `CHANGELOG.md`'s frontmatter, not by hand-editing
+   version literals.
 3. Merging that PR triggers the release job, which runs `vsce publish` and
    `npm publish` (so the headless CLI is installable via `npx energy-state-analyzer`
    without cloning the repo), then tags the commit and creates a GitHub release.

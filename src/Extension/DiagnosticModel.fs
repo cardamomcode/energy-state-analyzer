@@ -2,8 +2,8 @@ module Energy.Extension.DiagnosticModel
 
 open Energy.Core.Violation
 
-// Pure Problems-panel mapping. VS Code constructors live in Diagnostics.fs, leaving these public
-// semantics directly testable in the normal Fable/Node suite.
+/// Pure Problems-panel mapping. VS Code constructors live in Diagnostics.fs, leaving these public
+/// semantics directly testable in the normal Fable/Node suite.
 
 [<RequireQualifiedAccess>]
 type ProblemSeverity =
@@ -48,8 +48,10 @@ let tagsFor =
     | Cognitive -> [ Deprecated ]
     | _ -> []
 
-// decision: combines same-line findings because VS Code shows one inline problem message per
-// line; grouping keeps a lower-priority finding from disappearing behind the leading one.
+/// Group same-line violations into single Problems-panel entries, ordered by severity.
+///
+/// decision: combines same-line findings because VS Code shows one inline problem message per
+/// line; grouping keeps a lower-priority finding from disappearing behind the leading one.
 let diagnosticSpecs (violations: EnergyViolation list) : DiagnosticSpec list =
     violations
     |> List.groupBy _.Line

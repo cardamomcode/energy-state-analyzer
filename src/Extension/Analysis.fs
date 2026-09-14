@@ -4,7 +4,6 @@ open Fable.Core.JS
 
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
-open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Extension.Configuration
 open Energy.Extension.Vscode.Document
@@ -18,12 +17,12 @@ type LoadedLanguage =
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
 
-// A standalone document has no workspace root from which an .esaignore can be read, so it is
-// intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
+/// A standalone document has no workspace root from which an .esaignore can be read, so it is
+/// intentionally never ignored. includeFixtures is an editor-only override; scans always honor it.
 let isDocumentIgnored (document: obj) =
     match workspaceFolderFor workspace (documentUri document) with
     | null -> false
-    | folder when includeFixtures () -> false
+    | folder when includeFixtures (documentUri document) -> false
     | folder ->
         let rootDir = workspaceFolderUri folder |> uriFsPath
         // decision: fully qualified instead of an `open` — this file sits at the coherence
@@ -31,31 +30,33 @@ let isDocumentIgnored (document: obj) =
         loadIgnorePatterns rootDir
         |> isIgnored (Energy.Core.Paths.Path(documentFileName document)) (Energy.Core.Paths.Path rootDir)
 
-let private parseDocument fileName parser source =
-    try
-        parse parser source |> rootNode |> Ok
-    with error ->
-        Error(ParseFailed(fileName, string<exn> error))
-
+/// Analyze source while keeping native syntax-tree ownership within this synchronous call.
 let analyzeSourceWith thresholds loaded fileName source =
     // decision: presentation consumes the Core result directly. Optional Python type-information
     // logging is not part of analysis, so it must never turn valid findings into an empty editor.
-    parseDocument fileName loaded.Parser source
-    |> Result.map (fun root ->
+    withParsedTree loaded.Parser source (fun root ->
         { Source = source
           Tree = root
           Language = loaded.Adapter
           FileName = fileName }
-        |> analyzeWith thresholds)
+        |> analyzeWith thresholds
+        |> Ok)
 
 let analyzeSource loaded fileName source =
     analyzeSourceWith (readAnalyzeThresholds ()) loaded fileName source
 
+/// Analyze an editor document with the configuration of its own workspace folder.
 let private analyze loaded document =
-    analyzeSource loaded (documentFileName document) (documentText document)
+    analyzeSourceWith
+        (readAnalyzeThresholdsFor (documentUri document))
+        loaded
+        (documentFileName document)
+        (documentText document)
 
-// decision: handles typed boundary failures at the document boundary to retain the extension's
-// existing UX: report the error but clear decorations rather than leave stale findings visible.
+/// Analyze the active document, clearing decorations on a typed boundary failure.
+///
+/// decision: handles typed boundary failures at the document boundary to retain the extension's
+/// existing UX: report the error but clear decorations rather than leave stale findings visible.
 let analyzeDocument loaded document =
     match analyze loaded document with
     | Ok result -> result.Violations

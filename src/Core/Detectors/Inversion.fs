@@ -1,22 +1,26 @@
 module Energy.Core.Detectors.Inversion
 
-
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 
-// decision: these inversion-detection thresholds are detector heuristics, not published or
-// user-tunable metric values, so they stay as named constants at the top of the module rather
-// than in Core.Config, keeping the rationale visible next to the module's other declarations.
-let private maxNestedLevel = 4
+/// Named constants configuring the inversion-detection heuristics.
+///
+/// decision: these inversion-detection thresholds are detector heuristics, not published or
+/// user-tunable metric values, so they stay as named constants at the top of the module rather
+/// than in Core.Config, keeping the rationale visible next to the module's other declarations.
 let private inversionRatioThreshold = 0.5
+
+/// Minimum number of conditional levels that warrants extraction advice.
 let private deepIfDepthThreshold = 3
 
+/// Match an optional grammar node type.
 let private hasType expected node =
     expected |> Option.exists ((=) (nodeType node))
 
+/// Locate a function's explicit block, including Kotlin's function-body wrapper.
 let private findBody (language: LanguageAdapter) (functionNode: Node) =
     let direct =
         nodeChildren functionNode |> List.tryFind (hasType language.NodeTypes.Block)
@@ -29,153 +33,154 @@ let private findBody (language: LanguageAdapter) (functionNode: Node) =
         |> List.collect nodeChildren
         |> List.tryFind (hasType language.NodeTypes.Block)
 
+/// Retain all executable statements, ignoring punctuation and both comment spellings.
 let private functionStatements (language: LanguageAdapter) (body: Node) =
-    nodeChildren body
+    nodeNamedChildren body
     |> List.filter (fun child ->
-        nodeIsNamed child
-        && not (hasType language.NodeTypes.Comment child)
+        not (hasType language.NodeTypes.Comment child)
+        && not (List.contains (nodeType child) [ NodeType "line_comment"; NodeType "block_comment" ])
         && not (System.String.IsNullOrWhiteSpace(nodeText child)))
 
+/// Recognize alternatives even when the grammar represents else as a bare keyword.
 let private hasElse (language: LanguageAdapter) (ifNode: Node) =
-    match language.NodeTypes.ElseClause with
-    | Some _ -> nodeChildren ifNode |> List.exists (hasType language.NodeTypes.ElseClause)
-    | None ->
-        let blocks = nodeChildren ifNode |> List.filter (hasType language.NodeTypes.Block)
+    not (language.GetElseIfBranches ifNode).IsEmpty
+    || (nodeChildren ifNode
+        |> List.exists (fun child -> hasType language.NodeTypes.ElseClause child || nodeType child = NodeType "else"))
 
-        blocks.Length > 1
-        || (nodeChildren ifNode |> List.exists (hasType language.NodeTypes.IfStatement))
+/// Select a terminal conditional whose failure reaches only a return or the function end.
+///
+/// decision: guard advice requires a terminal function-level conditional; ordinary following work
+/// and statements between guard levels are never discarded to manufacture a validation chain.
+let private terminalConditional language body =
+    match functionStatements language body with
+    | [ node ] when hasType language.NodeTypes.IfStatement node -> Some node
+    | [ node; fallback ] when
+        hasType language.NodeTypes.IfStatement node
+        && List.contains (nodeType fallback) [ NodeType "return_statement"; NodeType "return_expression" ]
+        ->
+        Some node
+    | _ -> None
 
-let private nestedValidation (language: LanguageAdapter) (body: Node) =
-    let rec collect current level checks =
-        if level >= maxNestedLevel then
-            checks
-        else
-            let statements =
-                nodeChildren current
-                |> List.filter (fun child -> List.contains (nodeType child) language.NestingControlTypes)
-
-            match statements with
-            | [ ifNode ] when hasType language.NodeTypes.IfStatement ifNode && not (hasElse language ifNode) ->
-                match nodeChildren ifNode |> List.tryFind (hasType language.NodeTypes.Block) with
-                | Some ifBody -> collect ifBody (level + 1) (ifNode :: checks)
-                | None -> ifNode :: checks
-            | _ -> checks
-
-    collect body 0 [] |> List.rev
-
-let private deepestIf (language: LanguageAdapter) (body: Node) =
-    let rec walk node depth =
-        if language.IsFunctionDefinition node then
-            0, None
-        else
-            let ownDepth, ownNode =
-                if hasType language.NodeTypes.IfStatement node then
-                    depth, Some node
-                else
-                    0, None
-
-            let childDepth = if ownNode.IsSome then depth + 1 else depth
-
+/// Count consecutive else-free conditionals without crossing intervening work or control flow.
+let rec private guardChain language node =
+    if hasElse language node then
+        []
+    else
+        let nested =
             nodeChildren node
-            |> List.fold
-                (fun (bestDepth, bestNode) child ->
-                    let candidateDepth, candidateNode = walk child childDepth
+            |> List.tryFind (hasType language.NodeTypes.Block)
+            |> Option.map (functionStatements language)
+            |> Option.defaultValue []
 
-                    if candidateDepth > bestDepth then
-                        candidateDepth, candidateNode
-                    else
-                        bestDepth, bestNode)
-                (ownDepth, ownNode)
+        match nested with
+        | [ child ] when hasType language.NodeTypes.IfStatement child -> node :: guardChain language child
+        | _ -> [ node ]
 
-    nodeChildren body
-    |> List.fold
-        (fun (bestDepth, bestNode) child ->
-            let depth, location = walk child 0
+/// Keep the first deepest location when several branches have the same depth.
+let private deeper first second =
+    if fst second > fst first then second else first
 
-            if depth > bestDepth then
-                depth, location
-            else
-                bestDepth, bestNode)
-        (0, None)
+/// Find conditional depth using the adapters' normalized branch bodies.
+///
+/// invariant: alternatives stay at the same conditional depth; only their bodies add a level.
+/// decision: share cognitive syntax normalization so braces and elif spellings agree across rules.
+let rec private deepestIfNode (language: LanguageAdapter) node depth =
+    let structure = language.GetCognitiveStructure node
 
-let private analyzeFunction (positions: PositionLookup) (language: LanguageAdapter) (functionNode: Node) =
-    match findBody language functionNode with
-    | None -> []
-    | Some body ->
-        let dominant =
-            match functionStatements language body with
-            | first :: _ when hasType language.NodeTypes.IfStatement first ->
-                match nodeChildren first |> List.tryFind (hasType language.NodeTypes.Block) with
-                | Some ifBody when (nodeChildren ifBody).Length > 2 ->
-                    let ratio =
-                        float (nodeEndIndex ifBody - nodeStartIndex ifBody)
-                        / float (nodeEndIndex functionNode - nodeStartIndex functionNode)
+    if language.IsFunctionDefinition node || structure = Some Closure then
+        0, None
+    else
+        let conditional =
+            hasType language.NodeTypes.IfStatement node
+            || (nodeParent node
+                |> Option.exists (fun parent ->
+                    language.GetElseIfBranches parent
+                    |> List.exists (fun branch -> nodeId branch = nodeId node)))
 
-                    if ratio > inversionRatioThreshold then
-                        let position = positions.toPosition (nodeStartIndex first)
+        let own = if conditional then depth + 1, Some node else 0, None
 
-                        [ { Line = position.Line
-                            Column = position.Column
-                            Type = Inversion
-                            Severity = Medium
-                            Message = "Consider inverting this condition and using early return for cleaner flow."
-                            Hotspots = [] } ]
-                    else
-                        []
-                | _ -> []
+        let bodies =
+            match structure with
+            | Some(Flow(Hybrid, nested)) -> nested
+            | Some(Flow(_, nested)) when conditional -> nested
             | _ -> []
 
-        let validations = nestedValidation language body
+        nodeChildren node
+        |> List.map (fun child ->
+            let nested = bodies |> List.exists (fun body -> nodeId body = nodeId child)
+            deepestIfNode language child (if nested then depth + 1 else depth))
+        |> List.fold deeper own
 
-        let validationFinding =
-            match validations with
-            | first :: _ when validations.Length >= 2 ->
-                let position = positions.toPosition (nodeStartIndex first)
+/// Detect a large terminal conditional using executable statement count and source span.
+let private dominantBody language functionNode node =
+    nodeChildren node
+    |> List.tryFind (hasType language.NodeTypes.Block)
+    |> Option.exists (fun body ->
+        let ratio =
+            float (nodeEndIndex body - nodeStartIndex body)
+            / float (nodeEndIndex functionNode - nodeStartIndex functionNode)
 
-                [ { Line = position.Line
-                    Column = position.Column
-                    Type = Inversion
-                    Severity = Medium
-                    Message =
-                      sprintf
-                          "Found %d nested validation checks. Consider using guard clauses with early returns."
-                          validations.Length
-                    Hotspots = [] } ]
-            | _ -> []
+        (functionStatements language body).Length > 2 && ratio > inversionRatioThreshold)
 
-        let depth, location = deepestIf language body
+/// Prefer specific guard advice over a general depth finding for the same function.
+///
+/// decision: emit at most one inversion finding per function so overlapping heuristics do not
+/// multiply its score or repeat competing advice in Problems.
+let private recommendation language functionNode body =
+    let guards =
+        terminalConditional language body
+        |> Option.map (guardChain language)
+        |> Option.defaultValue []
 
-        let deepFinding =
-            match location with
-            | Some node when depth >= deepIfDepthThreshold ->
-                let position = positions.toPosition (nodeStartIndex node)
+    match guards with
+    | first :: _ when guards.Length >= 2 ->
+        Some(
+            first,
+            sprintf
+                "These %d nested conditions keep the main operation indented. Consider guard clauses, preserving the existing return values and fallthrough behavior."
+                guards.Length
+        )
+    | [ first ] when dominantBody language functionNode first ->
+        Some(
+            first,
+            "This condition encloses most of the function. Consider a guard clause to bring the main operation to the top level, preserving the existing return values and fallthrough behavior."
+        )
+    | _ ->
+        let depth, location = deepestIfNode language body 0
 
-                [ { Line = position.Line
-                    Column = position.Column
-                    Type = Inversion
-                    Severity = Medium
-                    Message =
-                      sprintf
-                          "Deep if-nesting (%d levels). Consider inverting conditions or extracting functions."
-                          depth
-                    Hotspots = [] } ]
-            | _ -> []
+        location
+        |> Option.filter (fun _ -> depth >= deepIfDepthThreshold)
+        |> Option.map (fun node ->
+            node,
+            sprintf
+                "These conditions are nested %d levels deep. Consider extracting a named operation to reduce how many conditions readers must track."
+                depth)
 
-        dominant @ validationFinding @ deepFinding
-
+/// Analyze block-based functions and anchor one actionable recommendation to each finding.
 let analyzeInversionOpportunities (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse node =
         let own =
             if ctx.Language.IsFunctionDefinition node then
-                analyzeFunction ctx.Positions ctx.Language node
+                findBody ctx.Language node
+                |> Option.bind (recommendation ctx.Language node)
+                |> Option.map (fun (anchor, message) ->
+                    let position = ctx.Positions.toPosition (nodeStartIndex anchor)
+
+                    { Line = position.Line
+                      Column = position.Column
+                      Type = Inversion
+                      Severity = Medium
+                      Message = message
+                      Hotspots = [] })
+                |> Option.toList
             else
                 []
 
         own @ (nodeChildren node |> List.collect traverse)
 
-    let findings = traverse ctx.Tree
-    addViolations findings ctx
+    addViolations (traverse ctx.Tree) ctx
 
+/// Register the shared inversion detector.
 let detector: Detector =
     { Name = "inversion"
       Run = analyzeInversionOpportunities }

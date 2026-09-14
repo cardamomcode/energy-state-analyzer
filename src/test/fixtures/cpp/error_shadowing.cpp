@@ -1,17 +1,21 @@
+// clean — not flagged by error shadowing
 int compute() {
     return 1;
 }
 
+// clean — not flagged by error shadowing
 int transform(int value) {
     return value + 1;
 }
 
+// clean — not flagged by error shadowing
 int finalize(int value) {
     return value * 2;
 }
 
-// decision: most of this function's named nodes live inside the try/catch region, so error handling
-// shadows the (tiny) unguarded business logic — the error-shadowing detector should flag it High.
+// decision: the protected try body is happy-path work and the small catch arm is recovery, so the
+// error-shadowing detector should stay quiet.
+// clean — not flagged by error shadowing
 int shadowedByError() {
     int result = 0;
     try {
@@ -24,11 +28,13 @@ int shadowedByError() {
     return result;
 }
 
+// clean — not flagged by error shadowing
 int handleValueError(const std::exception& _err) {
     return -1;
 }
 
 // control: no error handling at all, so nothing should be flagged.
+// clean — not flagged by error shadowing
 int cleanPath() {
     int a = compute();
     int b = transform(a);

@@ -1,0 +1,3 @@
+ignore = [
+    "F821" # Ignore undefined names in fixtures (placeholder calls like navToDashboard())
+]

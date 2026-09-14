@@ -1,6 +1,5 @@
 module Energy.Languages.Python
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -13,26 +12,84 @@ open Energy.Core.LanguageAdapter
 // root (or via the null-safe nodeParent accessor), so we read members directly. Deeper navigation
 // still uses the null-safe accessors — nodeParent -> option, nodeChildren -> list.
 
-// decision: shared by ExtractTypedParameter/ExtractReturnType below — both check a node's type
-// against Python's grammar node-type name for a type annotation ('type', wrapping either a plain
-// identifier or a generic_type); factoring it into one binding keeps the literal to a single
-// occurrence (the magic-string detector's own duplicate-string check, when we dogfood on F#).
+/// Name Python's type-annotation node type shared across hooks.
+///
+/// decision: shared by ExtractTypedParameter/ExtractReturnType below — both check a node's type
+/// against Python's grammar node-type name for a type annotation ('type', wrapping either a plain
+/// identifier or a generic_type); factoring it into one binding keeps the literal to a single
+/// occurrence (the magic-string detector's own duplicate-string check, when we dogfood on F#).
 let private typeAnnotationNodeType = NodeType "type"
 
-// decision: shared by IsPositionalCallArgument and GetBaseClassNames below — both check a node's
-// type against Python's grammar node-type name for a call's parenthesized argument list (a function
-// call in the former, a class's base-class list in the latter, since Python's grammar reuses the
-// same node shape for both).
+/// Name Python's argument-list node type shared across hooks.
+///
+/// decision: shared by IsPositionalCallArgument and GetBaseClassNames below — both check a node's
+/// type against Python's grammar node-type name for a call's parenthesized argument list (a function
+/// call in the former, a class's base-class list in the latter, since Python's grammar reuses the
+/// same node shape for both).
 let private argumentListNodeType = NodeType "argument_list"
 
-// decision: shared by IsFormattedOrInterpolatedString and GetBaseClassNames below — both check a
-// node's type against Python's grammar node-type name for a dotted attribute access (`a.b.C`).
+/// Name Python's attribute-access node type shared across hooks.
+///
+/// decision: shared by IsFormattedOrInterpolatedString and GetBaseClassNames below — both check a
+/// node's type against Python's grammar node-type name for a dotted attribute access (`a.b.C`).
 let private attributeNodeType = NodeType "attribute"
 let private identifierNodeType = NodeType "identifier"
 let private typedDefaultParameterNodeType = NodeType "typed_default_parameter"
 let private comparisonOperatorNodeType = NodeType "comparison_operator"
 let private callNodeType = NodeType "call"
 let private andOperatorNodeType = NodeType "and"
+let private tryStatementNodeType = NodeType "try_statement"
+let private exceptClauseNodeType = NodeType "except_clause"
+let private finallyClauseNodeType = NodeType "finally_clause"
+
+/// Recognize a docstring — a bare string-literal statement — so it is discarded like a comment.
+///
+/// decision: a docstring is documentation, not executable work. Without this filter the strict
+/// guard [+ return] shape breaks on a leading docstring and the verdict flips based on docstring
+/// presence (with-docstring clean, without flagged); discarding it anywhere matches the comment
+/// treatment in ValidationSyntax.children.
+let private isDocstring (node: Node) : bool =
+    nodeType node = NodeType "expression_statement"
+    && (match nodeNamedChildren node with
+        | [ s ] -> nodeType s = NodeType "string"
+        | _ -> false)
+
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = NodeType "block") with
+    | Some block -> nodeNamedChildren block
+    | None -> children
+
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        let protectedItems =
+            children
+            |> List.tryFind (fun child -> nodeType child = NodeType "block")
+            |> Option.map nodeNamedChildren
+
+        protectedItems
+        |> Option.map (fun protectedItems ->
+            { Anchor = node
+              ProtectedBody = protectedItems
+              ProtectedItems = protectedItems
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
 
 let private isFirstChild (node: Node) (parent: Node) =
     parent
@@ -60,6 +117,7 @@ let private isFormattedStringParent (node: Node) (parent: Node) =
     | nodeType when nodeType = attributeNodeType -> firstChild && isFormatCall parent
     | _ -> false
 
+/// Map Python grammar constructs to the shared detector contracts.
 let pythonLanguageAdapter: LanguageAdapter =
     { Id = "python"
       GrammarPath = "grammars/tree-sitter-python.wasm"
@@ -83,6 +141,8 @@ let pythonLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float")
           StringLiteral = Some(NodeType "string") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      // Python has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod =
         fun node ->
             nodeParent node
@@ -115,13 +175,14 @@ let pythonLanguageAdapter: LanguageAdapter =
                     |> List.exists (fun caseClause -> nodeText caseClause |> _.Contains("case _"))
 
                 Some(cases.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "elif_clause"
-          NodeType "for_statement"
-          NodeType "while_statement"
-          NodeType "except_clause"
-          NodeType "match_statement" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "elif_clause"
+              NodeType "for_statement"
+              NodeType "while_statement"
+              NodeType "except_clause"
+              NodeType "match_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -137,7 +198,6 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> Option.map (fun c -> if nodeType c = andOperatorNodeType then And else Or)
             else
                 None
-      EntersNestedScope = fun node -> nodeType node = NodeType "block"
       // decision: `else_clause` is shared by if/for/while/try in tree-sitter-python, but only a
       // try's else is a real decision point (mirrors ruff's C901: a non-vacuous try-else adds 1).
       // if/for/while's else already scores 0 via DecisionNodeTypes — this predicate exists to avoid
@@ -198,6 +258,10 @@ let pythonLanguageAdapter: LanguageAdapter =
                       Right = children.[i + 1] })
             else
                 []
+      // Python's match is a `match ... case` statement; its string-case dispatch is already captured by
+      // the equality/membership hooks for the if/elif form this detector models — the match form is a
+      // documented gap shared with TS/Kotlin/C++ (only F#'s `match` gets the dedicated hook).
+      GetMatchStringCases = fun _ -> None
       // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
       // comparison node) and F# has no direct construct; both still accumulate distinct literals across
       // separate equality comparisons via GetEqualityComparisons.
@@ -365,4 +429,15 @@ let pythonLanguageAdapter: LanguageAdapter =
                 |> List.filter (fun c -> nodeType c = identifierNodeType || nodeType c = attributeNodeType)
                 |> List.map nodeText
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "block" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "raise_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = [ "None" ]
+              IsNonExecutable = isDocstring
+              PreservesCheckedInformation = fun _ -> false } }
