@@ -25,6 +25,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # G-Research.FSharp.Analyzers 0.25.0 is built with fsharp-analyzers 0.39.0, so only the
+    # 0.39.0 host loads it (the CLI requires an exact SDK match). Do not adopt another host
+    # version until G-Research ships a rule package built against that SDK.
+    ignore:
+      - dependency-name: "fsharp-analyzers"
+        versions: ["0.38.0", "0.39.1", "0.39.2"]
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
