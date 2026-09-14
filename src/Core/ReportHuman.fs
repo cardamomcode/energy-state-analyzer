@@ -58,13 +58,17 @@ let private riskLabel =
     | HighRisk -> "High"
     | Critical -> "Critical"
 
+/// Explain the complexity burden and the action appropriate to each severity band.
+///
+/// decision: severity descriptions give agents remediation guidance without treating either
+/// complexity metric as proof that code is exhaustively testable or untestable.
 let private riskDescription =
     function
     | NoRisk -> "no violations found"
-    | LowRisk -> "simple, easy to test exhaustively"
-    | MediumRisk -> "getting harder to cover with tests"
-    | HighRisk -> "complex, testing all paths is impractical"
-    | Critical -> "effectively untestable"
+    | LowRisk -> "relatively simple; keep changes small and verify behavior"
+    | MediumRisk -> "becoming harder to understand and test; simplify branching or nesting"
+    | HighRisk -> "complex and difficult to verify; separate responsibilities and test decisions independently"
+    | Critical -> "extremely complex; restructure into smaller, independently understandable and testable units"
 
 let private categoryLabel =
     function
@@ -224,29 +228,31 @@ let private renderFileSection result =
     @ sections
     |> String.concat "\n"
 
+/// Explain the familiar severity bands, remediation guidance, and score calculation.
 let private scoreLegend =
     [ "## Score legend"
       ""
-      "_Risk is reported on a 0.0–10.0 complexity score, sorted into the same None/Low/Medium/High/Critical levels already used elsewhere in this tool._"
+      "_Scores use the familiar [CVSS 0–10 severity bands](https://www.first.org/cvss/v3.1/specification-document#t5) to communicate the seriousness of analyzer findings. These are code complexity and maintainability scores, not security vulnerability scores._"
       ""
-      "| Score | Risk | Roughly | Cyclomatic/cognitive complexity |"
+      "| Score | Severity | Meaning and action | Cyclomatic/cognitive input |"
       "| --- | --- | --- | --- |"
       "| 0.0 | None | No violations found | — |"
-      "| 0.1–3.9 | Low | Simple, easy to test exhaustively | 1–10 |"
-      "| 4.0–6.9 | Medium | Getting harder to cover with tests | 11–20 |"
-      "| 7.0–8.9 | High | Complex, testing all paths is impractical | 21–50 |"
-      "| 9.0–10.0 | Critical | Effectively untestable | 50+ |"
+      "| 0.1–3.9 | Low | Relatively simple; keep changes small and verify behavior | 1–10 |"
+      "| 4.0–6.9 | Medium | Becoming harder to understand and test; simplify branching or nesting | 11–20 |"
+      "| 7.0–8.9 | High | Complex and difficult to verify; separate responsibilities and test decisions independently | 21–50 |"
+      "| 9.0–10.0 | Critical | Extremely complex; restructure into smaller, independently understandable and testable units | 50+ |"
       ""
-      "_Cyclomatic and cognitive complexity numbers are converted to the score using the ranges above. Other detectors flag a pattern rather than a path count, so a file with no complexity violations of its own instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
+      "_Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates reading effort. The report applies the same numeric curve to both as a prioritization heuristic, not evidence that they measure equivalent effort. A file with no complexity violations instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
     |> String.concat "\n"
 
+/// Render findings, severity, and remediation guidance as a human-readable Markdown report.
 let renderHumanReport results =
     let flagged =
         results
         |> List.filter (fun result -> not result.Violations.IsEmpty)
         |> List.sortByDescending (fun result -> fileScore result.Violations)
 
-    let cleanCount = results.Length - flagged.Length
+    let noFindingsCount = results.Length - flagged.Length
 
     let fileScores =
         results |> List.map (fun result -> result.FilePath, fileScore result.Violations)
@@ -289,7 +295,12 @@ let renderHumanReport results =
       ""
       scoreLegend
       ""
-      sprintf "**%d file%s scanned** — %d clean, %d flagged" results.Length filesSuffix cleanCount flagged.Length
+      sprintf
+          "**%d file%s scanned** — %d with no findings, %d flagged"
+          results.Length
+          filesSuffix
+          noFindingsCount
+          flagged.Length
       "" ]
     @ (flagged |> List.collect (fun result -> [ renderFileSection result; "" ]))
     @ [ "## Total evaluation"

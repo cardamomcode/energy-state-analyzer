@@ -1,9 +1,9 @@
 # Integrating with an AI coding agent
 
 The analyzer ships as a CLI that runs headlessly, so an AI coding agent (Claude Code, OpenAI
-Codex, Cursor, Copilot, etc.) can use it to check the code it just wrote and keep refactoring until
-the complexity is clean, or to review a PR before it lands. This document covers the integration
-points that matter to agents: machine-readable output, exit codes for gating loops, shared
+Codex, Cursor, Copilot, etc.) can use it to fix findings in the code it just wrote, verify the
+result, or review a PR before it lands. This document covers the integration points that
+matter to agents: machine-readable output, exit codes for gating loops, shared
 configuration, and a couple of example workflows.
 
 If you are working *in this repository*, see [`AGENTS.md`](../AGENTS.md) for how the analyzer is
@@ -11,31 +11,49 @@ built and run against its own F# source.
 
 ## Why an agent needs it
 
-Language-model editors generate code fast and tend to accumulate complexity: deep nesting, long
-functions, magic numbers, and `if` chains that could be a match. The analyzer turns those patterns
-into concrete, line-numbered findings with remediation guidance, so an agent can close the loop (run after each edit, stop when the exit code is `0`):
+Generated code can contain deep nesting, long functions, magic numbers, and `if` chains that
+could be a match. The analyzer turns those patterns into concrete, line-numbered findings
+with remediation guidance, so an agent can act on them and verify the result:
 
 ```text
-write/edit code  →  run analyzer  →  fix flagged functions  →  re-run until clean
+write/edit code  →  analyze  →  triage findings  →  fix valid findings  →  verify and re-analyze
 ```
 
-It flags *readability and maintainability* risks.
+Review each finding in the context of the code's purpose. A useful refactoring removes
+unnecessary possibilities, preserves domain knowledge, or keeps change local. Extracting a
+function, grouping parameters, or splitting a file helps when the resulting boundary
+represents a coherent responsibility. A lower local score can still leave more scattered
+dependencies or a harder-to-understand abstraction.
+
+Fix valid findings using the detector's remediation guidance. For a legitimate exception,
+preserve the reason and use a supported suppression if project policy permits it; do not
+suppress a finding merely to pass a gate. For a suspected detector error or unsuitable
+threshold, provide a concrete example and seek a detector or configuration correction.
+Verify behavior and re-analyze after each fix. Continue until every finding is fixed or has
+an explicit disposition. If a fix is blocked, report the remaining finding and the blocker;
+do not present the run as complete merely because the exit code is `0`.
+A successful analysis with no findings establishes only that no enabled rule reported a
+pattern under the current configuration and language coverage. It does not establish code
+quality. See [Energy and Entropy](energy-and-entropy.md) for the model behind this review.
+
+The analyzer flags *readability and maintainability* risks.
 See [docs/detectors](detectors/README.md) for what each detector checks.
 
 ## The fast path: single file, JSON, exit code
 
 The simplest integration scans one file and prints violations as JSON to stdout, exiting `1` when
 any medium/high-severity violation is found (`0` otherwise). That exit code lets an agent gate a
-refinement loop without parsing output:
+refinement loop; inspect the report to distinguish findings from analysis failures:
 
 ```bash
 npx energy-state-analyzer path/to/file.py --report json   # or .fs / .fsx / .ts / .kt / .cpp / .cs
-echo $?   # 0 = clean, 1 = blocking violations found
+echo $?   # 0 = no blocking findings; 1 = blocking findings or analysis failure
 ```
 
 Findings live under `files[].violations` in the JSON report. Each finding includes its zero-based `line` and `column`, the violation `type`, its
 `severity`, the detector `message` (which contains a concrete suggested fix), and any `hotspots`.
-The agent reads the line numbers, edits those functions, and re-runs.
+The agent uses the locations and suggested fixes to resolve valid findings, verifies behavior,
+and re-runs. Low-severity findings can remain even when the exit code is `0`.
 
 Override the thresholds inline instead of editing a config file:
 
@@ -82,7 +100,7 @@ for the open workspace.
 ## Sharing thresholds with the agent
 
 Set thresholds and allowlists in an `.esaconfig.json` at your project root so the editor, the CLI,
-and every agent run agree on what "too complex" means. The keys are all optional; an absent key
+and every agent run agree on which patterns need fixing and their severity. The keys are all optional; an absent key
 keeps its default:
 
 ```json
@@ -116,16 +134,16 @@ Comments must occupy their own lines. This is not a full `.gitignore` engine: no
 
 ## Reviewing a PR before it lands
 
-`--base-ref <ref>` compares the working tree against a git ref and reports whether a change made a
-file worse or better, so an agent can summarize the complexity cost of a diff:
+`--base-ref <ref>` compares the working tree against a git ref and reports changes in the
+weighted finding score, so an agent can identify files that need review:
 
 ```bash
 npx energy-state-analyzer --base-ref origin/main --report md
 ```
 
 With no path arguments, changed files are discovered via `git diff --name-only <ref>...HEAD`. Diff
-mode exits `1` only when a changed file *worsens* relative to its base revision, so pre-existing
-debt and new files are reported without blocking the PR. See
+mode exits `1` for a score regression in a changed file relative to its base revision, so
+pre-existing debt and new files are reported without blocking the PR. See
 [docs/cli.md](cli.md#diffing-a-pr-against-a-base-branch).
 
 ## Example workflows
@@ -138,11 +156,14 @@ Use this pseudocode in the agent's orchestration layer:
 repeat:
   run npx energy-state-analyzer src/foo.py --report json
   capture stdout, stderr, and the exit code
-  if the exit code is 0: stop
-  if stdout is not a valid report: surface stderr and stop
-  read findings from files[].violations in stdout
-  edit the flagged functions and save the file
-  if no fix can be made: report the unresolved findings and stop
+  if stdout is not a valid successful report: surface the failure and stop
+  read findings from files[].violations in stdout, including low-severity findings
+  triage each finding: valid issue, legitimate exception, or detector/configuration problem
+  record reasons for exceptions and concrete examples for detector/configuration problems
+  if no valid issues remain: report the dispositions and stop
+  if the remaining fixes are blocked: report unresolved findings and blockers and stop
+  fix a valid issue using its remediation guidance and verify behavior
+  if verification fails: correct or revert the change before continuing
 ```
 
 The CLI performs analysis; the agent supplies the editing step. Exit code `1` can also mean an
@@ -157,8 +178,9 @@ npx energy-state-analyzer src/foo.ts --report json
 ```
 
 The `message` field already contains the suggested fix (e.g. "extract this branch into a guard
-clause"), so the agent can act on it directly. For a whole-repo audit, run scan mode and post the
-`md` report as a summary.
+clause"), so the agent can apply it while preserving return values, side effects, and scope,
+then verify behavior and re-analyze. For a whole-repo audit, run scan mode and post the `md`
+report as a summary.
 
 ### GitHub Actions for PR review
 
@@ -188,8 +210,8 @@ SARIF-consuming analyzer into CI. See [AGENTS.md](../AGENTS.md) (the "F# analyze
 ## Local git hooks
 
 The same exit-code contract gates a commit: the CLI exits `1` on any medium/high violation, so a
-hook that runs it before `git commit` blocks complex code from being committed at all. Two options,
-both run only on staged files:
+hook that runs it before `git commit` blocks commits with those findings or analysis failures.
+Two options, both run only on staged files:
 
 ### pre-commit
 
@@ -244,8 +266,9 @@ npx lint-staged
 ```
 
 Either way the hook passes the staged file paths to the CLI; it exits non-zero on a violation and
-`git commit` is aborted. The analyzer does not rewrite or suppress findings. A developer (or agent) must fix
-the flagged functions, then re-stage and commit.
+`git commit` is aborted. The analyzer does not rewrite or suppress findings. A developer (or
+agent) must fix valid findings, document legitimate exceptions under project policy, and
+resolve analysis failures before re-staging and committing.
 
 ## Notes on coverage
 
@@ -255,4 +278,6 @@ the flagged functions, then re-stage and commit.
   detectors (named declarations and methods are). See the "Known limitations" section of each
   [detector doc](detectors/README.md) and the README's Known Issues.
 - The per-file **score** (`1×low + 4×medium + 9×high`) is a hotspot-spotting heuristic for tracking
-  direction over time, not a certified complexity metric. Severity counts are the authoritative signal.
+  changes in findings over time. Severity communicates the seriousness of the detected
+  readability and maintainability risks; individual messages explain what to fix. The score
+  and counts cover the enabled rules, not every aspect of code quality.

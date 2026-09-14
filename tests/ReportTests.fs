@@ -70,7 +70,7 @@ let tests =
                       |> renderMarkdownReport
 
                   assertThat (markdown.Contains("| a.py | 9 | 1 | 0 | 0 |")) isTrue
-                  assertThat (markdown.Contains("1 clean, 1 with violations")) isTrue
+                  assertThat (markdown.Contains("1 with no findings, 1 with findings")) isTrue
           )
           test (
               "JSON report retains actionable finding locations and messages",
@@ -230,6 +230,7 @@ let tests =
                             { FilePath = "clean.py"
                               Violations = [] } ]
 
+                  assertThat (report.Contains("4 files scanned** — 1 with no findings, 3 flagged")) isTrue
                   assertThat (report.Contains("## severe.py — Critical (score 9.1)")) isTrue
                   assertThat (report.Contains("## pattern.py — High (score 7.5)")) isTrue
 
