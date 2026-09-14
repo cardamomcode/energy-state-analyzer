@@ -4,7 +4,7 @@ Identifies terminal conditionals that may benefit from guard clauses and deep co
 
 ## What it flags
 
-Checked per function, with at most one ESA-008 finding. A guard-chain recommendation takes precedence over a dominant-block recommendation, then general nesting advice:
+Checked per function, with at most one ESA008 finding. A guard-chain recommendation takes precedence over a dominant-block recommendation, then general nesting advice:
 
 1. **Terminal guard chain.** Two or more consecutive, else-free `if` levels at the start of a function. Each outer body contains only the next `if`; the function may end immediately after the outer conditional or have one explicit fallback `return`. Ordinary statements between levels stop the chain, and any other following work prevents guard advice. The message reports the full chain length.
 2. **Dominant terminal if-block.** An else-free first `if` whose body contains more than two executable statements and spans more than half the function's source length, with the same terminal-position requirement. The message suggests bringing the main operation to the top level while preserving return values and fallthrough behavior.

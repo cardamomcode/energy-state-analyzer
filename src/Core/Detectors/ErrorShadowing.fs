@@ -7,7 +7,7 @@ open Energy.Core.Position
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-/// ESA-013 measures two distinct error-boundary smells at each try construct: protected scope that
+/// ESA013 measures two distinct error-boundary smells at each try construct: protected scope that
 /// catches too much of a function, and recovery/cleanup that dominates it. Both are prompts to review
 /// the boundary, not proof that a try block is inherently wrong.
 

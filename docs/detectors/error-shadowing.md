@@ -1,6 +1,6 @@
 # Error Boundary Scope
 
-ESA-013 flags an exception boundary that obscures a function's responsibility. It is a cohesion prompt, not a rule against `try`/`catch`: recovery and cleanup are often the right design.
+ESA013 flags an exception boundary that obscures a function's responsibility. It is a cohesion prompt, not a rule against `try`/`catch`: recovery and cleanup are often the right design.
 
 ## What it flags
 
@@ -9,7 +9,7 @@ Each `try` is evaluated independently against the logical work in its enclosing 
 - **Protected scope** flags a large `try` body. A wide boundary can catch failures from unrelated preparation or follow-up work rather than only the operations it can recover from.
 - **Recovery dominance** flags a `catch`, `except`, or `finally` region that occupies too much of the function. Its policy may deserve its own helper or boundary.
 
-When both modes apply to one boundary, ESA-013 emits one finding with both measurements. Multiple `try` regions receive separate findings at their own locations. Nested functions and nested `try` regions are evaluated independently.
+When both modes apply to one boundary, ESA013 emits one finding with both measurements. Multiple `try` regions receive separate findings at their own locations. Nested functions and nested `try` regions are evaluated independently.
 
 ## Configuration
 
@@ -28,7 +28,7 @@ The matching VS Code settings are `energyStateAnalyzer.errorShadowing.protectedS
 
 ## Guidance
 
-Keep the protected region focused on operations whose failures the adjacent handlers can actually recover from. In Python, an `else` clause can keep successful continuation work outside the protected clause. In every language, preserve a deliberate broad boundary when the recovery policy genuinely applies to the whole unit of work; ESA-013 is a review prompt, not proof that extraction is required.
+Keep the protected region focused on operations whose failures the adjacent handlers can actually recover from. In Python, an `else` clause can keep successful continuation work outside the protected clause. In every language, preserve a deliberate broad boundary when the recovery policy genuinely applies to the whole unit of work; ESA013 is a review prompt, not proof that extraction is required.
 
 ## Known limitations
 

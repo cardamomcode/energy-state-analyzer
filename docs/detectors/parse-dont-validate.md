@@ -1,4 +1,4 @@
-# Parse, don't validate (ESA-015)
+# Parse, don't validate (ESA015)
 
 A check can establish a useful fact and then discard it at the function boundary.
 Returning a plain list after rejecting empty lists leaves every caller responsible

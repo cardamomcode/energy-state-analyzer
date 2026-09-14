@@ -85,8 +85,8 @@ prints the compact table. Both are built for scripts and PR comments. See
 ## The interoperable path: SARIF
 
 SARIF 2.1.0 is the default scan output, so the analyzer drops into existing agent and code-scanning
-tooling without a custom parser. Each result has a stable `ESA-###` rule ID (for example,
-`ESA-006` for magic literals), a one-based source location, a severity mapped to SARIF
+tooling without a custom parser. Each result has a stable `ESA###` rule ID (for example,
+`ESA006` for magic literals), a one-based source location, a severity mapped to SARIF
 `error`/`warning`/`note`, and the detector message with its remediation guidance:
 
 ```bash
