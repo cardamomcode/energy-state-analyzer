@@ -1,6 +1,6 @@
 class EarlyReturns
 {
-// clean — not flagged by inversion
+    // clean — not flagged by inversion
     static int CleanEarlyReturn(bool a, bool b)
     {
         if (!a) return 0;
@@ -11,7 +11,7 @@ class EarlyReturns
 
 class DominantBlock
 {
-// flagged — inversion
+    // flagged — inversion
     static int FlaggedDominantIf(int x)
     {
         if (x > 0)
@@ -32,7 +32,7 @@ class DominantBlock
 
 class ValidationChain
 {
-// flagged — inversion
+    // flagged — inversion
     static int FlaggedValidationChain(bool a, bool b, bool c)
     {
         if (a) { if (b) { if (c) { if (a && b && c) { return 1; } } } }

@@ -1,7 +1,7 @@
 class CleanCommonNumbers
 {
     const int MaxRetries = 5;
-// clean — not flagged by magic number
+    // clean — not flagged by magic number
     static int CleanCommonValues(int x) => x * 1;
 }
 
@@ -13,7 +13,7 @@ class CleanNegativeNumbers
 
 class FlaggedNumbers
 {
-// flagged — magic number
+    // flagged — magic number
     static double FlaggedMagicNumbers(double price)
     {
         double total = price * 1.08;

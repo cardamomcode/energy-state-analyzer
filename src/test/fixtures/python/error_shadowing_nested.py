@@ -1,6 +1,6 @@
 # clean — not flagged by error shadowing
 def outer():
-# clean — not flagged by error shadowing
+    # clean — not flagged by error shadowing
     def shadowed_inner():
         try:
             first_risky_operation()

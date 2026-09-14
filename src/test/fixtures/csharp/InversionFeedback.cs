@@ -1,6 +1,6 @@
 class RequiredFollowupExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static void CleanRequiredFollowup(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -15,7 +15,7 @@ class RequiredFollowupExample
 
 class DominantFollowupExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static void CleanDominantFollowup(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -30,7 +30,7 @@ class DominantFollowupExample
 
 class InterveningWorkExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanInterveningWork(bool a, bool b, bool c, bool d)
     {
         prepare();
@@ -48,7 +48,7 @@ class InterveningWorkExample
 
 class AlternativeBranchExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanAlternativeBranch(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -65,7 +65,7 @@ class AlternativeBranchExample
 
 class FlatAlternativesExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanFlatAlternatives(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -85,7 +85,7 @@ class FlatAlternativesExample
 
 class TwoLevelsExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanTwoLevels(bool a, bool b, bool c, bool d)
     {
         prepare();
@@ -101,7 +101,7 @@ class TwoLevelsExample
 
 class ThreeLevelsExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static int FlaggedThreeLevels(bool a, bool b, bool c, bool d)
     {
         prepare();
@@ -119,7 +119,7 @@ class ThreeLevelsExample
 
 class FourLevelsExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static int FlaggedFourLevels(bool a, bool b, bool c, bool d)
     {
         prepare();
@@ -139,7 +139,7 @@ class FourLevelsExample
 
 class FiveGuardsExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static int FlaggedFiveGuards(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -160,7 +160,7 @@ class FiveGuardsExample
 
 class NestedElseExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static int FlaggedNestedElse(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -181,7 +181,7 @@ class NestedElseExample
 
 class ImplicitFallthroughExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static void FlaggedImplicitFallthrough(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -195,7 +195,7 @@ class ImplicitFallthroughExample
 
 class CommentHeavyBlockExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanCommentHeavyBlock(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -210,7 +210,7 @@ class CommentHeavyBlockExample
 
 class NestedFunctionExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static void CleanNestedFunction(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -228,7 +228,7 @@ class NestedFunctionExample
 
 class AlternativeBodyExample
 {
-// flagged — inversion feedback (medium)
+    // flagged — inversion feedback (medium)
     static int FlaggedAlternativeBody(bool a, bool b, bool c, bool d)
     {
         if (a) {
@@ -245,7 +245,7 @@ class AlternativeBodyExample
 
 class UnbracedElseExample
 {
-// clean — not flagged by inversion feedback
+    // clean — not flagged by inversion feedback
     static int CleanUnbracedElse(bool a, bool b, bool c, bool d)
     {
         if (a) {
