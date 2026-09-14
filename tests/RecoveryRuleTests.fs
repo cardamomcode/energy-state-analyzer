@@ -46,9 +46,9 @@ let tests =
                   toAsync (
                       task {
                           let language = Energy.Languages.FSharp.fSharpLanguageAdapter
-                          let! source, tree = parseFixture language "fsharp/recovery_rules.fs"
+                          let! source, tree = parseFixture language "fsharp/RecoveryRules.fs"
                           assertThat (nodeHasError tree) isFalse
-                          let findings = analyzeFixture source tree language "recovery_rules.fs"
+                          let findings = analyzeFixture source tree language "RecoveryRules.fs"
                           let boundary = hits source findings "taskBoundary" ErrorShadowing
                           assertThat boundary.Length (isEqualTo 1)
                           assertThat (boundary.Head.Message.Contains("8 logical items (80%) of 10")) isTrue
