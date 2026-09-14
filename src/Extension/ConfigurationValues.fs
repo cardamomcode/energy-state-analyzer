@@ -53,7 +53,11 @@ let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) :
                 Enabled = reader.Bool "inversion" "enabled" options.Inversion.Enabled }
         ErrorShadowing =
             { options.ErrorShadowing with
-                Enabled = reader.Bool "errorShadowing" "enabled" options.ErrorShadowing.Enabled }
+                Enabled = reader.Bool "errorShadowing" "enabled" options.ErrorShadowing.Enabled
+                RecoveryDominanceEnabled =
+                    reader.Bool "recoveryDominance" "enabled" options.ErrorShadowing.RecoveryDominanceEnabled
+                OversizedRecoveryBlockEnabled =
+                    reader.Bool "oversizedRecoveryBlock" "enabled" options.ErrorShadowing.OversizedRecoveryBlockEnabled }
         MagicNumber =
             { options.MagicNumber with
                 Enabled = reader.Bool "magicNumber" "enabled" options.MagicNumber.Enabled

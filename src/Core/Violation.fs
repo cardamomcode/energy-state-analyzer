@@ -25,9 +25,10 @@ type ViolationType =
     | MatchOpportunity
     | LogicalControlFlow
     | OpaqueBoolean
-    // An overly broad protected try region or dominating recovery policy — a separation-of-concerns/
-    // cohesion signal, distinct from cyclomatic/cognitive complexity.
+    // Independent exception-boundary breadth, recovery-share, and recovery-body size signals.
     | ErrorShadowing
+    | RecoveryDominance
+    | OversizedRecoveryBlock
     | Suppression
     | ParseDontValidate
 
@@ -63,9 +64,19 @@ let violationTypeName =
     | MatchOpportunity -> "match-opportunity"
     | LogicalControlFlow -> "logical-control-flow"
     | OpaqueBoolean -> "opaque-boolean"
+    | RecoveryDominance -> "recovery-dominance"
+    | OversizedRecoveryBlock -> "oversized-recovery-block"
     | ErrorShadowing -> "error-shadowing"
     | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
+
+/// Display error-boundary rule names while preserving their public wire identities.
+let violationDisplayName kind =
+    match kind with
+    | ErrorShadowing -> "Broad Protected Scope"
+    | RecoveryDominance -> "Recovery Dominance"
+    | OversizedRecoveryBlock -> "Oversized Recovery Block"
+    | _ -> violationTypeName kind
 
 /// Stable, user-facing identifiers for analyzer rules.
 /// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
@@ -84,6 +95,8 @@ let violationRuleId =
     | MatchOpportunity -> "ESA-010"
     | LogicalControlFlow -> "ESA-011"
     | OpaqueBoolean -> "ESA-012"
+    | RecoveryDominance -> "ESA-016"
+    | OversizedRecoveryBlock -> "ESA-017"
     | ErrorShadowing -> "ESA-013"
     | Suppression -> "ESA-014"
     | ParseDontValidate -> "ESA-015"
@@ -113,6 +126,10 @@ let violationHelpUri =
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/logical-operator-control-flow.md"
     | OpaqueBoolean ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/opaque-boolean-literal.md"
+    | RecoveryDominance ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/recovery-dominance.md"
+    | OversizedRecoveryBlock ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/oversized-recovery-block.md"
     | ErrorShadowing ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/error-shadowing.md"
     | ParseDontValidate ->

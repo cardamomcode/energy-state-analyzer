@@ -116,7 +116,9 @@ let tests =
                         OpaqueBoolean
                         ErrorShadowing
                         Suppression
-                        ParseDontValidate ]
+                        ParseDontValidate
+                        RecoveryDominance
+                        OversizedRecoveryBlock ]
                       |> List.map violationRuleId
 
                   assertThat
@@ -136,7 +138,9 @@ let tests =
                             "ESA-012"
                             "ESA-013"
                             "ESA-014"
-                            "ESA-015" ])
+                            "ESA-015"
+                            "ESA-016"
+                            "ESA-017" ])
 
                   assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
           )
@@ -157,6 +161,8 @@ let tests =
                         LogicalControlFlow, "logical-operator-control-flow.md"
                         OpaqueBoolean, "opaque-boolean-literal.md"
                         ErrorShadowing, "error-shadowing.md"
+                        RecoveryDominance, "recovery-dominance.md"
+                        OversizedRecoveryBlock, "oversized-recovery-block.md"
                         Suppression, "suppression.md"
                         ParseDontValidate, "parse-dont-validate.md" ]
 
@@ -193,6 +199,29 @@ let tests =
                   assertThat (sarif.Contains("\"startLine\": 6")) isTrue
                   assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
                   assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue
+          )
+          test (
+              "error-boundary rules retain independent CLI and SARIF identities",
+              fun _ ->
+                  let findings =
+                      [ violation Medium ErrorShadowing "Broad protected scope"
+                        violation High RecoveryDominance "Recovery dominance"
+                        violation Medium OversizedRecoveryBlock "Oversized recovery block" ]
+
+                  let results =
+                      [ { FilePath = "recovery.py"
+                          Violations = findings } ]
+
+                  let sarif =
+                      results |> Energy.Core.ReportSarif.renderSarif |> Energy.CliNode.stringify
+
+                  let json = results |> Energy.CliModes.summaryJson |> Energy.CliNode.stringify
+
+                  for kind in [ ErrorShadowing; RecoveryDominance; OversizedRecoveryBlock ] do
+                      assertThat (sarif.Contains(violationRuleId kind)) isTrue
+                      assertThat (sarif.Contains(violationDisplayName kind)) isTrue
+                      assertThat (sarif.Contains(violationHelpUri kind)) isTrue
+                      assertThat (json.Contains(violationTypeName kind)) isTrue
           )
           test (
               "diff identifies every status and renders deltas",

@@ -353,10 +353,11 @@ let tests =
                         task {
                             let merged =
                                 loadTempConfig
-                                    """{"errorShadowing":{"protectedScope":{"minItems":11},"recovery":{"threshold":0.6}}}"""
+                                    """{"errorShadowing":{"protectedScope":{"minItems":11},"recovery":{"threshold":0.6},"recoveryBlock":{"maxLines":12}}}"""
 
                             assertThat merged.ErrorShadowing.ProtectedScope.MinItems (isEqualTo 11)
                             assertThat merged.ErrorShadowing.ProtectedScope.Threshold (isEqualTo 0.5)
+                            assertThat merged.ErrorShadowing.RecoveryBlock.MaxLines (isEqualTo 12)
                             assertThat merged.ErrorShadowing.Recovery.MinItems (isEqualTo 5)
                             assertThat merged.ErrorShadowing.Recovery.Threshold (isEqualTo 0.6)
                         }

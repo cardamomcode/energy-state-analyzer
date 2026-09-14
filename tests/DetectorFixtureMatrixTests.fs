@@ -366,6 +366,51 @@ let tests =
                         item.Expectations
                         @ expectationsFor item.Language [ StaysClean(FunctionName "cleanUnbracedElse") ] })
 
+    let recoveryRules expectations =
+        commonCases
+            { Python = "recovery_rules.py"
+              TypeScript = "recovery_rules.ts"
+              FSharp = "recovery_rules.fs"
+              Kotlin = "recovery_rules.kt"
+              CPlusPlus = "recovery_rules.cpp"
+              CSharp = "recovery_rules.cs" }
+            expectations
+
+    let broadScope =
+        recoveryRules
+            [ ProducesFinding(FunctionName "broadScope", Some High)
+              StaysClean(FunctionName "twoLineProtected") ]
+
+    let recoveryDominance =
+        recoveryRules
+            [ ProducesFinding(FunctionName "twoLineProtected", Some High)
+              StaysClean(FunctionName "oneLineProtected")
+              ProducesFinding(FunctionName "workBefore", Some Medium)
+              ProducesFinding(FunctionName "workAfter", Some Medium)
+              ProducesFinding(FunctionName "multilineLoop", Some High)
+              StaysClean(FunctionName "commentedTrivial") ]
+
+    let oversizedRecovery =
+        recoveryRules
+            [ StaysClean(FunctionName "atLimit")
+              ProducesFinding(FunctionName "overLimit", Some Medium)
+              StaysClean(FunctionName "commentedLimit")
+              StaysClean(FunctionName "separateHandlers") ]
+        |> List.map (fun item ->
+            let name =
+                if item.Language.Id = "csharp" then
+                    "OversizedCleanup"
+                else
+                    "oversizedCleanup"
+
+            { item with
+                Expectations =
+                    item.Expectations
+                    @ [ if item.Language.Id = "cpp" then
+                            StaysClean(FunctionName name)
+                        else
+                            ProducesFinding(FunctionName name, Some Medium) ] })
+
     let errorShadowing =
         allLanguages
             "python/error_shadowing.py"
@@ -385,7 +430,8 @@ let tests =
                   "Python (recovery-dominated regression)"
                   Python.pythonLanguageAdapter
                   "python/error_shadowing_recovery_heavy.py"
-                  [ ProducesFinding(FunctionName "recoveryDominates", None) ] ]
+                  [ StaysClean(FunctionName "recoveryDominates")
+                    StaysClean(FunctionName "recoveryShadowsRealWork") ] ]
 
     testList (
         "Integration: detector fixture parity matrix",
@@ -406,5 +452,12 @@ let tests =
           yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity
           yield! detectorParityTests "inversion" Inversion inversion
           yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
-          yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing ]
+          yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
+          yield! detectorParityTests "broad protected scope" ErrorShadowing broadScope
+          yield! detectorParityTests "recovery dominance" RecoveryDominance recoveryDominance
+          yield!
+              detectorParityTests
+                  "oversized recovery block (C++ has no finally)"
+                  OversizedRecoveryBlock
+                  oversizedRecovery ]
     )

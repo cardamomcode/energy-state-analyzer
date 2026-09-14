@@ -19,6 +19,7 @@ let rec private bodyItems (node: Node) : Node list =
         | Some body -> bodyItems body
         | None -> children
 
+/// Preserve protected work, combined recovery work, and individual handler or cleanup bodies.
 let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
     if nodeType node <> tryExpressionNodeType then
         None
@@ -29,12 +30,20 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         |> List.tryFind (fun child -> nodeType child = blockNodeType)
         |> Option.map (fun protectedBody ->
             { Anchor = node
-              ProtectedItems = bodyItems protectedBody
+              ProtectedBody = nodeNamedChildren protectedBody
+              ProtectedItems = nodeNamedChildren protectedBody
               RecoveryItems =
                 children
                 |> List.filter (fun child ->
                     nodeType child = catchBlockNodeType || nodeType child = finallyBlockNodeType)
-                |> List.collect bodyItems })
+                |> List.collect bodyItems
+              RecoveryBodies =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchBlockNodeType || nodeType child = finallyBlockNodeType)
+                |> List.map (fun clause ->
+                    { Anchor = clause
+                      Items = bodyItems clause }) })
 
 /// Fix the expected identifier count of an infix expression node.
 ///
