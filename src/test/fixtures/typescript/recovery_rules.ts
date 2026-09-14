@@ -1,3 +1,4 @@
+// flagged — error shadowing (high)
 function broadScope() {
     try {
         work0();
@@ -13,6 +14,7 @@ function broadScope() {
     }
 }
 
+// flagged — recovery dominance (high)
 function twoLineProtected() {
     try {
         work0();
@@ -26,6 +28,7 @@ function twoLineProtected() {
     }
 }
 
+// clean — not flagged by recovery dominance
 function oneLineProtected() {
     try {
         work0();
@@ -38,6 +41,7 @@ function oneLineProtected() {
     }
 }
 
+// flagged — recovery dominance (medium)
 function workBefore() {
     work90();
     try {
@@ -52,6 +56,7 @@ function workBefore() {
     }
 }
 
+// flagged — recovery dominance (medium)
 function workAfter() {
     try {
         work0();
@@ -66,6 +71,7 @@ function workAfter() {
     work90();
 }
 
+// flagged — recovery dominance (high)
 function multilineLoop() {
     try {
         while (ready()) {
@@ -80,6 +86,7 @@ function multilineLoop() {
     }
 }
 
+// clean — not flagged by recovery dominance
 function commentedTrivial() {
     try {
         work0(); // mixed
@@ -99,6 +106,7 @@ function commentedTrivial() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 function atLimit() {
     try {
         work0();
@@ -126,6 +134,7 @@ function atLimit() {
     }
 }
 
+// flagged — oversized recovery block (medium)
 function overLimit() {
     try {
         work0();
@@ -154,6 +163,7 @@ function overLimit() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 function commentedLimit() {
     try {
         work0(); // mixed
@@ -188,6 +198,7 @@ function commentedLimit() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 function separateHandlers() {
     try {
         work0();
@@ -218,6 +229,7 @@ function separateHandlers() {
     }
 }
 
+// flagged — oversized recovery block (medium)
 function oversizedCleanup() {
     try {
         work0();

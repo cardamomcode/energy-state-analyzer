@@ -1,17 +1,21 @@
+# clean — not flagged by error shadowing
 def compute():
     return 1
 
 
+# clean — not flagged by error shadowing
 def transform(value):
     return value + 1
 
 
+# clean — not flagged by error shadowing
 def finalize(value):
     return value * 2
 
 
 # decision: the protected try body is happy-path work and the small except arms are recovery, so the
 # error-shadowing detector should stay quiet.
+# clean — not flagged by error shadowing
 def shadowedByError():
     result = None
     try:
@@ -25,15 +29,18 @@ def shadowedByError():
     return result
 
 
+# clean — not flagged by error shadowing
 def handle_value_error():
     return -1
 
 
+# clean — not flagged by error shadowing
 def handle_key_error():
     return -2
 
 
 # control: no error handling at all, so nothing should be flagged.
+# clean — not flagged by error shadowing
 def cleanPath():
     a = compute()
     b = transform(a)

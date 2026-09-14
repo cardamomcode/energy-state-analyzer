@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 int cleanSimpleFunction(int x) {
     if (x > 0) {
         return 1;
@@ -5,6 +6,7 @@ int cleanSimpleFunction(int x) {
     return 0;
 }
 
+// flagged — cyclomatic complexity (medium)
 int flaggedComplexFunction(std::string status) {
     if (status == "a") return 1;
     else if (status == "b") return 2;
@@ -20,6 +22,7 @@ int flaggedComplexFunction(std::string status) {
     return 0;
 }
 
+// flagged — cyclomatic complexity (high)
 int flaggedSevereFunction(std::string status) {
     if (status == "a") return 1;
     else if (status == "b") return 2;

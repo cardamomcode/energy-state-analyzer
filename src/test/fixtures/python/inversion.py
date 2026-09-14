@@ -1,3 +1,4 @@
+# clean — not flagged by inversion
 def cleanEarlyReturn(a, b):
     if not a:
         return 0
@@ -6,6 +7,7 @@ def cleanEarlyReturn(a, b):
     return a + b
 
 
+# flagged — inversion
 def flaggedDominantIf(x):
     if x > 0:
         a = 1
@@ -18,6 +20,7 @@ def flaggedDominantIf(x):
     return 0
 
 
+# flagged — inversion
 def flaggedValidationChain(a, b, c):
     if a:
         if b:

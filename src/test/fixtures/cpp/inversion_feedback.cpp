@@ -1,3 +1,4 @@
+// clean — not flagged by inversion feedback
 void cleanRequiredFollowup(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) {
@@ -8,6 +9,7 @@ void cleanRequiredFollowup(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 void cleanDominantFollowup(bool a, bool b, bool c, bool d) {
     if (a) {
         recordAttempt();
@@ -18,6 +20,7 @@ void cleanDominantFollowup(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanInterveningWork(bool a, bool b, bool c, bool d) {
     prepare();
     if (a) {
@@ -31,6 +34,7 @@ int cleanInterveningWork(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanAlternativeBranch(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) {
@@ -43,6 +47,7 @@ int cleanAlternativeBranch(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanFlatAlternatives(bool a, bool b, bool c, bool d) {
     if (a) {
         return 1;
@@ -58,6 +63,7 @@ int cleanFlatAlternatives(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanTwoLevels(bool a, bool b, bool c, bool d) {
     prepare();
     if (a) {
@@ -69,6 +75,7 @@ int cleanTwoLevels(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 int flaggedThreeLevels(bool a, bool b, bool c, bool d) {
     prepare();
     if (a) {
@@ -82,6 +89,7 @@ int flaggedThreeLevels(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 int flaggedFourLevels(bool a, bool b, bool c, bool d) {
     prepare();
     if (a) {
@@ -97,6 +105,7 @@ int flaggedFourLevels(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 int flaggedFiveGuards(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) {
@@ -113,6 +122,7 @@ int flaggedFiveGuards(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 int flaggedNestedElse(bool a, bool b, bool c, bool d) {
     if (a) {
         return 1;
@@ -129,6 +139,7 @@ int flaggedNestedElse(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 void flaggedImplicitFallthrough(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) {
@@ -138,6 +149,7 @@ void flaggedImplicitFallthrough(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanCommentHeavyBlock(bool a, bool b, bool c, bool d) {
     if (a) {
         /* This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block.  */
@@ -148,6 +160,7 @@ int cleanCommentHeavyBlock(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 void cleanNestedFunction(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) {
@@ -161,6 +174,7 @@ void cleanNestedFunction(bool a, bool b, bool c, bool d) {
 }
 
 
+// flagged — inversion feedback (medium)
 int flaggedAlternativeBody(bool a, bool b, bool c, bool d) {
     if (a) {
         return 1;
@@ -173,6 +187,7 @@ int flaggedAlternativeBody(bool a, bool b, bool c, bool d) {
 }
 
 
+// clean — not flagged by inversion feedback
 int cleanUnbracedElse(bool a, bool b, bool c, bool d) {
     if (a) {
         if (b) { return 1; }

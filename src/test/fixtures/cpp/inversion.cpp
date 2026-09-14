@@ -1,3 +1,4 @@
+// clean — not flagged by inversion
 int cleanEarlyReturn(bool a, bool b) {
     if (!a) {
         return 0;
@@ -8,6 +9,7 @@ int cleanEarlyReturn(bool a, bool b) {
     return 1;
 }
 
+// flagged — inversion
 int flaggedDominantIf(int x) {
     if (x > 0) {
         int a = 1;
@@ -20,6 +22,7 @@ int flaggedDominantIf(int x) {
     return 0;
 }
 
+// flagged — inversion
 int flaggedValidationChain(bool a, bool b, bool c) {
     if (a) {
         if (b) {
@@ -31,6 +34,7 @@ int flaggedValidationChain(bool a, bool b, bool c) {
     return 0;
 }
 
+// clean — not flagged by inversion
 int cleanRangeLoopSibling(std::vector<int> items) {
     if (!items.empty()) {
         if (items[0] > 0) {

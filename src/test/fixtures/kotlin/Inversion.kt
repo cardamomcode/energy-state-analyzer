@@ -1,3 +1,4 @@
+// clean — not flagged by inversion
 fun cleanEarlyReturn(a: Boolean, b: Boolean): Int {
     if (!a) {
         return 0
@@ -8,6 +9,7 @@ fun cleanEarlyReturn(a: Boolean, b: Boolean): Int {
     return 1
 }
 
+// flagged — inversion
 fun flaggedDominantIf(x: Int): Int {
     if (x > 0) {
         val a = 1
@@ -20,6 +22,7 @@ fun flaggedDominantIf(x: Int): Int {
     return 0
 }
 
+// flagged — inversion
 fun flaggedValidationChain(a: Boolean, b: Boolean, c: Boolean): Int {
     if (a) {
         if (b) {
@@ -35,6 +38,7 @@ fun flaggedValidationChain(a: Boolean, b: Boolean, c: Boolean): Int {
 // first step of a guard-clause validation chain even though it nests two more levels of
 // else-less ifs below it — Kotlin's else has no else_clause wrapper node, so detecting this
 // relies on inversion.ts's fallback hasElse check (a second block child, or a nested if child).
+// clean (intended) — not a validation chain; Kotlin else lacks an else_clause wrapper, so inversion may flag the nested if/else here
 fun cleanIfElseNotValidationChain(a: Boolean, b: Boolean, c: Boolean): Int {
     if (a) {
         if (b) {
@@ -48,6 +52,7 @@ fun cleanIfElseNotValidationChain(a: Boolean, b: Boolean, c: Boolean): Int {
     return 0
 }
 
+// clean — not flagged by inversion
 fun cleanForOfSibling(items: IntArray): Int {
     if (items.size > 0) {
         if (items[0] > 0) {

@@ -1,3 +1,4 @@
+# clean — not flagged by error shadowing
 def recoveryDominates():
     try:
         return perform_business_operation()
@@ -23,6 +24,7 @@ def recoveryDominates():
         return fallback_recovery(error)
 
 
+# clean — not flagged by error shadowing
 def recoveryShadowsRealWork():
     prepare_workspace()
     try:
@@ -49,6 +51,7 @@ def recoveryShadowsRealWork():
         return fallback_recovery(error)
 
 
+# flagged — error shadowing (high)
 def broadBoundary():
     try:
         step_one()
@@ -65,6 +68,7 @@ def broadBoundary():
         recover()
 
 
+# flagged — recovery dominance (medium)
 def combinedBoundary():
     prepare_batch()
     try:
@@ -88,6 +92,7 @@ def combinedBoundary():
         recover_nine(error)
 
 
+# clean — not flagged by error shadowing
 def separateBoundaries():
     try:
         first_one()

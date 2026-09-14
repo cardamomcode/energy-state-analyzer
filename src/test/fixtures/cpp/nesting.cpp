@@ -1,3 +1,4 @@
+// clean — not flagged by nesting
 int cleanShallowNesting(int x) {
     if (x > 0) {
         if (x > 10) {
@@ -7,6 +8,7 @@ int cleanShallowNesting(int x) {
     return 0;
 }
 
+// flagged — nesting (medium)
 int flaggedDeepNesting(int x) {
     if (x > 0) {
         if (x > 1) {
@@ -22,6 +24,7 @@ int flaggedDeepNesting(int x) {
     return 0;
 }
 
+// flagged — nesting (high)
 int flaggedSevereNesting(int x) {
     if (x > 0) {
         if (x > 1) {
@@ -41,6 +44,7 @@ int flaggedSevereNesting(int x) {
     return 0;
 }
 
+// flagged — nesting
 int flaggedTryNesting(int x) {
     try {
         try {

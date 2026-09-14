@@ -2,6 +2,7 @@ module RecoveryRules
 
 open System.Threading.Tasks
 
+// flagged — error shadowing (high)
 let broadScope () =
     try
         work0 ()
@@ -15,6 +16,7 @@ let broadScope () =
     with Failure0 ->
         work10 ()
 
+// flagged — recovery dominance (high)
 let twoLineProtected () =
     try
         work0 ()
@@ -36,6 +38,7 @@ let twoLineProtected () =
         work10 ()
         work11 ()
 
+// clean — not flagged by recovery dominance
 let oneLineProtected () =
     try
         work0 ()
@@ -56,6 +59,7 @@ let oneLineProtected () =
         work10 ()
         work11 ()
 
+// flagged — recovery dominance (medium)
 let workBefore () =
     work90 ()
 
@@ -79,6 +83,7 @@ let workBefore () =
         work10 ()
         work11 ()
 
+// flagged — recovery dominance (medium)
 let workAfter () =
     try
         work0 ()
@@ -102,6 +107,7 @@ let workAfter () =
 
     work90 ()
 
+// flagged — recovery dominance (high)
 let multilineLoop () =
     try
         for item in items do
@@ -123,6 +129,7 @@ let multilineLoop () =
         work10 ()
         work11 ()
 
+// clean — not flagged by recovery dominance
 let commentedTrivial () =
     try
         work0 () // mixed
@@ -170,6 +177,7 @@ let commentedTrivial () =
         *)
         work11 ()
 
+// clean — not flagged by oversized recovery block
 let atLimit () =
     try
         work0 ()
@@ -195,6 +203,7 @@ let atLimit () =
         work28 ()
         work29 ()
 
+// flagged — oversized recovery block (medium)
 let overLimit () =
     try
         work0 ()
@@ -221,6 +230,7 @@ let overLimit () =
         work29 ()
         work30 ()
 
+// clean — not flagged by oversized recovery block
 let commentedLimit () =
     try
         work0 () // mixed
@@ -253,6 +263,7 @@ let commentedLimit () =
         work28 ()
         work29 ()
 
+// clean — not flagged by oversized recovery block
 let separateHandlers () =
     try
         work0 ()
@@ -282,6 +293,7 @@ let separateHandlers () =
         work19 ()
         work20 ()
 
+// flagged — oversized recovery block (medium)
 let oversizedCleanup () =
     try
         work0 ()
@@ -308,6 +320,7 @@ let oversizedCleanup () =
         work29 ()
         work30 ()
 
+// flagged — recovery dominance (high)
 let multilineBinding () =
     try
         let value = work0 ()
@@ -319,6 +332,7 @@ let multilineBinding () =
     | FourthFailure -> recover ()
     | FifthFailure -> recover ()
 
+// flagged — error shadowing (high)
 let taskBoundary context =
     task {
         do! prepare ()

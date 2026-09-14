@@ -1,3 +1,4 @@
+// clean — not flagged by inversion feedback
 fun cleanRequiredFollowup(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit {
     if (a) {
         if (b) {
@@ -8,6 +9,7 @@ fun cleanRequiredFollowup(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanDominantFollowup(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit {
     if (a) {
         recordAttempt()
@@ -18,6 +20,7 @@ fun cleanDominantFollowup(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanInterveningWork(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     prepare()
     if (a) {
@@ -31,6 +34,7 @@ fun cleanInterveningWork(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanAlternativeBranch(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         if (b) {
@@ -43,6 +47,7 @@ fun cleanAlternativeBranch(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanFlatAlternatives(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         return 1
@@ -58,6 +63,7 @@ fun cleanFlatAlternatives(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanTwoLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     prepare()
     if (a) {
@@ -69,6 +75,7 @@ fun cleanTwoLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedThreeLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     prepare()
     if (a) {
@@ -82,6 +89,7 @@ fun flaggedThreeLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedFourLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     prepare()
     if (a) {
@@ -97,6 +105,7 @@ fun flaggedFourLevels(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedFiveGuards(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         if (b) {
@@ -113,6 +122,7 @@ fun flaggedFiveGuards(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedNestedElse(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         return 1
@@ -129,6 +139,7 @@ fun flaggedNestedElse(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedImplicitFallthrough(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit {
     if (a) {
         if (b) {
@@ -138,6 +149,7 @@ fun flaggedImplicitFallthrough(a: Boolean, b: Boolean, c: Boolean, d: Boolean): 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanCommentHeavyBlock(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         /* This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block.  */
@@ -148,6 +160,7 @@ fun cleanCommentHeavyBlock(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanNestedFunction(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit {
     if (a) {
         if (b) {
@@ -161,6 +174,7 @@ fun cleanNestedFunction(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Unit {
 }
 
 
+// flagged — inversion feedback (medium)
 fun flaggedAlternativeBody(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         return 1
@@ -173,6 +187,7 @@ fun flaggedAlternativeBody(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int 
 }
 
 
+// clean — not flagged by inversion feedback
 fun cleanUnbracedElse(a: Boolean, b: Boolean, c: Boolean, d: Boolean): Int {
     if (a) {
         if (b) { return 1 }

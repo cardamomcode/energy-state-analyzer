@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 int cleanSimpleFunction(int x) {
     if (x > 0) {
         return 1;
@@ -5,6 +6,7 @@ int cleanSimpleFunction(int x) {
     return 0;
 }
 
+// flagged — cyclomatic complexity (medium)
 int flaggedComplexFunction(int x) {
     if (x > 0)
         if (x > 1)
@@ -16,6 +18,7 @@ int flaggedComplexFunction(int x) {
     return 0;
 }
 
+// flagged — cyclomatic complexity (high)
 int flaggedSevereFunction(int x) {
     if (x > 0) {
         if (x > 1) {

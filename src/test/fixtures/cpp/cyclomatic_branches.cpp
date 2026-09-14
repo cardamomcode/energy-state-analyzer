@@ -1,3 +1,4 @@
+// clean — not flagged by cyclomatic complexity
 int classify(std::string value) {
     switch (value.size()) {
         case 1:
@@ -9,6 +10,7 @@ int classify(std::string value) {
     }
 }
 
+// clean — not flagged by cyclomatic complexity
 int classifyWithoutFallback(std::string value) {
     switch (value.size()) {
         case 1:
