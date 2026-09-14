@@ -6,14 +6,16 @@ open Fable.Core
 
 open Energy.Core.Violation
 
-// decision: these describe the accepted hex color form (six hex digits, parsed base 16); they are
-// properties of that fixed format rather than tunable thresholds, so they stay as named constants
-// at the top of the module instead of being hidden next to their use sites.
+/// Fix the accepted hex-color format as named constants rather than tunable thresholds.
+///
+/// decision: these describe the accepted hex color form (six hex digits, parsed base 16); they are
+/// properties of that fixed format rather than tunable thresholds, so they stay as named constants
+/// at the top of the module instead of being hidden next to their use sites.
 let private hexColorLength = 6
 let private hexRadix = 16
 
-// Pure editor-decoration calculations. They intentionally know nothing about VS Code objects so
-// Node-based Scriptorium tests can preserve presentation behavior without an extension host.
+/// Pure editor-decoration calculations. They intentionally know nothing about VS Code objects so
+/// Node-based Scriptorium tests can preserve presentation behavior without an extension host.
 
 type RangeSpec =
     { StartLine: int
@@ -21,24 +23,26 @@ type RangeSpec =
       EndLine: int
       EndColumn: int }
 
-// The number of lines in a document.
-//
-// decision: erased to its backing int (the Core.TreeSitter.NodeType pattern) so `heatRanges`'
-// line/band counts keep their prior runtime shape while F# can no longer transpose them.
-// invariant: every `LineCount` value has exactly its wrapped int as its JavaScript representation.
+/// The number of lines in a document.
+///
+/// decision: erased to its backing int (the Core.TreeSitter.NodeType pattern) so `heatRanges`'
+/// line/band counts keep their prior runtime shape while F# can no longer transpose them.
+/// invariant: every `LineCount` value has exactly its wrapped int as its JavaScript representation.
 [<Erase>]
 type LineCount = LineCount of int
 
-// The number of complexity-heat bands to render.
-//
-// invariant: every `BandCount` value has exactly its wrapped int as its JavaScript representation.
+/// The number of complexity-heat bands to render.
+///
+/// invariant: every `BandCount` value has exactly its wrapped int as its JavaScript representation.
 [<Erase>]
 type BandCount = BandCount of int
 
 let private elementHighlightWidth = 15
 
-// decision: rejects malformed user colors and uses the documented default, so a workspace setting
-// cannot make extension activation or decoration refresh fail.
+/// Convert a hex color to rgba, falling back to the documented default on malformed input.
+///
+/// decision: rejects malformed user colors and uses the documented default, so a workspace setting
+/// cannot make extension activation or decoration refresh fail.
 let hexToRgba (value: string) (alpha: float) (fallback: string) =
     let digits =
         let normalized = value.Trim().TrimStart('#')
@@ -60,8 +64,10 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
 let private firstNonWhitespace (text: string) =
     text |> Seq.tryFindIndex (Char.IsWhiteSpace >> not) |> Option.defaultValue -1
 
-// decision: chooses highlight shape from violation category rather than expanding the shared
-// violation model with UI-specific ranges; detector output stays host-independent for CLI use.
+/// Map a violation to a decoration range shaped by its category.
+///
+/// decision: chooses highlight shape from violation category rather than expanding the shared
+/// violation model with UI-specific ranges; detector output stays host-independent for CLI use.
 let rangeFor (lineText: string) (violation: EnergyViolation) =
     if violation.Type = Coherence then
         { StartLine = violation.Line
@@ -83,8 +89,10 @@ let rangeFor (lineText: string) (violation: EnergyViolation) =
           EndLine = violation.Line
           EndColumn = min (violation.Column + elementHighlightWidth) lineText.Length }
 
-// invariant: heat is normalized per violation, so each flagged function's worst contributing line
-// gets the darkest band independently of other functions in the file.
+/// Assign each flagged line to a complexity-heat band by its normalized intensity.
+///
+/// invariant: heat is normalized per violation, so each flagged function's worst contributing line
+/// gets the darkest band independently of other functions in the file.
 let heatRanges
     (LineCount lineCount)
     (lineText: int -> string)

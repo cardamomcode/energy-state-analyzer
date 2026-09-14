@@ -1,6 +1,5 @@
 module Energy.Languages.FSharp
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -15,11 +14,16 @@ open Energy.Core.LanguageAdapter
 // TreeSitter typed accessors; `.children` is an always-present list, read directly like Python's
 // port (detectors only ever hand these hooks real nodes reached from the root).
 
-// decision: shared by isFunctionDefinition/extractReturnType below — both check a node's type against
-// this grammar node-type name; a literal repeated across both would trip the magic-string detector's
-// own duplicate-string check.
+/// Name the F# function-definition head node type shared by several hooks.
+///
+/// decision: shared by isFunctionDefinition/extractReturnType below — both check a node's type against
+/// this grammar node-type name; a literal repeated across both would trip the magic-string detector's
+/// own duplicate-string check.
 let private functionDeclarationLeft = NodeType "function_declaration_left"
 
+// Recognize an F# function by its function_declaration_left head rather than the broader definition
+// node type, so nested `let`/`let!` bindings are not misread as their own functions.
+//
 // decision: checks for a function_declaration_left child in isFunctionDefinition rather than matching
 // function_or_value_defn alone — that node type also covers plain `let`/`let!` bindings (via
 // value_declaration_left), and without the check every nested `let`/`let!` inside a function body
@@ -31,6 +35,151 @@ let private functionDeclarationLeft = NodeType "function_declaration_left"
 // already named and not flagged as a magic value — broader than Python's module-only rule, since
 // function_or_value_defn -> declaration_expression looks identical at every scope, but still aligned
 // with the detector's intent that `let NAME = ...` IS F#'s idiomatic way to name a constant.
+
+/// Split a mutually recursive `and`-binding into one view per logical function head.
+///
+/// decision: an F# `and`-binding (`let rec f ... and g ...`, a mutually recursive let) parses as ONE
+/// function_or_value_defn holding several function_declaration_left heads, each with its own parameters
+/// and body — verified against the tree-sitter-fsharp parse tree. The shared detectors analyze "one
+/// function per definition node", so this splits the merged defn into one FunctionHead view per head:
+/// ParametersRoot is the head whose children carry its argument_patterns, Body is the expression
+/// immediately after that head's `=` (its own subtree, not the merged defn). A single-head defn — every
+/// other F# function and every other language — yields one view wrapping the defn itself, preserving the
+/// historical single-function behavior. Without this split, the second head's parameters are never
+/// analyzed (false negative) and the heads' string-literal comparisons accumulate under one variable
+/// name (false positive).
+let private functionHeads (defn: Node) : FunctionHead list =
+    let children = nodeChildren defn
+    let heads = children |> List.filter (fun c -> nodeType c = functionDeclarationLeft)
+
+    if heads.Length <= 1 then
+        [ { ParametersRoot = defn; Body = defn } ]
+    else
+        heads
+        |> List.map (fun head ->
+            let headIndex = children |> List.findIndex (fun c -> nodeId c = nodeId head)
+            // The head's `=` is the first `=` after it (an optional `:` <type> annotation may sit
+            // between the head and its `=`, but carries no `=` of its own). The body is the node
+            // immediately after that `=`.
+            let afterHead = children |> List.skip (headIndex + 1)
+
+            let body =
+                match afterHead |> List.tryFindIndex (fun c -> nodeType c = NodeType "=") with
+                | Some eqOffset when eqOffset + 1 < afterHead.Length -> afterHead |> List.item (eqOffset + 1)
+                | _ -> defn
+
+            { ParametersRoot = head; Body = body })
+
+/// Extract a literal string pattern from one F# match rule.
+let private stringCaseOf (rule: Node) : Node option =
+    match nodeNamedChildren rule |> List.tryHead with
+    | Some pattern ->
+        if nodeType pattern = NodeType "string" then
+            Some pattern
+        else
+            nodeNamedChildren pattern
+            |> List.tryFind (fun c -> nodeType c = NodeType "string")
+    | None -> None
+
+/// Extract the scrutinee variable and string-literal case patterns from a match/switch dispatch.
+///
+/// decision: the idiomatic F# stringly-typed dispatch is a `match` on string literals — the form the
+/// if/elif-based stringly-typed check already catches is the non-idiomatic one. This extracts the
+/// scrutinee (only when it is a simple variable, so the dispatch can be attributed to one name) and the
+/// string-literal case patterns across the match's rules. A rule's pattern is its first named child;
+/// a string case is one whose pattern is (or wraps, e.g. in a const node) a `string` literal.
+let private matchStringCases (node: Node) : (Node * Node list) option =
+    if nodeType node <> NodeType "match_expression" then
+        None
+    else
+        let named = nodeNamedChildren node
+
+        let scrutinee =
+            named |> List.tryFind (fun c -> nodeType c = NodeType "long_identifier_or_op")
+
+        let cases =
+            named
+            |> List.collect (fun c ->
+                if nodeType c = NodeType "rules" then
+                    c |> nodeNamedChildren |> List.choose stringCaseOf
+                else
+                    [])
+
+        match scrutinee, cases with
+        | Some s, cs when cs.Length > 0 -> Some(s, cs)
+        | _ -> None
+
+/// Detect a named-argument call position so it is not miscounted as an equality comparison.
+///
+/// decision: tree-sitter-fsharp parses a named-argument call `setField (name = "alpha")` as an
+/// application_expression whose parenthesized argument is an infix_expression with infix_op "=" — the
+/// identical shape of a genuine `a = b` comparison, which is why the equality hook (below) otherwise
+/// counts it as `name = "alpha"`. A node is in named-argument position when its ancestor chain reaches
+/// an application_expression while passing only through paren_expression/tuple_expression argument
+/// wrappers, and it sits on the argument side (not the callee). Record literals are unaffected: `{ Name
+/// = "one" }` parses as field_initializer, not infix_expression, so it never reaches this hook.
+let private isNamedArgumentPosition (node: Node) : bool =
+    let rec walk (n: Node) : bool =
+        match nodeParent n with
+        | Some p when
+            nodeType p = NodeType "paren_expression"
+            || nodeType p = NodeType "tuple_expression"
+            ->
+            walk p
+        | Some p when nodeType p = NodeType "application_expression" ->
+            // Confirm n is an argument, not the callee (the application's first child).
+            match List.tryItem 0 (nodeChildren p) with
+            | Some first -> nodeId first <> nodeId n
+            | None -> true
+        | _ -> false
+
+    walk node
+
+let private tryExpressionNodeType = NodeType "try_expression"
+let private declarationExpressionNodeType = NodeType "declaration_expression"
+let private rulesNodeType = NodeType "rules"
+let private ruleNodeType = NodeType "rule"
+
+/// F# sequences `let` bindings through declaration_expression instead of a block. Expand only that
+/// structural chain; applications, conditionals, and loops remain one logical item.
+let rec private logicalItems (node: Node) : Node list =
+    match nodeType node with
+    | kind when kind = declarationExpressionNodeType -> nodeNamedChildren node |> List.collect logicalItems
+    | kind when kind = rulesNodeType -> nodeNamedChildren node |> List.collect logicalItems
+    | kind when kind = ruleNodeType -> [ node ]
+    | kind when kind = NodeType "function_or_value_defn" ->
+        nodeNamedChildren node
+        |> List.filter (fun child ->
+            nodeType child <> functionDeclarationLeft
+            && nodeType child <> NodeType "value_declaration_left")
+        |> List.collect logicalItems
+    | _ -> [ node ]
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryExpressionNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        let rulesIndex =
+            children |> List.tryFindIndex (fun child -> nodeType child = rulesNodeType)
+
+        match rulesIndex with
+        | Some index ->
+            { Anchor = node
+              ProtectedItems = children |> List.take index |> List.collect logicalItems
+              RecoveryItems = children |> List.skip index |> List.collect logicalItems }
+            |> Some
+        | None ->
+            match children with
+            | protectedBody :: cleanupBody :: _ ->
+                { Anchor = node
+                  ProtectedItems = logicalItems protectedBody
+                  RecoveryItems = logicalItems cleanupBody }
+                |> Some
+            | _ -> None
+
+/// Map F# grammar constructs to the shared detector contracts.
 let fSharpLanguageAdapter: LanguageAdapter =
     { Id = "fsharp"
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
@@ -60,6 +209,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
         fun node ->
             nodeType node = NodeType "function_or_value_defn"
             && (nodeChildren node |> List.exists (fun c -> nodeType c = functionDeclarationLeft))
+      GetFunctionHeads = functionHeads
       IsStaticMethod = fun _ -> false
       ParameterChildTypes = [ NodeType "long_identifier"; NodeType "typed_pattern" ]
       DecisionNodeTypes =
@@ -83,13 +233,13 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     rules |> List.exists (fun rule -> nodeText rule |> _.Contains("_ ->"))
 
                 Some(rules.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_expression"
-          NodeType "elif_expression"
-          NodeType "for_expression"
-          NodeType "while_expression"
-          NodeType "try_expression"
-          NodeType "match_expression" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_expression"
+              NodeType "elif_expression"
+              NodeType "for_expression"
+              NodeType "while_expression"
+              NodeType "match_expression" ]
       NestingControlTypes =
         [ NodeType "if_expression"
           NodeType "elif_expression"
@@ -110,8 +260,6 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     elif t = "||" then Some Or
                     else None
                 | None -> None
-      // No block wrapper exists, so every child of a decision point is nested content.
-      EntersNestedScope = fun _ -> true
       // F#'s try_expression has no else-branch construct.
       IsTryElseClause = fun _ -> false
       // long_identifier_or_op's own .text is already the bare (possibly dotted) name, so it's used as
@@ -122,16 +270,26 @@ let fSharpLanguageAdapter: LanguageAdapter =
             if nodeType node <> NodeType "typed_pattern" then
                 None
             else
+                let children = nodeChildren node
+
                 let patternNode =
-                    nodeChildren node
-                    |> List.tryFind (fun c -> nodeType c = NodeType "identifier_pattern")
-                // decision: also matches generic_type (e.g. `xs: Iterable<'a>`), not just simple_type
-                // (`x: int`) — a curried, generically-typed parameter is exactly the shape the
-                // type-cohesion signal needs to see to recognize an F#-style single-type module.
+                    children |> List.tryFind (fun c -> nodeType c = NodeType "identifier_pattern")
+
+                // decision: the type is whatever node follows the `:` annotation — simple_type
+                // (`x: int`), generic_type (`xs: Map<string, int>`), postfix_type (`b: string option`,
+                // `xs: int list`), or any other annotated shape. Taking the node after `:` (rather than
+                // matching a fixed set of type-node types) means a postfix/wrapper shape is no longer
+                // silently dropped: its full text (e.g. `"string option"`) is never in
+                // PrimitiveTypeNames, so it correctly acts as a distinct-type barrier between two
+                // same-typed neighbors, and it stays visible to the type-cohesion signal.
                 let typeNode =
-                    nodeChildren node
-                    |> List.tryFind (fun c ->
-                        nodeType c = NodeType "simple_type" || nodeType c = NodeType "generic_type")
+                    children
+                    |> List.tryFindIndex (fun c -> nodeType c = NodeType ":")
+                    |> Option.bind (fun i ->
+                        if i + 1 < children.Length then
+                            Some(children |> List.item (i + 1))
+                        else
+                            None)
 
                 match patternNode, typeNode with
                 | Some p, Some t -> Some { Name = nodeText p; Type = nodeText t }
@@ -176,11 +334,20 @@ let fSharpLanguageAdapter: LanguageAdapter =
       DistinctTypeAdvice = "a single-case union type"
       GetEqualityComparisons =
         fun node ->
-            if nodeType node <> NodeType "infix_expression" then
+            // decision: combine the two early-exit guards (not-an-infix, and a named-argument position)
+            // in one if rather than nesting them — a named-argument call (`setField (name = "alpha")`)
+            // parses as the same infix `=` shape as a genuine comparison but is not one, so it must be
+            // excluded before it can be miscounted as a stringly-typed literal comparison (see
+            // isNamedArgumentPosition above).
+            if nodeType node <> NodeType "infix_expression" || isNamedArgumentPosition node then
                 []
             else
-                match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "infix_op") with
-                | Some opToken when nodeText opToken = "=" ->
+                match
+                    nodeChildren node
+                    |> List.tryFind (fun c -> nodeType c = NodeType "infix_op")
+                    |> Option.filter (fun op -> nodeText op = "=")
+                with
+                | Some opToken ->
                     let operands =
                         nodeChildren node |> List.filter (fun c -> nodeId c <> nodeId opToken)
 
@@ -196,7 +363,8 @@ let fSharpLanguageAdapter: LanguageAdapter =
 
                         [ { Left = l; Right = right } ]
                     | _ -> []
-                | _ -> []
+                | None -> []
+      GetMatchStringCases = matchStringCases
       // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks (e.g. an elif
       // chain) still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
@@ -279,4 +447,15 @@ let fSharpLanguageAdapter: LanguageAdapter =
       IsClassDefinition = fun _ -> false
       GetClassName = fun _ -> None
       GetBaseClassNames = fun _ -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = logicalItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "sequential_expression" ]
+              Conditional = NodeType "if_expression"
+              Rejections = []
+              Return = None
+              FailureCalls = [ "invalidArg"; "invalidArgf"; "failwith"; "failwithf"; "raise" ]
+              EmptyValues = [ "()"; "None" ]
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation = fun _ -> false } }

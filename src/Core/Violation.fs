@@ -1,11 +1,11 @@
 module Energy.Core.Violation
 
-// Shared violation model for the detector pipeline.
-//
-// decision: discriminated unions replace the string-literal unions of types.ts — the detectors
-// pattern-match on Severity/ViolationType instead of comparing wire strings, which deletes the
-// `as any` casts and makes an unknown type/severity a compile error rather than a runtime miss.
-// The CLI's JSON contract maps these DUs back to the established wire strings.
+/// Shared violation model for the detector pipeline.
+///
+/// decision: discriminated unions replace the string-literal unions of types.ts — the detectors
+/// pattern-match on Severity/ViolationType instead of comparing wire strings, which deletes the
+/// `as any` casts and makes an unknown type/severity a compile error rather than a runtime miss.
+/// The CLI's JSON contract maps these DUs back to the established wire strings.
 
 type Severity =
     | Low
@@ -25,14 +25,17 @@ type ViolationType =
     | MatchOpportunity
     | LogicalControlFlow
     | OpaqueBoolean
-    // Error handling that occupies so much of a function's body it shadows the business logic it
-    // wraps — a separation-of-concerns/cohesion signal, distinct from cyclomatic/cognitive complexity.
+    // An overly broad protected try region or dominating recovery policy — a separation-of-concerns/
+    // cohesion signal, distinct from cyclomatic/cognitive complexity.
     | ErrorShadowing
     | Suppression
+    | ParseDontValidate
 
-// decision: per-line weighted hotspots (nesting depth for cognitive, decision density for
-// cyclomatic) alongside the flat complexity score — lets callers paint a progressive heatmap
-// across the function body instead of a single flat highlight, so the worst lines stand out.
+/// A single source line's severity weight, used to paint a progressive heatmap across a function body.
+///
+/// decision: per-line weighted hotspots (nesting depth for cognitive, decision density for
+/// cyclomatic) alongside the flat complexity score — lets callers paint a progressive heatmap
+/// across the function body instead of a single flat highlight, so the worst lines stand out.
 type Hotspot = { Line: int; Weight: int }
 
 type EnergyViolation =
@@ -61,11 +64,12 @@ let violationTypeName =
     | LogicalControlFlow -> "logical-control-flow"
     | OpaqueBoolean -> "opaque-boolean"
     | ErrorShadowing -> "error-shadowing"
+    | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
 
 /// Stable, user-facing identifiers for analyzer rules.
-// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
-// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
+/// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
+/// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
 let violationRuleId =
     function
     | Nesting -> "ESA-001"
@@ -82,10 +86,11 @@ let violationRuleId =
     | OpaqueBoolean -> "ESA-012"
     | ErrorShadowing -> "ESA-013"
     | Suppression -> "ESA-014"
+    | ParseDontValidate -> "ESA-015"
 
 /// Canonical documentation for each user-facing analyzer rule.
-// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
-// renderer change cannot silently send users to the generic detector index.
+/// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
+/// renderer change cannot silently send users to the generic detector index.
 let violationHelpUri =
     function
     | Nesting -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/excessive-nesting.md"
@@ -110,6 +115,8 @@ let violationHelpUri =
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/opaque-boolean-literal.md"
     | ErrorShadowing ->
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/error-shadowing.md"
+    | ParseDontValidate ->
+        "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/parse-dont-validate.md"
     | Suppression -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/suppression.md"
 
 let severityName =

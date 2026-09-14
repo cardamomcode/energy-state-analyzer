@@ -2,30 +2,56 @@ module Energy.Tests.SpikeTests
 
 open System.Threading.Tasks
 
-open Fable.Core
 open Fable.Core.JsInterop
 
 open Scriptorium.Quill
 open Scriptorium.Nib.Assertion
 open type Scriptorium.Quill.Test
 
+open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
-
-// Node-only plumbing for the Phase 0 spike (cwd + file read). Reorganized into the CLI's
-// Node binding (Fable.Node) in Phase 2.
-[<Emit("process.cwd()")>]
-let cwd () : string = nativeOnly
-
-[<Import("readFileSync", "node:fs")>]
-let readFileSync (path: Path) (encoding: Encoding) : string = nativeOnly
 
 // Phase 0 spike — proves the web-tree-sitter Fable binding end to end, and that the typed
 // facade (Position records, Node lists, Parent option) surfaces the tree as pure F# values.
 let tests =
     testList (
         "TreeSitter binding",
-        [ testAsync (
+        [ test (
+              "releases a parsed tree after consuming its root",
+              fun _ ->
+                  let mutable deleted = false
+                  let root = createObj [ "type" ==> "module" ]
+
+                  let tree =
+                      createObj [ "rootNode" ==> root; "delete" ==> (fun () -> deleted <- true) ]
+
+                  let parser = createObj [ "parse" ==> (fun (_: string) -> tree) ]
+
+                  let result = withParsedTree parser "source" nodeType
+                  assertThat result (isEqualTo (NodeType "module"))
+                  assertThat deleted isTrue
+          )
+          test (
+              "releases a parsed tree when its consumer throws",
+              fun _ ->
+                  let mutable deleted = false
+
+                  let tree =
+                      createObj [ "rootNode" ==> obj (); "delete" ==> (fun () -> deleted <- true) ]
+
+                  let parser = createObj [ "parse" ==> (fun (_: string) -> tree) ]
+                  let mutable message = ""
+
+                  try
+                      withParsedTree parser "source" (fun _ -> failwith "consumer failed")
+                  with error ->
+                      message <- error.Message
+
+                  assertThat message (isEqualTo "consumer failed")
+                  assertThat deleted isTrue
+          )
+          testAsync (
               "parses a Python fixture and reports the root node type",
               (fun _ ->
                   toAsync (

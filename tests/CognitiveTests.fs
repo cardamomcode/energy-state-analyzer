@@ -10,7 +10,7 @@ open Energy.Tests.TestUtils
 // decision: runs the full detector pipeline (analyze, the same entry point the CLI and the
 // extension use) against realistic multi-function files in every ported language — mirrors
 // cognitiveComplexity.test.ts. Each fixture carries a clean single-flat-if function (cognitive 1,
-// never flagged), a 6-deep nesting (medium), and a 7-deep nesting (high). TypeScript/F#/Kotlin are
+// never flagged), medium and high nesting examples (F# includes explicit else increments). TypeScript/F#/Kotlin are
 // exercised here as their language adapters were ported alongside the detector.
 
 let tests =
@@ -26,7 +26,7 @@ let tests =
         cases
         |> List.map (fun (label, language, fixture) ->
             testAsync (
-                (sprintf "%s: a flat check stays clean, 6-deep nesting is medium, 7-deep nesting is high" label),
+                (sprintf "%s: a flat check stays clean and deeper nesting crosses medium/high thresholds" label),
                 (fun _ ->
                     toAsync (
                         task {

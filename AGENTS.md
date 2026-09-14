@@ -61,6 +61,15 @@ order.
   analyzer input, including `.ts` and `.cpp` fixtures; it is not product or test implementation
   source in those languages.
 
+### Detector fixture parity
+
+Put realistic, multi-function analyzer examples under `src/test/fixtures/<language>/`. For every
+detector supported by multiple languages, add named positive and negative scenarios to
+`tests/DetectorFixtureMatrixTests.fs`; the matrix runs the complete registered pipeline and makes
+the cross-language contract readable in CI. State an unsupported language semantic explicitly as a
+clean limitation case rather than silently omitting it. Keep detector-specific tests for thresholds,
+configuration, and grammar edge cases alongside the detector's existing suite.
+
 The extension composition root owns lifecycle state, grammar caches, decorations, diagnostics,
 commands, and editor/document/configuration event subscriptions. Presentation never leaks into
 `Core/`; `Core/TreeSitter.fs` is the only web-tree-sitter facade.
@@ -68,6 +77,36 @@ commands, and editor/document/configuration event subscriptions. Presentation ne
 `EnergyViolation` is the DU/record model in `src/Core/Violation.fs`. Add a new detector by adding
 its `Detector` to `Core/Analyze.fs`, and add a `ViolationType` case plus special presentation
 mapping only when required.
+
+### Docstrings and Agent Decision Comments
+
+F# doc comments follow one rule so tooltips work and design intent survives review: **a comment
+block that leads a type, function, or method must start with plain prose describing what it does,
+then a blank line, then any annotation directives.** Inline decisions inside a function body stay as
+bare annotations.
+
+- Use `///` for the doc comment of every top-level definition (type, value binding, member). F#
+  only treats a contiguous run that *starts* with `///` as documentation; a prose line without the
+  marker is parsed as code and breaks compilation — this is the most common mistake.
+- Use plain `//` for inline body comments, record-field notes, module-level paragraphs that precede
+  `open`, and section dividers. These are not definition docs and must not start with `///`.
+- Never mix markers in one block: every line of a `///` doc comment starts with `///`; every line
+  of an inline `//` note starts with `//`. A two-slash line inside a `///` run is invalid F#.
+
+```fsharp
+/// Summarize one file's violations into a weighted score, severity counts, and per-type breakdown.
+///
+/// invariant: weights 1/4/9 are the published report/diff continuity metric; only structured
+/// severity contributes, never numbers embedded in detector messages.
+let summarizeFile result = ...
+
+// decision: use the safe Node binding so a missing file reports instead of throwing.
+```
+
+When adding or editing a definition that carries an Agent Decision Comment (see
+`AGENT_DECISION_COMMENTS.md`), lead with the prose summary first, then the annotations — do not
+start the block with `decision:`/`invariant:`/`tradeoff:`/`assumption:`. Keep the annotation lines
+themselves as-is; only the leading prose is new.
 
 ## Build and packaging
 

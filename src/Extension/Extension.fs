@@ -15,10 +15,13 @@ open Energy.Extension.Vscode.Diagnostics
 open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Identity
+// decision: composition root owns lifecycle, decorations, diagnostics, commands and every event
+// subscription, so it necessarily opens all Extension + Vscode bindings. The breadth is the role.
+//esa-ignore: coherence
 open Energy.Extension.Vscode.Workspace
 
-// Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
-// in their domain modules, and the grammar caches are reset for every activation.
+/// Composition root: owns lifecycle state and event wiring only. Detection and presentation stay
+/// in their domain modules, and the grammar caches are reset for every activation.
 
 type private ExtensionState =
     { Grammar: GrammarContext
@@ -39,8 +42,10 @@ let private isCurrentDocument document =
     | null -> false
     | editor -> sameObject (editorDocument editor) document
 
-// decision: re-reads the active editor after grammar loading because users can change tabs while
-// the promise is pending; decorations must never be written onto the newly active document.
+/// Analyze the active editor, re-reading it after grammar loads to avoid writing onto a tab switched during the await.
+///
+/// decision: re-reads the active editor after grammar loading because users can change tabs while
+/// the promise is pending; decorations must never be written onto the newly active document.
 let private analyzeActiveEditor () : Task<unit> =
     task {
         console.log ("🔍 Analyzing active editor...")
@@ -58,14 +63,18 @@ let private analyzeActiveEditor () : Task<unit> =
                 let! loaded = getOrLoadLanguage (documentLanguageId document) current.Grammar
 
                 match loaded with
+                | _ when
+                    not (isCurrentDocument document)
+                    || not (state |> Option.exists (fun active -> sameObject active current))
+                    ->
+                    ()
                 | Error analysisError ->
                     console.error ("Error loading grammar:", analysisErrorMessage analysisError)
                     applyDecorations editor current.Decorations []
                     updateProblemsPanel current.Diagnostics document []
                 | Ok None ->
                     console.log ("⚠️ Unsupported language: " + documentLanguageId document)
-                    clearDiagnostics current.Diagnostics
-                | Ok(Some _) when not (isCurrentDocument document) -> ()
+                    clearIgnored editor current
                 | Ok(Some loaded) ->
                     console.log ("📄 Analyzing " + loaded.Adapter.Id + " file: " + documentFileName document)
                     let violations = analyzeDocument loaded document

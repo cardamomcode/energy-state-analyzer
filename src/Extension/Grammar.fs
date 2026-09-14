@@ -3,10 +3,10 @@ module Energy.Extension.Grammar
 open System.Collections.Generic
 open System.Threading.Tasks
 
-open Fable.Core
 open Fable.Core.JS
 
 open Energy.Core.Analyze
+open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
 open Energy.Extension.Analysis
@@ -17,20 +17,17 @@ type GrammarContext =
       LoadedLanguages: Dictionary<string, LoadedLanguage>
       InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>> }
 
-// decision: path arguments and the Path result are Core.Paths.Path (erased to their backing
-// strings) so the message/path string pair can no longer be transposed and the result flows
-// straight into load/logPath without a string round-trip.
-[<Import("join", "node:path")>]
-let private joinPath (left: Path) (right: Path) : Path = nativeOnly
-
 let private logPath (message: string) (path: Path) : unit = console.log (message, path)
 
 let private logSuccess (message: string) : unit = console.log (message)
 
-let initializeParser () = init parserCtor
+/// Await the shared parser runtime before activating editor analysis.
+let initializeParser () = init ()
 
-// decision: shares the pending task as well as completed parsers; an edit event that arrives
-// while a grammar is loading cannot start another WASM load for the same language.
+/// Return the loaded grammar for a language, sharing an in-flight load instead of starting another.
+///
+/// decision: shares the pending task as well as completed parsers; an edit event that arrives
+/// while a grammar is loading cannot start another WASM load for the same language.
 let getOrLoadLanguage
     (languageId: string)
     (context: GrammarContext)

@@ -4,19 +4,21 @@ open Fable.Core
 open Energy.Core.FsPath
 open Energy.Core.Paths
 
-// A `.esaignore` pattern: a literal path or a single-segment basename glob.
-//
-// decision: typed rather than left as a raw string so a pattern can no longer be transposed with
-// the path it is matched against.
-// invariant: every `IgnorePattern` value has exactly its wrapped string as its JavaScript
-// representation.
+/// A `.esaignore` pattern: a literal path or a single-segment basename glob.
+///
+/// decision: typed rather than left as a raw string so a pattern can no longer be transposed with
+/// the path it is matched against.
+/// invariant: every `IgnorePattern` value has exactly its wrapped string as its JavaScript
+/// representation.
 [<Erase>]
 type IgnorePattern = IgnorePattern of string
 
 let esaignoreFileName = ".esaignore"
 
-// decision: deliberately supports only literal paths and single-segment basename globs; matching
-// scan's intentionally small glob surface avoids silently claiming full gitignore semantics.
+/// Read `.esaignore` patterns from the project root into a list.
+///
+/// decision: deliberately supports only literal paths and single-segment basename globs; matching
+/// scan's intentionally small glob surface avoids silently claiming full gitignore semantics.
 let loadIgnorePatterns (rootDir: string) : string list =
     let ignorePath = joinPath (Path rootDir) (Path esaignoreFileName)
 
@@ -53,8 +55,10 @@ let private matchesBasenameGlob (IgnorePattern pattern) (name: string) =
 
     loop (pieces |> Array.toList) 0
 
-// decision: keeps its Path values unwrapped — they flow straight into the fs/path bindings
-// (relativePath/basename) rather than round-tripping through a destructured string.
+/// Report whether an absolute path under rootDir matches any ignore pattern.
+///
+/// decision: keeps its Path values unwrapped — they flow straight into the fs/path bindings
+/// (relativePath/basename) rather than round-tripping through a destructured string.
 let isIgnored (absolutePath: Path) (rootDir: Path) (patterns: string list) =
     if patterns.IsEmpty then
         false

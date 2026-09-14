@@ -15,7 +15,7 @@ A comment directive for silencing a specific violation you've reviewed and decid
 Works with either comment style (`//` or `#`) — the marker text is what matters, not the language's comment syntax.
 
 - **Bare** `esa-ignore` suppresses every violation type on its line.
-- **Typed** `esa-ignore: type1, type2` only suppresses the listed types (the same strings the CLI's JSON output uses: `nesting`, `complexity`, `cognitive`, `coherence`, `magic`, `parameters`, `inversion`, `primitive-obsession`, `match-opportunity`, `logical-control-flow`, `opaque-boolean`).
+- **Typed** `esa-ignore: type1, type2` only suppresses the listed types (the same strings the CLI's JSON output uses: `nesting`, `complexity`, `cognitive`, `coherence`, `magic`, `parameters`, `inversion`, `primitive-obsession`, `match-opportunity`, `logical-control-flow`, `opaque-boolean`, `parse-dont-validate`).
 - **`esa-ignore-file`** (bare or typed) can appear anywhere in the file and suppresses that type for the whole file — the only way to suppress `coherence`, which is a file-scoped finding rather than a line-scoped one.
 
 ## Placement

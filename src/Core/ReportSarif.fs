@@ -11,8 +11,10 @@ let private sarifLevel =
     | Medium -> "warning"
     | Low -> "note"
 
-// decision: reports one SARIF rule per emitted detector type and keeps the detector message on
-// every result, so tools can group findings by stable rule ID while agents receive contextual fixes.
+/// Map a violation's severity to the SARIF level string used for tool triage.
+///
+/// decision: reports one SARIF rule per emitted detector type and keeps the detector message on
+/// every result, so tools can group findings by stable rule ID while agents receive contextual fixes.
 let renderSarif results =
     let findings =
         results

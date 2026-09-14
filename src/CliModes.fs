@@ -7,16 +7,39 @@ open Fable.Core.JsInterop
 open Energy.CliNode
 open Energy.CliRuntime
 open Energy.Core.Analyze
+open Energy.Core.NodeInterop
 open Energy.Core.Esaignore
+open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.Report
 open Energy.Core.ReportDiff
 open Energy.Core.ReportHuman
 open Energy.Core.Scan
 open Energy.Core.Violation
+// decision: mode dispatch intentionally re-opens every CLI surface (nodes, runtime, scan, reports,
+// languages) so each mode reads as one wiring block — splitting it would scatter the entry points.
+//esa-ignore: coherence
 open Energy.Languages.Registry
 
-type ReportFormat = string
+/// Represent the renderable report formats plus agent-only JSON as an exhaustive DU.
+///
+/// decision: the report format is a closed set of CLI choices, so it is a DU rather than a free
+/// string — this is what keeps the render dispatch below from being a stringly-typed match (the
+/// primitive-obsession detector's stringly-control-flow check) and makes the selection exhaustive at
+/// compile time. The `--report` flag still takes a string; parseReportFormat maps it onto the DU.
+type ReportFormat =
+    | Human
+    | Markdown
+    | Sarif
+    | Json
+
+let parseReportFormat (text: string) : ReportFormat =
+    match text with
+    | "human" -> Human
+    | "md"
+    | "markdown" -> Markdown
+    | "sarif" -> Sarif
+    | _ -> Json
 
 let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"
@@ -46,8 +69,10 @@ let private violationJson violation =
           "message" ==> violation.Message
           "hotspots" ==> hotspots ]
 
-// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
-// receive the same location and remediation message as VS Code without changing summary consumers.
+/// Render per-file and aggregate JSON for agent consumers from raw results.
+///
+/// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
+/// receive the same location and remediation message as VS Code without changing summary consumers.
 let summaryJson results =
     let summary = summarize results
 
@@ -113,10 +138,10 @@ let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: 
 
             output (
                 match reportFormat with
-                | "human" -> renderHumanReport results
-                | "md" -> renderMarkdownReport summary
-                | "sarif" -> stringify (Energy.Core.ReportSarif.renderSarif results)
-                | _ -> stringify (summaryJson results)
+                | Human -> renderHumanReport results
+                | Markdown -> renderMarkdownReport summary
+                | Sarif -> stringify (Energy.Core.ReportSarif.renderSarif results)
+                | Json -> stringify (summaryJson results)
             )
 
             exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
@@ -133,17 +158,21 @@ let private changedFilesFromGit baseRef =
         |> Array.filter ((<>) "")
         |> Array.toList
 
-// decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
-// git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
+/// Read a file's source at a git reference, treating a missing ref as a new or renamed file.
+///
+/// decision: a missing base version is a normal newly-added/renamed file, not a failed analysis;
+/// git's own stderr is intentionally suppressed so one concise explanatory line is emitted.
 let private readAtRef reference filePath =
-    try
-        Some(
-            execFileSync
-                "git"
-                [| "show"; reference + ":" + filePath |]
-                (createObj [ "encoding" ==> "utf8"; "stdio" ==> [| "ignore"; "pipe"; "ignore" |] ])
-        )
-    with _ ->
+    // decision: use the safe exec binding so a missing/renamed ref becomes None (a normal new file)
+    // instead of a thrown exception — no try/with here for the error-shadowing detector to flag.
+    match
+        execFileSyncSafe
+            "git"
+            [| "show"; reference + ":" + filePath |]
+            (createObj [ "encoding" ==> "utf8"; "stdio" ==> [| "ignore"; "pipe"; "ignore" |] ])
+    with
+    | Ok output -> Some output
+    | Error _ ->
         error (
             "energy-state-cli: could not read "
             + filePath
@@ -154,6 +183,39 @@ let private readAtRef reference filePath =
 
         None
 
+/// Collect base and head summaries while preserving the first analysis failure.
+let rec private analyzeChanged baseRef thresholds files bases heads =
+    task {
+        match files with
+        | [] -> return Ok(List.rev bases, List.rev heads)
+        | filePath :: remaining ->
+            let! headAnalysis = analyzePath (Path filePath) thresholds
+
+            match headAnalysis with
+            | Error analysisError -> return Error analysisError
+            | Ok headViolations ->
+                let head =
+                    summarizeFile
+                        { FilePath = filePath
+                          Violations = headViolations }
+
+                match readAtRef baseRef filePath with
+                | None -> return! analyzeChanged baseRef thresholds remaining bases (head :: heads)
+                | Some baseSource ->
+                    let! baseAnalysis = analyzeFile (Path filePath) baseSource thresholds
+
+                    match baseAnalysis with
+                    | Error analysisError -> return Error analysisError
+                    | Ok baseViolations ->
+                        let baseSummary =
+                            summarizeFile
+                                { FilePath = filePath
+                                  Violations = baseViolations }
+
+                        return! analyzeChanged baseRef thresholds remaining (baseSummary :: bases) (head :: heads)
+    }
+
+/// Analyze changed files and render their score differences against a git reference.
 let runDiff
     (baseRef: string)
     (explicitPaths: string list)
@@ -173,38 +235,7 @@ let runDiff
                 resolveLanguageForFile filePath |> Option.isSome && existsSync (Path filePath))
             |> List.filter (fun filePath -> not (isIgnored (resolvePath (Path filePath)) (Path rootDir) patterns))
 
-        let rec analyzeChanged files bases heads =
-            task {
-                match files with
-                | [] -> return Ok(List.rev bases, List.rev heads)
-                | filePath :: remaining ->
-                    let! headAnalysis = analyzePath (Path filePath) thresholds
-
-                    match headAnalysis with
-                    | Error analysisError -> return Error analysisError
-                    | Ok headViolations ->
-                        let head =
-                            summarizeFile
-                                { FilePath = filePath
-                                  Violations = headViolations }
-
-                        match readAtRef baseRef filePath with
-                        | None -> return! analyzeChanged remaining bases (head :: heads)
-                        | Some baseSource ->
-                            let! baseAnalysis = analyzeFile (Path filePath) baseSource thresholds
-
-                            match baseAnalysis with
-                            | Error analysisError -> return Error analysisError
-                            | Ok baseViolations ->
-                                let baseSummary =
-                                    summarizeFile
-                                        { FilePath = filePath
-                                          Violations = baseViolations }
-
-                                return! analyzeChanged remaining (baseSummary :: bases) (head :: heads)
-            }
-
-        let! analysis = analyzeChanged changed [] []
+        let! analysis = analyzeChanged baseRef thresholds changed [] []
 
         match analysis with
         | Error analysisError ->
@@ -214,7 +245,7 @@ let runDiff
             let entries = diffSummaries bases heads
 
             output (
-                if reportFormat = "md" then
+                if reportFormat = Markdown then
                     renderDiffMarkdown entries baseRef
                 else
                     stringify (diffJson entries)

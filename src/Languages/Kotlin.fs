@@ -1,12 +1,46 @@
 module Energy.Languages.Kotlin
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
-// decision: an infix expression is flagged only when it has exactly three identifier children
-// (operand operator operand); this is a property of that shape, not a tunable threshold, so it
-// stays as a named constant at the top of the module rather than in Core.Config.
+let private tryExpressionNodeType = NodeType "try_expression"
+let private blockNodeType = NodeType "block"
+let private functionBodyNodeType = NodeType "function_body"
+let private catchBlockNodeType = NodeType "catch_block"
+let private finallyBlockNodeType = NodeType "finally_block"
+
+let rec private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = blockNodeType) with
+    | Some block -> nodeNamedChildren block
+    | None ->
+        match children |> List.tryFind (fun child -> nodeType child = functionBodyNodeType) with
+        | Some body -> bodyItems body
+        | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryExpressionNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = blockNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedItems = bodyItems protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchBlockNodeType || nodeType child = finallyBlockNodeType)
+                |> List.collect bodyItems })
+
+/// Fix the expected identifier count of an infix expression node.
+///
+/// decision: an infix expression is flagged only when it has exactly three identifier children
+/// (operand operator operand); this is a property of that shape, not a tunable threshold, so it
+/// stays as a named constant at the top of the module rather than in Core.Config.
 let private expectedInfixIdentifierCount = 3
 
 // The Kotlin LanguageAdapter.
@@ -19,10 +53,23 @@ let private expectedInfixIdentifierCount = 3
 // correct on its own for the hooks below. Every hook operates on a raw `Node` through the TreeSitter
 // typed accessors; `.children` is an always-present list, read directly like Python's port.
 
-// decision: split out of getBaseClassNames/getTypedParameter into their own function, rather than
-// several `c.type === '...'` comparisons inline — that shape is exactly what the primitive-obsession
-// detector's stringly-typed-control-flow check flags as a switch-like branch on an ad hoc string tag.
+/// Detect a user_type node, factored out to avoid stringly-typed branch checks.
+///
+/// decision: split out of getBaseClassNames/getTypedParameter into their own function, rather than
+/// several `c.type === '...'` comparisons inline — that shape is exactly what the primitive-obsession
+/// detector's stringly-typed-control-flow check flags as a switch-like branch on an ad hoc string tag.
 let private isUserType (node: Node) : bool = nodeType node = NodeType "user_type"
+
+/// Detect a parameter's type annotation, accepting both plain and nullable forms.
+///
+/// decision: a nullable parameter (`String?`) wraps its user_type in a nullable_type node, so
+/// matching only user_type made nullable parameters invisible to typed-parameter consumers — the
+/// identity-return check in particular could never agree a `String?` parameter with a `String?`
+/// return, while the C#/C++/TS equivalents were flagged (review inconsistency). Matching either
+/// form keeps the exact type text (the `?` included): `String?` agrees with `String?`, never
+/// with `String`.
+let private isParameterType (node: Node) : bool =
+    nodeType node = NodeType "user_type" || nodeType node = NodeType "nullable_type"
 
 let private isConstPropertyDeclaration (node: Node) : bool =
     match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "modifiers") with
@@ -33,11 +80,13 @@ let private isConstPropertyDeclaration (node: Node) : bool =
             && (nodeChildren modifier |> List.exists (fun c -> nodeType c = NodeType "const")))
     | None -> false
 
-// decision: a leading annotation (`@VisibleForTesting const val X = 5`) makes this grammar lose the
-// property_declaration/modifiers shape entirely and instead parse the whole line as a generic
-// `assignment` whose LHS is an `annotated_expression` wrapping an `infix_expression` with `const`/
-// `val`/the name as three bare identifier tokens (verified by dumping the parse tree) — recognize
-// that specific misparse shape so an annotated const val isn't wrongly flagged as magic.
+/// Recognize the annotated-const-val misparse so an annotated const val isn't wrongly flagged as magic.
+///
+/// decision: a leading annotation (`@VisibleForTesting const val X = 5`) makes this grammar lose the
+/// property_declaration/modifiers shape entirely and instead parse the whole line as a generic
+/// `assignment` whose LHS is an `annotated_expression` wrapping an `infix_expression` with `const`/
+/// `val`/the name as three bare identifier tokens (verified by dumping the parse tree) — recognize
+/// that specific misparse shape so an annotated const val isn't wrongly flagged as magic.
 let private isAnnotatedConstValMisparse (node: Node) : bool =
     match
         nodeChildren node
@@ -61,8 +110,10 @@ let private isAnnotatedConstValMisparse (node: Node) : bool =
         | None -> false
     | None -> false
 
-// decision: split out of getBaseClassNames into its own function, rather than several `c.type ===
-// '...'` comparisons inline — same rationale as isUserType above.
+/// Extract a single delegation specifier's target name.
+///
+/// decision: split out of getBaseClassNames into its own function, rather than several `c.type ===
+/// '...'` comparisons inline — same rationale as isUserType above.
 let private delegationSpecifierName (specifier: Node) : string option =
     nodeChildren specifier
     |> List.tryFind isUserType
@@ -76,10 +127,12 @@ let private delegationSpecifierName (specifier: Node) : string option =
         |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
         |> Option.map nodeText)
 
-// decision: `const val` is an explicit, compiler-enforced compile-time-constant marker — unlike the
-// module-scope heuristic isInConstantContext (magicNumber.ts) otherwise relies on, this is valid at
-// ANY nesting depth (a companion object's `const val` is just as much a real constant as a top-level
-// one), so it's checked as its own signal rather than folded into that scope walk.
+/// Treat a compiler-enforced const val as a compile-time constant at any nesting depth.
+///
+/// decision: `const val` is an explicit, compiler-enforced compile-time-constant marker — unlike the
+/// module-scope heuristic isInConstantContext (magicNumber.ts) otherwise relies on, this is valid at
+/// ANY nesting depth (a companion object's `const val` is just as much a real constant as a top-level
+/// one), so it's checked as its own signal rather than folded into that scope walk.
 let kotlinLanguageAdapter: LanguageAdapter =
     { Id = "kotlin"
       GrammarPath = "grammars/tree-sitter-kotlin.wasm"
@@ -110,6 +163,8 @@ let kotlinLanguageAdapter: LanguageAdapter =
           FloatLiteral = Some(NodeType "float_literal")
           StringLiteral = Some(NodeType "string_literal") }
       IsFunctionDefinition = fun node -> nodeType node = NodeType "function_declaration"
+      // Kotlin has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun _ -> false
       ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =
@@ -131,12 +186,14 @@ let kotlinLanguageAdapter: LanguageAdapter =
                     entries |> List.exists (fun entry -> nodeText entry |> _.Contains("else ->"))
 
                 Some(entries.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_expression"
-          NodeType "for_statement"
-          NodeType "while_statement"
-          NodeType "when_expression"
-          NodeType "catch_block" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_expression"
+              NodeType "for_statement"
+              NodeType "while_statement"
+              NodeType "when_expression"
+              NodeType "catch_block"
+              NodeType "do_while_statement" ]
       NestingControlTypes =
         [ NodeType "if_expression"
           NodeType "for_statement"
@@ -150,7 +207,6 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 nodeChildren node
                 |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
                 |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = NodeType "block"
       // Kotlin's try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "navigation_expression" ]
@@ -161,18 +217,14 @@ let kotlinLanguageAdapter: LanguageAdapter =
             else
                 match
                     nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier"),
-                    nodeChildren node |> List.tryFind isUserType
+                    nodeChildren node |> List.tryFind isParameterType
                 with
                 | Some nameNode, Some typeNode ->
-                    match
-                        nodeChildren typeNode
-                        |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
-                    with
-                    | Some ti ->
-                        Some
-                            { Name = nodeText nameNode
-                              Type = nodeText ti }
-                    | None -> None
+                    // Preserve generic arguments and the nullable marker so a parameter and its
+                    // return type agree exactly.
+                    Some
+                        { Name = nodeText nameNode
+                          Type = nodeText typeNode }
                 | _ -> None
       ExtractReturnType =
         fun node ->
@@ -224,6 +276,9 @@ let kotlinLanguageAdapter: LanguageAdapter =
                     | [ l; r ] -> [ { Left = l; Right = r } ]
                     | _ -> []
                 | None -> []
+      // Kotlin's when-on-string is a documented gap shared with Python/TS/C++ — only F#'s `match` gets
+      // the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       // Kotlin's set-membership idiom (`x in listOf(...)`) is an in_expression whose right side is
       // normally a call_expression, not a literal collection — not modeled here, same precedent as
       // typescript.ts. Repeated equality checks still accumulate via getEqualityComparisons.
@@ -348,4 +403,15 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 |> List.filter (fun s -> nodeType s = NodeType "delegation_specifier")
                 |> List.choose delegationSpecifierName
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_expression" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "function_body"; NodeType "block" ]
+              Conditional = NodeType "if_expression"
+              Rejections = [ NodeType "throw_expression" ]
+              Return = Some(NodeType "return_expression")
+              FailureCalls = []
+              EmptyValues = [ "Unit" ]
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation = fun _ -> false } }

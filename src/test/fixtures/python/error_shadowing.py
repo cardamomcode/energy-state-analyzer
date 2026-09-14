@@ -10,8 +10,8 @@ def finalize(value):
     return value * 2
 
 
-# decision: most of this function's named nodes live inside the try/catch region, so error handling
-# shadows the (tiny) unguarded business logic — the error-shadowing detector should flag it High.
+# decision: the protected try body is happy-path work and the small except arms are recovery, so the
+# error-shadowing detector should stay quiet.
 def shadowedByError():
     result = None
     try:

@@ -4,10 +4,12 @@ open System.Text.RegularExpressions
 open Energy.Core.Report
 open Energy.Core.Violation
 
-// decision: the score scale and risk boundaries are fixed parts of the published report/diff
-// metric rather than tunable detector thresholds, so they live as named constants at the top of
-// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
-// complexity bound stays an int to match extractComplexityValue's return type.
+/// Named constants fixing the report's score scale and risk-score boundaries.
+///
+/// decision: the score scale and risk boundaries are fixed parts of the published report/diff
+/// metric rather than tunable detector thresholds, so they live as named constants at the top of
+/// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
+/// complexity bound stays an int to match extractComplexityValue's return type.
 let private maxComplexityScore = 100
 let private scoreCeiling = 10.0
 let private lowThreshold = 4.0
@@ -79,8 +81,10 @@ let private categoryLabel =
     | LogicalControlFlow -> "Logical operator as control flow"
     | OpaqueBoolean -> "Opaque boolean literals"
     | ErrorShadowing -> "Error handling shadows logic"
+    | ParseDontValidate -> "Parse, don't validate"
     | Suppression -> "Suppression directives"
 
+/// Explain the reading burden behind each reported category.
 let private categoryBlurb =
     function
     | Nesting ->
@@ -92,21 +96,24 @@ let private categoryBlurb =
             "the file mixes too many responsibilities (too many functions/imports, or too many large functions) to read as one coherent unit"
     | Magic -> Some "unnamed literals standing in for a value that deserves a name"
     | Parameters -> Some "a function with enough parameters that call sites are easy to get wrong"
-    | Inversion -> Some "validation/guard logic that would read more clearly as early returns"
+    | Inversion ->
+        Some
+            "terminal conditionals or deep if-nesting that may be easier to read with guard clauses or a named operation"
     | PrimitiveObsession -> Some "adjacent same-typed values a caller could silently swap without the compiler noticing"
     | MatchOpportunity -> Some "an if/elif chain on one variable that would read more clearly as a match/switch"
     | LogicalControlFlow -> Some "&&/|| used to hide an if statement"
     | OpaqueBoolean -> Some "a bare true/false at a call site that only makes sense by reading the callee"
-    | ErrorShadowing ->
-        Some
-            "error handling (try/catch/except) occupying most of a function's body, so the happy path it wraps is hard to read"
+    | ErrorShadowing -> Some "an overly broad protected try region or recovery/cleanup policy that dominates a function"
+    | ParseDontValidate -> Some "a checked property that is not preserved in the returned type"
     | Suppression ->
         Some "an esa-ignore comment that names an unknown violation type, or no longer matches any violation"
     | Complexity
     | Cognitive -> None
 
-// decision: derives the complexity value from the established detector message rather than
-// changing the public violation shape solely for a report-only view.
+/// Extract the numeric complexity value from a violation's detector message.
+///
+/// decision: derives the complexity value from the established detector message rather than
+/// changing the public violation shape solely for a report-only view.
 let private extractComplexityValue violation =
     match violation.Type with
     | Complexity
@@ -192,8 +199,10 @@ let private describeCategoryFindings violationType violations =
                 suffix
         )
 
-// invariant: non-complexity findings never produce Critical; that level remains reserved for
-// an extreme cyclomatic or cognitive score.
+/// Compute a single 0.0–10.0 risk score from one file's violations.
+///
+/// invariant: non-complexity findings never produce Critical; that level remains reserved for
+/// an extreme cyclomatic or cognitive score.
 let private fileScore violations =
     match violations |> List.choose extractComplexityValue |> List.sortDescending with
     | value :: _ -> complexityToScore value

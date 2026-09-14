@@ -6,8 +6,8 @@ let private transform value = value + 1
 
 let private finalize value = value * 2
 
-// decision: most of this function's named nodes live inside the try/except region, so error handling
-// shadows the (tiny) unguarded business logic — the error-shadowing detector should flag it High.
+// decision: the protected try body is happy-path work and the small with rules are recovery, so the
+// error-shadowing detector should stay quiet.
 let shadowedByError () =
     let result =
         try

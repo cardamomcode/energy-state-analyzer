@@ -5,8 +5,8 @@ open System.Threading.Tasks
 
 open Energy.CliModes
 open Energy.CliNode
-open Energy.Core.Analyze
 open Energy.Core.Config
+open Energy.Core.FsPath
 open Energy.Core.Paths
 
 type private ParsedArguments =
@@ -34,8 +34,10 @@ let private valueFlags =
           "medium-parameter-count"
           "high-parameter-count" ]
 
-// decision: recognized flags consume exactly one following value, leaving all other positional
-// arguments untouched so the CLI retains its intentionally small dependency-free parser.
+/// Parse value-consuming CLI flags into a paths list and a flag map.
+///
+/// decision: recognized flags consume exactly one following value, leaving all other positional
+/// arguments untouched so the CLI retains its intentionally small dependency-free parser.
 let private parseValues (arguments: string array) : string list * Map<string, string> =
     // decision: boolean flags are recognized by name and consume no value, so they can appear
     // anywhere in the argument list without shifting the positional paths.
@@ -78,7 +80,7 @@ let private parseArguments arguments =
 
     { Paths = paths
       BaseRef = Map.tryFind "base-ref" flags
-      Report = Map.tryFind "report" flags
+      Report = Map.tryFind "report" flags |> Option.map parseReportFormat
       ConfigFile = Map.tryFind "config" flags
       Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
       Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
@@ -89,9 +91,11 @@ let private parseArguments arguments =
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
 
-// decision: the CLI reads .esaconfig.json by default (searching up from the current directory), or an
-// explicit path via --config; threshold flags then override whatever that file set. This is why the
-// defaults now come from Core.Config — they are the same values a project's config overlays onto.
+/// Merge CLI threshold overrides onto the config-resolved base options.
+///
+/// decision: the CLI reads .esaconfig.json by default (searching up from the current directory), or an
+/// explicit path via --config; threshold flags then override whatever that file set. This is why the
+/// defaults now come from Core.Config — they are the same values a project's config overlays onto.
 let private buildThresholds parsed : AnalyzeOptions =
     let baseOptions =
         match parsed.ConfigFile with
@@ -149,7 +153,7 @@ let runCli () : Task<unit> =
 
             let report =
                 parsed.Report
-                |> Option.defaultValue (if parsed.BaseRef.IsSome then "md" else "sarif")
+                |> Option.defaultValue (if parsed.BaseRef.IsSome then Markdown else Sarif)
 
             match parsed.BaseRef, parsed.Paths with
             | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report

@@ -1,12 +1,12 @@
 # Energy State Analyzer
 
-Visualizes "energy states" in Python, F#, TypeScript, Kotlin, and C++ code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
+Visualizes "energy states" in Python, F#, TypeScript, Kotlin, C++, and C# code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
 ![Energy State Analyzer screenshot](https://raw.githubusercontent.com/cardamomcode/energy-state-analyzer/99f806f/images/energy-state-analyzer.png)
 
 ## Features
 
-Real-time analysis of the active Python, F#, TypeScript, Kotlin, or C++ file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
+Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, or C# file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
 
 - [Cyclomatic complexity](docs/detectors/cyclomatic-complexity.md), too many independent execution paths.
 - [Cognitive complexity](docs/detectors/cognitive-complexity.md), too hard to read due to nesting.
@@ -20,6 +20,7 @@ Real-time analysis of the active Python, F#, TypeScript, Kotlin, or C++ file, re
 - [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type.
 - [Match opportunities](docs/detectors/match-opportunities.md), if/elif chains that could be a match/switch.
 - [Logical operator as control flow](docs/detectors/logical-operator-control-flow.md), an `if` hidden behind `&&`/`||`.
+- [Parse, don't validate](docs/detectors/parse-dont-validate.md), checks whose successful result does not preserve the domain constraint.
 - [Opaque boolean literal](docs/detectors/opaque-boolean-literal.md), an unlabeled `true`/`false` at a call site.
 
 Violations are shown three ways:
@@ -39,14 +40,14 @@ The name is a deliberate analogy to thermodynamics: a function's "energy" is its
 The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to check the complexity of code it just generated and keep refactoring until it's clean:
 
 ```bash
-npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .hpp
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs
 ```
 
-See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch.
+See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch. See [docs/agent-integration.md](docs/agent-integration.md) for wiring the CLI into an AI coding agent's edit-and-verify loop.
 
 ## Requirements
 
-The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, or C++ file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).
+The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, C++, or C# file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).
 
 ## Development
 
@@ -67,7 +68,7 @@ for the Extension Development Host.
 
 ## Extension Settings
 
-Settings split into two concerns: **which detectors run and how they look** live in VS Code (editor-only toggles and colors), while **how strict each detector is** belongs in a project `.esaconfig.json` shared with the CLI/CI. An explicitly configured VS Code value can override a detail setting for the current workspace.
+Settings split into two concerns: **which detectors run and how they look** live in VS Code (editor-only toggles and colors), while **how strict each detector is** belongs in a project `.esaconfig.json` shared with the CLI/CI.
 
 ### Enable/disable detectors and pick colors (VS Code settings)
 
@@ -80,6 +81,7 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 - `energyStateAnalyzer.matchOpportunity.enabled` (`true`)
 - `energyStateAnalyzer.parameterCount.enabled` (`true`)
 - `energyStateAnalyzer.primitiveObsession.enabled` (`true`)
+- `energyStateAnalyzer.parseDontValidate.enabled` (`true`)
 - `energyStateAnalyzer.opaqueBoolean.enabled` (`true`)
 - `energyStateAnalyzer.logicalControlFlow.enabled` (`true`)
 - `energyStateAnalyzer.inversion.enabled` (`true`)
@@ -91,14 +93,15 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 
 ### Thresholds and allowlists (`.esaconfig.json`)
 
-Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, [guidance on choosing thresholds](docs/configuration.md#choosing-thresholds), and how the file layers over VS Code settings (`defaults < .esaconfig.json < host override`). The keys (all optional; an absent key keeps its default) include:
+Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.json` file to share them between the editor and CLI/CI — see [docs/configuration.md](docs/configuration.md) for the schema, per-key defaults, and [guidance on choosing thresholds](docs/configuration.md#choosing-thresholds). The keys (all optional; an absent key keeps its default) include:
 
 - `nesting.mediumThreshold` / `highThreshold` (`3` / `5`)
 - `cognitiveComplexity.mediumThreshold` / `highThreshold` (`15` / `25`)
 - `coherence.largeFunctionLines` (`20`), `maxLargeFunctions` (`5`), `singleDomainNameShare` (`0.7`)
 - `matchOpportunity.minBranches` (`3`)
 - `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
-- `errorShadowing.threshold` / `highThreshold` / `minNamedNodes` (`0.5` / `0.7` / `8`)
+- `errorShadowing.protectedScope.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `8`)
+- `errorShadowing.recovery.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `5`)
 - `magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
 

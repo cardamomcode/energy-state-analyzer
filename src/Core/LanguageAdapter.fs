@@ -22,11 +22,29 @@ type BooleanOperator =
     | And
     | Or
 
+/// The contribution made by a control-flow construct before its body is visited.
+type CognitiveIncrement =
+    | Structural
+    | Hybrid
+    | Fundamental
+
+/// Grammar-normalized cognitive structure; only the listed children enter nested control flow.
+type CognitiveStructure =
+    | Flow of CognitiveIncrement * Node list
+    | Closure
+    | BooleanGroup of Node
+
 /// A parameter's declared name + type text, when it carries an explicit annotation.
 type TypedParameter = { Name: string; Type: string }
 
 /// The bracket characters wrapping generic type arguments (`[` `]` for Python, `<` `>` for TS/Kotlin/F#).
 type GenericBrackets = { Open: string; Close: string }
+
+/// One try boundary expressed in language-neutral logical work items.
+type ErrorHandlingRegion =
+    { Anchor: Node
+      ProtectedItems: Node list
+      RecoveryItems: Node list }
 
 /// One direct equality comparison (== / === / F#'s single =) a node represents. A list rather than
 /// a single pair because Python's chained `a == b == c` parses as one comparison_operator holding
@@ -37,6 +55,32 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// over a tuple/list/set literal of strings. Empty for languages with no direct equivalent (TS's
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
+
+/// Information exposed after a rejecting guard succeeds.
+type ValidationSuccess =
+    | UnchangedInput of Node
+    | NoValue
+
+/// A syntactically established rejecting guard and its success result.
+type GuardedValidation =
+    { Anchor: Node
+      Condition: Node
+      Success: ValidationSuccess }
+
+/// One logical function inside a definition node. Most grammars have exactly one (the definition
+/// node itself). F#'s `and`-binding (a mutually recursive `let rec f ... and g ...`) parses as a
+/// single `function_or_value_defn` holding several `function_declaration_left` heads, each with its
+/// own parameters and body — `GetFunctionHeads` splits it into one view per head.
+type FunctionHead =
+    {
+        /// The node whose children carry this head's parameter patterns; `findParametersNode` runs
+        /// against it. For a single-head definition this is the definition node itself.
+        ParametersRoot: Node
+        /// The node whose subtree is this head's body — drives per-function stringly-typed control
+        /// flow and anchors that head's violation position. For a single-head definition this is the
+        /// definition node itself.
+        Body: Node
+    }
 
 type ImportKind =
     | Module
@@ -54,9 +98,11 @@ type ImportInfo =
       Source: string
       Bindings: ImportBinding list }
 
-// decision: uses `NodeType option` fields instead of required fields for grammar gaps (e.g. F#'s
-// missing block node, TypeScript's ternary not reused for if/else) — one field per current
-// LanguageNodeTypes member.
+/// Node-type fields per grammar, using options where a grammar has no equivalent node.
+///
+/// decision: uses `NodeType option` fields instead of required fields for grammar gaps (e.g. F#'s
+/// missing block node, TypeScript's ternary not reused for if/else) — one field per current
+/// LanguageNodeTypes member.
 type NodeTypes =
     { Block: NodeType option
       Parameters: NodeType
@@ -80,8 +126,10 @@ type NodeTypes =
       FloatLiteral: NodeType option
       StringLiteral: NodeType option }
 
-// decision: a function that decides something about a node takes the raw `Node` and returns a pure
-// F# value; null-returning hooks become `... option`. The record below is the full current surface.
+/// Per-grammar knowledge as a record of pure predicate hooks over tree-sitter nodes.
+///
+/// decision: a function that decides something about a node takes the raw `Node` and returns a pure
+/// F# value; null-returning hooks become `... option`. The record below is the full current surface.
 type LanguageAdapter =
     { Id: string
       // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
@@ -93,6 +141,16 @@ type LanguageAdapter =
       // apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain
       // `let x = 5` and monadic `let!` bindings, distinguished only by their children).
       IsFunctionDefinition: Node -> bool
+      // Given a node for which IsFunctionDefinition is true, decompose it into the logical functions
+      // it contains. Most grammars return a single view wrapping the node itself (one function per
+      // definition node). F# splits an `and`-binding into one view per `function_declaration_left`
+      // head, so each head's parameters and body are analyzed independently rather than merged into
+      // the first head's.
+      //
+      // decision: a hook rather than a detector-side special case — the merged-binding shape is a
+      // grammar fact only the adapter knows, and every consumer (parameter-count, primitive-obsession
+      // swap-risk + stringly control flow, type-cohesion) shares the same per-head views.
+      GetFunctionHeads: Node -> FunctionHead list
       // Node types that count as "one parameter" among a parameters node's children.
       ParameterChildTypes: NodeType list
       // Node types that count as a decision point for cyclomatic complexity, EXCLUDING boolean and/or
@@ -104,16 +162,11 @@ type LanguageAdapter =
       // decisions, which therefore have two outcomes. This makes match/switch/when use their real
       // branch count for McCabe complexity instead of contributing one unconditionally.
       CyclomaticBranchCount: Node -> int option
-      // Node types that add "1 + current nesting depth" to cognitive complexity AND descend into
-      // nested scope (if/elif/for/while/except/match-like).
-      CognitiveNestedDecisionTypes: NodeType list
+      // Grammar-specific branches and bodies, independent of optional block wrappers.
+      GetCognitiveStructure: Node -> CognitiveStructure option
       // Control-flow node types that count toward nesting-depth violations.
       NestingControlTypes: NodeType list
       GetBooleanOperator: Node -> BooleanOperator option
-      // Whether a child of a decision-point node counts as "inside" it for nesting-depth purposes.
-      // Grammars with an explicit block/body node (Python, TypeScript) only nest on that child; F#
-      // has no such wrapper, so every child of a decision node is nested content.
-      EntersNestedScope: Node -> bool
       // Whether this node is specifically a try-statement's `else` clause, as opposed to if/for/while's
       // `else` (several grammars reuse one else-clause node type for all of them). Only a try's else is
       // a cyclomatic decision point; always false for grammars with no try-else construct.
@@ -135,12 +188,12 @@ type LanguageAdapter =
       // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
       // boolean, F# string/int/float/bool).
       PrimitiveTypeNames: Set<string>
-      // Node types that begin an error-handling region — the try construct whose whole subtree (the
-      // guarded body plus any catch/except/finally arms) counts as "error handling" for the
-      // error-shadowing detector. Marking the entire construct, not just the handler arms, captures
-      // both shadowing modes: logic buried under one catch, and a function dominated by handlers.
-      // Empty for a language whose grammar exposes no try/catch construct.
-      ErrorHandlingAnchorTypes: NodeType list
+      // Extracts a try boundary's protected and recovery/cleanup logical items. None means this node is
+      // not a try boundary. Each grammar owns its body wrappers and handler shapes here.
+      GetErrorHandlingRegion: Node -> ErrorHandlingRegion option
+      // Returns the statement-like work items in a function. Implementations unwrap only structural body
+      // containers; expressions and control structures stay one item, and nested functions stay separate.
+      GetFunctionLogicalItems: Node -> Node list
       // Node types that mark "every parameter after this one is keyword-only" (Python's bare `*`
       // keyword_separator and `*args` list_splat_pattern — both make positional calls to later params
       // impossible). Drives the primitive-obsession detector's parameter-swap-risk suppression. Empty
@@ -150,6 +203,14 @@ type LanguageAdapter =
       // language's own idiom (Python: NewType/dataclass, TS: branded/nominal type, F#: single-case union).
       DistinctTypeAdvice: string
       GetEqualityComparisons: Node -> EqualityComparison list
+      // Given a node, if it is a match/switch that dispatches on a simple variable and carries one
+      // or more string-literal case patterns, returns the scrutinee variable node and the
+      // string-literal case-pattern nodes. None otherwise (not a match on a simple variable, or no
+      // string-literal cases). Drives the primitive-obsession detector's stringly-typed control-flow
+      // check for the idiomatic match/switch dispatch form (F#'s `match x with | "a" -> ... | "b" -> ...
+      //`). Always None for languages whose match/switch is already captured by GetEqualityComparisons
+      // or that have no string-dispatch construct.
+      GetMatchStringCases: Node -> (Node * Node list) option
       // Given a node, returns every 'variable in (literal, ...)' membership check it directly represents
       // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
       // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.
@@ -211,4 +272,6 @@ type LanguageAdapter =
       // Given a class-definition node, returns the names of every class it directly extends/implements, as
       // written in source (not resolved against imports). Used two ways by checkClassRelatedness: linked
       // directly if one's base is the other's name; linked as siblings if they share a base name in common.
-      GetBaseClassNames: Node -> string list }
+      GetBaseClassNames: Node -> string list
+      // Parse a narrow validator body into facts shared by the domain-refinement detector.
+      GetGuardedValidation: FunctionHead -> GuardedValidation option }

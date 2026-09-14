@@ -8,13 +8,13 @@ let private uriConstructor: obj = nativeOnly
 [<Import("Range", "vscode")>]
 let private rangeConstructor: obj = nativeOnly
 
-// A 0-based editor row / column as VS Code reports it.
-//
-// decision: erased to their backing ints (the Core.TreeSitter.NodeType pattern) so the four
-// adjacent int arguments of `new Range(...)` keep their prior runtime shape while F# can no
-// longer transpose a row with a column.
-// invariant: every `Line`/`Column` value has exactly its wrapped int as its JavaScript
-// representation.
+/// A 0-based editor row / column as VS Code reports it.
+///
+/// decision: erased to their backing ints (the Core.TreeSitter.NodeType pattern) so the four
+/// adjacent int arguments of `new Range(...)` keep their prior runtime shape while F# can no
+/// longer transpose a row with a column.
+/// invariant: every `Line`/`Column` value has exactly its wrapped int as its JavaScript
+/// representation.
 [<Erase>]
 type Line = Line of int
 

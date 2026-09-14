@@ -8,14 +8,14 @@ for versioning.
 
 PR titles must follow the conventional commit format (enforced by CI):
 
-| Prefix    | Version bump | Example                            |
-| --------- | ------------ | ----------------------------------- |
-| `feat:`   | minor        | `feat: add PHP support`             |
-| `fix:`    | patch        | `fix: correct nesting depth count`  |
-| `feat!:`  | major        | `feat!: rename config namespace`    |
-| `chore:`  | patch        | `chore: update dependencies`        |
-| `docs:`   | patch        | `docs: update README`               |
-| `refactor:` | patch      | `refactor: simplify detector walk`  |
+| Prefix      | Version bump | Example                            |
+| ----------- | ------------ | ---------------------------------- |
+| `feat:`     | minor        | `feat: add PHP support`            |
+| `fix:`      | patch        | `fix: correct nesting depth count` |
+| `feat!:`    | major        | `feat!: rename config namespace`   |
+| `chore:`    | patch        | `chore: update dependencies`       |
+| `docs:`     | patch        | `docs: update README`              |
+| `refactor:` | patch        | `refactor: simplify detector walk` |
 
 Other valid prefixes: `test`, `perf`, `ci`, `build`, `style`, `revert`.
 

@@ -7,10 +7,7 @@ let flaggedComplexFunction (x: int) =
         if x > 1 then
             if x > 2 then
                 if x > 3 then
-                    if x > 4 then
-                        if x > 5 then x else 0
-                    else
-                        0
+                    if x > 4 then x else 0
                 else
                     0
             else

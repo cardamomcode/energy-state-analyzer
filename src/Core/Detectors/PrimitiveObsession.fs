@@ -1,6 +1,5 @@
 module Energy.Core.Detectors.PrimitiveObsession
 
-
 open Energy.Core.TreeSitter
 open Energy.Core.Violation
 open Energy.Core.Position
@@ -8,9 +7,11 @@ open Energy.Core.LanguageAdapter
 open Energy.Core.Context
 open Energy.Core.Detectors.ParameterCount
 
-// decision: these primitive-obsession thresholds are detector heuristics, not published or
-// user-tunable metric values, so they stay as named constants at the top of the module rather
-// than in Core.Config, keeping the rationale visible next to the module's other declarations.
+/// Named constants fixing the primitive-obsession heuristic minimums.
+///
+/// decision: these primitive-obsession thresholds are detector heuristics, not published or
+/// user-tunable metric values, so they stay as named constants at the top of the module rather
+/// than in Core.Config, keeping the rationale visible next to the module's other declarations.
 let private minDistinctValues = 3
 let private sampleSize = 4
 
@@ -20,10 +21,10 @@ type private TypedParameterNode =
       Node: Node
       KeywordOnly: bool }
 
-// Detects adjacent, identically typed primitive parameters that callers can accidentally transpose.
-//
-// decision: suppresses a pair only when both parameters occur after a language-level keyword-only
-// boundary — optional named call syntax cannot prevent a later positional call from swapping values.
+/// Detects adjacent, identically typed primitive parameters that callers can accidentally transpose.
+///
+/// decision: suppresses a pair only when both parameters occur after a language-level keyword-only
+/// boundary — optional named call syntax cannot prevent a later positional call from swapping values.
 let private findParameterCollisions (paramsNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
     let _, typed =
         nodeChildren paramsNode
@@ -72,41 +73,40 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
 
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)
 
-// Detects one function-local variable being compared to three or more distinct string literals.
-//
-// assumption: a variable name belongs only to its containing function for this analysis; names reused
-// in unrelated functions must not accumulate into one finding.
+/// Normalize either orientation of a variable-to-string equality into one aggregation entry.
+let private stringEquality (language: LanguageAdapter) (comparison: EqualityComparison) =
+    let isVariable node =
+        List.contains (nodeType node) language.VariableReferenceNodeTypes
+
+    let isString node =
+        language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
+
+    match
+        isVariable comparison.Left, isString comparison.Right, isVariable comparison.Right, isString comparison.Left
+    with
+    | true, true, _, _ -> Some(comparison.Left, stripQuotes (nodeText comparison.Right))
+    | _, _, true, true -> Some(comparison.Right, stripQuotes (nodeText comparison.Left))
+    | _ -> None
+
+/// Merge values under their variable name while keeping the first source occurrence.
+let private recordStringValues (variable: Node) (values: string list) state =
+    let key = nodeText variable
+
+    match Map.tryFind key state with
+    | Some(existingValues, firstOccurrence) ->
+        Map.add key (Set.union existingValues (Set.ofList values), firstOccurrence) state
+    | None -> Map.add key (Set.ofList values, variable) state
+
+/// Detects one function-local variable being compared to three or more distinct string literals.
+///
+/// assumption: a variable name belongs only to its containing function for this analysis; names reused
+/// in unrelated functions must not accumulate into one finding.
 let private findStringlyTypedControlFlow (functionNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
-    let isStringLiteral node =
-        language.NodeTypes.StringLiteral
-        |> Option.exists (fun stringLiteralType -> nodeType node = stringLiteralType)
-
-    let record (variable: Node) (values: string list) state =
-        let key = nodeText variable
-
-        match Map.tryFind key state with
-        | Some(existingValues, firstOccurrence) ->
-            Map.add key (Set.union existingValues (Set.ofList values), firstOccurrence) state
-        | None -> Map.add key (Set.ofList values, variable) state
-
     let rec traverse (node: Node) state =
         let withEqualities =
             language.GetEqualityComparisons node
-            |> List.fold
-                (fun acc comparison ->
-                    if
-                        List.contains (nodeType comparison.Left) language.VariableReferenceNodeTypes
-                        && isStringLiteral comparison.Right
-                    then
-                        record comparison.Left [ stripQuotes (nodeText comparison.Right) ] acc
-                    elif
-                        List.contains (nodeType comparison.Right) language.VariableReferenceNodeTypes
-                        && isStringLiteral comparison.Left
-                    then
-                        record comparison.Right [ stripQuotes (nodeText comparison.Left) ] acc
-                    else
-                        acc)
-                state
+            |> List.choose (stringEquality language)
+            |> List.fold (fun acc (variable, value) -> recordStringValues variable [ value ] acc) state
 
         let withMembership =
             language.GetMembershipComparisons node
@@ -116,13 +116,24 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
                         List.contains (nodeType comparison.Left) language.VariableReferenceNodeTypes
                         && not comparison.Values.IsEmpty
                     then
-                        record comparison.Left comparison.Values acc
+                        recordStringValues comparison.Left comparison.Values acc
                     else
                         acc)
                 withEqualities
 
+        // decision: also counts the idiomatic match/switch dispatch on string literals (F#'s
+        // `match x with | "a" -> ... | "b" -> ...`), which the infix-`=` hooks above don't see. The hook
+        // returns the scrutinee variable and the string-literal case nodes; the values are accumulated
+        // under the same variable key as an equality comparison, so a match and an if/elif chain on the
+        // same name in one function still sum toward the threshold.
+        let withMatchCases =
+            match language.GetMatchStringCases node with
+            | Some(scrutinee, caseNodes) ->
+                recordStringValues scrutinee (caseNodes |> List.map (stripQuotes << nodeText)) withMembership
+            | None -> withMembership
+
         nodeChildren node
-        |> List.fold (fun acc child -> traverse child acc) withMembership
+        |> List.fold (fun acc child -> traverse child acc) withMatchCases
 
     traverse functionNode Map.empty
     |> Map.toList
@@ -148,19 +159,27 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
                         suffix
                   Hotspots = [] })
 
-// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
-// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
+/// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
+/// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
 let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
+        // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head
+        // per mutually recursive let) rather than the merged node. This fixes two false results at once:
+        // each head's parameters are analyzed for swap risk (previously only the first head's were), and
+        // each head's body is scanned for stringly-typed control flow in isolation (previously the merged
+        // node let two heads' same-named-variable comparisons accumulate into one phantom finding).
+        // For a single-head definition this is one head, so behavior is unchanged.
         let ownViolations =
             if ctx.Language.IsFunctionDefinition node then
-                let parameterViolations =
-                    match findParametersNode node ctx.Language.NodeTypes.Parameters with
-                    | Some parameters -> findParameterCollisions parameters ctx.Positions ctx.Language
-                    | None -> []
+                ctx.Language.GetFunctionHeads node
+                |> List.collect (fun head ->
+                    let parameterViolations =
+                        match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
+                        | Some parameters -> findParameterCollisions parameters ctx.Positions ctx.Language
+                        | None -> []
 
-                parameterViolations
-                @ findStringlyTypedControlFlow node ctx.Positions ctx.Language
+                    parameterViolations
+                    @ findStringlyTypedControlFlow head.Body ctx.Positions ctx.Language)
             else
                 []
 

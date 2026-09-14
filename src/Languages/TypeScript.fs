@@ -1,6 +1,5 @@
 module Energy.Languages.TypeScript
 
-open Fable.Core
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -15,21 +14,55 @@ open Energy.Core.LanguageAdapter
 // from the root (or via the null-safe nodeParent accessor), so we read members directly and treat
 // `.children` as an always-present list (empty when there are none).
 
-// decision: shared by extractTypedParameter/extractReturnType below — both check for TS's
-// type-annotation grammar node (`: <type>`); a literal repeated across both would trip the
-// magic-string detector's own duplicate-string check.
+/// Name TS's type-annotation node type shared across hooks.
+///
+/// decision: shared by extractTypedParameter/extractReturnType below — both check for TS's
+/// type-annotation grammar node (`: <type>`); a literal repeated across both would trip the
+/// magic-string detector's own duplicate-string check.
 let private typeAnnotationNodeType = NodeType "type_annotation"
 
-// decision: shared by getClassName/getBaseClassNames below — both check a node's type against TS's
-// grammar node-type name for a class's own name identifier (distinct from a plain `identifier`,
-// which lower-cased bindings use); a literal repeated across both would trip the magic-string
-// detector's own duplicate-string check.
+/// Name TS's type-identifier node type shared across hooks.
+///
+/// decision: shared by getClassName/getBaseClassNames below — both check a node's type against TS's
+/// grammar node-type name for a class's own name identifier (distinct from a plain `identifier`,
+/// which lower-cased bindings use); a literal repeated across both would trip the magic-string
+/// detector's own duplicate-string check.
 let private typeIdentifierNodeType = NodeType "type_identifier"
+let private tryStatementNodeType = NodeType "try_statement"
+let private statementBlockNodeType = NodeType "statement_block"
+let private catchClauseNodeType = NodeType "catch_clause"
+let private finallyClauseNodeType = NodeType "finally_clause"
 
-// decision: split out of getBaseClassNames into their own functions, each checking a single node
-// type, rather than several `c.type === '...'` comparisons against the same `heritage` subtree in
-// one function — that shape is exactly what the primitive-obsession detector's stringly-typed
-// control-flow check flags as a switch-like branch on an ad hoc string tag.
+let private bodyItems (node: Node) : Node list =
+    let children = nodeNamedChildren node
+
+    match children |> List.tryFind (fun child -> nodeType child = statementBlockNodeType) with
+    | Some block -> nodeNamedChildren block
+    | None -> children
+
+let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
+    if nodeType node <> tryStatementNodeType then
+        None
+    else
+        let children = nodeNamedChildren node
+
+        children
+        |> List.tryFind (fun child -> nodeType child = statementBlockNodeType)
+        |> Option.map (fun protectedBody ->
+            { Anchor = node
+              ProtectedItems = bodyItems protectedBody
+              RecoveryItems =
+                children
+                |> List.filter (fun child ->
+                    nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
+                |> List.collect bodyItems })
+
+/// Extract the extends_clause target names from a class heritage subtree.
+///
+/// decision: split out of getBaseClassNames into their own functions, each checking a single node
+/// type, rather than several `c.type === '...'` comparisons against the same `heritage` subtree in
+/// one function — that shape is exactly what the primitive-obsession detector's stringly-typed
+/// control-flow check flags as a switch-like branch on an ad hoc string tag.
 let private extendsTargetNames (heritage: Node) : string list =
     let extendsClause =
         nodeChildren heritage
@@ -56,15 +89,12 @@ let private implementsTargetNames (heritage: Node) : string list =
         |> List.map nodeText
     | None -> []
 
-// decision: treats arrow functions (`(x) => x + 1`) as `lambda`, matching Python's `lambda` — they
-// add structural nesting in cognitive complexity but aren't analyzed by parameter-count/complexity/
-// coherence themselves (same limitation Python already has for its own lambdas); only named
-// `function_declaration`s and class `method_definition`s count as "a function" for those detectors.
-//
-// tradeoff: accepts a slightly higher cognitive-complexity score for `else if` chains (else_clause's
-// flat +1 plus the nested if's `1 + nesting`) instead of unwrapping single-if else-clauses specially
-// — TypeScript's `else if` parses as `else_clause` wrapping a nested `if_statement`, unlike Python's
-// flat elif sibling.
+/// Treat arrow functions as lambdas, matching Python's grammar limitation.
+///
+/// decision: treats arrow functions (`(x) => x + 1`) as `lambda`, matching Python's `lambda` — they
+/// add structural nesting in cognitive complexity but aren't analyzed by parameter-count/complexity/
+/// coherence themselves (same limitation Python already has for its own lambdas); only named
+/// `function_declaration`s and class `method_definition`s count as "a function" for those detectors.
 let typeScriptLanguageAdapter: LanguageAdapter =
     { Id = "typescript"
       GrammarPath = "grammars/tree-sitter-typescript.wasm"
@@ -93,6 +123,8 @@ let typeScriptLanguageAdapter: LanguageAdapter =
         fun node ->
             nodeType node = NodeType "function_declaration"
             || nodeType node = NodeType "method_definition"
+      // TypeScript has no merged-binding shape: one definition node is one function.
+      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes = [ NodeType "required_parameter"; NodeType "optional_parameter" ]
       DecisionNodeTypes =
@@ -120,12 +152,15 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                     |> List.exists (fun caseClause -> nodeType caseClause = NodeType "switch_default")
 
                 Some(cases.Length + if hasFallback then 0 else 1)
-      CognitiveNestedDecisionTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_in_statement"
-          NodeType "while_statement"
-          NodeType "catch_clause" ]
+      GetCognitiveStructure =
+        CognitiveSyntax.classify
+            [ NodeType "if_statement"
+              NodeType "for_statement"
+              NodeType "for_in_statement"
+              NodeType "while_statement"
+              NodeType "catch_clause"
+              NodeType "switch_statement"
+              NodeType "do_statement" ]
       NestingControlTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"
@@ -140,7 +175,6 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                 nodeChildren node
                 |> List.tryFind (fun c -> nodeType c = NodeType "&&" || nodeType c = NodeType "||")
                 |> Option.map (fun c -> if nodeType c = NodeType "&&" then And else Or)
-      EntersNestedScope = fun node -> nodeType node = NodeType "statement_block"
       // JS/TS try/catch has no else-branch construct.
       IsTryElseClause = fun _ -> false
       VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_expression" ]
@@ -202,6 +236,9 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                     | [ l; r ] -> [ { Left = l; Right = r } ]
                     | _ -> []
                 | None -> []
+      // TS's switch-on-string is a documented gap shared with Python/Kotlin/C++ — only F#'s `match` gets
+      // the dedicated string-case hook.
+      GetMatchStringCases = fun _ -> None
       // TS's set-membership idiom is `[...].includes(x)`, a call_expression rather than a comparison
       // node — not modeled here; repeated equality checks still accumulate via getEqualityComparisons.
       GetMembershipComparisons = fun _ -> []
@@ -314,4 +351,21 @@ let typeScriptLanguageAdapter: LanguageAdapter =
             with
             | Some heritage -> extendsTargetNames heritage @ implementsTargetNames heritage
             | None -> []
-      ErrorHandlingAnchorTypes = [ NodeType "try_statement" ] }
+      GetErrorHandlingRegion = errorHandlingRegion
+      GetFunctionLogicalItems = bodyItems
+      GetGuardedValidation =
+        ValidationSyntax.extract
+            { Containers = [ NodeType "statement_block" ]
+              Conditional = NodeType "if_statement"
+              Rejections = [ NodeType "throw_statement" ]
+              Return = Some(NodeType "return_statement")
+              FailureCalls = []
+              EmptyValues = [ "undefined" ]
+              IsNonExecutable = fun _ -> false
+              PreservesCheckedInformation =
+                fun node ->
+                    nodeNamedChildren node
+                    |> List.exists (fun child ->
+                        nodeType child = NodeType "asserts_annotation"
+                        || (nodeType child = NodeType "property_identifier"
+                            && nodeText child = "constructor")) } }
