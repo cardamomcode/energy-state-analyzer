@@ -8,12 +8,9 @@ open type Scriptorium.Quill.Test
 
 open Energy.Core.Violation
 open Energy.Core.Analyze
-open Energy.Core.Context
 open Energy.Core.FsPath
-open Energy.Core.Position
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
-open Energy.Core.LanguageAdapter
 
 // Shared integration-test harness.
 //
@@ -43,24 +40,61 @@ type FixtureExpectation =
 
 type LanguageFixtureCase =
     { LanguageLabel: string
-      Language: LanguageAdapter
+      Language: Energy.Core.LanguageAdapter.LanguageAdapter
       Fixture: string
       Expectations: FixtureExpectation list }
 
-// Parse a fixture file with the given language adapter's grammar. Returns (sourceCode, tree).
-// Async because web-tree-sitter's Parser.init + Language.load are promises — parseWith bridges them
-// into a Task<Node>, and this task { } block awaits each step before returning the parsed root.
-let parseFixture (language: LanguageAdapter) (relativePath: string) : Task<string * Node> =
-    task {
-        let grammarPath = cwd () + "/" + language.GrammarPath
-        // decision: read fixtures from the source tree, not out/ — compiled JS never copies fixture
-        // files verbatim, so the .py/.fs sources would be missing under out/.
-        let sourcePath = cwd () + "/src/test/fixtures/" + relativePath
-        let sourceCode = readFileSync (Path sourcePath) (Encoding "utf8")
-        let! tree = parseWith (Path grammarPath) sourceCode
+/// Pending grammar loads shared by every fixture that uses the same grammar WASM.
+let private grammarLoads =
+    System.Collections.Generic.Dictionary<string, Task<Grammar>>()
 
-        return (sourceCode, tree)
-    }
+/// Pending parses shared by tests that use the same immutable source fixture and grammar.
+let private fixtureParses =
+    System.Collections.Generic.Dictionary<string, Task<string * Node>>()
+
+/// Load one grammar instance per WASM path, including when tests request it concurrently.
+///
+/// decision: caches the pending task, not only its result, because Quill starts async cases in
+/// parallel and simultaneous cache misses would otherwise instantiate the same WASM repeatedly.
+let private getOrLoadGrammar grammarPath =
+    match grammarLoads.TryGetValue grammarPath with
+    | true, pending -> pending
+    | false, _ ->
+        let pending =
+            task {
+                do! init ()
+                return! load languageCtor (Path grammarPath)
+            }
+
+        grammarLoads.Add(grammarPath, pending)
+        pending
+
+/// Parse a fixture once and share its pending task and immutable syntax tree across test cases.
+///
+/// decision: creates a fresh parser for each distinct fixture while sharing its loaded grammar;
+/// parser state does not cross fixture parses, and read-only analyses reuse one fixture tree.
+let parseFixture (language: Energy.Core.LanguageAdapter.LanguageAdapter) (relativePath: string) : Task<string * Node> =
+    let grammarPath = cwd () + "/" + language.GrammarPath
+    // decision: read fixtures from the source tree, not out/ — compiled JS never copies fixture
+    // files verbatim, so the .py/.fs sources would be missing under out/.
+    let sourcePath = cwd () + "/src/test/fixtures/" + relativePath
+    let cacheKey = grammarPath + "\u001f" + sourcePath
+
+    match fixtureParses.TryGetValue cacheKey with
+    | true, pending -> pending
+    | false, _ ->
+        let pending =
+            task {
+                let sourceCode = readFileSync (Path sourcePath) (Encoding "utf8")
+                let! grammar = getOrLoadGrammar grammarPath
+                let parser = makeParser parserCtor
+                setLanguage parser grammar |> ignore
+                let tree = parse parser sourceCode
+                return (sourceCode, rootNode tree)
+            }
+
+        fixtureParses.Add(cacheKey, pending)
+        pending
 
 let analyzeFixture sourceCode tree language fileName =
     { Source = sourceCode
@@ -71,10 +105,10 @@ let analyzeFixture sourceCode tree language fileName =
     |> _.Violations
 
 /// Build a detector context for tests that exercise one detector with custom options.
-let createTestContext sourceCode tree language fileName options : AnalysisContext =
+let createTestContext sourceCode tree language fileName options : Energy.Core.Context.AnalysisContext =
     { Source = sourceCode
       Tree = tree
-      Positions = createPositionLookup sourceCode
+      Positions = Energy.Core.Position.createPositionLookup sourceCode
       Language = language
       FileName = fileName
       Options = options
