@@ -3,6 +3,9 @@ module Energy.Core.Detectors.ImportCoherence
 open Energy.Core
 open Energy.Core.Config
 
+/// Kotlin's explicit import style needs a higher member fan-out bar for large external APIs.
+let private kotlinMemberImportFanOutThreshold = 30
+
 /// F# `open` brings a module's members into lexical scope. A project-configured number of siblings
 /// under one parent (seven by default) is therefore a different signal from unrelated dependencies:
 /// their values can shadow each other and an unqualified reference no longer says where it came from.
@@ -35,6 +38,17 @@ let private widestMemberImportFanOut
     |> List.filter (fun (_, count) -> count >= memberImportFanOutThreshold)
     |> List.sortByDescending snd
     |> List.tryHead
+
+/// Select the member fan-out threshold for a language.
+///
+/// decision: Kotlin uses a fixed higher bar because explicit one-declaration-per-import syntax is
+/// idiomatic for large external APIs; the project-configured threshold remains the policy for other
+/// languages.
+let private memberImportFanOutThreshold (languageId: string) (coherence: CoherenceThresholds) : int =
+    if languageId = "kotlin" then
+        kotlinMemberImportFanOutThreshold
+    else
+        coherence.MemberImportFanOutThreshold
 
 let private importMessage
     (languageId: string)
@@ -87,7 +101,7 @@ let check
             None
 
     let memberFanOut =
-        widestMemberImportFanOut imports coherence.MemberImportFanOutThreshold
+        widestMemberImportFanOut imports (memberImportFanOutThreshold language.Id coherence)
 
     if
         importSources.Count <= coherence.ImportBreadthThreshold
