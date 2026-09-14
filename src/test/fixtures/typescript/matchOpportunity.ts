@@ -1,3 +1,4 @@
+// clean — not flagged by match opportunity
 function cleanMixedConditions(a: number, b: string, c: string | null): number {
     if (a > 10) {
         return 1;
@@ -9,6 +10,7 @@ function cleanMixedConditions(a: number, b: string, c: string | null): number {
     return 0;
 }
 
+// flagged — match opportunity (low)
 function flaggedThreeWayChain(status: string): number {
     if (status === "open") {
         return 1;

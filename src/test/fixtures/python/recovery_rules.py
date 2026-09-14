@@ -1,3 +1,4 @@
+# flagged — error shadowing (high)
 def broadScope():
     try:
         work0()
@@ -11,6 +12,7 @@ def broadScope():
     except Failure0:
         work10()
 
+# flagged — recovery dominance (high)
 def twoLineProtected():
     try:
         work0()
@@ -22,6 +24,7 @@ def twoLineProtected():
         work13()
         work14()
 
+# clean — not flagged by recovery dominance
 def oneLineProtected():
     try:
         work0()
@@ -32,6 +35,7 @@ def oneLineProtected():
         work13()
         work14()
 
+# flagged — recovery dominance (medium)
 def workBefore():
     work90()
     try:
@@ -44,6 +48,7 @@ def workBefore():
         work13()
         work14()
 
+# flagged — recovery dominance (medium)
 def workAfter():
     try:
         work0()
@@ -56,6 +61,7 @@ def workAfter():
         work14()
     work90()
 
+# flagged — recovery dominance (high)
 def multilineLoop():
     try:
         for item in items:
@@ -67,6 +73,7 @@ def multilineLoop():
         work13()
         work14()
 
+# clean — not flagged by recovery dominance
 def commentedTrivial():
     try:
         work0() # mixed
@@ -81,6 +88,7 @@ def commentedTrivial():
         work13()
         work14()
 
+# clean — not flagged by oversized recovery block
 def atLimit():
     try:
         work0()
@@ -106,6 +114,7 @@ def atLimit():
         work28()
         work29()
 
+# flagged — oversized recovery block (medium)
 def overLimit():
     try:
         work0()
@@ -132,6 +141,7 @@ def overLimit():
         work29()
         work30()
 
+# clean — not flagged by oversized recovery block
 def commentedLimit():
     try:
         work0() # mixed
@@ -161,6 +171,7 @@ def commentedLimit():
         work28()
         work29()
 
+# clean — not flagged by oversized recovery block
 def separateHandlers():
     try:
         work0()
@@ -189,6 +200,7 @@ def separateHandlers():
         work19()
         work20()
 
+# flagged — oversized recovery block (medium)
 def oversizedCleanup():
     try:
         work0()
@@ -215,6 +227,7 @@ def oversizedCleanup():
         work29()
         work30()
 
+# flagged — oversized recovery block (medium)
 def nestedBoundaries():
     try:
         try:
@@ -265,6 +278,7 @@ def nestedBoundaries():
         recover_20()
 
 
+# flagged — oversized recovery block (medium)
 def nestedFunction():
     def localRecovery():
         try:
@@ -294,6 +308,7 @@ def nestedFunction():
     localRecovery()
 
 
+# flagged — oversized recovery block (medium)
 def lowRecoveryShare():
     recover_0()
     recover_1()
@@ -371,6 +386,7 @@ def lowRecoveryShare():
         recover_20()
 
 
+# flagged — oversized recovery block (medium)
 def multipleOversized():
     try:
         work()
@@ -442,6 +458,7 @@ def multipleOversized():
         recover_20()
 
 
+# flagged — oversized recovery block (medium)
 def mixedCodeComments():
     try:
         work()
@@ -469,6 +486,7 @@ def mixedCodeComments():
         recover_final() # code still counts
 
 
+# clean — not flagged by recovery dominance
 def compactProtected():
     try:
         work(); finish()
@@ -480,6 +498,7 @@ def compactProtected():
         recover_4()
 
 
+# flagged — recovery dominance (medium)
 def shareHalf():
     try:
         work_0()
@@ -495,6 +514,7 @@ def shareHalf():
         recover_4()
 
 
+# flagged — recovery dominance (high)
 def shareHigh():
     try:
         work_0()
@@ -510,6 +530,7 @@ def shareHigh():
         recover_6()
 
 
+# clean — not flagged by recovery dominance
 def belowMinimum():
     try:
         work_0()
@@ -521,6 +542,7 @@ def belowMinimum():
         recover_3()
 
 
+# flagged — error shadowing (medium)
 def broadHalf():
     try:
         work_0()

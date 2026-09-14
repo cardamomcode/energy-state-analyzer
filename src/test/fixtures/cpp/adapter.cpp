@@ -19,6 +19,7 @@ struct Derived final : public ns::Base, virtual Interface<int> {
     }
 };
 
+// clean — not flagged by any detector (structural fixture)
 auto trailing(std::vector<int> values) -> std::string {
     for (int value : values) {
         consume(value);

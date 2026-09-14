@@ -1,7 +1,9 @@
 class ErrorHandling
 {
+// clean — not flagged by error shadowing
     static int CleanPath(int value) => value + 1;
 
+// clean — not flagged by error shadowing
     static int ShadowedByError(int value)
     {
         try

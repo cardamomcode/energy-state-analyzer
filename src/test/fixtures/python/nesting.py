@@ -1,3 +1,4 @@
+# clean — not flagged by nesting
 def cleanShallowNesting(x):
     if x > 0:
         if x > 10:
@@ -5,6 +6,7 @@ def cleanShallowNesting(x):
     return 0
 
 
+# flagged — nesting (medium)
 def flaggedDeepNesting(x):
     if x > 0:
         if x > 1:
@@ -15,6 +17,7 @@ def flaggedDeepNesting(x):
     return 0
 
 
+# flagged — nesting (high)
 def flaggedSevereNesting(x):
     if x > 0:
         if x > 1:
@@ -27,6 +30,7 @@ def flaggedSevereNesting(x):
     return 0
 
 
+# flagged — nesting
 def flaggedTryNesting(x):
     try:
         try:

@@ -1,3 +1,4 @@
+# clean — not flagged by match opportunity
 def cleanMixedConditions(a, b, c):
     if a > 10:
         return 1
@@ -8,6 +9,7 @@ def cleanMixedConditions(a, b, c):
     return 0
 
 
+# flagged — match opportunity (low)
 def flaggedThreeWayChain(status):
     if status == "open":
         return 1

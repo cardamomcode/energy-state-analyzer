@@ -1,10 +1,12 @@
 class SimpleCyclomatic
 {
+// clean — not flagged by cyclomatic complexity
     static int CleanSimpleFunction(int x) => x > 0 ? 1 : 0;
 }
 
 class MediumCyclomatic
 {
+// flagged — cyclomatic complexity (medium)
     static int FlaggedComplexFunction(string status)
     {
         if (status == "a") return 1; else if (status == "b") return 2; else if (status == "c") return 3;
@@ -16,6 +18,7 @@ class MediumCyclomatic
 
 class HighCyclomatic
 {
+// flagged — cyclomatic complexity (high)
     static int FlaggedSevereFunction(string status)
     {
         if (status == "a") return 1; else if (status == "b") return 2; else if (status == "c") return 3;

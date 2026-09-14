@@ -1,7 +1,9 @@
 module CognitiveComplexity
 
+// clean — not flagged by cognitive complexity
 let cleanSimpleFunction (x: int) = if x > 0 then 1 else 0
 
+// flagged — cognitive complexity (medium)
 let flaggedComplexFunction (x: int) =
     if x > 0 then
         if x > 1 then
@@ -17,6 +19,7 @@ let flaggedComplexFunction (x: int) =
     else
         0
 
+// flagged — cognitive complexity (high)
 let flaggedSevereFunction (x: int) =
     if x > 0 then
         if x > 1 then

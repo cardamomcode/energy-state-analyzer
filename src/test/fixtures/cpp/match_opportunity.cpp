@@ -1,3 +1,4 @@
+// clean — not flagged by match opportunity
 int cleanMixedConditions(int a, std::string b, const char* c) {
     if (a > 10) {
         return 1;
@@ -9,6 +10,7 @@ int cleanMixedConditions(int a, std::string b, const char* c) {
     return 0;
 }
 
+// flagged — match opportunity (low)
 int flaggedThreeWayChain(int status) {
     if (status == 0xFE) {
         return 1;
@@ -20,6 +22,7 @@ int flaggedThreeWayChain(int status) {
     return 0;
 }
 
+// clean — not flagged by match opportunity
 int cleanStringChain(std::string status) {
     if (status == "open") {
         return 1;
@@ -31,6 +34,7 @@ int cleanStringChain(std::string status) {
     return 0;
 }
 
+// clean — not flagged by match opportunity
 int cleanFloatingChain(double value) {
     if (value == 1.5) {
         return 1;

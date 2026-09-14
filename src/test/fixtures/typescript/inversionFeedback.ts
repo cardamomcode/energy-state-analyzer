@@ -1,3 +1,4 @@
+// clean — not flagged by inversion feedback
 function cleanRequiredFollowup(a: boolean, b: boolean, c: boolean, d: boolean): void {
     if (a) {
         if (b) {
@@ -8,6 +9,7 @@ function cleanRequiredFollowup(a: boolean, b: boolean, c: boolean, d: boolean): 
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanDominantFollowup(a: boolean, b: boolean, c: boolean, d: boolean): void {
     if (a) {
         recordAttempt();
@@ -18,6 +20,7 @@ function cleanDominantFollowup(a: boolean, b: boolean, c: boolean, d: boolean): 
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanInterveningWork(a: boolean, b: boolean, c: boolean, d: boolean): number {
     prepare();
     if (a) {
@@ -31,6 +34,7 @@ function cleanInterveningWork(a: boolean, b: boolean, c: boolean, d: boolean): n
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanAlternativeBranch(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         if (b) {
@@ -43,6 +47,7 @@ function cleanAlternativeBranch(a: boolean, b: boolean, c: boolean, d: boolean):
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanFlatAlternatives(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         return 1;
@@ -58,6 +63,7 @@ function cleanFlatAlternatives(a: boolean, b: boolean, c: boolean, d: boolean): 
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanTwoLevels(a: boolean, b: boolean, c: boolean, d: boolean): number {
     prepare();
     if (a) {
@@ -69,6 +75,7 @@ function cleanTwoLevels(a: boolean, b: boolean, c: boolean, d: boolean): number 
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedThreeLevels(a: boolean, b: boolean, c: boolean, d: boolean): number {
     prepare();
     if (a) {
@@ -82,6 +89,7 @@ function flaggedThreeLevels(a: boolean, b: boolean, c: boolean, d: boolean): num
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedFourLevels(a: boolean, b: boolean, c: boolean, d: boolean): number {
     prepare();
     if (a) {
@@ -97,6 +105,7 @@ function flaggedFourLevels(a: boolean, b: boolean, c: boolean, d: boolean): numb
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedFiveGuards(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         if (b) {
@@ -113,6 +122,7 @@ function flaggedFiveGuards(a: boolean, b: boolean, c: boolean, d: boolean): numb
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedNestedElse(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         return 1;
@@ -129,6 +139,7 @@ function flaggedNestedElse(a: boolean, b: boolean, c: boolean, d: boolean): numb
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedImplicitFallthrough(a: boolean, b: boolean, c: boolean, d: boolean): void {
     if (a) {
         if (b) {
@@ -138,6 +149,7 @@ function flaggedImplicitFallthrough(a: boolean, b: boolean, c: boolean, d: boole
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanCommentHeavyBlock(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         /* This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block. This long explanation documents why processing is conditional and should not make a two-statement branch count as a large block.  */
@@ -148,6 +160,7 @@ function cleanCommentHeavyBlock(a: boolean, b: boolean, c: boolean, d: boolean):
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanNestedFunction(a: boolean, b: boolean, c: boolean, d: boolean): void {
     if (a) {
         if (b) {
@@ -161,6 +174,7 @@ function cleanNestedFunction(a: boolean, b: boolean, c: boolean, d: boolean): vo
 }
 
 
+// flagged — inversion feedback (medium)
 function flaggedAlternativeBody(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         return 1;
@@ -173,6 +187,7 @@ function flaggedAlternativeBody(a: boolean, b: boolean, c: boolean, d: boolean):
 }
 
 
+// clean — not flagged by inversion feedback
 function cleanUnbracedElse(a: boolean, b: boolean, c: boolean, d: boolean): number {
     if (a) {
         if (b) { return 1; }

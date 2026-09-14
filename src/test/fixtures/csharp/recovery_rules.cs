@@ -1,4 +1,5 @@
 class RecoveryRules {
+// flagged — error shadowing (high)
 static void BroadScope() {
     try {
         work0();
@@ -14,6 +15,7 @@ static void BroadScope() {
     }
 }
 
+// flagged — recovery dominance (high)
 static void TwoLineProtected() {
     try {
         work0();
@@ -27,6 +29,7 @@ static void TwoLineProtected() {
     }
 }
 
+// clean — not flagged by recovery dominance
 static void OneLineProtected() {
     try {
         work0();
@@ -39,6 +42,7 @@ static void OneLineProtected() {
     }
 }
 
+// flagged — recovery dominance (medium)
 static void WorkBefore() {
     work90();
     try {
@@ -53,6 +57,7 @@ static void WorkBefore() {
     }
 }
 
+// flagged — recovery dominance (medium)
 static void WorkAfter() {
     try {
         work0();
@@ -67,6 +72,7 @@ static void WorkAfter() {
     work90();
 }
 
+// flagged — recovery dominance (high)
 static void MultilineLoop() {
     try {
         while (ready()) {
@@ -81,6 +87,7 @@ static void MultilineLoop() {
     }
 }
 
+// clean — not flagged by recovery dominance
 static void CommentedTrivial() {
     try {
         work0(); // mixed
@@ -100,6 +107,7 @@ static void CommentedTrivial() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 static void AtLimit() {
     try {
         work0();
@@ -127,6 +135,7 @@ static void AtLimit() {
     }
 }
 
+// flagged — oversized recovery block (medium)
 static void OverLimit() {
     try {
         work0();
@@ -155,6 +164,7 @@ static void OverLimit() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 static void CommentedLimit() {
     try {
         work0(); // mixed
@@ -189,6 +199,7 @@ static void CommentedLimit() {
     }
 }
 
+// clean — not flagged by oversized recovery block
 static void SeparateHandlers() {
     try {
         work0();
@@ -219,6 +230,7 @@ static void SeparateHandlers() {
     }
 }
 
+// flagged — oversized recovery block (medium)
 static void OversizedCleanup() {
     try {
         work0();

@@ -2,11 +2,13 @@ const val MAX_RETRIES = 5
 
 @VisibleForTesting const val MAX_ANNOTATED_RETRIES = 7
 
+// clean — not flagged by magic number
 fun cleanCommonValues(x: Int): Int {
     val total = x * 1
     return total + 0
 }
 
+// flagged — magic number
 fun flaggedMagicNumbers(price: Double): Double {
     var total = price * 1.08
     if (total > 50) {
@@ -15,11 +17,13 @@ fun flaggedMagicNumbers(price: Double): Double {
     return total
 }
 
+// clean — not flagged by magic number
 fun exemptIndexAndDefault(arr: IntArray, weight: Int = 42): Int {
     val first = arr[0]
     return first + weight
 }
 
+// clean — not flagged by magic number
 fun cleanNegativeValue(flag: Boolean): Int {
     if (flag) {
         return -1

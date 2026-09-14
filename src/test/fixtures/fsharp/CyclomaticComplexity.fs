@@ -1,7 +1,9 @@
 module CyclomaticComplexity
 
+// clean — not flagged by cyclomatic complexity
 let cleanSimpleFunction (x: int) = if x > 0 then 1 else 0
 
+// flagged — cyclomatic complexity (medium)
 let flaggedComplexFunction (status: string) =
     if status = "a" then 1
     elif status = "b" then 2
@@ -16,6 +18,7 @@ let flaggedComplexFunction (status: string) =
     elif status = "k" then 11
     else 0
 
+// flagged — cyclomatic complexity (high)
 let flaggedSevereFunction (status: string) =
     if status = "a" then 1
     elif status = "b" then 2
