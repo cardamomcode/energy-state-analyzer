@@ -36,7 +36,7 @@ let renderSarif results =
         |> List.map (fun violationType ->
             createObj
                 [ "id" ==> violationRuleId violationType
-                  "name" ==> violationTypeName violationType
+                  "name" ==> violationRuleName violationType
                   "shortDescription"
                   ==> createObj
                           [ "text"

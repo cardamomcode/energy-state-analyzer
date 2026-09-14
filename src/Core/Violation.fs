@@ -67,6 +67,26 @@ let violationTypeName =
     | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
 
+/// Pascal-case rule name for SARIF's tool.driver.rules[].name, kept distinct from
+/// violationTypeName's kebab-case identifier since that one is a public JSON/esa-ignore contract.
+let violationRuleName =
+    function
+    | Nesting -> "Nesting"
+    | Complexity -> "Complexity"
+    | Cognitive -> "Cognitive"
+    | Naming -> "Naming"
+    | Coherence -> "Coherence"
+    | Magic -> "Magic"
+    | Parameters -> "Parameters"
+    | Inversion -> "Inversion"
+    | PrimitiveObsession -> "PrimitiveObsession"
+    | MatchOpportunity -> "MatchOpportunity"
+    | LogicalControlFlow -> "LogicalControlFlow"
+    | OpaqueBoolean -> "OpaqueBoolean"
+    | ErrorShadowing -> "ErrorShadowing"
+    | ParseDontValidate -> "ParseDontValidate"
+    | Suppression -> "Suppression"
+
 /// Stable, user-facing identifiers for analyzer rules.
 /// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
 /// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
