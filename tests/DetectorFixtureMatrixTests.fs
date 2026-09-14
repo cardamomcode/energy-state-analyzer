@@ -385,7 +385,8 @@ let tests =
                   "Python (recovery-dominated regression)"
                   Python.pythonLanguageAdapter
                   "python/error_shadowing_recovery_heavy.py"
-                  [ ProducesFinding(FunctionName "recoveryDominates", None) ] ]
+                  [ StaysClean(FunctionName "recoveryDominates")
+                    ProducesFinding(FunctionName "recoveryShadowsRealWork", None) ] ]
 
     testList (
         "Integration: detector fixture parity matrix",

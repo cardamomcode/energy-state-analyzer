@@ -31,18 +31,44 @@ let private regionsInFunction (language: LanguageAdapter) (fnNode: Node) : Error
 
     walk atFunctionRoot fnNode
 
+/// Expand a logical item into its constituent items, recursing into a nested try's protected and
+/// recovery items rather than counting the try itself as one item.
+let rec private expand (language: LanguageAdapter) (item: Node) : Node list =
+    match language.GetErrorHandlingRegion item with
+    | Some region -> (region.ProtectedItems @ region.RecoveryItems) |> List.collect (expand language)
+    | None -> [ item ]
+
 /// Count a function's logical items, expanding a try into its protected and recovery items for the denominator.
 ///
 /// decision: a try is expanded into its direct protected and recovery items for the function denominator,
 /// while other compound statements remain one item. This measures exception-boundary breadth without AST
 /// scaffolding (identifiers/calls/arguments) or nested control-flow internals changing the result.
 let private functionItems (language: LanguageAdapter) (fnNode: Node) : Node list =
-    let rec expand (item: Node) : Node list =
-        match language.GetErrorHandlingRegion item with
-        | Some region -> (region.ProtectedItems @ region.RecoveryItems) |> List.collect expand
-        | None -> [ item ]
+    language.GetFunctionLogicalItems fnNode |> List.collect (expand language)
 
-    language.GetFunctionLogicalItems fnNode |> List.collect expand
+let private trailingBoilerplateSlack = 1
+
+/// Whether a function has real business logic around a try that its recovery policy could be
+/// shadowing.
+///
+/// decision: only a *trailing* item is given slack (one item, e.g. the `return`/`raise` a
+/// statement-bodied language needs after a try since the try itself cannot be an expression) — a
+/// leading item is always real surrounding work, because a guard clause ahead of the try means the
+/// try was deliberately placed after other logic, not merely padded to satisfy the grammar. When the
+/// try is the function's only top-level item (or nested inside other control flow, so it cannot be
+/// located as a direct top-level item), the try/catch already reads as the function's whole
+/// responsibility, so the recovery share would only measure the try's own protected item against its
+/// own catch items, with no happy path left to shadow.
+let private hasSurroundingWork (language: LanguageAdapter) (fnNode: Node) (region: ErrorHandlingRegion) : bool =
+    let topLevelItems = language.GetFunctionLogicalItems fnNode
+    let anchorId = nodeId region.Anchor
+
+    match topLevelItems |> List.tryFindIndex (fun item -> nodeId item = anchorId) with
+    | None -> true
+    | Some anchorIndex ->
+        let leadingCount = anchorIndex
+        let trailingCount = topLevelItems.Length - anchorIndex - 1
+        leadingCount > 0 || trailingCount > trailingBoilerplateSlack
 
 let private percentScale = 100.0
 
@@ -117,10 +143,13 @@ let analyzeErrorShadowing (ctx: AnalysisContext) : AnalysisContext =
                             { ItemCount = region.ProtectedItems.Length
                               FunctionItemCount = totalItems }
                       Recovery =
-                        qualifies
-                            thresholds.Recovery
-                            { ItemCount = region.RecoveryItems.Length
-                              FunctionItemCount = totalItems } }
+                        if hasSurroundingWork ctx.Language fnNode region then
+                            qualifies
+                                thresholds.Recovery
+                                { ItemCount = region.RecoveryItems.Length
+                                  FunctionItemCount = totalItems }
+                        else
+                            None }
 
                 if measurements.ProtectedScope.IsNone && measurements.Recovery.IsNone then
                     None

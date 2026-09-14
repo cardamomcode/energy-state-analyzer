@@ -86,7 +86,7 @@ let tests =
                     )
             )
             testAsync (
-                "flags recovery-dominated functions while leaving their try body as happy-path work",
+                "does not flag a bare try/except that is the whole function, but does flag recovery that shadows real surrounding work",
                 fun _ ->
                     toAsync (
                         task {
@@ -100,10 +100,24 @@ let tests =
                                     Python.pythonLanguageAdapter
                                     "python/error_shadowing_recovery_heavy.py"
 
+                            // decision: a try/except that is the function's entire body reads as an
+                            // already-extracted recovery policy (e.g. `pollOnce` in CdfOps.kt) — there
+                            // is no happy path left outside it for the recovery to be shadowing, so it
+                            // stays clean regardless of how much recovery logic it contains.
                             let dominated = findFunctionRange source (FunctionName "recoveryDominates")
 
                             assertThat
                                 (violationsIn violations dominated
+                                 |> List.filter (fun v -> v.Type = ErrorShadowing)
+                                 |> List.length)
+                                (isEqualTo 0)
+
+                            // The same recovery policy ahead of real business logic still shadows it.
+                            let shadowsRealWork =
+                                findFunctionRange source (FunctionName "recoveryShadowsRealWork")
+
+                            assertThat
+                                (violationsIn violations shadowsRealWork
                                  |> List.filter (fun v -> v.Type = ErrorShadowing && v.Severity = High)
                                  |> List.length)
                                 (isGreaterOrEqual 1)
