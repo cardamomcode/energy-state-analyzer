@@ -370,10 +370,10 @@ let tests =
         commonCases
             { Python = "recovery_rules.py"
               TypeScript = "recovery_rules.ts"
-              FSharp = "recovery_rules.fs"
-              Kotlin = "recovery_rules.kt"
+              FSharp = "RecoveryRules.fs"
+              Kotlin = "RecoveryRules.kt"
               CPlusPlus = "recovery_rules.cpp"
-              CSharp = "recovery_rules.cs" }
+              CSharp = "RecoveryRules.cs" }
             expectations
 
     let broadScope =
