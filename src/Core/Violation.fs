@@ -70,6 +70,28 @@ let violationTypeName =
     | ParseDontValidate -> "parse-dont-validate"
     | Suppression -> "suppression"
 
+/// Pascal-case rule name for SARIF's tool.driver.rules[].name, kept distinct from
+/// violationTypeName's kebab-case identifier since that one is a public JSON/esa-ignore contract.
+let violationRuleName =
+    function
+    | Nesting -> "Nesting"
+    | Complexity -> "Complexity"
+    | Cognitive -> "Cognitive"
+    | Naming -> "Naming"
+    | Coherence -> "Coherence"
+    | Magic -> "Magic"
+    | Parameters -> "Parameters"
+    | Inversion -> "Inversion"
+    | PrimitiveObsession -> "PrimitiveObsession"
+    | MatchOpportunity -> "MatchOpportunity"
+    | LogicalControlFlow -> "LogicalControlFlow"
+    | OpaqueBoolean -> "OpaqueBoolean"
+    | ErrorShadowing -> "ErrorShadowing"
+    | RecoveryDominance -> "RecoveryDominance"
+    | OversizedRecoveryBlock -> "OversizedRecoveryBlock"
+    | ParseDontValidate -> "ParseDontValidate"
+    | Suppression -> "Suppression"
+
 /// Display error-boundary rule names while preserving their public wire identities.
 let violationDisplayName kind =
     match kind with
@@ -83,23 +105,23 @@ let violationDisplayName kind =
 /// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
 let violationRuleId =
     function
-    | Nesting -> "ESA-001"
-    | Complexity -> "ESA-002"
-    | Cognitive -> "ESA-003"
-    | Naming -> "ESA-004"
-    | Coherence -> "ESA-005"
-    | Magic -> "ESA-006"
-    | Parameters -> "ESA-007"
-    | Inversion -> "ESA-008"
-    | PrimitiveObsession -> "ESA-009"
-    | MatchOpportunity -> "ESA-010"
-    | LogicalControlFlow -> "ESA-011"
-    | OpaqueBoolean -> "ESA-012"
-    | RecoveryDominance -> "ESA-016"
-    | OversizedRecoveryBlock -> "ESA-017"
-    | ErrorShadowing -> "ESA-013"
-    | Suppression -> "ESA-014"
-    | ParseDontValidate -> "ESA-015"
+    | Nesting -> "ESA001"
+    | Complexity -> "ESA002"
+    | Cognitive -> "ESA003"
+    | Naming -> "ESA004"
+    | Coherence -> "ESA005"
+    | Magic -> "ESA006"
+    | Parameters -> "ESA007"
+    | Inversion -> "ESA008"
+    | PrimitiveObsession -> "ESA009"
+    | MatchOpportunity -> "ESA010"
+    | LogicalControlFlow -> "ESA011"
+    | OpaqueBoolean -> "ESA012"
+    | ErrorShadowing -> "ESA013"
+    | Suppression -> "ESA014"
+    | ParseDontValidate -> "ESA015"
+    | RecoveryDominance -> "ESA016"
+    | OversizedRecoveryBlock -> "ESA017"
 
 /// Canonical documentation for each user-facing analyzer rule.
 /// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report

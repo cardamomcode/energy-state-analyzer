@@ -1,6 +1,6 @@
 # Oversized Recovery Block
 
-ESA-017 flags each individual handler or cleanup body exceeding 20 nonblank, noncomment source lines, at medium severity. Exactly 20 lines stays clean; 21 triggers. This check applies even when the protected body is trivial or recovery occupies only a small share of the function.
+ESA017 flags each individual handler or cleanup body exceeding 20 nonblank, noncomment source lines, at medium severity. Exactly 20 lines stays clean; 21 triggers. This check applies even when the protected body is trivial or recovery occupies only a small share of the function.
 
 Separate catch handlers, F# handler arms, and finally bodies have separate limits and findings. They are never combined for this limit. Findings are anchored at the relevant handler or cleanup clause. C++ has catch handlers but no finally clause.
 

@@ -70,7 +70,7 @@ SARIF 2.1.0 is the default scan output for an agent, editor, or code-scanning se
 npx energy-state-analyzer src
 ```
 
-Each SARIF result has a stable `ESA-###` rule ID (for example, `ESA-006` for magic literals), a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. Use `--report json`, `md`, or `human` to select a different scan report. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
+Each SARIF result has a stable `ESA###` rule ID (for example, `ESA006` for magic literals), a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. Use `--report json`, `md`, or `human` to select a different scan report. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
 
 In VS Code, run **Energy State Analyzer: Export SARIF Report** to scan the open workspace and write `.energy-state/latest.sarif`. Open that file with the [SARIF Viewer](https://marketplace.visualstudio.com/items?itemName=MS-SarifVSCode.sarif-viewer) for its report panel, grouping, and filtering.
 

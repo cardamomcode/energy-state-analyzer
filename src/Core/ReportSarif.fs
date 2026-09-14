@@ -5,6 +5,13 @@ open Fable.Core.JsInterop
 open Energy.Core.Report
 open Energy.Core.Violation
 
+/// The tool version reported in SARIF output.
+///
+/// decision: kept in sync with package.json by a ShipIt regex updater (see CHANGELOG.md
+/// frontmatter) rather than read at runtime, since the CLI and extension bundles don't share a
+/// reliable relative path back to package.json across their differing Fable output layouts.
+let private toolVersion = "0.17.1"
+
 let private sarifLevel =
     function
     | High -> "error"
@@ -29,7 +36,7 @@ let renderSarif results =
         |> List.map (fun violationType ->
             createObj
                 [ "id" ==> violationRuleId violationType
-                  "name" ==> violationTypeName violationType
+                  "name" ==> violationRuleName violationType
                   "shortDescription"
                   ==> createObj
                           [ "text"
@@ -75,6 +82,7 @@ let renderSarif results =
                                [ "driver"
                                  ==> createObj
                                          [ "name" ==> "Energy State Analyzer"
+                                           "version" ==> toolVersion
                                            "informationUri" ==> "https://github.com/cardamomcode/energy-state-analyzer"
                                            "rules" ==> rules ] ]
                        "results" ==> sarifResults ] |] ]

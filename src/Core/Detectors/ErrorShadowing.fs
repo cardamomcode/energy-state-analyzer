@@ -7,6 +7,10 @@ open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
 /// Begin boundary traversal at its owning function.
+///
+/// decision: the error-boundary family evaluates protected scope, recovery dominance, and oversized
+/// recovery bodies independently at each try construct, so one boundary can produce multiple review
+/// prompts without treating the existence of try/catch itself as a smell.
 let private atFunctionRoot = true
 /// Stop boundary traversal at nested function definitions.
 let private descendIntoBody = false
@@ -114,7 +118,7 @@ let private shareFinding ctx (region: ErrorHandlingRegion) totalItems rule =
 let private oversizedFindings ctx (region: ErrorHandlingRegion) =
     let thresholds = ctx.Options.ErrorShadowing
 
-    if not thresholds.OversizedRecoveryBlockEnabled then
+    if not thresholds.Enabled || not thresholds.OversizedRecoveryBlockEnabled then
         []
     else
         region.RecoveryBodies
@@ -135,6 +139,9 @@ let private oversizedFindings ctx (region: ErrorHandlingRegion) =
 let private boundaryFindings ctx totalItems region =
     let thresholds = ctx.Options.ErrorShadowing
 
+    let protectedBodyLines =
+        Energy.Core.BodyLines.count ctx.Source ctx.Positions region.ProtectedBody
+
     [ yield!
           shareFinding
               ctx
@@ -145,10 +152,7 @@ let private boundaryFindings ctx totalItems region =
                 Advice = "Narrow the protected region to operations this boundary can recover from."
                 Thresholds = thresholds.ProtectedScope
                 Items = region.ProtectedItems }
-      if
-          thresholds.RecoveryDominanceEnabled
-          && Energy.Core.BodyLines.count ctx.Source ctx.Positions region.ProtectedBody > 1
-      then
+      if thresholds.RecoveryDominanceEnabled && protectedBodyLines > 1 then
           yield!
               shareFinding
                   ctx

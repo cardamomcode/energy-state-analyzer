@@ -117,10 +117,10 @@ let tests =
                   let specs = diagnosticSpecs findings
                   assertThat specs.Length (isEqualTo 2)
                   let boundary = specs |> List.find (fun spec -> spec.Range.Line = 2)
-                  assertThat (boundary.Code.Contains("ESA-013")) isTrue
-                  assertThat (boundary.Code.Contains("ESA-016")) isTrue
+                  assertThat (boundary.Code.Contains("ESA013")) isTrue
+                  assertThat (boundary.Code.Contains("ESA016")) isTrue
                   let handler = specs |> List.find (fun spec -> spec.Range.Line = 8)
-                  assertThat handler.Code (isEqualTo "ESA-017")
+                  assertThat handler.Code (isEqualTo "ESA017")
           )
           test (
               "maps violation categories to their editor ranges and rejects malformed colors",
@@ -192,7 +192,7 @@ let tests =
                   assertThat spec.Severity (isEqualTo ProblemSeverity.Error)
                   assertThat spec.Range.StartColumn (isEqualTo 4)
                   assertThat spec.Message (isEqualTo "complex | nested | magic")
-                  assertThat spec.Code (isEqualTo "ESA-002,ESA-001,ESA-006")
+                  assertThat spec.Code (isEqualTo "ESA002,ESA001,ESA006")
                   assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ])
           ) ]
     )

@@ -1,6 +1,6 @@
 # Recovery Dominance
 
-ESA-016 flags a boundary whose combined recovery and cleanup work contains at least 5 logical items and at least 50% of the enclosing function's logical work. Severity is high at 70%; otherwise it is medium. The finding is anchored at `try`.
+ESA016 flags a boundary whose combined recovery and cleanup work contains at least 5 logical items and at least 50% of the enclosing function's logical work. Severity is high at 70%; otherwise it is medium. The finding is anchored at `try`.
 
 A protected body with at most one nonblank, noncomment line is exempt. Clause headers and outer block delimiters are excluded. Nested control-flow bodies count, so a multiline loop is not a trivial protected call. Lines containing code alongside comments count; comment-only and blank lines do not.
 

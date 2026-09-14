@@ -124,23 +124,23 @@ let tests =
                   assertThat
                       ids
                       (isEqualTo
-                          [ "ESA-001"
-                            "ESA-002"
-                            "ESA-003"
-                            "ESA-004"
-                            "ESA-005"
-                            "ESA-006"
-                            "ESA-007"
-                            "ESA-008"
-                            "ESA-009"
-                            "ESA-010"
-                            "ESA-011"
-                            "ESA-012"
-                            "ESA-013"
-                            "ESA-014"
-                            "ESA-015"
-                            "ESA-016"
-                            "ESA-017" ])
+                          [ "ESA001"
+                            "ESA002"
+                            "ESA003"
+                            "ESA004"
+                            "ESA005"
+                            "ESA006"
+                            "ESA007"
+                            "ESA008"
+                            "ESA009"
+                            "ESA010"
+                            "ESA011"
+                            "ESA012"
+                            "ESA013"
+                            "ESA014"
+                            "ESA015"
+                            "ESA016"
+                            "ESA017" ])
 
                   assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
           )
@@ -187,8 +187,8 @@ let tests =
                       |> Energy.CliNode.stringify
 
                   assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
-                  assertThat (sarif.Contains("\"ruleId\": \"ESA-006\"")) isTrue
-                  assertThat (sarif.Contains("\"id\": \"ESA-006\"")) isTrue
+                  assertThat (sarif.Contains("\"ruleId\": \"ESA006\"")) isTrue
+                  assertThat (sarif.Contains("\"id\": \"ESA006\"")) isTrue
 
                   assertThat
                       (sarif.Contains(
