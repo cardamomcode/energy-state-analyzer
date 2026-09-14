@@ -139,6 +139,9 @@ let private oversizedFindings ctx (region: ErrorHandlingRegion) =
 let private boundaryFindings ctx totalItems region =
     let thresholds = ctx.Options.ErrorShadowing
 
+    let protectedBodyLines =
+        Energy.Core.BodyLines.count ctx.Source ctx.Positions region.ProtectedBody
+
     [ yield!
           shareFinding
               ctx
@@ -149,10 +152,7 @@ let private boundaryFindings ctx totalItems region =
                 Advice = "Narrow the protected region to operations this boundary can recover from."
                 Thresholds = thresholds.ProtectedScope
                 Items = region.ProtectedItems }
-      if
-          thresholds.RecoveryDominanceEnabled
-          && Energy.Core.BodyLines.count ctx.Source ctx.Positions region.ProtectedBody > 1
-      then
+      if thresholds.RecoveryDominanceEnabled && protectedBodyLines > 1 then
           yield!
               shareFinding
                   ctx
