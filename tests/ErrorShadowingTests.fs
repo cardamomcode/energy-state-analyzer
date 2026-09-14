@@ -86,7 +86,7 @@ let tests =
                     )
             )
             testAsync (
-                "flags recovery-dominated functions while leaving their try body as happy-path work",
+                "exempts one-line protected bodies regardless of surrounding work",
                 fun _ ->
                     toAsync (
                         task {
@@ -104,16 +104,26 @@ let tests =
 
                             assertThat
                                 (violationsIn violations dominated
-                                 |> List.filter (fun v -> v.Type = ErrorShadowing && v.Severity = High)
+                                 |> List.filter (fun v -> v.Type = ErrorShadowing)
                                  |> List.length)
-                                (isGreaterOrEqual 1)
+                                (isEqualTo 0)
+
+                            // Surrounding work does not change the one-line protected-body exemption.
+                            let shadowsRealWork =
+                                findFunctionRange source (FunctionName "recoveryShadowsRealWork")
+
+                            assertThat
+                                (violationsIn violations shadowsRealWork
+                                 |> List.filter (fun v -> v.Type = RecoveryDominance)
+                                 |> List.length)
+                                (isEqualTo 0)
 
                             assertValidPositions violations source
                         }
                     )
             )
             testAsync (
-                "reports protected scope, combined modes, and separate try boundaries independently",
+                "reports protected scope and recovery as independent diagnostics",
                 fun _ ->
                     toAsync (
                         task {
@@ -137,7 +147,8 @@ let tests =
                                     options
                                 |> Energy.Core.Detectors.ErrorShadowing.analyzeErrorShadowing
                                 |> _.Violations
-                                |> List.filter (fun violation -> violation.Type = ErrorShadowing)
+                                |> List.filter (fun violation ->
+                                    violation.Type = ErrorShadowing || violation.Type = RecoveryDominance)
 
                             let hits name =
                                 violationsIn violations (findFunctionRange source (FunctionName name))
@@ -148,8 +159,8 @@ let tests =
 
                             assertThat (broad |> List.length) (isEqualTo 1)
                             assertThat (broad.Head.Message.Contains("protected scope")) isTrue
-                            assertThat (combined |> List.length) (isEqualTo 1)
-                            assertThat (combined.Head.Message.Contains("recovery/cleanup")) isTrue
+                            assertThat (combined |> List.length) (isEqualTo 2)
+                            assertThat (combined |> List.exists (fun hit -> hit.Type = RecoveryDominance)) isTrue
                             assertThat (separate |> List.length) (isEqualTo 2)
                             assertValidPositions violations source
                         }
@@ -183,7 +194,7 @@ let tests =
                                 |> _.Violations
 
                             assertThat
-                                (violations |> List.filter (fun v -> v.Type = ErrorShadowing) |> List.length)
+                                (violations |> List.filter (fun v -> v.Type = RecoveryDominance) |> List.length)
                                 (isGreaterOrEqual 1)
                         }
                     )

@@ -15,7 +15,9 @@ Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, or C# file
 - [Magic numbers](docs/detectors/magic-numbers.md), unnamed numeric literals.
 - [Magic strings](docs/detectors/magic-strings.md), unnamed string literals at decision points.
 - [Parameter explosion](docs/detectors/parameter-explosion.md), functions with too many parameters.
-- [Error shadowing](docs/detectors/error-shadowing.md), error handling that overwhelms a function's happy path.
+- [Broad Protected Scope](docs/detectors/error-shadowing.md), overly broad protected try bodies.
+- [Recovery Dominance](docs/detectors/recovery-dominance.md), recovery policy that dominates a function.
+- [Oversized Recovery Block](docs/detectors/oversized-recovery-block.md), individual handlers or cleanup bodies exceeding their line limit.
 - [Inversion opportunities](docs/detectors/inversion-opportunities.md), nested conditionals that could be guard clauses.
 - [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type.
 - [Match opportunities](docs/detectors/match-opportunities.md), if/elif chains that could be a match/switch.
@@ -96,7 +98,9 @@ Every detector has an `enabled` toggle, plus the magic-number/string switches an
 - `energyStateAnalyzer.opaqueBoolean.enabled` (`true`)
 - `energyStateAnalyzer.logicalControlFlow.enabled` (`true`)
 - `energyStateAnalyzer.inversion.enabled` (`true`)
-- `energyStateAnalyzer.errorShadowing.enabled` (`true`)
+- `energyStateAnalyzer.errorShadowing.enabled` (`true`, family switch)
+- `energyStateAnalyzer.recoveryDominance.enabled` (`true`)
+- `energyStateAnalyzer.oversizedRecoveryBlock.enabled` (`true`)
 - `energyStateAnalyzer.magicNumber.enabled` (`true`)
 - `energyStateAnalyzer.magicString.enabled` (`true`)
 - `energyStateAnalyzer.colors.highEnergy` / `.mediumEnergy` / `.lowEnergy` (`#fb8500` / `#ffb703` / `#99dd99`)
@@ -113,6 +117,7 @@ Set thresholds, ratios, and magic-number/string allowlists in an `.esaconfig.jso
 - `parameterCount.mediumThreshold` / `highThreshold` (`5` / `8`)
 - `errorShadowing.protectedScope.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `8`)
 - `errorShadowing.recovery.*` (`threshold` / `highThreshold` / `minItems`: `0.5` / `0.7` / `5`)
+- `errorShadowing.recoveryBlock.maxLines` (`20`)
 - `magicNumber.allowlist` (`[0, 1, -1, 2]`)
 - `magicString.minDuplicates` (`2`), `allowlist` (`["", "utf-8", "__main__"]`)
 

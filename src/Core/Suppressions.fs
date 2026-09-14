@@ -51,6 +51,8 @@ let private knownTypes =
       "opaque-boolean", OpaqueBoolean
       "parse-dont-validate", ParseDontValidate
       "error-shadowing", ErrorShadowing
+      "recovery-dominance", RecoveryDominance
+      "oversized-recovery-block", OversizedRecoveryBlock
       "suppression", Suppression ]
     |> Map.ofList
 

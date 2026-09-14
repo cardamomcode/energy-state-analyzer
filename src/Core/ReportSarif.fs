@@ -40,7 +40,7 @@ let renderSarif results =
                   "shortDescription"
                   ==> createObj
                           [ "text"
-                            ==> ("Energy State Analyzer " + violationTypeName violationType + " finding") ]
+                            ==> ("Energy State Analyzer " + violationDisplayName violationType + " finding") ]
                   "helpUri" ==> violationHelpUri violationType ])
         |> List.toArray
 

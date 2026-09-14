@@ -140,7 +140,7 @@
         "energyStateAnalyzer.errorShadowing.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to flag overly broad protected try regions or recovery/cleanup that dominates a function."
+          "description": "Enable the Broad Protected Scope, Recovery Dominance, and Oversized Recovery Block rule family."
         },
         "energyStateAnalyzer.colors.highEnergy": {
           "type": "string",
@@ -163,6 +163,16 @@
           "minimum": 0,
           "maximum": 1,
           "description": "Opacity of the background tint applied behind flagged lines."
+        },
+        "energyStateAnalyzer.recoveryDominance.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Recovery Dominance when the errorShadowing family is enabled."
+        },
+        "energyStateAnalyzer.oversizedRecoveryBlock.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Oversized Recovery Block when the errorShadowing family is enabled."
         }
       }
     }

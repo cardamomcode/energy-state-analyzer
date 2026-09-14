@@ -25,9 +25,7 @@ let private jsonParse (text: string) : obj = nativeOnly
 /// Run a possibly-throwing thunk and convert any exception into an Error message.
 ///
 /// decision: attempt runs a possibly-throwing thunk and turns any exception into an Error message. It is
-/// the only try/with on this surface, and its whole body is the guarded operation plus its handler —
-/// signature only outside the error region — so the error-shadowing detector skips it as a thin wrapper
-/// with no unguarded business logic to shadow. Callers stay free of try/with and never abort the run.
+/// a shared boundary for callers that need a Result instead of an exception.
 let private attempt<'T> (fn: unit -> 'T) : Result<'T, string> =
     try
         Ok(fn ())
@@ -42,9 +40,7 @@ let execFileSyncSafe (command: string) (arguments: string array) (options: obj) 
 
 let jsonParseSafe (text: string) : obj option =
     // decision: JSON.parse is an [<Emit>] binding that Fable only preserves at a direct call site, so it
-    // cannot ride through the generic `attempt` thunk — its single throw is wrapped here instead. The body
-    // is signature-only outside the error region, so the error-shadowing detector treats this as a thin
-    // wrapper with no unguarded logic to shadow; callers stay free of try/with and never abort the run.
+    // cannot ride through the generic `attempt` thunk — its single throw is wrapped here instead.
     try
         let parsed = jsonParse text
 

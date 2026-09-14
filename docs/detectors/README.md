@@ -17,6 +17,8 @@ type checking remain the compiler's job.
 - [ESA005: File coherence](file-coherence.md), files that have lost a single responsibility.
 - [ESA005: God class](god-class.md), one type whose methods span too many unrelated domains (the class-level half of file coherence).
 - [ESA013: Error shadowing](error-shadowing.md), error handling that overwhelms a function's happy path.
+- [ESA016: Recovery dominance](recovery-dominance.md), recovery policy that dominates a function.
+- [ESA017: Oversized recovery block](oversized-recovery-block.md), individual handlers or cleanup bodies exceeding their line limit.
 
 ## Naming and literals
 
