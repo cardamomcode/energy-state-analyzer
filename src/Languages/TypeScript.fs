@@ -33,6 +33,86 @@ let private statementBlockNodeType = NodeType "statement_block"
 let private catchClauseNodeType = NodeType "catch_clause"
 let private finallyClauseNodeType = NodeType "finally_clause"
 
+/// Name TypeScript's function-declaration node type.
+let private functionDeclarationNodeType = NodeType "function_declaration"
+
+/// Name TypeScript's method node type.
+let private methodDefinitionNodeType = NodeType "method_definition"
+
+/// Name TypeScript's arrow-function node type.
+let private arrowFunctionNodeType = NodeType "arrow_function"
+
+/// Name TypeScript's function-expression node type.
+let private functionExpressionNodeType = NodeType "function_expression"
+
+/// Name TypeScript's parenthesized parameter container.
+let private formalParametersNodeType = NodeType "formal_parameters"
+
+/// Keep the existing TypeScript parameter-node contract in one reusable list.
+let private parameterChildTypes =
+    [ NodeType "required_parameter"; NodeType "optional_parameter" ]
+
+/// Extract parenthesized or bare-arrow TypeScript parameters.
+let private parametersOf (node: Node) =
+    match nodeField "parameters" node, nodeField "parameter" node with
+    | Some parameters, _ ->
+        nodeChildren parameters
+        |> List.filter (fun child -> parameterChildTypes |> List.contains (nodeType child))
+    | None, Some parameter -> [ parameter ]
+    | None, None -> []
+
+/// Unwrap an optional export around a module-level declaration.
+let private moduleDeclarationContainer (declaration: Node) =
+    match nodeParent declaration with
+    | Some parent when nodeType parent = NodeType "export_statement" -> nodeParent parent
+    | parent -> parent
+
+/// Classify a directly bound TypeScript function expression or arrow.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some field when
+        nodeType field = NodeType "public_field_definition"
+        && (nodeField "value" field
+            |> Option.exists (fun value -> nodeId value = nodeId node))
+        ->
+        BoundAnonymous ClassMemberBinding, (nodeField "name" field |> Option.map nodeText)
+    | Some declarator when
+        nodeType declarator = NodeType "variable_declarator"
+        && (nodeField "value" declarator
+            |> Option.exists (fun value -> nodeId value = nodeId node))
+        ->
+        let bindingName = nodeField "name" declarator |> Option.map nodeText
+
+        let role =
+            declarator
+            |> nodeParent
+            |> Option.bind moduleDeclarationContainer
+            |> Option.filter (fun parent -> nodeType parent = NodeType "program")
+            |> Option.map (fun _ -> BoundAnonymous ModuleBinding)
+            |> Option.defaultValue InlineAnonymous
+
+        role, bindingName
+    | _ -> InlineAnonymous, None
+
+/// Normalize TypeScript declarations, methods, arrows, and function expressions.
+let private callableViews (node: Node) : CallableView list =
+    match nodeType node with
+    | nodeType when nodeType = functionDeclarationNodeType || nodeType = methodDefinitionNodeType ->
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = NamedDefinition
+            BindingName = nodeField "name" node |> Option.map nodeText
+            Parameters = parametersOf node } ]
+    | nodeType when nodeType = arrowFunctionNodeType || nodeType = functionExpressionNodeType ->
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = role
+            BindingName = bindingName
+            Parameters = parametersOf node } ]
+    | _ -> []
+
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -109,13 +189,13 @@ let typeScriptLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-typescript.wasm"
       NodeTypes =
         { Block = Some(NodeType "statement_block")
-          Parameters = NodeType "formal_parameters"
+          Parameters = formalParametersNodeType
           IfStatement = Some(NodeType "if_statement")
           ElseClause = Some(NodeType "else_clause")
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           ConditionalExpression = Some(NodeType "ternary_expression")
-          Lambda = Some(NodeType "arrow_function")
+          Lambda = Some arrowFunctionNodeType
           ImportStatement = Some(NodeType "import_statement")
           // import_statement already covers every import form.
           ImportFromStatement = None
@@ -130,12 +210,13 @@ let typeScriptLanguageAdapter: LanguageAdapter =
           StringLiteral = Some(NodeType "string") }
       IsFunctionDefinition =
         fun node ->
-            nodeType node = NodeType "function_declaration"
-            || nodeType node = NodeType "method_definition"
+            nodeType node = functionDeclarationNodeType
+            || nodeType node = methodDefinitionNodeType
       // TypeScript has no merged-binding shape: one definition node is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
-      ParameterChildTypes = [ NodeType "required_parameter"; NodeType "optional_parameter" ]
+      ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"

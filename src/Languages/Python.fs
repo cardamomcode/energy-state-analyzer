@@ -42,6 +42,76 @@ let private tryStatementNodeType = NodeType "try_statement"
 let private exceptClauseNodeType = NodeType "except_clause"
 let private finallyClauseNodeType = NodeType "finally_clause"
 
+/// Name Python's named-function node type for callable classification.
+let private functionDefinitionNodeType = NodeType "function_definition"
+
+/// Name Python's anonymous-function node type for callable classification.
+let private lambdaNodeType = NodeType "lambda"
+
+/// Name the parameter container used by named Python functions.
+let private parametersNodeType = NodeType "parameters"
+
+/// Name the parameter container used by Python lambdas.
+let private lambdaParametersNodeType = NodeType "lambda_parameters"
+
+/// Keep the existing Python parameter-node contract in one reusable list.
+let private parameterChildTypes =
+    [ identifierNodeType; NodeType "default_parameter" ]
+
+/// Extract explicit parameters from the supplied Python parameter container.
+let private parametersOf containerType (node: Node) =
+    nodeChildren node
+    |> List.tryFind (fun child -> nodeType child = containerType)
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> parameterChildTypes |> List.contains (nodeType child)))
+    |> Option.defaultValue []
+
+/// Classify a directly assigned Python lambda without resolving aliases.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some assignment when
+        nodeType assignment = NodeType "assignment"
+        && (nodeField "right" assignment
+            |> Option.exists (fun right -> nodeId right = nodeId node))
+        ->
+        let name =
+            nodeField "left" assignment
+            |> Option.filter (fun left -> nodeType left = identifierNodeType)
+            |> Option.map nodeText
+
+        let container = assignment |> nodeParent |> Option.bind nodeParent
+
+        match container with
+        | Some parent when nodeType parent = NodeType "module" -> BoundAnonymous ModuleBinding, name
+        | Some block when
+            nodeType block = NodeType "block"
+            && (nodeParent block
+                |> Option.exists (fun parent -> nodeType parent = NodeType "class_definition"))
+            ->
+            BoundAnonymous ClassMemberBinding, name
+        | _ -> InlineAnonymous, name
+    | _ -> InlineAnonymous, None
+
+/// Normalize named functions and lambdas into shared callable views.
+let private callableViews (node: Node) : CallableView list =
+    match nodeType node with
+    | nodeType when nodeType = functionDefinitionNodeType ->
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = NamedDefinition
+            BindingName = nodeField "name" node |> Option.map nodeText
+            Parameters = parametersOf parametersNodeType node } ]
+    | nodeType when nodeType = lambdaNodeType ->
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = role
+            BindingName = bindingName
+            Parameters = parametersOf lambdaParametersNodeType node } ]
+    | _ -> []
+
 /// Recognize a docstring — a bare string-literal statement — so it is discarded like a comment.
 ///
 /// decision: a docstring is documentation, not executable work. Without this filter the strict
@@ -123,13 +193,13 @@ let pythonLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-python.wasm"
       NodeTypes =
         { Block = Some(NodeType "block")
-          Parameters = NodeType "parameters"
+          Parameters = parametersNodeType
           IfStatement = Some(NodeType "if_statement")
           ElseClause = Some(NodeType "else_clause")
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some(NodeType "lambda")
+          Lambda = Some lambdaNodeType
           ImportStatement = Some(NodeType "import_statement")
           ImportFromStatement = Some(NodeType "import_from_statement")
           ExpressionStatement = Some(NodeType "expression_statement")
@@ -140,9 +210,10 @@ let pythonLanguageAdapter: LanguageAdapter =
           IntegerLiteral = Some(NodeType "integer")
           FloatLiteral = Some(NodeType "float")
           StringLiteral = Some(NodeType "string") }
-      IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
       // Python has no merged-binding shape: one definition node is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod =
         fun node ->
             nodeParent node
@@ -151,7 +222,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                 decorated
                 |> nodeChildren
                 |> List.exists (fun child -> nodeType child = NodeType "decorator" && nodeText child = "@staticmethod"))
-      ParameterChildTypes = [ identifierNodeType; NodeType "default_parameter" ]
+      ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"
           NodeType "elif_clause"

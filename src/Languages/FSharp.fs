@@ -21,6 +21,41 @@ open Energy.Core.LanguageAdapter
 /// own duplicate-string check.
 let private functionDeclarationLeft = NodeType "function_declaration_left"
 
+/// Name the F# definition node shared by existing and callable-specific classification.
+let private functionDefinitionNodeType = NodeType "function_or_value_defn"
+
+/// Name the F# anonymous-function expression node.
+let private functionExpressionNodeType = NodeType "fun_expression"
+
+/// Name the F# argument-pattern container.
+let private argumentPatternsNodeType = NodeType "argument_patterns"
+
+/// Keep the existing F# parameter-pattern contract in one reusable list.
+let private parameterChildTypes =
+    [ NodeType "long_identifier"; NodeType "typed_pattern" ]
+
+/// Find the first descendant that satisfies a grammar-specific predicate.
+let rec private firstDescendant predicate (node: Node) =
+    nodeChildren node
+    |> List.tryPick (fun child ->
+        if predicate child then
+            Some child
+        else
+            firstDescendant predicate child)
+
+/// Extract explicit F# argument patterns from a definition or function expression.
+let private parametersOf (node: Node) =
+    firstDescendant (fun child -> nodeType child = argumentPatternsNodeType) node
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> parameterChildTypes |> List.contains (nodeType child)))
+    |> Option.defaultValue []
+
+/// Extract the first binding identifier below an F# declaration head.
+let private bindingNameIn (node: Node) =
+    firstDescendant (fun child -> nodeType child = NodeType "identifier") node
+    |> Option.map nodeText
+
 // Recognize an F# function by its function_declaration_left head rather than the broader definition
 // node type, so nested `let`/`let!` bindings are not misread as their own functions.
 //
@@ -69,6 +104,81 @@ let private functionHeads (defn: Node) : FunctionHead list =
                 | _ -> defn
 
             { ParametersRoot = head; Body = body })
+
+/// Classify a function expression that is the direct value of a class member.
+let private classMemberBinding (node: Node) (memberDefinition: Node) =
+    let isDirectBody =
+        nodeNamedChildren memberDefinition
+        |> List.tryLast
+        |> Option.exists (fun body -> nodeId body = nodeId node)
+
+    if isDirectBody then
+        BoundAnonymous ClassMemberBinding, (bindingNameIn memberDefinition)
+    else
+        InlineAnonymous, None
+
+/// Extract the declared name of an F# value binding.
+let private valueBindingName (definition: Node) =
+    nodeChildren definition
+    |> List.tryFind (fun child -> nodeType child = NodeType "value_declaration_left")
+    |> Option.bind bindingNameIn
+
+/// Identify an F# definition whose declaration expression belongs directly to the file.
+let private isModuleBinding (definition: Node) =
+    definition
+    |> nodeParent
+    |> Option.bind nodeParent
+    |> Option.exists (fun parent -> nodeType parent = NodeType "file")
+
+/// Classify a function expression that is the direct value of an F# let binding.
+let private valueBinding (node: Node) (definition: Node) =
+    let isDirectBody =
+        nodeField "body" definition
+        |> Option.exists (fun body -> nodeId body = nodeId node)
+
+    let bindingName = valueBindingName definition
+
+    if isDirectBody && isModuleBinding definition then
+        BoundAnonymous ModuleBinding, bindingName
+    else
+        InlineAnonymous, bindingName
+
+/// Classify a directly bound F# function expression without resolving aliases.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some parent when nodeType parent = NodeType "method_or_prop_defn" -> classMemberBinding node parent
+    | Some parent when nodeType parent = functionDefinitionNodeType -> valueBinding node parent
+    | _ -> InlineAnonymous, None
+
+/// Convert one existing logical F# function head into a callable view.
+let private namedCallableView (head: FunctionHead) =
+    { Anchor = head.ParametersRoot
+      Body = head.Body
+      Role = NamedDefinition
+      BindingName = bindingNameIn head.ParametersRoot
+      Parameters = parametersOf head.ParametersRoot }
+
+/// Convert one F# function expression into an anonymous callable view.
+let private anonymousCallableView (node: Node) =
+    let role, bindingName = anonymousBinding node
+
+    { Anchor = node
+      Body = nodeNamedChildren node |> List.tryLast |> Option.defaultValue node
+      Role = role
+      BindingName = bindingName
+      Parameters = parametersOf node }
+
+/// Normalize supported F# definitions and function expressions into callable views.
+let private callableViews (node: Node) : CallableView list =
+    let hasFunctionHead =
+        nodeChildren node
+        |> List.exists (fun child -> nodeType child = functionDeclarationLeft)
+
+    match nodeType node with
+    | nodeType when nodeType = functionDefinitionNodeType && hasFunctionHead ->
+        functionHeads node |> List.map namedCallableView
+    | nodeType when nodeType = functionExpressionNodeType -> [ anonymousCallableView node ]
+    | _ -> []
 
 /// Extract a literal string pattern from one F# match rule.
 let private stringCaseOf (rule: Node) : Node option =
@@ -211,14 +321,14 @@ let fSharpLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-fsharp.wasm"
       NodeTypes =
         { Block = None
-          Parameters = NodeType "argument_patterns"
+          Parameters = argumentPatternsNodeType
           IfStatement = Some(NodeType "if_expression")
           ElseClause = None
           ForStatement = Some(NodeType "for_expression")
           WhileStatement = Some(NodeType "while_expression")
           // ternary-position `if` reuses if_expression, already covered.
           ConditionalExpression = None
-          Lambda = Some(NodeType "fun_expression")
+          Lambda = Some functionExpressionNodeType
           // `open X`.
           ImportStatement = Some(NodeType "import_decl")
           ImportFromStatement = None
@@ -233,11 +343,12 @@ let fSharpLanguageAdapter: LanguageAdapter =
           StringLiteral = Some(NodeType "string") }
       IsFunctionDefinition =
         fun node ->
-            nodeType node = NodeType "function_or_value_defn"
+            nodeType node = functionDefinitionNodeType
             && (nodeChildren node |> List.exists (fun c -> nodeType c = functionDeclarationLeft))
       GetFunctionHeads = functionHeads
+      GetCallableViews = callableViews
       IsStaticMethod = fun _ -> false
-      ParameterChildTypes = [ NodeType "long_identifier"; NodeType "typed_pattern" ]
+      ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_expression"
           NodeType "elif_expression"
