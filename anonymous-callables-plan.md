@@ -24,8 +24,8 @@ lambdas so equivalent anonymous-function syntax does not retain the same gap und
   directly.
 - [x] Identify the shared `IsFunctionDefinition` predicate as a boundary used by detectors beyond
   the four in scope.
-- [ ] Implement anonymous-callable reporting.
-- [ ] Remove or narrow the corresponding documented limitations.
+- [x] Implement anonymous-callable reporting for complexity and parameter count.
+- [x] Remove or narrow the corresponding documented limitations for the first behavior change.
 
 The existing scorers are not the main obstacle. The important design work is distinguishing a
 callable boundary from a named function definition and distinguishing file/class responsibilities
@@ -106,37 +106,37 @@ explicit rather than being reconstructed independently inside each detector.
 
 ### Cyclomatic complexity work
 
-- [ ] Traverse all callable views as independently reportable roots.
-- [ ] Stop a callable's graph and hotspot traversal at every nested callable boundary.
-- [ ] Ensure a nested anonymous callable is reported separately when it crosses a threshold.
-- [ ] Add a regression proving branches in an inline callback do not inflate the enclosing named
+- [x] Traverse all callable views as independently reportable roots.
+- [x] Stop a callable's graph and hotspot traversal at every nested callable boundary.
+- [x] Ensure a nested anonymous callable is reported separately when it crosses a threshold.
+- [x] Add a regression proving branches in an inline callback do not inflate the enclosing named
   function's cyclomatic score.
-- [ ] Add medium/high threshold-boundary scenarios for anonymous callables in all six languages.
-- [ ] Verify switch/match/when branch counts and boolean operators retain their current scoring.
+- [x] Add medium/high threshold-boundary scenarios for anonymous callables in all six languages.
+- [x] Verify switch/match/when branch counts and boolean operators retain their current scoring.
 
 ### Cognitive complexity work
 
-- [ ] Traverse all callable views as independently reportable roots.
-- [ ] Score an anonymous root from nesting zero for its own diagnostic.
-- [ ] Preserve the current additional nesting applied when that closure is read inside an enclosing
+- [x] Traverse all callable views as independently reportable roots.
+- [x] Score an anonymous root from nesting zero for its own diagnostic.
+- [x] Preserve the current additional nesting applied when that closure is read inside an enclosing
   callable.
-- [ ] Add a regression proving a nested closure can have an independent score while still
+- [x] Add a regression proving a nested closure can have an independent score while still
   contributing to its enclosing callable.
-- [ ] Add exact-score, hotspot-total, and threshold-boundary scenarios for all six languages.
-- [ ] Reuse the cached fixture/threshold test pattern so the expanded matrix does not reintroduce
+- [x] Add exact-score, hotspot-total, and threshold-boundary scenarios for all six languages.
+- [x] Reuse the cached fixture/threshold test pattern so the expanded matrix does not reintroduce
   parallel test timeouts.
 
 ## Phase 3: Parameter-count reporting
 
-- [ ] Count explicit anonymous-callable parameters through the new adapter hook.
-- [ ] Anchor diagnostics at the anonymous callable or its direct binding, consistently across hosts.
-- [ ] Cover clean, medium, and high examples for every language.
-- [ ] Cover TypeScript and C# single-parameter shorthand.
-- [ ] Cover default, optional, rest, or variadic forms where the existing language adapter already
+- [x] Count explicit anonymous-callable parameters through the new adapter hook.
+- [x] Anchor diagnostics at the anonymous callable or its direct binding, consistently across hosts.
+- [x] Cover clean, medium, and high examples for every language.
+- [x] Cover TypeScript and C# single-parameter shorthand.
+- [x] Cover default, optional, rest, or variadic forms where the existing language adapter already
   counts the equivalent named-function form.
-- [ ] Confirm captures in C++ and implicit Kotlin `it` do not become declared parameters.
-- [ ] Ensure F# `let f = fun ...` and inline `fun ...` expressions both work.
-- [ ] Confirm existing named-function and F# `and`-binding parameter tests remain unchanged.
+- [x] Confirm captures in C++ and implicit Kotlin `it` do not become declared parameters.
+- [x] Ensure F# `let f = fun ...` and inline `fun ...` expressions both work.
+- [x] Confirm existing named-function and F# `and`-binding parameter tests remain unchanged.
 
 ## Phase 4: File-coherence integration
 
@@ -160,57 +160,57 @@ Implement this in a separate reviewable change after complexity and parameter re
 
 ## Phase 5: Cross-language fixture parity
 
-- [ ] Add realistic anonymous-callable examples under every
+- [x] Add realistic anonymous-callable examples under every
   `src/test/fixtures/<language>/` directory.
-- [ ] Add named clean and finding scenarios to `tests/DetectorFixtureMatrixTests.fs` for cyclomatic,
+- [x] Add named clean and finding scenarios to `tests/DetectorFixtureMatrixTests.fs` for cyclomatic,
   cognitive, and parameter-count behavior.
 - [ ] Add explicit coherence scenarios for module-bound, class-bound, function-local, and inline
   callables where those forms exist.
-- [ ] State syntax forms that a language does not support as explicit limitation cases rather than
+- [x] State syntax forms that a language does not support as explicit limitation cases rather than
   silently omitting them.
-- [ ] Run the complete registered pipeline in fixture tests; do not validate only private detector
+- [x] Run the complete registered pipeline in fixture tests; do not validate only private detector
   helpers.
-- [ ] Assert valid source positions and expected severities for every new diagnostic.
+- [x] Assert valid source positions and expected severities for every new diagnostic.
 
 ## Phase 6: Documentation and user-facing behavior
 
-- [ ] Update the TypeScript adapter's existing decision comment that deliberately records the
+- [x] Update the TypeScript adapter's existing decision comment that deliberately records the
   current arrow-function limitation.
-- [ ] Update `README.md` Known Issues.
-- [ ] Update `docs/agent-integration.md` coverage notes.
-- [ ] Update `docs/detectors/cyclomatic-complexity.md` with anonymous-callable boundary semantics.
-- [ ] Update `docs/detectors/cognitive-complexity.md` with standalone reporting and nested-score
+- [x] Update `README.md` Known Issues.
+- [x] Update `docs/agent-integration.md` coverage notes.
+- [x] Update `docs/detectors/cyclomatic-complexity.md` with anonymous-callable boundary semantics.
+- [x] Update `docs/detectors/cognitive-complexity.md` with standalone reporting and nested-score
   semantics.
-- [ ] Update `docs/detectors/parameter-explosion.md` with supported anonymous forms and remaining
+- [x] Update `docs/detectors/parameter-explosion.md` with supported anonymous forms and remaining
   syntax-only limitations.
 - [ ] Update `docs/detectors/file-coherence.md` with the bound-versus-inline rule.
-- [ ] Check `docs/detectors/README.md` and other coverage summaries for stale named-function-only
+- [x] Check `docs/detectors/README.md` and other coverage summaries for stale named-function-only
   wording.
-- [ ] Ensure examples say “anonymous callable” where the behavior covers more than lambdas alone.
+- [x] Ensure examples say “anonymous callable” where the behavior covers more than lambdas alone.
 
 ## Phase 7: Validation
 
 Run focused checks after each behavioral phase and the full gate before each PR.
 
-- [ ] Run `just format`.
-- [ ] Run `just lint`.
-- [ ] Run `just md-lint`.
-- [ ] Run `just build`.
-- [ ] Run `just test`.
-- [ ] Run focused CLI analysis against the six new fixture files and inspect every finding.
-- [ ] Run `just analyze` and triage every result rather than suppressing it for convenience.
-- [ ] Run `git diff --check`.
-- [ ] Review staged and unstaged changes separately and stage only files belonging to this work.
-- [ ] Confirm the existing unrelated TypeScript fixture modification and untracked skill note remain
-  untouched unless the user separately brings them into scope.
+- [x] Run `just format`.
+- [x] Run `just lint`.
+- [x] Run `just md-lint`.
+- [x] Run `just build`.
+- [x] Run `just test`.
+- [x] Run focused CLI analysis against the six new fixture files and inspect every finding.
+- [x] Run `just analyze` and triage every result rather than suppressing it for convenience.
+- [x] Run `git diff --check`.
+- [x] Review staged and unstaged changes separately and stage only files belonging to this work.
+- [x] Confirm no unrelated TypeScript fixture modification or untracked skill note was present or
+  modified in this worktree.
 
 ## Delivery sequence
 
 ### Pull request 1: Callable model, complexity, and parameters
 
-- [ ] Land the shared callable abstraction and six adapter implementations.
-- [ ] Land cyclomatic, cognitive, and parameter-count behavior with cross-language fixtures.
-- [ ] Update the detector documentation affected by this first behavior change.
+- [x] Land the shared callable abstraction and six adapter implementations.
+- [x] Land cyclomatic, cognitive, and parameter-count behavior with cross-language fixtures.
+- [x] Update the detector documentation affected by this first behavior change.
 - [ ] Verify CI and review any changes to existing findings caused by isolating nested callable
   boundaries.
 
@@ -224,15 +224,15 @@ Run focused checks after each behavioral phase and the full gate before each PR.
 
 ## Completion criteria
 
-- [ ] Every supported anonymous-function form has an explicit supported or unsupported case.
-- [ ] Anonymous callables can independently produce cyclomatic, cognitive, and parameter-count
+- [x] Every supported anonymous-function form has an explicit supported or unsupported case.
+- [x] Anonymous callables can independently produce cyclomatic, cognitive, and parameter-count
   diagnostics in all six languages.
-- [ ] Nested anonymous callables do not inflate an enclosing cyclomatic graph.
-- [ ] Nested anonymous callables preserve the documented enclosing cognitive-nesting behavior.
+- [x] Nested anonymous callables do not inflate an enclosing cyclomatic graph.
+- [x] Nested anonymous callables preserve the documented enclosing cognitive-nesting behavior.
 - [ ] File coherence counts named responsibilities without counting ordinary inline callbacks.
-- [ ] Unrelated detectors retain their prior scope and fixture results.
-- [ ] CLI and extension use the same behavior through the shared Core pipeline.
-- [ ] Documentation no longer claims the resolved limitation and accurately states what remains.
+- [x] Unrelated detectors retain their prior scope and fixture results.
+- [x] CLI and extension use the same behavior through the shared Core pipeline.
+- [x] Documentation no longer claims the resolved limitation and accurately states what remains.
 - [ ] Both pull requests pass the repository's formatting, build, test, markdown, analyzer, and diff
   checks.
 

@@ -178,12 +178,11 @@ let private implementsTargetNames (heritage: Node) : string list =
         |> List.map nodeText
     | None -> []
 
-/// Treat arrow functions as lambdas, matching Python's grammar limitation.
+/// Expose TypeScript arrows as closure syntax while preserving named-definition scope for unrelated detectors.
 ///
-/// decision: treats arrow functions (`(x) => x + 1`) as `lambda`, matching Python's `lambda` — they
-/// add structural nesting in cognitive complexity but aren't analyzed by parameter-count/complexity/
-/// coherence themselves (same limitation Python already has for its own lambdas); only named
-/// `function_declaration`s and class `method_definition`s count as "a function" for those detectors.
+/// decision: classifies arrows and function expressions through GetCallableViews for complexity and
+/// parameter analysis while IsFunctionDefinition remains limited to declarations and methods, so
+/// named-function-only detectors do not broaden implicitly.
 let typeScriptLanguageAdapter: LanguageAdapter =
     { Id = "typescript"
       GrammarPath = "grammars/tree-sitter-typescript.wasm"

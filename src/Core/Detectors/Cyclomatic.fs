@@ -24,9 +24,9 @@ type private FlowNode =
     | Exit
     | Decision of int
 
-type private FunctionScope =
-    | RootFunction
-    | NestedFunction
+type private CallableScope =
+    | RootCallable
+    | NestedCallable
 
 type private FlowEdge = { From: FlowNode; To: FlowNode }
 
@@ -84,13 +84,17 @@ let private decisionOutcomes (language: LanguageAdapter) (node: Node) : int =
     else
         language.CyclomaticBranchCount node |> Option.defaultValue 2
 
-/// A nested named function/method's graph is never folded into its parent: it is scored separately
-/// by analyzeFunctionComplexity's traversal. Each decision replaces the graph's current Exit edges
+/// Identify syntax that starts one or more independently reportable callables.
+let private isCallableBoundary (language: LanguageAdapter) (node: Node) =
+    language.GetCallableViews node |> List.isEmpty |> not
+
+/// A nested callable's graph is never folded into its parent: it is scored separately by
+/// analyzeFunctionComplexity's traversal. Each decision replaces the graph's current Exit edges
 /// with its outcomes, which preserves a connected graph and makes multi-way branches explicit.
 let rec private buildControlFlowGraph
     (language: LanguageAdapter)
     (node: Node)
-    (scope: FunctionScope)
+    (scope: CallableScope)
     (graph: ControlFlowGraph)
     : ControlFlowGraph =
     let nextGraph =
@@ -99,22 +103,26 @@ let rec private buildControlFlowGraph
         else
             graph
 
-    // invariant: a nested named function/method is scored separately, never folded into its parent.
-    if scope = NestedFunction && language.IsFunctionDefinition node then
+    // invariant: a nested callable is scored separately, never folded into its parent.
+    if scope = NestedCallable && isCallableBoundary language node then
         nextGraph
     else
         nodeChildren node
-        |> List.fold (fun current child -> buildControlFlowGraph language child NestedFunction current) nextGraph
+        |> List.fold (fun current child -> buildControlFlowGraph language child NestedCallable current) nextGraph
 
 /// Calculate McCabe complexity from the explicit reduced control-flow graph.
 ///
 /// decision: calculates McCabe complexity from the explicit reduced graph rather than treating an
 /// AST decision count as the metric. Each function graph has one connected component (P = 1).
 let complexityOf (language: LanguageAdapter) (functionNode: Node) : int =
-    let graph = buildControlFlowGraph language functionNode RootFunction initialGraph
+    let graph = buildControlFlowGraph language functionNode RootCallable initialGraph
 
     graph.Edges.Length - graph.Nodes.Length
     + mccabeComponentMultiplier * connectedComponents
+
+/// Calculate one callable view's McCabe complexity from its grammar-normalized body.
+let private complexityOfCallable (language: LanguageAdapter) (callable: CallableView) =
+    complexityOf language callable.Body
 
 /// Locate every decision point weighted by nesting depth so callers can render a per-line heatmap.
 ///
@@ -125,7 +133,7 @@ let rec private findCyclomaticHotspots
     (positions: PositionLookup)
     (node: Node)
     (depth: int)
-    (scope: FunctionScope)
+    (scope: CallableScope)
     : Hotspot list =
     let dp = isDecisionPoint language node
 
@@ -140,9 +148,9 @@ let rec private findCyclomaticHotspots
         else
             []
 
-    // invariant: mirrors buildControlFlowGraph's traversal exactly — a nested named
-    // function/method is hotspotted separately as its own violation, never folded into this one.
-    if scope = NestedFunction && language.IsFunctionDefinition node then
+    // invariant: mirrors buildControlFlowGraph's traversal exactly — a nested callable is
+    // hotspotted separately as its own violation, never folded into this one.
+    if scope = NestedCallable && isCallableBoundary language node then
         thisHotspot
     else
         let nextDepth = if dp then depth + 1 else depth
@@ -151,37 +159,38 @@ let rec private findCyclomaticHotspots
         // subtree) and left-to-right sibling order, with no accumulator to reverse.
         thisHotspot
         @ (nodeChildren node
-           |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth NestedFunction))
+           |> List.collect (fun child -> findCyclomaticHotspots language positions child nextDepth NestedCallable))
 
+/// Report one callable when its independent graph exceeds the configured threshold.
+let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
+    let complexity = complexityOfCallable ctx.Language callable
+
+    if complexity > ctx.Options.Cyclomatic.MediumThreshold then
+        let pos = ctx.Positions.toPosition (nodeStartIndex callable.Anchor)
+
+        let severity =
+            if complexity > ctx.Options.Cyclomatic.HighThreshold then
+                High
+            else
+                Medium
+
+        [ { Line = pos.Line
+            Column = pos.Column
+            Type = Complexity
+            Severity = severity
+            Message = sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
+            Hotspots = findCyclomaticHotspots ctx.Language ctx.Positions callable.Body 0 RootCallable } ]
+    else
+        []
+
+/// Report every named or anonymous callable as an independent cyclomatic graph.
 let analyzeFunctionComplexity (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
-            if ctx.Language.IsFunctionDefinition node then
-                let complexity = complexityOf ctx.Language node
+            ctx.Language.GetCallableViews node |> List.collect (analyzeCallable ctx)
 
-                if complexity > ctx.Options.Cyclomatic.MediumThreshold then
-                    let pos = ctx.Positions.toPosition (nodeStartIndex node)
-
-                    let severity =
-                        if complexity > ctx.Options.Cyclomatic.HighThreshold then
-                            High
-                        else
-                            Medium
-
-                    [ { Line = pos.Line
-                        Column = pos.Column
-                        Type = Complexity
-                        Severity = severity
-                        Message =
-                          sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
-                        Hotspots = findCyclomaticHotspots ctx.Language ctx.Positions node 0 RootFunction } ]
-                else
-                    []
-            else
-                []
-
-        // decision: prepend this function's violation ahead of its subtree (ownViolations @ children)
-        // so a function reports before descending into it — matching the TS push-to-end ordering,
+        // decision: prepend this callable's violation ahead of its subtree (ownViolations @ children)
+        // so a callable reports before descending into it — matching the TS push-to-end ordering,
         // siblings left to right.
         ownViolations @ (nodeChildren node |> List.collect traverse)
 

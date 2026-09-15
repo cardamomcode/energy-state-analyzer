@@ -11,13 +11,13 @@ open Energy.Core.Violation
 open Energy.Core.Detectors.Cognitive
 open Energy.Tests.TestUtils
 
-/// Locate a named example by its declaration line, excluding references in function bodies.
+/// Locate a named example's callable view by its declaration line, excluding body references.
 let rec private findFunction (language: LanguageAdapter) name node =
     if
         language.IsFunctionDefinition node
         && (nodeText node).Split('\n').[0].Contains(" " + name)
     then
-        Some node
+        language.GetCallableViews node |> List.tryHead
     else
         nodeNamedChildren node |> List.tryPick (findFunction language name)
 
@@ -80,12 +80,12 @@ let private ruleTest language (prepared: System.Lazy<_>) (name, expected) =
                 task {
                     let! (fixture: RuleFixture) = prepared.Value
                     assertThat (nodeHasError fixture.Tree) (isEqualTo false)
-                    let fn = findFunction language name fixture.Tree |> Option.get
+                    let callable = findFunction language name fixture.Tree |> Option.get
                     let positions = fixture.Positions
-                    let line = (positions.toPosition (nodeStartIndex fn)).Line
+                    let line = (positions.toPosition (nodeStartIndex callable.Anchor)).Line
                     let atFunction = List.filter (fun violation -> violation.Line = line)
-                    assertThat (cognitiveScoreOf language fn) (isEqualTo expected)
-                    let hotspots = findCognitiveHotspots language fn positions
+                    assertThat (cognitiveScoreOf language callable) (isEqualTo expected)
+                    let hotspots = findCognitiveHotspots language callable positions
                     assertThat (hotspots |> List.sumBy _.Weight) (isEqualTo expected)
 
                     if name = "multilineRuns" then

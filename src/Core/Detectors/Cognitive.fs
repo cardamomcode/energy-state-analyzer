@@ -95,25 +95,36 @@ let rec private cognitiveWalk
         | _ when language.IsFunctionDefinition node -> walkChildren (fun _ -> true)
         | _ -> walkChildren (fun _ -> false)
 
-/// Score a function by walking each of its top-level children at nesting zero.
+/// Select the syntax roots that form one callable body without charging the callable itself.
+let private callableBodyRoots (callable: CallableView) =
+    if nodeId callable.Anchor = nodeId callable.Body then
+        nodeChildren callable.Body
+    else
+        [ callable.Body ]
+
+/// Score a callable by walking its body at nesting zero.
 ///
-/// decision: score a function by walking each of its top-level children at nesting 0 (the function
-/// definition itself is never scored as a decision point — it is the thing being measured). The
+/// decision: score a callable body at nesting 0 (the callable declaration itself is never scored as
+/// a decision point — it is the thing being measured). The
 /// `contribute` callback records where each increment comes from; scoring passes a no-op.
-let cognitiveScoreOf (language: LanguageAdapter) (functionNode: Node) : int =
-    nodeChildren functionNode
-    |> List.sumBy (fun child -> cognitiveWalk language child 0 (fun _ _ -> ()))
+let cognitiveScoreOf (language: LanguageAdapter) (callable: CallableView) : int =
+    callableBodyRoots callable
+    |> List.sumBy (fun root -> cognitiveWalk language root 0 (fun _ _ -> ()))
 
 /// Find each scored cognitive point with its line and weight so callers can render a per-line heatmap.
 ///
 /// decision: re-runs the same walk used for scoring, but records where each point of score comes from
 /// so callers can render a per-line heatmap across the function body instead of a single flat highlight.
-let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (positions: PositionLookup) : Hotspot list =
+let findCognitiveHotspots
+    (language: LanguageAdapter)
+    (callable: CallableView)
+    (positions: PositionLookup)
+    : Hotspot list =
     let hotspots = ResizeArray()
 
-    nodeChildren functionNode
-    |> List.iter (fun child ->
-        cognitiveWalk language child 0 (fun node amount ->
+    callableBodyRoots callable
+    |> List.iter (fun root ->
+        cognitiveWalk language root 0 (fun node amount ->
             let pos = positions.toPosition (nodeStartIndex node)
 
             hotspots.Add({ Line = pos.Line; Weight = amount }))
@@ -121,38 +132,39 @@ let findCognitiveHotspots (language: LanguageAdapter) (functionNode: Node) (posi
 
     hotspots |> List.ofSeq
 
-/// Report named functions whose cognitive score exceeds the configured threshold.
+/// Report one callable when its independent cognitive score exceeds the configured threshold.
+let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
+    let complexity = cognitiveScoreOf ctx.Language callable
+
+    if complexity > ctx.Options.Cognitive.MediumThreshold then
+        let pos = ctx.Positions.toPosition (nodeStartIndex callable.Anchor)
+
+        let severity =
+            if complexity > ctx.Options.Cognitive.HighThreshold then
+                High
+            else
+                Medium
+
+        [ { Line = pos.Line
+            Column = pos.Column
+            Type = Cognitive
+            Severity = severity
+            Message =
+              sprintf
+                  "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
+                  complexity
+            Hotspots = findCognitiveHotspots ctx.Language callable ctx.Positions } ]
+    else
+        []
+
+/// Report named and anonymous callables whose cognitive score exceeds the configured threshold.
 let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
-            if ctx.Language.IsFunctionDefinition node then
-                let complexity = cognitiveScoreOf ctx.Language node
+            ctx.Language.GetCallableViews node |> List.collect (analyzeCallable ctx)
 
-                if complexity > ctx.Options.Cognitive.MediumThreshold then
-                    let pos = ctx.Positions.toPosition (nodeStartIndex node)
-
-                    let severity =
-                        if complexity > ctx.Options.Cognitive.HighThreshold then
-                            High
-                        else
-                            Medium
-
-                    [ { Line = pos.Line
-                        Column = pos.Column
-                        Type = Cognitive
-                        Severity = severity
-                        Message =
-                          sprintf
-                              "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
-                              complexity
-                        Hotspots = findCognitiveHotspots ctx.Language node ctx.Positions } ]
-                else
-                    []
-            else
-                []
-
-        // decision: prepend this function's violation ahead of its subtree (ownViolations @ children)
-        // so a function reports before descending into it — matching the TS push-to-end ordering,
+        // decision: prepend this callable's violation ahead of its subtree (ownViolations @ children)
+        // so a callable reports before descending into it — matching the TS push-to-end ordering,
         // siblings left to right.
         ownViolations @ (nodeChildren node |> List.collect traverse)
 

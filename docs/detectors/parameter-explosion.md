@@ -179,4 +179,12 @@ In the editor this is `energyStateAnalyzer.parameterCount.mediumThreshold` / `.h
 
 ## Known limitations
 
-TypeScript arrow functions and C++ lambdas aren't analyzed by this detector, only named functions and methods; Python's `lambda` has the same gap. C++ parameter packs count when the grammar exposes them as parameter declarations, but macro-generated parameters are invisible without preprocessing.
+The detector analyzes named definitions and anonymous callables: Python lambdas, F# function
+expressions, TypeScript arrows and function expressions, Kotlin and C++ lambdas, and C# lambdas and
+anonymous methods. TypeScript and C# single-parameter shorthand is counted without requiring
+parentheses.
+
+Only parameters explicitly present in the syntax tree count. Kotlin's implicit `it` therefore
+counts as zero declared parameters, and C++ capture lists do not count as parameters. C++ parameter
+packs count when the grammar exposes them as parameter declarations, but macro-generated parameters
+remain invisible without preprocessing.

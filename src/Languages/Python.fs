@@ -336,54 +336,7 @@ let pythonLanguageAdapter: LanguageAdapter =
       // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
       // comparison node) and F# has no direct construct; both still accumulate distinct literals across
       // separate equality comparisons via GetEqualityComparisons.
-      GetMembershipComparisons =
-        fun node ->
-            if nodeType node = comparisonOperatorNodeType then
-                let children = nodeChildren node
-
-                children
-                |> List.mapi (fun i c -> i, c)
-                |> List.filter (fun (i, _) -> i >= 1 && i + 1 < List.length children)
-                |> List.filter (fun (_, c) -> nodeType c = NodeType "in")
-                |> List.map (fun (i, _) -> i - 1, i + 1)
-                |> List.choose (fun (leftIdx, rightIdx) ->
-                    let left = children.[leftIdx]
-                    let right = children.[rightIdx]
-
-                    if
-                        nodeType right = NodeType "tuple"
-                        || nodeType right = NodeType "list"
-                        || nodeType right = NodeType "set"
-                    then
-                        // decision: scan the named string children; stop at the first non-string named
-                        // child (the fold's `failed` flag signals "not all strings", mirroring the TS
-                        // `allStrings = false; break`. A tuple-state avoids an option accumulator, which
-                        // Fable's transform can't lower inside a nested List.fold.
-                        let unquote (s: string) = s.Substring(1, s.Length - 2)
-
-                        let step (failed: bool) (acc: string list) (child: Node) =
-                            if failed then (true, acc)
-                            // decision: skips unnamed punctuation before checking literal shape — tuple
-                            // commas and brackets are structural tokens, not membership values.
-                            elif not (nodeIsNamed child) then (false, acc)
-                            elif nodeType child <> NodeType "string" then (true, acc)
-                            else (false, acc @ [ unquote (nodeText child) ])
-
-                        let failed, values =
-                            nodeChildren right
-                            |> List.fold (fun (failed, acc) child -> step failed acc child) (false, [])
-
-                        match failed with
-                        | true -> None
-                        | false ->
-                            if values.Length > 0 then
-                                Some { Left = left; Values = values }
-                            else
-                                None
-                    else
-                        None)
-            else
-                []
+      GetMembershipComparisons = PythonAdapterSyntax.membershipComparisons
       IsMatchCaseLiteral =
         fun node ->
             nodeType node = NodeType "string"
@@ -430,59 +383,7 @@ let pythonLanguageAdapter: LanguageAdapter =
       IsExplicitConstant = fun _ -> false
       // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
       // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
-      ImportInfo =
-        fun node ->
-            if nodeType node = NodeType "import_from_statement" then
-                let text = nodeText node
-                let importIndex = text.IndexOf(" import ", System.StringComparison.Ordinal)
-
-                if importIndex > 5 then
-                    let source = text.Substring(5, importIndex - 5).Trim()
-                    let names = text.Substring(importIndex + 8).Trim().Trim([| '('; ')' |])
-
-                    if names = "*" then
-                        [ { Kind = Wildcard
-                            Source = source
-                            Bindings = [] } ]
-                    else
-                        let bindings =
-                            names.Split(',')
-                            |> Array.toList
-                            |> List.map (fun name -> name.Trim())
-                            |> List.filter (fun name -> name <> "")
-                            |> List.map (fun name ->
-                                let parts = name.Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
-                                let imported = parts.[0]
-
-                                let local =
-                                    if parts.Length >= 3 && parts.[1] = "as" then
-                                        parts.[2]
-                                    else
-                                        imported
-
-                                { ImportedName = imported
-                                  LocalName = local })
-
-                        [ { Kind = Members
-                            Source = source
-                            Bindings = bindings } ]
-                else
-                    [ { Kind = Members
-                        Source = text
-                        Bindings = [] } ]
-            else
-                nodeText node
-                |> fun text -> text.Substring(7).Split(',')
-                |> Array.toList
-                |> List.map (fun item ->
-                    let parts =
-                        item.Trim().Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
-
-                    let source = parts.[0]
-
-                    { Kind = Module
-                      Source = source
-                      Bindings = [] })
+      ImportInfo = PythonAdapterSyntax.importInfo
       IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
       GetClassName =
         fun node ->
