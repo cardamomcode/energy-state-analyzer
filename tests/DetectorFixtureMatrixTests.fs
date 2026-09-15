@@ -206,6 +206,35 @@ let tests =
               ProducesFinding(FunctionName "flaggedManyParams", Some Medium)
               ProducesFinding(FunctionName "flaggedTooManyParams", Some High) ]
 
+    let anonymousCallablePaths =
+        { Python = "anonymous_callable_analysis.py"
+          TypeScript = "anonymousCallableAnalysis.ts"
+          FSharp = "AnonymousCallableAnalysis.fs"
+          Kotlin = "AnonymousCallableAnalysis.kt"
+          CPlusPlus = "anonymous_callable_analysis.cpp"
+          CSharp = "AnonymousCallableAnalysis.cs" }
+
+    let anonymousCyclomatic =
+        commonCases
+            anonymousCallablePaths
+            [ StaysClean(FunctionName "cleanAnonymousCallable")
+              ProducesFinding(FunctionName "flaggedAnonymousCyclomatic", Some Medium)
+              ProducesFinding(FunctionName "flaggedSevereAnonymousCyclomatic", Some High) ]
+
+    let anonymousCognitive =
+        commonCases
+            anonymousCallablePaths
+            [ StaysClean(FunctionName "cleanAnonymousCallable")
+              ProducesFinding(FunctionName "flaggedAnonymousCognitive", Some Medium)
+              ProducesFinding(FunctionName "flaggedSevereAnonymousCognitive", Some High) ]
+
+    let anonymousParameters =
+        commonCases
+            anonymousCallablePaths
+            [ StaysClean(FunctionName "cleanAnonymousCallable")
+              ProducesFinding(FunctionName "flaggedAnonymousParameters", Some Medium)
+              ProducesFinding(FunctionName "flaggedSevereAnonymousParameters", Some High) ]
+
     let primitiveObsession =
         commonCases
             { Python = "primitive_obsession.py"
@@ -439,12 +468,15 @@ let tests =
           yield! detectorParityTests "magic strings" Magic magicStrings
           yield! detectorParityTests "nesting" Nesting nesting
           yield! detectorParityTests "cyclomatic complexity" Complexity cyclomatic
+          yield! detectorParityTests "anonymous cyclomatic complexity" Complexity anonymousCyclomatic
           yield! detectorParityTests "cognitive complexity" Cognitive cognitive
+          yield! detectorParityTests "anonymous cognitive complexity" Cognitive anonymousCognitive
           // Exact-score parity includes straight-line, boolean, branch, loop, dispatch and closure
           // scenarios. Python/F# lack do-while syntax; C++ uses lambdas instead of local named functions.
           // F# has no early-return statement; its unit conditional is tested without claiming a guard exit.
           yield! CognitiveRuleTests.fixtureTests
           yield! detectorParityTests "parameter count" Parameters parameters
+          yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
           yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
           yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
           yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean

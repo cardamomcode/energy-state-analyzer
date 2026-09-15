@@ -9,6 +9,82 @@ let private functionBodyNodeType = NodeType "function_body"
 let private catchBlockNodeType = NodeType "catch_block"
 let private finallyBlockNodeType = NodeType "finally_block"
 
+/// Name Kotlin's function-declaration node type.
+let private functionDeclarationNodeType = NodeType "function_declaration"
+
+/// Name Kotlin's lambda-literal node type.
+let private lambdaLiteralNodeType = NodeType "lambda_literal"
+
+/// Name Kotlin's named-function parameter container.
+let private functionParametersNodeType = NodeType "function_value_parameters"
+
+/// Keep the existing Kotlin named-parameter contract in one reusable list.
+let private namedParameterChildTypes = [ NodeType "parameter" ]
+
+/// Extract named-function parameters from their Kotlin container.
+let private namedParametersOf (node: Node) =
+    nodeChildren node
+    |> List.tryFind (fun child -> nodeType child = functionParametersNodeType)
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> namedParameterChildTypes |> List.contains (nodeType child)))
+    |> Option.defaultValue []
+
+/// Extract explicit lambda parameters while leaving implicit `it` uncounted.
+let private lambdaParametersOf (node: Node) =
+    nodeChildren node
+    |> List.tryFind (fun child -> nodeType child = NodeType "lambda_parameters")
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> nodeType child = NodeType "variable_declaration"))
+    |> Option.defaultValue []
+
+/// Extract a Kotlin property's direct variable name.
+let private propertyBindingName (property: Node) =
+    nodeChildren property
+    |> List.tryFind (fun child -> nodeType child = NodeType "variable_declaration")
+    |> Option.bind (fun declaration ->
+        nodeChildren declaration
+        |> List.tryFind (fun child -> nodeType child = NodeType "identifier"))
+    |> Option.map nodeText
+
+/// Classify a Kotlin lambda directly assigned to a property.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some property when
+        nodeType property = NodeType "property_declaration"
+        && (nodeNamedChildren property
+            |> List.tryLast
+            |> Option.exists (fun value -> nodeId value = nodeId node))
+        ->
+        let role =
+            match nodeParent property with
+            | Some parent when nodeType parent = NodeType "source_file" -> BoundAnonymous ModuleBinding
+            | Some parent when nodeType parent = NodeType "class_body" -> BoundAnonymous ClassMemberBinding
+            | _ -> InlineAnonymous
+
+        role, propertyBindingName property
+    | _ -> InlineAnonymous, None
+
+/// Normalize Kotlin function declarations and lambda literals into callable views.
+let private callableViews (node: Node) : CallableView list =
+    match nodeType node with
+    | nodeType when nodeType = functionDeclarationNodeType ->
+        [ { Anchor = node
+            Body = node
+            Role = NamedDefinition
+            BindingName = nodeField "name" node |> Option.map nodeText
+            Parameters = namedParametersOf node } ]
+    | nodeType when nodeType = lambdaLiteralNodeType ->
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = node
+            Role = role
+            BindingName = bindingName
+            Parameters = lambdaParametersOf node } ]
+    | _ -> []
+
 let rec private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -147,14 +223,14 @@ let kotlinLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-kotlin.wasm"
       NodeTypes =
         { Block = Some(NodeType "block")
-          Parameters = NodeType "function_value_parameters"
+          Parameters = functionParametersNodeType
           IfStatement = Some(NodeType "if_expression")
           ElseClause = None
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           // if_expression already covers ternary-style use (Kotlin has no separate ternary node).
           ConditionalExpression = None
-          Lambda = Some(NodeType "lambda_literal")
+          Lambda = Some lambdaLiteralNodeType
           ImportStatement = Some(NodeType "import")
           ImportFromStatement = None
           ExpressionStatement = None
@@ -171,11 +247,12 @@ let kotlinLanguageAdapter: LanguageAdapter =
           IntegerLiteral = Some(NodeType "number_literal")
           FloatLiteral = Some(NodeType "float_literal")
           StringLiteral = Some(NodeType "string_literal") }
-      IsFunctionDefinition = fun node -> nodeType node = NodeType "function_declaration"
+      IsFunctionDefinition = fun node -> nodeType node = functionDeclarationNodeType
       // Kotlin has no merged-binding shape: one definition node is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod = fun _ -> false
-      ParameterChildTypes = [ NodeType "parameter" ]
+      ParameterChildTypes = namedParameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_expression"
           NodeType "for_statement"

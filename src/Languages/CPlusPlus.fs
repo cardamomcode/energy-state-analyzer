@@ -10,6 +10,21 @@ let private tryStatementNodeType = NodeType "try_statement"
 let private compoundStatementNodeType = NodeType "compound_statement"
 let private catchClauseNodeType = NodeType "catch_clause"
 
+/// Name C++'s named-function definition node type.
+let private functionDefinitionNodeType = NodeType "function_definition"
+
+/// Name C++'s lambda-expression node type.
+let private lambdaExpressionNodeType = NodeType "lambda_expression"
+
+/// Name the C++ parameter-list node nested below recursive declarators.
+let private parameterListNodeType = NodeType "parameter_list"
+
+/// Keep the existing C++ parameter-declaration contract in one reusable list.
+let private parameterChildTypes =
+    [ NodeType "parameter_declaration"
+      NodeType "optional_parameter_declaration"
+      NodeType "variadic_parameter_declaration" ]
+
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -81,6 +96,77 @@ let private isTypeNode (node: Node) =
 
 let private isDeclaratorNode (node: Node) =
     Set.contains (nodeType node) declaratorNodeTypes
+
+/// Extract explicit C++ parameters while excluding lambda captures.
+let private parametersOf (node: Node) =
+    tryFindDescendant (fun child -> nodeType child = parameterListNodeType) node
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> parameterChildTypes |> List.contains (nodeType child)))
+    |> Option.defaultValue []
+
+/// Extract the identifier carried by a recursive C++ declarator.
+let private declaratorName (node: Node) =
+    tryFindDescendant
+        (fun child ->
+            nodeType child = NodeType "identifier"
+            || nodeType child = NodeType "field_identifier")
+        node
+    |> Option.map nodeText
+
+/// Classify a C++ lambda directly initialized at module, class, or local scope.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some field when
+        nodeType field = NodeType "field_declaration"
+        && (nodeParent field
+            |> Option.exists (fun parent -> nodeType parent = NodeType "field_declaration_list"))
+        ->
+        BoundAnonymous ClassMemberBinding, (nodeField "declarator" field |> Option.bind declaratorName)
+    | Some declarator when
+        nodeType declarator = NodeType "init_declarator"
+        && (nodeField "value" declarator
+            |> Option.exists (fun value -> nodeId value = nodeId node))
+        ->
+        let bindingName = nodeField "declarator" declarator |> Option.bind declaratorName
+
+        let role =
+            match nodeParent declarator with
+            | Some declaration when
+                nodeType declaration = NodeType "declaration"
+                && (nodeParent declaration
+                    |> Option.exists (fun parent -> nodeType parent = NodeType "translation_unit"))
+                ->
+                BoundAnonymous ModuleBinding
+            | Some field when
+                nodeType field = NodeType "field_declaration"
+                && (nodeParent field
+                    |> Option.exists (fun parent -> nodeType parent = NodeType "field_declaration_list"))
+                ->
+                BoundAnonymous ClassMemberBinding
+            | _ -> InlineAnonymous
+
+        role, bindingName
+    | _ -> InlineAnonymous, None
+
+/// Normalize C++ functions and lambdas into shared callable views.
+let private callableViews (node: Node) : CallableView list =
+    match nodeType node with
+    | nodeType when nodeType = functionDefinitionNodeType ->
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = NamedDefinition
+            BindingName = nodeField "declarator" node |> Option.bind declaratorName
+            Parameters = parametersOf node } ]
+    | nodeType when nodeType = lambdaExpressionNodeType ->
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = role
+            BindingName = bindingName
+            Parameters = parametersOf node } ]
+    | _ -> []
 
 let private extractTypedParameter (node: Node) : TypedParameter option =
     let typeNode = nodeChildren node |> List.tryFind isTypeNode
@@ -215,13 +301,13 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-cpp.wasm"
       NodeTypes =
         { Block = Some(NodeType "compound_statement")
-          Parameters = NodeType "parameter_list"
+          Parameters = parameterListNodeType
           IfStatement = Some(NodeType "if_statement")
           ElseClause = Some(NodeType "else_clause")
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some(NodeType "lambda_expression")
+          Lambda = Some lambdaExpressionNodeType
           ImportStatement = Some(NodeType "preproc_include")
           ImportFromStatement = None
           ExpressionStatement = Some(NodeType "expression_statement")
@@ -232,14 +318,12 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
           IntegerLiteral = Some(NodeType "number_literal")
           FloatLiteral = None
           StringLiteral = Some(NodeType "string_literal") }
-      IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
       // C++ has no merged-binding shape: one function_definition is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
-      ParameterChildTypes =
-        [ NodeType "parameter_declaration"
-          NodeType "optional_parameter_declaration"
-          NodeType "variadic_parameter_declaration" ]
+      ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"
           NodeType "for_statement"

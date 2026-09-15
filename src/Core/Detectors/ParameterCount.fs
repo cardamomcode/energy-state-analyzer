@@ -29,53 +29,39 @@ let rec findParametersNode (node: Node) (parametersType: NodeType) : Node option
         |> List.collect (fun c -> findParametersNode c parametersType |> Option.toList)
         |> List.tryHead
 
-/// Score one logical function head and anchor a finding at that head's declaration.
-let private analyzeHead (ctx: AnalysisContext) (head: FunctionHead) =
-    match findParametersNode head.ParametersRoot ctx.Language.NodeTypes.Parameters with
-    | Some parameters ->
-        let parameterCount =
-            nodeChildren parameters
-            |> List.filter (fun child -> ctx.Language.ParameterChildTypes |> List.contains (nodeType child))
-            |> List.length
+/// Score one grammar-normalized callable from its explicit parameter nodes.
+///
+/// decision: thresholds remain in Core.Config while adapters own parameter syntax, so project
+/// overrides apply uniformly without forcing every callable form through one parameters node type.
+let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
+    let parameterCount = callable.Parameters.Length
 
-        // decision: thresholds live in Core.Config as the single source of truth; this detector
-        // reads them from ctx.Options so a project (.esaconfig.json) or host (VS Code/CLI) can
-        // retune without editing code — past medium is medium energy, past high escalates to high.
-        let mediumThreshold = ctx.Options.ParameterCount.MediumThreshold
-        let highThreshold = ctx.Options.ParameterCount.HighThreshold
+    if parameterCount > ctx.Options.ParameterCount.MediumThreshold then
+        let position = ctx.Positions.toPosition (nodeStartIndex callable.Anchor)
 
-        if parameterCount > mediumThreshold then
-            // Anchor at the head (the function name), not the merged defn, so an `and`-bound
-            // function's finding lands on its own declaration.
-            let position = ctx.Positions.toPosition (nodeStartIndex head.ParametersRoot)
-
-            [ { Line = position.Line
-                Column = position.Column
-                Type = Parameters
-                Severity = if parameterCount > highThreshold then High else Medium
-                Message =
-                  sprintf
-                      "Parameter explosion: %d parameters. Consider using objects or builder pattern."
-                      parameterCount
-                Hotspots = [] } ]
-        else
-            []
-    | None -> []
+        [ { Line = position.Line
+            Column = position.Column
+            Type = Parameters
+            Severity =
+              if parameterCount > ctx.Options.ParameterCount.HighThreshold then
+                  High
+              else
+                  Medium
+            Message =
+              sprintf "Parameter explosion: %d parameters. Consider using objects or builder pattern." parameterCount
+            Hotspots = [] } ]
+    else
+        []
 
 /// The "Parameter Explosion" detector. Flags a function past its medium threshold (5 by default),
 /// escalating to high past the high threshold (8 by default); a violation is anchored at the function
 /// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
 let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : EnergyViolation list =
-        // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head
-        // per mutually recursive let) rather than the merged node, so every head's parameter count is
-        // measured instead of only the first head's. For a single-head definition this is one head, so
-        // behavior is unchanged.
+        // decision: analyzes the adapter's callable views so anonymous callables use their
+        // grammar-specific parameter syntax and F# `and`-bindings remain split into logical heads.
         let ownViolations =
-            if ctx.Language.IsFunctionDefinition node then
-                ctx.Language.GetFunctionHeads node |> List.collect (analyzeHead ctx)
-            else
-                []
+            ctx.Language.GetCallableViews node |> List.collect (analyzeCallable ctx)
 
         ownViolations @ (nodeChildren node |> List.collect traverse)
 
