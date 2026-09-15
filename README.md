@@ -58,6 +58,20 @@ npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp /
 
 See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch. See [docs/agent-integration.md](docs/agent-integration.md) for wiring the CLI into an AI coding agent's edit-and-verify loop.
 
+### Agent skill
+
+Install the companion skill globally for Claude Code, Pi, and Codex directly from this repository:
+
+```bash
+npx skills add cardamomcode/energy-state-analyzer \
+  --skill energy-state-analyzer --global \
+  --agent claude-code --agent pi --agent codex
+```
+
+The skill teaches agents how to shape new code for a clean first scan, interpret the JSON report,
+fix valid findings without gaming metrics, and verify the result. Omit `--global` to install it only
+for the current project, or run the command without agent flags to choose targets interactively.
+
 ## Requirements
 
 The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, C++, or C# file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).

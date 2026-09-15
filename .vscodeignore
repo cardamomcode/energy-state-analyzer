@@ -37,6 +37,7 @@ fsharp-analyzer-reports/**
 .energy-state/**
 .agents/**
 .codex/**
+skills/**
 AGENTS.md
 Directory.Build.props
 Directory.Build.targets
