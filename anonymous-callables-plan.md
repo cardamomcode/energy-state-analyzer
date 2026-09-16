@@ -219,7 +219,7 @@ Run focused checks after each behavioral phase and the full gate before each PR.
 - [x] Branch from updated `main` after pull request 1 lands.
 - [x] Land binding-name/class-role extraction and coherence integration.
 - [x] Add bound-versus-inline coherence fixtures and documentation.
-- [ ] Verify CI and dogfood the packaged CLI against representative real repositories before
+- [x] Verify CI and dogfood the packaged CLI against representative real repositories before
   removing the final coherence limitation.
 
 ## Completion criteria
@@ -233,7 +233,7 @@ Run focused checks after each behavioral phase and the full gate before each PR.
 - [x] Unrelated detectors retain their prior scope and fixture results.
 - [x] CLI and extension use the same behavior through the shared Core pipeline.
 - [x] Documentation no longer claims the resolved limitation and accurately states what remains.
-- [ ] Both pull requests pass the repository's formatting, build, test, markdown, analyzer, and diff
+- [x] Both pull requests pass the repository's formatting, build, test, markdown, analyzer, and diff
   checks.
 
 ## Rough estimate
