@@ -64,6 +64,7 @@ let private callableViews (node: Node) : CallableView list =
     if Set.contains (nodeType node) namedFunctionNodeTypes then
         [ { Anchor = node
             Body = callableBody node
+            ReturnTypeRoot = node
             Role = NamedDefinition
             BindingName = nodeField "name" node |> Option.map nodeText
             Parameters = parametersOf node } ]
@@ -75,6 +76,7 @@ let private callableViews (node: Node) : CallableView list =
 
         [ { Anchor = node
             Body = callableBody node
+            ReturnTypeRoot = node
             Role = role
             BindingName = bindingName
             Parameters = parametersOf node } ]
@@ -202,7 +204,17 @@ let cSharpLanguageAdapter: LanguageAdapter =
       IsFunctionDefinition = fun node -> Set.contains (nodeType node) namedFunctionNodeTypes
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       GetCallableViews = callableViews
-      IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
+      IsStaticMethod =
+        fun node ->
+            let rec hasStaticOwner candidate =
+                if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
+                    true
+                elif nodeType candidate = NodeType "declaration_list" then
+                    false
+                else
+                    nodeParent candidate |> Option.exists hasStaticOwner
+
+            hasStaticOwner node
       ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =
         [ NodeType "if_statement"

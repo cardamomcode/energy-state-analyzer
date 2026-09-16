@@ -6,7 +6,6 @@ open System.Text.RegularExpressions
 
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
-open Energy.Core.Detectors.ParameterCount
 
 // Type side of the file-coherence detector.
 //
@@ -72,32 +71,24 @@ let baseTypeName (typeText: string) (brackets: GenericBrackets) : string option 
         else
             Some head
 
-/// Per-function set of distinct base types touched across its typed parameters and return type. A
-/// function with no typed signals at all returns an empty set — that's "no data point", not "different
+/// Per-callable set of distinct base types touched across its typed parameters and return type. A
+/// callable with no typed signals at all returns an empty set — that's "no data point", not "different
 /// type", and is treated as such by typeCohesionResult below.
-/// Collect the distinct base types a single function touches across its typed parameters and return type.
+/// Collect the distinct base types a single callable touches across its typed parameters and return type.
 ///
-/// decision: threads both typed-signal sources through Option.bind/Option.map instead of nested match
-/// arms, so a missing parameter type or an unbaseable annotation is dropped silently rather than
-/// forcing another `| None -> ()` level. The added base types fold into one shared accumulator.
-let collectTypeSignals (fn: Node) (language: LanguageAdapter) : HashSet<string> =
+/// decision: consumes adapter-normalized parameter nodes and return-type roots so anonymous callable
+/// syntax and F# mutually recursive heads keep the same typed-coverage rules as named definitions.
+let collectTypeSignals (callable: CallableView) (language: LanguageAdapter) : HashSet<string> =
     let types = HashSet<string>()
 
-    // decision: collects the typed-parameter signal from every logical head of a definition (F#'s
-    // `and`-binding splits into one head per mutually recursive let) rather than only the first head's
-    // parameters, so an `and`-bound function is no longer starved of its own typed parameters.
-    for head in language.GetFunctionHeads fn do
-        match findParametersNode head.ParametersRoot language.NodeTypes.Parameters with
-        | Some paramsNode ->
-            for child in nodeChildren paramsNode do
-                language.ExtractTypedParameter child
-                |> Option.bind (fun tp ->
-                    baseTypeName tp.Type language.GenericBrackets
-                    |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
-                |> ignore
-        | None -> ()
+    for parameter in callable.Parameters do
+        language.ExtractTypedParameter parameter
+        |> Option.bind (fun typedParameter ->
+            baseTypeName typedParameter.Type language.GenericBrackets
+            |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
+        |> ignore
 
-    language.ExtractReturnType fn
+    language.ExtractReturnType callable.ReturnTypeRoot
     |> Option.bind (fun returnType ->
         baseTypeName returnType language.GenericBrackets
         |> Option.map (fun baseType -> types.Add(baseType) |> ignore))
@@ -133,7 +124,7 @@ type TypeCohesionThresholds =
 /// functions = 0.10, clearly cohesive) without needing to know in advance how many "related" types a
 /// cohesive module is allowed to use.
 let typeCohesionResult
-    (functions: Node list)
+    (callables: CallableView list)
     (language: LanguageAdapter)
     (thresholds: TypeCohesionThresholds)
     : TypeCohesionResult =
@@ -141,15 +132,15 @@ let typeCohesionResult
     let minCoverage = thresholds.MinCoverage
 
     let perFunctionTypes =
-        functions |> List.map (fun fn -> collectTypeSignals fn language)
+        callables |> List.map (fun callable -> collectTypeSignals callable language)
 
     let typedFunctions = perFunctionTypes |> List.filter (fun s -> s.Count > 0)
 
     let coverage =
-        if functions.Length = 0 then
+        if callables.Length = 0 then
             0.0
         else
-            float typedFunctions.Length / float functions.Length
+            float typedFunctions.Length / float callables.Length
 
     if coverage < minCoverage then
         InsufficientData

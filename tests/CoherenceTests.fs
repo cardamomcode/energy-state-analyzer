@@ -123,6 +123,186 @@ let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: 
             ))
     )
 
+/// One cross-language bound-callable fixture and the responsibilities its grammar can model.
+type private BoundCallableCase =
+    { Label: string
+      Language: LanguageAdapter
+      Fixture: string
+      FreeFunctions: int option
+      ClassMethods: int option
+      LargeCallables: int }
+
+/// Fixtures that combine direct bindings with function-local variables and inline callbacks.
+let private boundCallableCases =
+    [ { Label = "Python"
+        Language = Python.pythonLanguageAdapter
+        Fixture = "python/coherence/bound_callables.py"
+        FreeFunctions = Some 3
+        ClassMethods = Some 3
+        LargeCallables = 6 }
+      { Label = "TypeScript"
+        Language = TypeScript.typeScriptLanguageAdapter
+        Fixture = "typescript/coherence/boundCallables.ts"
+        FreeFunctions = Some 3
+        ClassMethods = Some 3
+        LargeCallables = 6 }
+      { Label = "F#"
+        Language = FSharp.fSharpLanguageAdapter
+        Fixture = "fsharp/coherence/BoundCallables.fs"
+        FreeFunctions = Some 3
+        ClassMethods = None
+        LargeCallables = 3 }
+      { Label = "Kotlin"
+        Language = Kotlin.kotlinLanguageAdapter
+        Fixture = "kotlin/coherence/BoundCallables.kt"
+        FreeFunctions = Some 3
+        ClassMethods = Some 3
+        LargeCallables = 6 }
+      { Label = "C++"
+        Language = CPlusPlus.cPlusPlusLanguageAdapter
+        Fixture = "cpp/coherence/bound_callables.cpp"
+        FreeFunctions = Some 3
+        ClassMethods = Some 3
+        LargeCallables = 6 }
+      { Label = "C#"
+        Language = CSharp.cSharpLanguageAdapter
+        Fixture = "csharp/coherence/BoundCallables.cs"
+        FreeFunctions = None
+        ClassMethods = Some 3
+        LargeCallables = 3 } ]
+
+/// Languages where direct static class-bound callables must retain the namespace exemption.
+let private staticBoundCallableCases =
+    [ { Label = "TypeScript"
+        Language = TypeScript.typeScriptLanguageAdapter
+        Fixture = "typescript/coherence/staticBoundCallables.ts"
+        FreeFunctions = None
+        ClassMethods = Some 3
+        LargeCallables = 3 }
+      { Label = "C++"
+        Language = CPlusPlus.cPlusPlusLanguageAdapter
+        Fixture = "cpp/coherence/static_bound_callables.cpp"
+        FreeFunctions = None
+        ClassMethods = Some 3
+        LargeCallables = 3 }
+      { Label = "C#"
+        Language = CSharp.cSharpLanguageAdapter
+        Fixture = "csharp/coherence/StaticBoundCallables.cs"
+        FreeFunctions = None
+        ClassMethods = Some 3
+        LargeCallables = 3 } ]
+
+/// Analyze a bound-callable fixture with one focused coherence threshold override.
+let private analyzeBoundCallables (case: BoundCallableCase) (coherence: Energy.Core.Config.CoherenceThresholds) =
+    task {
+        let! sourceCode, tree = parseFixture case.Language case.Fixture
+        assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
+
+        let input =
+            { Source = sourceCode
+              Tree = tree
+              Language = case.Language
+              FileName = case.Fixture }
+
+        let thresholds =
+            { defaultThresholds with
+                Coherence = coherence }
+
+        let violations = analyzeWith thresholds input |> _.Violations
+        assertValidPositions violations sourceCode
+        return violations
+    }
+
+/// Verify module-bound callables count while local variables and inline callbacks do not.
+let private moduleBoundCallableTest (case: BoundCallableCase) =
+    let expectedCount = case.FreeFunctions |> Option.defaultValue 0
+
+    testAsync (
+        sprintf "%s: module-bound responsibility count excludes local and inline callables" case.Label,
+        fun _ ->
+            toAsync (
+                task {
+                    let coherence =
+                        { defaultThresholds.Coherence with
+                            UtilsFileFunctionCount = 0
+                            GenericFunctionCount = max 0 (expectedCount - 1) }
+
+                    let! violations = analyzeBoundCallables case coherence
+                    let expectedMessage = sprintf "%d functions in one file" expectedCount
+                    let countHits = hitsWithMessage [ expectedMessage ] violations |> List.length
+
+                    match case.FreeFunctions with
+                    | Some _ -> assertThat countHits (isEqualTo 1)
+                    | None -> assertThat (coherenceHits violations |> List.length) (isEqualTo 0)
+                }
+            )
+    )
+
+/// Verify class-bound callables count as methods while callbacks nested in methods do not.
+let private classBoundCallableTest (case: BoundCallableCase) =
+    let expectedCount = case.ClassMethods |> Option.defaultValue 0
+
+    testAsync (
+        sprintf "%s: class-bound responsibility count excludes local and inline callables" case.Label,
+        fun _ ->
+            toAsync (
+                task {
+                    let coherence =
+                        { defaultThresholds.Coherence with
+                            MethodCountMedium = max 0 (expectedCount - 1) }
+
+                    let! violations = analyzeBoundCallables case coherence
+                    let expectedMessage = sprintf "this class has %d methods spanning" expectedCount
+                    let methodHits = hitsWithMessage [ expectedMessage ] violations |> List.length
+
+                    match case.ClassMethods with
+                    | Some _ -> assertThat methodHits (isEqualTo 1)
+                    | None -> assertThat methodHits (isEqualTo 0)
+                }
+            )
+    )
+
+/// Verify bound callables participate in large-function sprawl without counting implementation closures.
+let private largeBoundCallableTest (case: BoundCallableCase) =
+    testAsync (
+        sprintf "%s: large-callable count includes direct bindings only (%s)" case.Label case.Fixture,
+        fun _ ->
+            toAsync (
+                task {
+                    let coherence =
+                        { defaultThresholds.Coherence with
+                            LargeFunctionLines = 0
+                            MaxLargeFunctions = case.LargeCallables - 1
+                            LargeFunctionSeverityMultiplier = 10.0 }
+
+                    let! violations = analyzeBoundCallables case coherence
+
+                    let expectedMessage = sprintf "%d functions exceed 0 lines" case.LargeCallables
+
+                    let largeHits = hitsWithMessage [ expectedMessage ] violations |> List.length
+                    assertThat largeHits (isEqualTo 1)
+                }
+            )
+    )
+
+/// Verify static bound callables remain a function namespace rather than a god class.
+let private staticBoundCallableTest (case: BoundCallableCase) =
+    testAsync (
+        sprintf "%s: all-static bound callables stay outside god-class scoring" case.Label,
+        fun _ ->
+            toAsync (
+                task {
+                    let coherence =
+                        { defaultThresholds.Coherence with
+                            MethodCountMedium = 2 }
+
+                    let! violations = analyzeBoundCallables case coherence
+                    let methodHits = hitsWithMessage [ "methods spanning" ] violations |> List.length
+                    assertThat methodHits (isEqualTo 0)
+                }
+            )
+    )
+
 let tests =
     // decision: the type-cohesive-without-naming fixture is a regression guard for a real false
     // positive — an F#-style module exposing one verb per operation over a shared domain type, no
@@ -254,6 +434,17 @@ let tests =
     let block1 = buildBlock functionLanguages block1Scenarios
     let block2 = buildBlock classLanguages block2Scenarios
     let block3 = buildBlock classLanguages godClassScenarios
+
+    let boundCallableTests =
+        boundCallableCases
+        |> List.collect (fun case ->
+            [ moduleBoundCallableTest case
+              classBoundCallableTest case
+              largeBoundCallableTest case ])
+
+    let staticBoundCallableTests =
+        staticBoundCallableCases
+        |> List.collect (fun case -> [ largeBoundCallableTest case; staticBoundCallableTest case ])
 
     let fSharpScopeSprawl =
         buildTest
@@ -461,4 +652,6 @@ let tests =
             typeScriptStaticGodClass ]
         @ godClassBoundaryAndStaticMethods
         @ memberFanOuts
+        @ boundCallableTests
+        @ staticBoundCallableTests
     )

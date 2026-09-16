@@ -155,6 +155,7 @@ let private callableViews (node: Node) : CallableView list =
     | nodeType when nodeType = functionDefinitionNodeType ->
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = NamedDefinition
             BindingName = nodeField "declarator" node |> Option.bind declaratorName
             Parameters = parametersOf node } ]
@@ -163,6 +164,7 @@ let private callableViews (node: Node) : CallableView list =
 
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = role
             BindingName = bindingName
             Parameters = parametersOf node } ]
@@ -322,7 +324,17 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
       // C++ has no merged-binding shape: one function_definition is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       GetCallableViews = callableViews
-      IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
+      IsStaticMethod =
+        fun node ->
+            let rec hasStaticOwner candidate =
+                if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
+                    true
+                elif nodeType candidate = NodeType "field_declaration_list" then
+                    false
+                else
+                    nodeParent candidate |> Option.exists hasStaticOwner
+
+            hasStaticOwner node
       ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"

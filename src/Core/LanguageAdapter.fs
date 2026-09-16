@@ -108,6 +108,7 @@ type CallableRole =
 type CallableView =
     { Anchor: Node
       Body: Node
+      ReturnTypeRoot: Node
       Role: CallableRole
       BindingName: string option
       Parameters: Node list }
@@ -296,7 +297,7 @@ type LanguageAdapter =
       // instead of counted as free-standing functions. A predicate is required because C++ uses the
       // same class_specifier/struct_specifier node types for definitions and forward declarations.
       IsClassDefinition: Node -> bool
-      // Whether a class method has no instance receiver. God-class scoring intentionally excludes
+      // Whether a class callable has no instance receiver. God-class scoring intentionally excludes
       // all-static classes because they are namespaces of functions, not stateful object responsibilities.
       IsStaticMethod: Node -> bool
       // Given a class-definition node, returns its declared name, or None if it can't be determined. Always
