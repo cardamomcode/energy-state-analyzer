@@ -44,3 +44,8 @@ def flaggedPartiallyKeywordOnly(x: int, *, y: int):
 # flagged — boolean blindness
 def flaggedBooleanBlindness(compress: bool, notify: bool):
     return compress and notify
+
+
+# flagged — boolean blindness (non-adjacent)
+def flaggedNonAdjacentBooleanBlindness(compress: bool, name: str, notify: bool):
+    return name if compress and notify else ""

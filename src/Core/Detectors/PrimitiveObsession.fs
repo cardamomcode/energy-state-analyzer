@@ -16,10 +16,10 @@ let private minDistinctValues = 3
 let private sampleSize = 4
 
 /// Spellings of the boolean type across the languages this detector runs on (F#/Python "bool",
-/// TypeScript "boolean", Kotlin "Boolean"). Adjacent booleans get a boolean-blindness-specific
-/// message instead of the generic primitive-obsession one: unlike two adjacent `float`s, a caller
-/// reading `f(true, false)` cannot tell which flag is which even when the types can't be swapped
-/// silently, so the fix is a named type for the combination, not just a distinct type per value.
+/// TypeScript "boolean", Kotlin "Boolean"). Booleans get their own boolean-blindness check instead of
+/// the generic primitive-obsession one, and unlike that adjacency-based check, position doesn't matter:
+/// a caller reading `f(true, false)` cannot tell which flag is which even when the types can't be
+/// swapped silently, so the fix is a named type for the combination, not just a distinct type per value.
 let private booleanTypeNames = Set.ofList [ "bool"; "boolean"; "Boolean" ]
 
 type private TypedParameterNode =
@@ -28,10 +28,18 @@ type private TypedParameterNode =
       Node: Node
       KeywordOnly: bool }
 
-/// Detects adjacent, identically typed primitive parameters that callers can accidentally transpose.
+/// Detects adjacent, identically typed non-boolean primitive parameters that callers can accidentally
+/// transpose, and separately, any signature carrying two or more boolean parameters regardless of
+/// position.
 ///
 /// decision: suppresses a pair only when both parameters occur after a language-level keyword-only
 /// boundary — optional named call syntax cannot prevent a later positional call from swapping values.
+///
+/// decision: booleans are pulled out of the adjacency-only swap-risk check and evaluated across the
+/// whole parameter list instead. Unlike two same-typed numbers, non-adjacent booleans are just as
+/// blind as adjacent ones — `f(mode: bool, name: str, notify: bool)` still reads as an opaque
+/// true/false pair at the call site, and the domain rarely permits every combination the type system
+/// allows regardless of where the flags sit in the signature.
 let private findParameterCollisions (paramsNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
     let _, typed =
         nodeChildren paramsNode
@@ -51,42 +59,58 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
                     | None -> keywordOnly, typed)
             (false, [])
 
-    typed
-    |> List.pairwise
-    |> List.choose (fun (first, second) ->
-        if
-            first.Type <> second.Type
-            || not (Set.contains first.Type language.PrimitiveTypeNames)
-            || (first.KeywordOnly && second.KeywordOnly)
-        then
-            None
-        else
-            let position = positions.toPosition (nodeStartIndex first.Node)
+    let swapRiskViolations =
+        typed
+        |> List.pairwise
+        |> List.choose (fun (first, second) ->
+            if
+                first.Type <> second.Type
+                || not (Set.contains first.Type language.PrimitiveTypeNames)
+                || Set.contains first.Type booleanTypeNames
+                || (first.KeywordOnly && second.KeywordOnly)
+            then
+                None
+            else
+                let position = positions.toPosition (nodeStartIndex first.Node)
 
-            let message =
-                if Set.contains first.Type booleanTypeNames then
-                    sprintf
-                        "Boolean blindness: consecutive parameters '%s: %s' and '%s: %s' are both booleans — a caller can swap them and nothing will complain, and a call site like f(true, false) doesn't say which flag is which. Consider a single enum or union naming the valid combinations instead of independent booleans."
-                        first.Name
-                        first.Type
-                        second.Name
-                        second.Type
-                else
-                    sprintf
-                        "Primitive obsession: consecutive parameters '%s: %s' and '%s: %s' share the same primitive type — a caller can swap them and nothing will complain. Consider %s so the type checker catches it."
-                        first.Name
-                        first.Type
-                        second.Name
-                        second.Type
-                        language.DistinctTypeAdvice
+                Some
+                    { Line = position.Line
+                      Column = position.Column
+                      Type = PrimitiveObsession
+                      Severity = Medium
+                      Message =
+                        sprintf
+                            "Primitive obsession: consecutive parameters '%s: %s' and '%s: %s' share the same primitive type — a caller can swap them and nothing will complain. Consider %s so the type checker catches it."
+                            first.Name
+                            first.Type
+                            second.Name
+                            second.Type
+                            language.DistinctTypeAdvice
+                      Hotspots = [] })
+
+    // decision: a keyword-only boolean is excluded from the count — its signature already forces
+    // every call site to name it, so it isn't blind the way a positional boolean is.
+    let booleanBlindnessViolation =
+        match typed |> List.filter (fun p -> Set.contains p.Type booleanTypeNames && not p.KeywordOnly) with
+        | first :: _ :: _ as booleans ->
+            let position = positions.toPosition (nodeStartIndex first.Node)
+            let names = booleans |> List.map (fun p -> p.Name) |> String.concat ", "
 
             Some
                 { Line = position.Line
                   Column = position.Column
                   Type = PrimitiveObsession
                   Severity = Medium
-                  Message = message
-                  Hotspots = [] })
+                  Message =
+                    sprintf
+                        "Boolean blindness: this signature takes %d boolean parameters (%s), adjacent or not — a call site like f(true, false%s) doesn't say which flag is which, and combinations invalid in this domain still type-check. Consider a single enum or union naming the valid combinations instead of independent booleans."
+                        booleans.Length
+                        names
+                        (if booleans.Length > 2 then ", ..." else "")
+                  Hotspots = [] }
+        | _ -> None
+
+    swapRiskViolations @ Option.toList booleanBlindnessViolation
 
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)
 

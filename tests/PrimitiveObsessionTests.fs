@@ -36,6 +36,9 @@ let tests =
                                   let booleanBlindness =
                                       findFunctionRange source (FunctionName "flaggedBooleanBlindness")
 
+                                  let nonAdjacentBooleanBlindness =
+                                      findFunctionRange source (FunctionName "flaggedNonAdjacentBooleanBlindness")
+
                                   let primitiveHits range =
                                       violationsIn violations range
                                       |> List.filter (fun violation -> violation.Type = PrimitiveObsession)
@@ -54,6 +57,12 @@ let tests =
 
                                   assertThat
                                       (primitiveHits booleanBlindness
+                                       |> List.exists (fun violation ->
+                                           violation.Message.Contains("Boolean blindness")))
+                                      isTrue
+
+                                  assertThat
+                                      (primitiveHits nonAdjacentBooleanBlindness
                                        |> List.exists (fun violation ->
                                            violation.Message.Contains("Boolean blindness")))
                                       isTrue

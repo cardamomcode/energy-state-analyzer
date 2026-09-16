@@ -24,3 +24,8 @@ function flaggedStringlyTyped(status: string): number {
 function flaggedBooleanBlindness(compress: boolean, notify: boolean): boolean {
     return compress && notify;
 }
+
+// flagged — boolean blindness (non-adjacent)
+function flaggedNonAdjacentBooleanBlindness(compress: boolean, name: string, notify: boolean): boolean {
+    return compress && notify && name.length > 0;
+}
