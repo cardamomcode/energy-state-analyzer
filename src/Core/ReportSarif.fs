@@ -10,7 +10,7 @@ open Energy.Core.Violation
 /// decision: kept in sync with package.json by a ShipIt regex updater (see CHANGELOG.md
 /// frontmatter) rather than read at runtime, since the CLI and extension bundles don't share a
 /// reliable relative path back to package.json across their differing Fable output layouts.
-let private toolVersion = "0.18.1"
+let private toolVersion = "0.19.0"
 
 let private sarifLevel =
     function
