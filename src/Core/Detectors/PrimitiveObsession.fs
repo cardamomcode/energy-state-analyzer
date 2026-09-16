@@ -15,11 +15,12 @@ open Energy.Core.Detectors.ParameterCount
 let private minDistinctValues = 3
 let private sampleSize = 4
 
-/// Spellings of the boolean type across the languages this detector runs on (F#/Python "bool",
-/// TypeScript "boolean", Kotlin "Boolean"). Booleans get their own boolean-blindness check instead of
-/// the generic primitive-obsession one, and unlike that adjacency-based check, position doesn't matter:
-/// a caller reading `f(true, false)` cannot tell which flag is which even when the types can't be
-/// swapped silently, so the fix is a named type for the combination, not just a distinct type per value.
+/// Spellings of the boolean type across the languages this detector runs on: "bool" (Python, F#, C#,
+/// C++), "boolean" (TypeScript), "Boolean" (Kotlin). Booleans get their own boolean-blindness check
+/// instead of the generic primitive-obsession one, and unlike that adjacency-based check, position
+/// doesn't matter: a caller reading `f(true, false)` cannot tell which flag is which even when the
+/// types can't be swapped silently, so the fix is a named type for the combination, not just a
+/// distinct type per value.
 let private booleanTypeNames = Set.ofList [ "bool"; "boolean"; "Boolean" ]
 
 type private TypedParameterNode =
