@@ -23,7 +23,7 @@ type ClassInfo =
     { Name: string option
       Node: Node
       BaseNames: string list
-      mutable Methods: ResizeArray<Node> }
+      Methods: ResizeArray<CallableView> }
 
 /// Zero-based index of a class within the file, branded so two can't be transposed.
 ///
@@ -276,9 +276,10 @@ type private GodClassCandidate =
 /// decision: a class must exceed the medium bar and contain at least one instance method before
 /// type diversity can represent competing object responsibilities; all-static classes are function
 /// namespaces and belong to neither god-class scoring nor free-function sprawl.
-let private shouldMeasureGodClass (ctx: GodClassCtx) (methods: Node list) : bool =
+let private shouldMeasureGodClass (ctx: GodClassCtx) (methods: CallableView list) : bool =
     methods.Length > ctx.Thresholds.MethodCountMedium
-    && (methods |> List.exists (ctx.Language.IsStaticMethod >> not))
+    && (methods
+        |> List.exists (fun method -> not (ctx.Language.IsStaticMethod method.Anchor)))
 
 /// Returns the method/distinct-type counts when a class past the method-count bar is genuinely diverse
 /// (non-cohesive); None otherwise, so cohesive value types and under-typed files stay quiet. Split out so

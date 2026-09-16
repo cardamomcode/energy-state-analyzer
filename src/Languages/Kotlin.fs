@@ -72,6 +72,7 @@ let private callableViews (node: Node) : CallableView list =
     | nodeType when nodeType = functionDeclarationNodeType ->
         [ { Anchor = node
             Body = node
+            ReturnTypeRoot = node
             Role = NamedDefinition
             BindingName = nodeField "name" node |> Option.map nodeText
             Parameters = namedParametersOf node } ]
@@ -80,6 +81,7 @@ let private callableViews (node: Node) : CallableView list =
 
         [ { Anchor = node
             Body = node
+            ReturnTypeRoot = node
             Role = role
             BindingName = bindingName
             Parameters = lambdaParametersOf node } ]

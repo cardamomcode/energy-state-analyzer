@@ -142,21 +142,21 @@ explicit rather than being reconstructed independently inside each detector.
 
 Implement this in a separate reviewable change after complexity and parameter reporting are stable.
 
-- [ ] Extract a direct binding name for module-level anonymous callables in every language.
-- [ ] Classify direct class-member callables separately from module bindings and inline callbacks.
-- [ ] Refactor naming cohesion to consume the callable's explicit optional name rather than searching
+- [x] Extract a direct binding name for module-level anonymous callables in every language.
+- [x] Classify direct class-member callables separately from module bindings and inline callbacks.
+- [x] Refactor naming cohesion to consume the callable's explicit optional name rather than searching
   each raw function node for a direct `identifier` child.
-- [ ] Refactor type cohesion to consume callable parameter views without weakening typed-coverage
+- [x] Refactor type cohesion to consume callable parameter views without weakening typed-coverage
   requirements.
-- [ ] Include module-level bound callables in free-function count and large-function sprawl.
-- [ ] Include direct class-member callables in method-related coherence checks where the language
+- [x] Include module-level bound callables in free-function count and large-function sprawl.
+- [x] Include direct class-member callables in method-related coherence checks where the language
   treats them as methods.
-- [ ] Exclude callbacks, returned closures, and function-local callable variables from file-level
+- [x] Exclude callbacks, returned closures, and function-local callable variables from file-level
   function count.
-- [ ] Exclude callbacks nested inside methods from class method count and god-class scoring.
-- [ ] Preserve import, class-relatedness, and god-class results for files without anonymous
+- [x] Exclude callbacks nested inside methods from class method count and god-class scoring.
+- [x] Preserve import, class-relatedness, and god-class results for files without anonymous
   callables.
-- [ ] Add positive and negative coherence fixtures that make the bound-versus-inline policy explicit.
+- [x] Add positive and negative coherence fixtures that make the bound-versus-inline policy explicit.
 
 ## Phase 5: Cross-language fixture parity
 
@@ -164,7 +164,7 @@ Implement this in a separate reviewable change after complexity and parameter re
   `src/test/fixtures/<language>/` directory.
 - [x] Add named clean and finding scenarios to `tests/DetectorFixtureMatrixTests.fs` for cyclomatic,
   cognitive, and parameter-count behavior.
-- [ ] Add explicit coherence scenarios for module-bound, class-bound, function-local, and inline
+- [x] Add explicit coherence scenarios for module-bound, class-bound, function-local, and inline
   callables where those forms exist.
 - [x] State syntax forms that a language does not support as explicit limitation cases rather than
   silently omitting them.
@@ -183,7 +183,7 @@ Implement this in a separate reviewable change after complexity and parameter re
   semantics.
 - [x] Update `docs/detectors/parameter-explosion.md` with supported anonymous forms and remaining
   syntax-only limitations.
-- [ ] Update `docs/detectors/file-coherence.md` with the bound-versus-inline rule.
+- [x] Update `docs/detectors/file-coherence.md` with the bound-versus-inline rule.
 - [x] Check `docs/detectors/README.md` and other coverage summaries for stale named-function-only
   wording.
 - [x] Ensure examples say “anonymous callable” where the behavior covers more than lambdas alone.
@@ -216,9 +216,9 @@ Run focused checks after each behavioral phase and the full gate before each PR.
 
 ### Pull request 2: Bound-callable coherence
 
-- [ ] Branch from updated `main` after pull request 1 lands.
-- [ ] Land binding-name/class-role extraction and coherence integration.
-- [ ] Add bound-versus-inline coherence fixtures and documentation.
+- [x] Branch from updated `main` after pull request 1 lands.
+- [x] Land binding-name/class-role extraction and coherence integration.
+- [x] Add bound-versus-inline coherence fixtures and documentation.
 - [ ] Verify CI and dogfood the packaged CLI against representative real repositories before
   removing the final coherence limitation.
 
@@ -229,7 +229,7 @@ Run focused checks after each behavioral phase and the full gate before each PR.
   diagnostics in all six languages.
 - [x] Nested anonymous callables do not inflate an enclosing cyclomatic graph.
 - [x] Nested anonymous callables preserve the documented enclosing cognitive-nesting behavior.
-- [ ] File coherence counts named responsibilities without counting ordinary inline callbacks.
+- [x] File coherence counts named responsibilities without counting ordinary inline callbacks.
 - [x] Unrelated detectors retain their prior scope and fixture results.
 - [x] CLI and extension use the same behavior through the shared Core pipeline.
 - [x] Documentation no longer claims the resolved limitation and accurately states what remains.

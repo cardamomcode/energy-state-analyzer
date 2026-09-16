@@ -3,7 +3,7 @@ module Energy.Core.NamingCohesion
 open System
 open System.Text.RegularExpressions
 
-open Energy.Core.TreeSitter
+open Energy.Core.LanguageAdapter
 
 // Naming side of the file-coherence detector.
 //
@@ -48,19 +48,16 @@ let isUtilsFileName (fileName: string) : bool =
     splitIntoWords withoutExtension
     |> List.exists (fun w -> utilsFileWords.Contains w)
 
-/// Extract the tokenized words from a single function's identifier.
+/// Extract the tokenized words from a callable's explicit binding name.
 ///
 /// decision: a raw function name is a weak signal on its own, but a *dominant leading or trailing
 /// word* shared across most of a file's functions (extractFoo/extractBar, or fooParser/barParser) is
 /// a cheap, AST-only proxy for "this file is one coherent domain factored into many small steps" —
 /// exactly the case a raw function-count sprawl check would otherwise misflag. Checking both ends also
 /// catches naming conventions that put the domain word last (parseDate/formatDate), not just first.
-let private functionNameWords (node: Node) : string list =
-    let nameNode =
-        nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "identifier")
-
-    match nameNode with
-    | Some n when not (String.IsNullOrEmpty(nodeText n)) -> splitIntoWords (nodeText n)
+let private callableNameWords (callable: CallableView) : string list =
+    match callable.BindingName with
+    | Some name when not (String.IsNullOrEmpty name) -> splitIntoWords name
     | _ -> []
 
 let private dominantShare (words: string list) : float =
@@ -98,8 +95,9 @@ let looksLikeSingleDomainByNames (names: string list) (minShare: float) : bool =
         dominantShare (List.ofSeq leadingWords) >= minShare
         || dominantShare (List.ofSeq trailingWords) >= minShare
 
-let looksLikeSingleDomain (functions: Node list) (minShare: float) : bool =
+let looksLikeSingleDomain (callables: CallableView list) (minShare: float) : bool =
     let functionWordStrings =
-        functions |> List.map (fun fn -> functionNameWords fn |> String.concat " ")
+        callables
+        |> List.map (fun callable -> callableNameWords callable |> String.concat " ")
 
     looksLikeSingleDomainByNames functionWordStrings minShare

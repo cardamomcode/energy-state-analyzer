@@ -151,9 +151,10 @@ let private anonymousBinding (node: Node) : CallableRole * string option =
     | _ -> InlineAnonymous, None
 
 /// Convert one existing logical F# function head into a callable view.
-let private namedCallableView (head: FunctionHead) =
+let private namedCallableView (definition: Node) (head: FunctionHead) =
     { Anchor = head.ParametersRoot
       Body = head.Body
+      ReturnTypeRoot = definition
       Role = NamedDefinition
       BindingName = bindingNameIn head.ParametersRoot
       Parameters = parametersOf head.ParametersRoot }
@@ -164,6 +165,7 @@ let private anonymousCallableView (node: Node) =
 
     { Anchor = node
       Body = nodeNamedChildren node |> List.tryLast |> Option.defaultValue node
+      ReturnTypeRoot = node
       Role = role
       BindingName = bindingName
       Parameters = parametersOf node }
@@ -176,7 +178,7 @@ let private callableViews (node: Node) : CallableView list =
 
     match nodeType node with
     | nodeType when nodeType = functionDefinitionNodeType && hasFunctionHead ->
-        functionHeads node |> List.map namedCallableView
+        functionHeads node |> List.map (namedCallableView node)
     | nodeType when nodeType = functionExpressionNodeType -> [ anonymousCallableView node ]
     | _ -> []
 

@@ -56,7 +56,10 @@ let private lambdaParametersNodeType = NodeType "lambda_parameters"
 
 /// Keep the existing Python parameter-node contract in one reusable list.
 let private parameterChildTypes =
-    [ identifierNodeType; NodeType "default_parameter" ]
+    [ identifierNodeType
+      NodeType "default_parameter"
+      NodeType "typed_parameter"
+      typedDefaultParameterNodeType ]
 
 /// Extract explicit parameters from the supplied Python parameter container.
 let private parametersOf containerType (node: Node) =
@@ -99,6 +102,7 @@ let private callableViews (node: Node) : CallableView list =
     | nodeType when nodeType = functionDefinitionNodeType ->
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = NamedDefinition
             BindingName = nodeField "name" node |> Option.map nodeText
             Parameters = parametersOf parametersNodeType node } ]
@@ -107,6 +111,7 @@ let private callableViews (node: Node) : CallableView list =
 
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = role
             BindingName = bindingName
             Parameters = parametersOf lambdaParametersNodeType node } ]

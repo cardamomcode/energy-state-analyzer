@@ -100,6 +100,7 @@ let private callableViews (node: Node) : CallableView list =
     | nodeType when nodeType = functionDeclarationNodeType || nodeType = methodDefinitionNodeType ->
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = NamedDefinition
             BindingName = nodeField "name" node |> Option.map nodeText
             Parameters = parametersOf node } ]
@@ -108,6 +109,7 @@ let private callableViews (node: Node) : CallableView list =
 
         [ { Anchor = node
             Body = nodeField "body" node |> Option.defaultValue node
+            ReturnTypeRoot = node
             Role = role
             BindingName = bindingName
             Parameters = parametersOf node } ]
@@ -214,7 +216,14 @@ let typeScriptLanguageAdapter: LanguageAdapter =
       // TypeScript has no merged-binding shape: one definition node is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
       GetCallableViews = callableViews
-      IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
+      IsStaticMethod =
+        fun node ->
+            let declaration =
+                match nodeParent node with
+                | Some parent when nodeType parent = NodeType "public_field_definition" -> parent
+                | _ -> node
+
+            nodeChildren declaration |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"
