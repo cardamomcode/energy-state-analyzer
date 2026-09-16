@@ -19,7 +19,7 @@ Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, or C# file
 - [Recovery Dominance](docs/detectors/recovery-dominance.md), recovery policy that dominates a function.
 - [Oversized Recovery Block](docs/detectors/oversized-recovery-block.md), individual handlers or cleanup bodies exceeding their line limit.
 - [Inversion opportunities](docs/detectors/inversion-opportunities.md), nested conditionals that could be guard clauses.
-- [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type.
+- [Primitive obsession](docs/detectors/primitive-obsession.md), strings/numbers standing in for a real type, and boolean blindness.
 - [Match opportunities](docs/detectors/match-opportunities.md), if/elif chains that could be a match/switch.
 - [Logical operator as control flow](docs/detectors/logical-operator-control-flow.md), an `if` hidden behind `&&`/`||`.
 - [Parse, don't validate](docs/detectors/parse-dont-validate.md), checks whose successful result does not preserve the domain constraint.

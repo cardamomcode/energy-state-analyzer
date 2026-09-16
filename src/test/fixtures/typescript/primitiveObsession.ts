@@ -19,3 +19,13 @@ function flaggedStringlyTyped(status: string): number {
     }
     return 0;
 }
+
+// flagged — boolean blindness
+function flaggedBooleanBlindness(compress: boolean, notify: boolean): boolean {
+    return compress && notify;
+}
+
+// flagged — boolean blindness (non-adjacent)
+function flaggedNonAdjacentBooleanBlindness(compress: boolean, name: string, notify: boolean): boolean {
+    return compress && notify && name.length > 0;
+}

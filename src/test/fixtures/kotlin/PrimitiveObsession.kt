@@ -19,3 +19,13 @@ fun flaggedStringlyTyped(status: String): Int {
     }
     return 0
 }
+
+// flagged — boolean blindness
+fun flaggedBooleanBlindness(compress: Boolean, notify: Boolean): Boolean {
+    return compress && notify
+}
+
+// flagged — boolean blindness (non-adjacent)
+fun flaggedNonAdjacentBooleanBlindness(compress: Boolean, name: String, notify: Boolean): Boolean {
+    return compress && notify && name.isNotEmpty()
+}

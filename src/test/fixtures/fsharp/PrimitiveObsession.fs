@@ -6,6 +6,13 @@ let cleanDistinctTypes (name: string) (age: int) = sprintf "%s:%d" name age
 // flagged — primitive obsession
 let flaggedSwapRisk (x: int) (y: int) = x + y
 
+// flagged — boolean blindness
+let flaggedBooleanBlindness (compress: bool) (notify: bool) = compress && notify
+
+// flagged — boolean blindness (non-adjacent)
+let flaggedNonAdjacentBooleanBlindness (compress: bool) (name: string) (notify: bool) =
+    compress && notify && name.Length > 0
+
 // flagged — primitive obsession (low)
 let flaggedStringlyTyped (status: string) =
     if status = "pending" then 1

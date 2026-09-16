@@ -8,6 +8,8 @@ Flags strings and numbers standing in for what should be a distinct, validated t
 
 In Python, a pair is suppressed only when *both* parameters are keyword-only (after a bare `*` or `*args` in the signature), since the signature itself then makes a positional call impossible. Named-parameter naming is still a weaker mitigation than a distinct type (`NewType`, a dataclass, etc.), since nothing stops a future `**kwargs`-splat call from transposing the values by hand, but that gap isn't worth detecting. This suppression doesn't apply to TypeScript, Kotlin, or C++, which have no enforcing keyword-only boundary, or F#, whose named arguments are limited to member and constructor calls and do not prevent a positional call.
 
+**Boolean blindness.** Two or more boolean parameters (`bool` in Python, F#, and C++; `boolean` in TypeScript; `Boolean` in Kotlin) anywhere in a signature, not just adjacent ones, are flagged separately from the swap-risk check above. `exportData(compress: bool, notify: bool, overwrite: bool)` reads the same at a positional call site regardless of which flag controls what, and so does `exportData(mode: bool, name: str, notify: bool)`: a non-boolean parameter between two booleans breaks swap-*adjacency*, but it does nothing to fix the blindness, since the domain still permits fewer combinations than the type system allows. A boolean is excluded from the count only when the language's keyword-only mechanism forces every call site to name it (e.g. Python's `*`/`*args` boundary). The suggested fix is a single named type covering the valid combinations (an enum, a discriminated union), not a distinct type per flag, since wrapping each boolean separately keeps the combinatorial explosion, only the swap risk goes away.
+
 **Stringly-typed control flow.** A variable compared against 3 or more distinct string literals within one function is a de facto enum encoded as strings, with no exhaustiveness checking and no typo protection at the type level. Runs on Python, F#, TypeScript, Kotlin, and C++; Python additionally flags a variable checked against a literal tuple/list/set in one `in` expression, and F# additionally flags the idiomatic `match` on string-literal cases dispatching on one variable, since the two are the same de facto enum expressed in each language's dominant form.
 
 ## Example
@@ -15,6 +17,10 @@ In Python, a pair is suppressed only when *both* parameters are keyword-only (af
 ```python
 def haversine(lat: float, lon: float, alt: float):
     # flagged: lat/lon and lon/alt are adjacent same-typed pairs a caller can swap
+    ...
+
+def export_data(compress: bool, notify: bool):
+    # flagged (boolean blindness): export_data(True, False) doesn't say which flag is which
     ...
 
 def handle(status: str):

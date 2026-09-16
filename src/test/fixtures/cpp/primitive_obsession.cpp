@@ -24,3 +24,13 @@ int flaggedStringlyTyped(std::string status) {
     }
     return 0;
 }
+
+// flagged — boolean blindness
+bool flaggedBooleanBlindness(bool compress, bool notify) {
+    return compress && notify;
+}
+
+// flagged — boolean blindness (non-adjacent)
+bool flaggedNonAdjacentBooleanBlindness(bool compress, std::string name, bool notify) {
+    return compress && notify && !name.empty();
+}
