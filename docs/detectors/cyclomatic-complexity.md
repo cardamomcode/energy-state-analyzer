@@ -14,7 +14,10 @@ Starting from a base of **1**, every decision point adds **+1**, no matter how d
 - match/switch-like constructs, using their actual arm count rather than a flat `+1`; a switch with
   no fallback also includes its implicit unmatched path
 
-A nested named function or method is scored separately, as its own violation, never folded into the enclosing function's count.
+A nested named or anonymous callable is scored separately, as its own violation, and is never
+folded into the enclosing callable's count. This includes Python lambdas, F# function expressions,
+TypeScript arrows and function expressions, Kotlin and C++ lambdas, and C# lambdas and anonymous
+methods.
 
 Two functions with the same number of `if`s score the same whether those `if`s are sequential or nested five deep. This metric measures *independent control-flow paths*, rather than every possible execution.
 [Cognitive complexity](cognitive-complexity.md) estimates reading effort through breaks in
@@ -65,8 +68,8 @@ project thresholds.
 
 A progressive heatmap is also painted across a flagged function's body: each contributing line is shaded by how much it drives up the score relative to that function's own worst line, so you can see which branches to break apart first.
 
-For C++, this is a syntax metric: preprocessor branches and control flow introduced by macro
-expansion are not counted.
+For C++, this is a syntax metric: preprocessor branches, macro-generated lambdas, and control flow
+introduced by macro expansion are not counted.
 
 ## References
 

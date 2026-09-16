@@ -8,6 +8,79 @@ let private tryStatementNodeType = NodeType "try_statement"
 let private catchClauseNodeType = NodeType "catch_clause"
 let private finallyClauseNodeType = NodeType "finally_clause"
 
+/// Name C#'s lambda-expression node type.
+let private lambdaExpressionNodeType = NodeType "lambda_expression"
+
+/// Name C#'s anonymous-method node type.
+let private anonymousMethodNodeType = NodeType "anonymous_method_expression"
+
+/// Name C#'s parenthesized parameter container.
+let private parameterListNodeType = NodeType "parameter_list"
+
+/// Keep the existing set of C# named-function forms explicit.
+let private namedFunctionNodeTypes =
+    Set.ofList
+        [ NodeType "method_declaration"
+          NodeType "constructor_declaration"
+          NodeType "local_function_statement" ]
+
+/// Extract parenthesized or single implicit C# parameters.
+let private parametersOf (node: Node) =
+    match nodeField "parameters" node with
+    | Some parameters when nodeType parameters = NodeType "implicit_parameter" -> [ parameters ]
+    | Some parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> nodeType child = NodeType "parameter")
+    | None -> []
+
+/// Classify a C# anonymous callable directly assigned to a class field or local.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some declarator when nodeType declarator = NodeType "variable_declarator" ->
+        let bindingName = nodeField "name" declarator |> Option.map nodeText
+
+        let isClassMember =
+            declarator
+            |> nodeParent
+            |> Option.bind nodeParent
+            |> Option.filter (fun parent -> nodeType parent = NodeType "field_declaration")
+            |> Option.bind nodeParent
+            |> Option.exists (fun parent -> nodeType parent = NodeType "declaration_list")
+
+        if isClassMember then
+            BoundAnonymous ClassMemberBinding, bindingName
+        else
+            InlineAnonymous, bindingName
+    | _ -> InlineAnonymous, None
+
+/// Select the explicit C# body field or final block when the grammar omits that field.
+let private callableBody (node: Node) =
+    nodeField "body" node
+    |> Option.orElseWith (fun () -> nodeNamedChildren node |> List.tryLast)
+    |> Option.defaultValue node
+
+/// Normalize C# named functions, lambdas, and anonymous methods into callable views.
+let private callableViews (node: Node) : CallableView list =
+    if Set.contains (nodeType node) namedFunctionNodeTypes then
+        [ { Anchor = node
+            Body = callableBody node
+            Role = NamedDefinition
+            BindingName = nodeField "name" node |> Option.map nodeText
+            Parameters = parametersOf node } ]
+    elif
+        nodeType node = lambdaExpressionNodeType
+        || nodeType node = anonymousMethodNodeType
+    then
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = callableBody node
+            Role = role
+            BindingName = bindingName
+            Parameters = parametersOf node } ]
+    else
+        []
+
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -109,13 +182,13 @@ let cSharpLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-c-sharp.wasm"
       NodeTypes =
         { Block = Some blockNodeType
-          Parameters = NodeType "parameter_list"
+          Parameters = parameterListNodeType
           IfStatement = Some(NodeType "if_statement")
           ElseClause = None
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some(NodeType "lambda_expression")
+          Lambda = Some lambdaExpressionNodeType
           ImportStatement = Some(NodeType "using_directive")
           ImportFromStatement = None
           ExpressionStatement = Some(NodeType "expression_statement")
@@ -126,12 +199,9 @@ let cSharpLanguageAdapter: LanguageAdapter =
           IntegerLiteral = Some(NodeType "integer_literal")
           FloatLiteral = Some(NodeType "real_literal")
           StringLiteral = Some(NodeType "string_literal") }
-      IsFunctionDefinition =
-        fun node ->
-            nodeType node = NodeType "method_declaration"
-            || nodeType node = NodeType "constructor_declaration"
-            || nodeType node = NodeType "local_function_statement"
+      IsFunctionDefinition = fun node -> Set.contains (nodeType node) namedFunctionNodeTypes
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod = fun node -> nodeChildren node |> List.exists (fun child -> nodeText child = "static")
       ParameterChildTypes = [ NodeType "parameter" ]
       DecisionNodeTypes =

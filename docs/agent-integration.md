@@ -273,10 +273,10 @@ resolve analysis failures before re-staging and committing.
 ## Notes on coverage
 
 - Analysis is **syntax-only** via bundled `web-tree-sitter` grammars; no compiler, type checker,
-  or preprocessor is invoked. C++ does not preprocess macros or instantiate templates; TypeScript
-  arrow functions and Python lambdas are not analyzed by the complexity/parameter/coherence
-  detectors (named declarations and methods are). See the "Known limitations" section of each
-  [detector doc](detectors/README.md) and the README's Known Issues.
+  or preprocessor is invoked. C++ does not preprocess macros or instantiate templates. Anonymous
+  callables are independent cyclomatic, cognitive, and parameter-count boundaries, but file
+  coherence still counts only named definitions and methods. See the "Known limitations" section
+  of each [detector doc](detectors/README.md) and the README's Known Issues.
 - The per-file **score** (`1×low + 4×medium + 9×high`) is a hotspot-spotting heuristic for tracking
   changes in findings over time. Severity communicates the seriousness of the detected
   readability and maintainability risks; individual messages explain what to fix. The score

@@ -148,6 +148,9 @@ To exclude files/folders (e.g. test fixtures, generated code) from both the exte
 
 ## Known Issues
 
-- TypeScript arrow functions aren't analyzed by complexity/parameter-count/coherence (same limitation Python already has for `lambda`), only named `function` declarations and class methods are.
-- C++ analysis is syntax-only: it does not preprocess macros, resolve includes, instantiate templates, or perform type checking. C++ lambdas are not treated as standalone functions by function-level detectors.
+- Cyclomatic complexity, cognitive complexity, and parameter count analyze anonymous callables in
+  all supported languages. File-coherence analysis still counts only named definitions and methods;
+  direct anonymous-callable bindings are not yet treated as file or class responsibilities.
+- C++ analysis is syntax-only: it does not preprocess macros, resolve includes, instantiate
+  templates, or perform type checking. Macro-generated callable syntax is therefore invisible.
 - Several detectors have per-language gaps beyond the above, see the "Known limitations" section of the relevant [detector doc](docs/detectors/README.md).

@@ -42,6 +42,76 @@ let private tryStatementNodeType = NodeType "try_statement"
 let private exceptClauseNodeType = NodeType "except_clause"
 let private finallyClauseNodeType = NodeType "finally_clause"
 
+/// Name Python's named-function node type for callable classification.
+let private functionDefinitionNodeType = NodeType "function_definition"
+
+/// Name Python's anonymous-function node type for callable classification.
+let private lambdaNodeType = NodeType "lambda"
+
+/// Name the parameter container used by named Python functions.
+let private parametersNodeType = NodeType "parameters"
+
+/// Name the parameter container used by Python lambdas.
+let private lambdaParametersNodeType = NodeType "lambda_parameters"
+
+/// Keep the existing Python parameter-node contract in one reusable list.
+let private parameterChildTypes =
+    [ identifierNodeType; NodeType "default_parameter" ]
+
+/// Extract explicit parameters from the supplied Python parameter container.
+let private parametersOf containerType (node: Node) =
+    nodeChildren node
+    |> List.tryFind (fun child -> nodeType child = containerType)
+    |> Option.map (fun parameters ->
+        nodeChildren parameters
+        |> List.filter (fun child -> parameterChildTypes |> List.contains (nodeType child)))
+    |> Option.defaultValue []
+
+/// Classify a directly assigned Python lambda without resolving aliases.
+let private anonymousBinding (node: Node) : CallableRole * string option =
+    match nodeParent node with
+    | Some assignment when
+        nodeType assignment = NodeType "assignment"
+        && (nodeField "right" assignment
+            |> Option.exists (fun right -> nodeId right = nodeId node))
+        ->
+        let name =
+            nodeField "left" assignment
+            |> Option.filter (fun left -> nodeType left = identifierNodeType)
+            |> Option.map nodeText
+
+        let container = assignment |> nodeParent |> Option.bind nodeParent
+
+        match container with
+        | Some parent when nodeType parent = NodeType "module" -> BoundAnonymous ModuleBinding, name
+        | Some block when
+            nodeType block = NodeType "block"
+            && (nodeParent block
+                |> Option.exists (fun parent -> nodeType parent = NodeType "class_definition"))
+            ->
+            BoundAnonymous ClassMemberBinding, name
+        | _ -> InlineAnonymous, name
+    | _ -> InlineAnonymous, None
+
+/// Normalize named functions and lambdas into shared callable views.
+let private callableViews (node: Node) : CallableView list =
+    match nodeType node with
+    | nodeType when nodeType = functionDefinitionNodeType ->
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = NamedDefinition
+            BindingName = nodeField "name" node |> Option.map nodeText
+            Parameters = parametersOf parametersNodeType node } ]
+    | nodeType when nodeType = lambdaNodeType ->
+        let role, bindingName = anonymousBinding node
+
+        [ { Anchor = node
+            Body = nodeField "body" node |> Option.defaultValue node
+            Role = role
+            BindingName = bindingName
+            Parameters = parametersOf lambdaParametersNodeType node } ]
+    | _ -> []
+
 /// Recognize a docstring — a bare string-literal statement — so it is discarded like a comment.
 ///
 /// decision: a docstring is documentation, not executable work. Without this filter the strict
@@ -123,13 +193,13 @@ let pythonLanguageAdapter: LanguageAdapter =
       GrammarPath = "grammars/tree-sitter-python.wasm"
       NodeTypes =
         { Block = Some(NodeType "block")
-          Parameters = NodeType "parameters"
+          Parameters = parametersNodeType
           IfStatement = Some(NodeType "if_statement")
           ElseClause = Some(NodeType "else_clause")
           ForStatement = Some(NodeType "for_statement")
           WhileStatement = Some(NodeType "while_statement")
           ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some(NodeType "lambda")
+          Lambda = Some lambdaNodeType
           ImportStatement = Some(NodeType "import_statement")
           ImportFromStatement = Some(NodeType "import_from_statement")
           ExpressionStatement = Some(NodeType "expression_statement")
@@ -140,9 +210,10 @@ let pythonLanguageAdapter: LanguageAdapter =
           IntegerLiteral = Some(NodeType "integer")
           FloatLiteral = Some(NodeType "float")
           StringLiteral = Some(NodeType "string") }
-      IsFunctionDefinition = fun node -> nodeType node = NodeType "function_definition"
+      IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
       // Python has no merged-binding shape: one definition node is one function.
       GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+      GetCallableViews = callableViews
       IsStaticMethod =
         fun node ->
             nodeParent node
@@ -151,7 +222,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                 decorated
                 |> nodeChildren
                 |> List.exists (fun child -> nodeType child = NodeType "decorator" && nodeText child = "@staticmethod"))
-      ParameterChildTypes = [ identifierNodeType; NodeType "default_parameter" ]
+      ParameterChildTypes = parameterChildTypes
       DecisionNodeTypes =
         [ NodeType "if_statement"
           NodeType "elif_clause"
@@ -265,54 +336,7 @@ let pythonLanguageAdapter: LanguageAdapter =
       // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
       // comparison node) and F# has no direct construct; both still accumulate distinct literals across
       // separate equality comparisons via GetEqualityComparisons.
-      GetMembershipComparisons =
-        fun node ->
-            if nodeType node = comparisonOperatorNodeType then
-                let children = nodeChildren node
-
-                children
-                |> List.mapi (fun i c -> i, c)
-                |> List.filter (fun (i, _) -> i >= 1 && i + 1 < List.length children)
-                |> List.filter (fun (_, c) -> nodeType c = NodeType "in")
-                |> List.map (fun (i, _) -> i - 1, i + 1)
-                |> List.choose (fun (leftIdx, rightIdx) ->
-                    let left = children.[leftIdx]
-                    let right = children.[rightIdx]
-
-                    if
-                        nodeType right = NodeType "tuple"
-                        || nodeType right = NodeType "list"
-                        || nodeType right = NodeType "set"
-                    then
-                        // decision: scan the named string children; stop at the first non-string named
-                        // child (the fold's `failed` flag signals "not all strings", mirroring the TS
-                        // `allStrings = false; break`. A tuple-state avoids an option accumulator, which
-                        // Fable's transform can't lower inside a nested List.fold.
-                        let unquote (s: string) = s.Substring(1, s.Length - 2)
-
-                        let step (failed: bool) (acc: string list) (child: Node) =
-                            if failed then (true, acc)
-                            // decision: skips unnamed punctuation before checking literal shape — tuple
-                            // commas and brackets are structural tokens, not membership values.
-                            elif not (nodeIsNamed child) then (false, acc)
-                            elif nodeType child <> NodeType "string" then (true, acc)
-                            else (false, acc @ [ unquote (nodeText child) ])
-
-                        let failed, values =
-                            nodeChildren right
-                            |> List.fold (fun (failed, acc) child -> step failed acc child) (false, [])
-
-                        match failed with
-                        | true -> None
-                        | false ->
-                            if values.Length > 0 then
-                                Some { Left = left; Values = values }
-                            else
-                                None
-                    else
-                        None)
-            else
-                []
+      GetMembershipComparisons = PythonAdapterSyntax.membershipComparisons
       IsMatchCaseLiteral =
         fun node ->
             nodeType node = NodeType "string"
@@ -359,59 +383,7 @@ let pythonLanguageAdapter: LanguageAdapter =
       IsExplicitConstant = fun _ -> false
       // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
       // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
-      ImportInfo =
-        fun node ->
-            if nodeType node = NodeType "import_from_statement" then
-                let text = nodeText node
-                let importIndex = text.IndexOf(" import ", System.StringComparison.Ordinal)
-
-                if importIndex > 5 then
-                    let source = text.Substring(5, importIndex - 5).Trim()
-                    let names = text.Substring(importIndex + 8).Trim().Trim([| '('; ')' |])
-
-                    if names = "*" then
-                        [ { Kind = Wildcard
-                            Source = source
-                            Bindings = [] } ]
-                    else
-                        let bindings =
-                            names.Split(',')
-                            |> Array.toList
-                            |> List.map (fun name -> name.Trim())
-                            |> List.filter (fun name -> name <> "")
-                            |> List.map (fun name ->
-                                let parts = name.Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
-                                let imported = parts.[0]
-
-                                let local =
-                                    if parts.Length >= 3 && parts.[1] = "as" then
-                                        parts.[2]
-                                    else
-                                        imported
-
-                                { ImportedName = imported
-                                  LocalName = local })
-
-                        [ { Kind = Members
-                            Source = source
-                            Bindings = bindings } ]
-                else
-                    [ { Kind = Members
-                        Source = text
-                        Bindings = [] } ]
-            else
-                nodeText node
-                |> fun text -> text.Substring(7).Split(',')
-                |> Array.toList
-                |> List.map (fun item ->
-                    let parts =
-                        item.Trim().Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
-
-                    let source = parts.[0]
-
-                    { Kind = Module
-                      Source = source
-                      Bindings = [] })
+      ImportInfo = PythonAdapterSyntax.importInfo
       IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
       GetClassName =
         fun node ->

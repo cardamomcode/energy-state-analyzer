@@ -16,9 +16,10 @@ for why this is tracked separately from [cyclomatic complexity](cyclomatic-compl
 - Each sequence of like boolean operators adds **1**. Changing between `and`/`&&` and
   `or`/`||` starts another sequence. Parentheses preserve a sequence; a negated boolean
   group is scored independently. This applies in conditions, assignments, calls, and returns.
-- Nested named functions and lambdas add no points for their declarations. Their bodies
-  contribute to the enclosing function at an additional nesting level. Named nested functions
-  are also analyzed independently; function scores therefore should not be summed as a file total.
+- Nested named and anonymous callables add no points for their declarations. Their bodies
+  contribute to the enclosing callable at an additional nesting level, and every callable is also
+  analyzed independently from nesting zero. These scores overlap and therefore must not be summed
+  as a file total.
 - `goto` and labelled `break`/`continue` add **1**. Ordinary breaks, continues, early returns,
   function calls, and null-coalescing/optional-access shorthand add no points themselves.
 - `try` and `finally` add no points or nesting. Catch clauses are scored separately, including
@@ -53,8 +54,9 @@ This implementation does not claim full SonarSource compatibility:
   clauses receive no increment or additional nesting.
 - Match/when constructs use one structural increment, including pattern-based dispatch.
 - Preprocessor conditionals and macro-expanded control flow are not scored.
-- Lambdas and anonymous functions contribute when inside a named function; they are not
-  reported as standalone functions. F# mutually recursive heads still share a definition score.
+- Anonymous callables are recognized directly from syntax: Python lambdas, F# function
+  expressions, TypeScript arrows and function expressions, Kotlin and C++ lambdas, and C# lambdas
+  and anonymous methods. Aliases and callables created by macro expansion are not resolved.
 
 Python and F# have no `do`-`while` syntax. C++ local callables are covered through lambdas,
 not nested named function declarations.

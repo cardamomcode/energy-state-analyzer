@@ -87,6 +87,31 @@ type FunctionHead =
         Body: Node
     }
 
+/// The syntax boundary that directly owns an anonymous callable binding.
+type AnonymousBindingScope =
+    | ModuleBinding
+    | ClassMemberBinding
+
+/// The role a callable plays independently of the grammar node used to spell it.
+type CallableRole =
+    | NamedDefinition
+    | BoundAnonymous of AnonymousBindingScope
+    | InlineAnonymous
+
+/// A grammar-neutral callable prepared for complexity, parameter, and coherence analysis.
+///
+/// decision: callable role is explicit and separate from syntax node type because equivalent
+/// lambda/function-expression forms can be a file responsibility, a class member, or an inline
+/// callback depending on their direct binding context.
+/// invariant: adding anonymous callables does not broaden named-function-only detectors; consumers
+/// opt into GetCallableViews while IsFunctionDefinition/GetFunctionHeads retain their prior scope.
+type CallableView =
+    { Anchor: Node
+      Body: Node
+      Role: CallableRole
+      BindingName: string option
+      Parameters: Node list }
+
 type ImportKind =
     | Module
     | Members
@@ -156,6 +181,9 @@ type LanguageAdapter =
       // grammar fact only the adapter knows, and every consumer (parameter-count, primitive-obsession
       // swap-risk + stringly control flow, type-cohesion) shares the same per-head views.
       GetFunctionHeads: Node -> FunctionHead list
+      // Return the independently analyzable callable views represented by this syntax node. Most
+      // nodes return none; F# mutually recursive definitions return one view per logical head.
+      GetCallableViews: Node -> CallableView list
       // Node types that count as "one parameter" among a parameters node's children.
       ParameterChildTypes: NodeType list
       // Node types that count as a decision point for cyclomatic complexity, EXCLUDING boolean and/or
