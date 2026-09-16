@@ -15,6 +15,13 @@ open Energy.Core.Detectors.ParameterCount
 let private minDistinctValues = 3
 let private sampleSize = 4
 
+/// Spellings of the boolean type across the languages this detector runs on (F#/Python "bool",
+/// TypeScript "boolean", Kotlin "Boolean"). Adjacent booleans get a boolean-blindness-specific
+/// message instead of the generic primitive-obsession one: unlike two adjacent `float`s, a caller
+/// reading `f(true, false)` cannot tell which flag is which even when the types can't be swapped
+/// silently, so the fix is a named type for the combination, not just a distinct type per value.
+let private booleanTypeNames = Set.ofList [ "bool"; "boolean"; "Boolean" ]
+
 type private TypedParameterNode =
     { Name: string
       Type: string
@@ -56,12 +63,15 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
         else
             let position = positions.toPosition (nodeStartIndex first.Node)
 
-            Some
-                { Line = position.Line
-                  Column = position.Column
-                  Type = PrimitiveObsession
-                  Severity = Medium
-                  Message =
+            let message =
+                if Set.contains first.Type booleanTypeNames then
+                    sprintf
+                        "Boolean blindness: consecutive parameters '%s: %s' and '%s: %s' are both booleans — a caller can swap them and nothing will complain, and a call site like f(true, false) doesn't say which flag is which. Consider a single enum or union naming the valid combinations instead of independent booleans."
+                        first.Name
+                        first.Type
+                        second.Name
+                        second.Type
+                else
                     sprintf
                         "Primitive obsession: consecutive parameters '%s: %s' and '%s: %s' share the same primitive type — a caller can swap them and nothing will complain. Consider %s so the type checker catches it."
                         first.Name
@@ -69,6 +79,13 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
                         second.Name
                         second.Type
                         language.DistinctTypeAdvice
+
+            Some
+                { Line = position.Line
+                  Column = position.Column
+                  Type = PrimitiveObsession
+                  Severity = Medium
+                  Message = message
                   Hotspots = [] })
 
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)

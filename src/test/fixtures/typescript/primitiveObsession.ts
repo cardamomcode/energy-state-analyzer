@@ -19,3 +19,8 @@ function flaggedStringlyTyped(status: string): number {
     }
     return 0;
 }
+
+// flagged — boolean blindness
+function flaggedBooleanBlindness(compress: boolean, notify: boolean): boolean {
+    return compress && notify;
+}

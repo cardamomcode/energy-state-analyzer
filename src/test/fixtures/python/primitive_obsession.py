@@ -39,3 +39,8 @@ def suppressedAfterStarArgs(name: str, *args, lat: float, lon: float):
 # flagged — primitive obsession
 def flaggedPartiallyKeywordOnly(x: int, *, y: int):
     return x + y
+
+
+# flagged — boolean blindness
+def flaggedBooleanBlindness(compress: bool, notify: bool):
+    return compress and notify

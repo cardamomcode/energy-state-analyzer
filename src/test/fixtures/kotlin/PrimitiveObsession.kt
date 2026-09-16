@@ -19,3 +19,8 @@ fun flaggedStringlyTyped(status: String): Int {
     }
     return 0
 }
+
+// flagged — boolean blindness
+fun flaggedBooleanBlindness(compress: Boolean, notify: Boolean): Boolean {
+    return compress && notify
+}

@@ -24,3 +24,8 @@ int flaggedStringlyTyped(std::string status) {
     }
     return 0;
 }
+
+// flagged — boolean blindness
+bool flaggedBooleanBlindness(bool compress, bool notify) {
+    return compress && notify;
+}

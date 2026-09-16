@@ -33,6 +33,9 @@ let tests =
                                   let swapRisk = findFunctionRange source (FunctionName "flaggedSwapRisk")
                                   let stringly = findFunctionRange source (FunctionName "flaggedStringlyTyped")
 
+                                  let booleanBlindness =
+                                      findFunctionRange source (FunctionName "flaggedBooleanBlindness")
+
                                   let primitiveHits range =
                                       violationsIn violations range
                                       |> List.filter (fun violation -> violation.Type = PrimitiveObsession)
@@ -47,6 +50,12 @@ let tests =
                                   assertThat
                                       (primitiveHits stringly
                                        |> List.exists (fun violation -> violation.Message.Contains("Stringly-typed")))
+                                      isTrue
+
+                                  assertThat
+                                      (primitiveHits booleanBlindness
+                                       |> List.exists (fun violation ->
+                                           violation.Message.Contains("Boolean blindness")))
                                       isTrue
                               }
                           )
