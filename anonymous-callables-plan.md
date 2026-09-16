@@ -211,7 +211,7 @@ Run focused checks after each behavioral phase and the full gate before each PR.
 - [x] Land the shared callable abstraction and six adapter implementations.
 - [x] Land cyclomatic, cognitive, and parameter-count behavior with cross-language fixtures.
 - [x] Update the detector documentation affected by this first behavior change.
-- [ ] Verify CI and review any changes to existing findings caused by isolating nested callable
+- [x] Verify CI and review any changes to existing findings caused by isolating nested callable
   boundaries.
 
 ### Pull request 2: Bound-callable coherence
