@@ -55,7 +55,7 @@ let private findSwapRiskViolations
           Type = PrimitiveObsession
           Severity = Medium
           Message =
-            $"Primitive obsession: consecutive parameters '{first.Name}: {first.Type}' and '{second.Name}: {second.Type}' share the same primitive type — a caller can swap them and nothing will complain. Consider {language.DistinctTypeAdvice} so the type checker catches it."
+            $"Primitive obsession: consecutive parameters '%s{first.Name}: %s{first.Type}' and '%s{second.Name}: %s{second.Type}' share the same primitive type — a caller can swap them and nothing will complain. Consider %s{language.DistinctTypeAdvice} so the type checker catches it."
           Hotspots = [] })
 
 /// Detects two or more boolean parameters in a signature, adjacent or not: a non-boolean parameter
@@ -80,7 +80,7 @@ let private findBooleanBlindness (typed: TypedParameterNode list) (positions: Po
               Type = PrimitiveObsession
               Severity = Medium
               Message =
-                $"Boolean blindness: this signature takes {count} boolean parameters ({names}), adjacent or not — a call site like f(true, false{suffix}) doesn't say which flag is which, and combinations invalid in this domain still type-check. Consider a single enum or union naming the valid combinations instead of independent booleans."
+                $"Boolean blindness: this signature takes %d{count} boolean parameters (%s{names}), adjacent or not — a call site like f(true, false%s{suffix}) doesn't say which flag is which, and combinations invalid in this domain still type-check. Consider a single enum or union naming the valid combinations instead of independent booleans."
               Hotspots = [] }
     | _ -> None
 
