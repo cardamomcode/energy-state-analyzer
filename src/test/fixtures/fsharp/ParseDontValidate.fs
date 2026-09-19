@@ -165,3 +165,14 @@ let cleanExplicitNarrowingValidator (value: string) = if value = null then false
 
 // clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
 let cleanFlipped (value: string) = if value <> null then true else false
+
+
+// flagged — parse, don't validate (comparison direction does not matter; the null polarity is
+// flaggedNullBooleanValidator)
+let flaggedInvertedNullBooleanValidator (value: string) = if value <> null then false else true
+
+
+// clean — not flagged by parse, don't validate (a throwing then branch is not an extracted
+// rejection; documented limitation for single-expression if/else)
+let cleanThrowingThen (value: string) =
+    if value = null then failwith "missing" else true

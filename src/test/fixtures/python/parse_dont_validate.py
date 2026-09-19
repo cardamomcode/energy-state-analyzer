@@ -160,3 +160,11 @@ def cleanFlipped(value: str | None) -> bool:
     if value is not None:
         return True
     return False
+
+
+# flagged — parse, don't validate (comparison direction does not matter; the None polarity is
+# flaggedNullBooleanValidator)
+def flaggedInvertedNullBooleanValidator(value: str | None) -> bool:
+    if value is not None:
+        return False
+    return True

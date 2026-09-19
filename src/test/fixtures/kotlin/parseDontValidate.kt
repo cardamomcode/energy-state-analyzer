@@ -157,3 +157,9 @@ fun cleanFlipped(value: String?): Boolean {
     if (value != null) { return true }
     return false
 }
+
+// flagged — parse, don't validate (an expression-form if without return statements extracts like
+// block form)
+fun flaggedExpressionIf(pw: String): Boolean {
+    if ('@' !in pw) false else true
+}
