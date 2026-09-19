@@ -1,3 +1,5 @@
+import kotlin.contracts.contract
+
 data class Positive(val amount: Int)
 
 // flagged — parse, don't validate
@@ -116,4 +118,36 @@ fun cleanConditionalThrow(amount: Int): Unit {
 // clean — not flagged by parse, don't validate
 fun cleanUnconditionalThrow(amount: Int): Unit {
     throw Exception("bad")
+}
+
+
+// flagged — parse, don't validate
+fun flaggedBooleanValidator(pw: String): Boolean {
+    if ('@' !in pw) { return false }
+    return true
+}
+
+// flagged — parse, don't validate
+fun flaggedThrowingBoolean(pw: String): Boolean {
+    if (pw.isEmpty()) { throw Exception("empty") }
+    return true
+}
+
+// flagged — parse, don't validate
+fun flaggedNullBooleanValidator(value: String?): Boolean {
+    if (value == null) { return false }
+    return true
+}
+
+// clean — not flagged by parse, don't validate
+fun cleanBooleanQuery(value: String?): Boolean {
+    if (value == null) { return false }
+    return value.length > 5
+}
+
+// clean — not flagged by parse, don't validate
+fun cleanExplicitNarrowingValidator(value: String?): Boolean {
+    contract { returns(false) implies (value != null) }
+    if (value == null) { return false }
+    return true
 }

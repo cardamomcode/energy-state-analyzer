@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeGuard
 
 @dataclass(frozen=True)
 class Positive:
@@ -117,3 +118,38 @@ def cleanConditionalThrow(amount: int) -> None:
 # clean — not flagged by parse, don't validate
 def cleanUnconditionalThrow(amount: int) -> None:
     raise ValueError("bad")
+
+
+# flagged — parse, don't validate (low)
+def flaggedBooleanValidator(pw: str) -> bool:
+    if "@" not in pw:
+        return False
+    return True
+
+
+# flagged — parse, don't validate (low)
+def flaggedThrowingBoolean(pw: str) -> bool:
+    if len(pw) == 0:
+        raise ValueError("empty")
+    return True
+
+
+# flagged — parse, don't validate (low)
+def flaggedNullBooleanValidator(value: str | None) -> bool:
+    if value is None:
+        return False
+    return True
+
+
+# clean — not flagged by parse, don't validate
+def cleanBooleanQuery(user: dict | None) -> bool:
+    if user is None:
+        return False
+    return user.get("role") == "admin"
+
+
+# clean — not flagged by parse, don't validate
+def cleanExplicitNarrowingValidator(value: str | None) -> TypeGuard[str]:
+    if value is None:
+        return False
+    return True

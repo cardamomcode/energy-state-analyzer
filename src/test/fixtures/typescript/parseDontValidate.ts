@@ -162,3 +162,33 @@ class CheckedAmount {
         if (amount <= 0) { throw new Error("positive"); }
     }
 }
+
+// flagged — parse, don't validate
+function flaggedBooleanValidator(pw: string): boolean {
+    if (!pw.includes("@")) { return false; }
+    return true;
+}
+
+// flagged — parse, don't validate
+function flaggedThrowingBoolean(pw: string): boolean {
+    if (pw.length === 0) { throw new Error("empty"); }
+    return true;
+}
+
+// flagged — parse, don't validate
+function flaggedNullBooleanValidator(value: string | null): boolean {
+    if (value === null) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate
+function cleanBooleanQuery(user: { role: string } | null): boolean {
+    if (user === null) { return false; }
+    return user.role === "admin";
+}
+
+// clean — not flagged by parse, don't validate
+function cleanExplicitNarrowingValidator(value: string | null): value is string {
+    if (value === null) { return false; }
+    return true;
+}

@@ -61,10 +61,22 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
 
+/// The polarity of a boolean literal node, when an adapter can read one.
+///
+/// decision: a DU rather than `bool option` so the polarity is self-documenting at call sites
+/// (`Some LiteralFalse`) and never appears as a bare positional boolean argument.
+type BooleanLiteralPolarity =
+    | LiteralTrue
+    | LiteralFalse
+
 /// Information exposed after a rejecting guard succeeds.
 type ValidationSuccess =
     | UnchangedInput of Node
     | NoValue
+    /// decision: a boolean literal is its own case, not UnchangedInput, because it can never be
+    /// the checked parameter — a literal success value replaces the value with its verdict, the
+    /// third leak shape beside identity returns and absent success values.
+    | BareBoolean of Node
 
 /// A syntactically established rejecting guard and its success result.
 type GuardedValidation =

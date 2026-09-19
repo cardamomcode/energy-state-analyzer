@@ -417,4 +417,20 @@ let pythonLanguageAdapter: LanguageAdapter =
               FailureCalls = []
               EmptyValues = [ "None" ]
               IsNonExecutable = isDocstring
-              PreservesCheckedInformation = fun _ -> false } }
+              BooleanLiteralValue =
+                fun node ->
+                    if nodeType node = NodeType "true" then Some LiteralTrue
+                    elif nodeType node = NodeType "false" then Some LiteralFalse
+                    else None
+              // decision: TypeGuard/TypeIs return annotations carry the narrowing across the call
+              // site, so a boolean validator spelled against them is not a plain boolean leak. The
+              // annotation parses as a `type` node that is a direct child of function_definition.
+              PreservesCheckedInformation =
+                fun node ->
+                    nodeChildren node
+                    |> List.exists (fun child ->
+                        nodeType child = NodeType "type"
+                        && (let text = nodeText child in
+
+                            text.Contains("TypeGuard[", System.StringComparison.Ordinal)
+                            || text.Contains("TypeIs[", System.StringComparison.Ordinal))) } }

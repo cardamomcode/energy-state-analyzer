@@ -89,7 +89,12 @@ let tests =
               StaysClean(FunctionName "cleanGuardThenWork")
               StaysClean(FunctionName "cleanNoCheck")
               StaysClean(FunctionName "cleanConditionalThrow")
-              StaysClean(FunctionName "cleanUnconditionalThrow") ]
+              StaysClean(FunctionName "cleanUnconditionalThrow")
+              ProducesFinding(FunctionName "flaggedBooleanValidator", Some Low)
+              ProducesFinding(FunctionName "flaggedThrowingBoolean", Some Low)
+              ProducesFinding(FunctionName "flaggedNullBooleanValidator", Some Low)
+              StaysClean(FunctionName "cleanBooleanQuery")
+              StaysClean(FunctionName "cleanExplicitNarrowingValidator") ]
         |> List.map (fun item ->
             if item.Language.Id = "typescript" then
                 { item with
@@ -111,10 +116,17 @@ let tests =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
             elif item.Language.Id = "fsharp" then
-                // F#-only: the printf-style failure variants must reject like their unformatted bases.
+                // F#-only: the printf-style failure variants must reject like their unformatted
+                // bases. F# has no narrowing-contract construct a signature can carry (no type
+                // predicates, no contracts), so its cleanExplicitNarrowingValidator fixture is a
+                // plain boolean null validator and remains a finding (limitation case).
                 { item with
                     Expectations =
-                        item.Expectations
+                        (item.Expectations
+                         |> List.map (function
+                             | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
+                                 ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
+                             | other -> other))
                         @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
                             ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
             elif item.Language.Id = "kotlin" then
@@ -131,6 +143,17 @@ let tests =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
                             StaysClean(FunctionName "public CheckedAmount") ] }
+            elif item.Language.Id = "cpp" then
+                // C++ has no standard narrowing annotation a signature can carry, so its
+                // cleanExplicitNarrowingValidator fixture is a plain boolean null validator and
+                // remains a finding (limitation case).
+                { item with
+                    Expectations =
+                        (item.Expectations
+                         |> List.map (function
+                             | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
+                                 ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
+                             | other -> other)) }
             else
                 item)
 

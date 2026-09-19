@@ -114,6 +114,37 @@ void CleanConditionalThrow(int amount) {
 void CleanUnconditionalThrow(int amount) {
     throw new Exception("bad");
 }
+
+// flagged — parse, don't validate
+bool FlaggedBooleanValidator(string pw) {
+    if (pw.IndexOf('@') < 0) { return false; }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool FlaggedThrowingBoolean(string pw) {
+    if (pw.Length == 0) { throw new Exception("empty"); }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool FlaggedNullBooleanValidator(string? value) {
+    if (value == null) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate
+bool CleanBooleanQuery(string user) {
+    if (user.Length == 0) { return false; }
+    return user == "admin";
+}
+
+// clean — not flagged by parse, don't validate
+[return: NotNullWhen(false)]
+bool CleanExplicitNarrowingValidator(string? value) {
+    if (value == null) { return false; }
+    return true;
+}
 }
 
 class CheckedAmount {
