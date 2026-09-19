@@ -153,3 +153,10 @@ def cleanExplicitNarrowingValidator(value: str | None) -> TypeGuard[str]:
     if value is None:
         return False
     return True
+
+
+# clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+def cleanFlipped(value: str | None) -> bool:
+    if value is not None:
+        return True
+    return False

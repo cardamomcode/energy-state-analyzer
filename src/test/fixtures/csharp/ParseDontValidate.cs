@@ -145,6 +145,12 @@ bool CleanExplicitNarrowingValidator(string? value) {
     if (value == null) { return false; }
     return true;
 }
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+bool CleanFlipped(string? value) {
+    if (value != null) { return true; }
+    return false;
+}
 }
 
 class CheckedAmount {

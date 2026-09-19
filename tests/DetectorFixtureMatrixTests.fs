@@ -94,7 +94,10 @@ let tests =
               ProducesFinding(FunctionName "flaggedThrowingBoolean", Some Low)
               ProducesFinding(FunctionName "flaggedNullBooleanValidator", Some Low)
               StaysClean(FunctionName "cleanBooleanQuery")
-              StaysClean(FunctionName "cleanExplicitNarrowingValidator") ]
+              StaysClean(FunctionName "cleanExplicitNarrowingValidator")
+              // A truthy literal from the guard branch is not a rejection in any language, so
+              // flipped validators never extract.
+              StaysClean(FunctionName "cleanFlipped") ]
         |> List.map (fun item ->
             if item.Language.Id = "typescript" then
                 { item with

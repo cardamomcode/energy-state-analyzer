@@ -147,3 +147,9 @@ bool cleanExplicitNarrowingValidator(const char* value) {
     if (value == nullptr) { return false; }
     return true;
 }
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+bool cleanFlipped(const char* value) {
+    if (value == nullptr) { return true; }
+    return false;
+}

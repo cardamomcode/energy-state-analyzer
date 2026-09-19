@@ -161,3 +161,7 @@ let cleanBooleanQuery (role: string) =
 // no contracts), so this null-checking boolean validator still discards the checked value
 // (limitation case for the shared explicit-narrowing row).
 let cleanExplicitNarrowingValidator (value: string) = if value = null then false else true
+
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+let cleanFlipped (value: string) = if value <> null then true else false

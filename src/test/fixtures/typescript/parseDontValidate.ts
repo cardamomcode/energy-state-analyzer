@@ -192,3 +192,9 @@ function cleanExplicitNarrowingValidator(value: string | null): value is string 
     if (value === null) { return false; }
     return true;
 }
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+function cleanFlipped(value: string | null): boolean {
+    if (value !== null) { return true; }
+    return false;
+}

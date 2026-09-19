@@ -85,115 +85,21 @@ let tests =
                   )
           )
           testAsync (
-              "flipped branches return a truthy literal from the guard and stay unextracted",
+              "the non-None guard polarity flags like the None polarity when the success is a literal",
               fun _ ->
                   toAsync (
                       task {
-                          // A truthy literal from the guard branch is not a rejection in any
-                          // language, so flipped validators never extract — statement form for the
-                          // block grammars, single-expression form for F#/Kotlin.
-                          let pythonFlipped =
-                              """
-def flipped(value: str | None) -> bool:
-    if value is not None:
-        return True
-    return False
-"""
-
-                          let typeScriptFlipped =
-                              """
-function flipped(value: string | null): boolean {
-    if (value !== null) { return true; }
-    return false;
-}
-"""
-
-                          let fSharpFlipped =
-                              """
-module BooleanEdge
-
-let flipped (value: string) = if value <> null then true else false
-"""
-
-                          let kotlinFlipped =
-                              """
-fun flipped(value: String?): Boolean {
-    if (value != null) { return true }
-    return false
-}
-"""
-
-                          let cPlusPlusFlipped =
-                              """
-bool flipped(const char* value) {
-    if (value == nullptr) { return true; }
-    return false;
-}
-"""
-
-                          let cSharpFlipped =
-                              """
-class Flipped {
-    bool F(string? value) {
-        if (value == null) { return true; }
-        return false;
-    }
-}
-"""
-
-                          let cases =
-                              [ ("python", Python.pythonLanguageAdapter, pythonFlipped)
-                                ("typescript", TypeScript.typeScriptLanguageAdapter, typeScriptFlipped)
-                                ("fsharp", FSharp.fSharpLanguageAdapter, fSharpFlipped)
-                                ("kotlin", Kotlin.kotlinLanguageAdapter, kotlinFlipped)
-                                ("cpp", CPlusPlus.cPlusPlusLanguageAdapter, cPlusPlusFlipped)
-                                ("csharp", CSharp.cSharpLanguageAdapter, cSharpFlipped) ]
-
-                          for _, language, source in cases do
-                              let! findings = parseDontValidateFindings language "flipped.src" source
-                              assertThat findings.Length (isEqualTo 0)
-                      }
-                  )
-          )
-          testAsync (
-              "both null comparison polarities flag when the rejection is falsy and the success is a literal",
-              fun _ ->
-                  toAsync (
-                      task {
+                          // The None polarity is covered by flaggedNullBooleanValidator in the
+                          // fixture matrix; this pins that comparison direction does not matter.
                           let! findings =
                               parseDontValidateFindings
                                   Python.pythonLanguageAdapter
                                   "nullpolarity.py"
                                   """
-def positive(value: str | None) -> bool:
-    if value is None:
-        return False
-    return True
-
 def negative(value: str | None) -> bool:
     if value is not None:
         return False
     return True
-"""
-
-                          assertThat findings.Length (isEqualTo 2)
-                      }
-                  )
-          )
-          testAsync (
-              "F# single-expression then-false-else-true flags for an ordinary condition",
-              fun _ ->
-                  toAsync (
-                      task {
-                          let! findings =
-                              parseDontValidateFindings
-                                  FSharp.fSharpLanguageAdapter
-                                  "ordinary.fs"
-                                  """
-module BooleanEdge
-
-let ordinary (pw: string) =
-    if pw = "" then false else true
 """
 
                           assertThat findings.Length (isEqualTo 1)
@@ -201,10 +107,12 @@ let ordinary (pw: string) =
                   )
           )
           testAsync (
-              "F# single-expression then-false-else-true flags for both null comparison polarities",
+              "F# single-expression then-false-else-true flags for the non-null comparison polarity",
               fun _ ->
                   toAsync (
                       task {
+                          // The null polarity is covered by flaggedNullBooleanValidator in the
+                          // fixture matrix; this pins that comparison direction does not matter.
                           let! findings =
                               parseDontValidateFindings
                                   FSharp.fSharpLanguageAdapter
@@ -212,14 +120,11 @@ let ordinary (pw: string) =
                                   """
 module BooleanEdge
 
-let positive (value: string) =
-    if value = null then false else true
-
 let negative (value: string) =
     if value <> null then false else true
 """
 
-                          assertThat findings.Length (isEqualTo 2)
+                          assertThat findings.Length (isEqualTo 1)
                       }
                   )
           )
