@@ -597,4 +597,18 @@ let fSharpLanguageAdapter: LanguageAdapter =
               FailureCalls = [ "invalidArg"; "invalidArgf"; "failwith"; "failwithf"; "raise" ]
               EmptyValues = [ "()"; "None" ]
               IsNonExecutable = fun _ -> false
-              PreservesCheckedInformation = fun _ -> false } }
+              BooleanLiteralValue =
+                fun node ->
+                    if nodeType node <> NodeType "const" then
+                        None
+                    else
+                        match nodeChildren node with
+                        | [ single ] when nodeType single = NodeType "bool" ->
+                            if nodeText node = "true" then Some LiteralTrue
+                            elif nodeText node = "false" then Some LiteralFalse
+                            else None
+                        | _ -> None
+              // F# has no narrowing construct a signature can carry (no type predicates, no
+              // contracts), so nothing besides the shared shapes is preserved; the limitation is
+              // documented as a flagged limitation case in the fixture matrix.
+              PreservesCheckedInformation = fun _ _ -> false } }

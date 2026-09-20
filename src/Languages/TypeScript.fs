@@ -460,10 +460,19 @@ let typeScriptLanguageAdapter: LanguageAdapter =
               FailureCalls = []
               EmptyValues = [ "undefined" ]
               IsNonExecutable = fun _ -> false
-              PreservesCheckedInformation =
+              BooleanLiteralValue =
                 fun node ->
+                    if nodeType node = NodeType "true" then Some LiteralTrue
+                    elif nodeType node = NodeType "false" then Some LiteralFalse
+                    else None
+              // decision: `asserts` signatures and `x is T` type predicates carry the narrowing
+              // across the call site, so a boolean validator spelled against them is not a plain
+              // boolean leak; constructors were already excluded for the same reason.
+              PreservesCheckedInformation =
+                fun node _ ->
                     nodeNamedChildren node
                     |> List.exists (fun child ->
                         nodeType child = NodeType "asserts_annotation"
+                        || nodeType child = NodeType "type_predicate_annotation"
                         || (nodeType child = NodeType "property_identifier"
                             && nodeText child = "constructor")) } }

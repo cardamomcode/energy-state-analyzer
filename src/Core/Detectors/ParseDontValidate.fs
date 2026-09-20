@@ -46,6 +46,10 @@ let private rejectsNull language name condition =
 /// Identify parameters whose checked property is not carried by the success result.
 ///
 /// tradeoff: identity returns still require an annotation; check-only validators also accept simple untyped parameters because they expose no result to refine.
+/// decision: the rejectsNull exception stays limited to identity returns, where the returned value
+/// itself can preserve language-level narrowing; a bare boolean success never carries the checked
+/// value or its narrowing across the call, so plain is_not_null-style boolean validators remain
+/// findings in the BareBoolean branch.
 let private checkedParameter (language: LanguageAdapter) head candidate =
     let references = descendants candidate.Condition
 
@@ -69,7 +73,8 @@ let private checkedParameter (language: LanguageAdapter) head candidate =
                && List.contains (nodeType value) language.VariableReferenceNodeTypes
                && (parameterType
                    |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
-               && not (rejectsNull language name candidate.Condition))
+               && not (rejectsNull language name candidate.Condition)
+           | BareBoolean _ -> true)
 
 /// Report discarded guard information, leaving domain construction and ordinary computation alone.
 let private inspect ctx head =
@@ -89,7 +94,8 @@ let private inspect ctx head =
                     name
                     (match candidate.Success with
                      | NoValue -> "success returns no useful value"
-                     | UnchangedInput _ -> "returned unchanged")
+                     | UnchangedInput _ -> "returned unchanged"
+                     | BareBoolean _ -> "success returns only a boolean")
               Hotspots = [] }))
     |> Option.toList
 

@@ -9,7 +9,7 @@ open Energy.Core.Violation
 open Energy.Languages
 open Energy.Tests.TestUtils
 
-/// Exercise rule configuration and suppression through the complete shared pipeline.
+/// Exercise rule configuration and line/file suppression against the shared fixture.
 let tests =
     testList (
         "Parse, don't validate configuration",
@@ -32,7 +32,7 @@ let tests =
                           let findings =
                               enabled.Violations |> List.filter (fun v -> v.Type = ParseDontValidate)
 
-                          assertThat findings.Length (isEqualTo 8)
+                          assertThat findings.Length (isEqualTo 12)
 
                           let options =
                               { defaultAnalyzeOptions with
@@ -48,7 +48,7 @@ let tests =
                           let suppressed =
                               Energy.Core.Suppressions.applySuppressions findings (String.concat "\n" lines)
 
-                          assertThat suppressed.Violations.Length (isEqualTo 7)
+                          assertThat suppressed.Violations.Length (isEqualTo 11)
                           assertThat suppressed.SuppressionNotes.Length (isEqualTo 0)
 
                           // File-level suppression: a reasoned esa-ignore-file directive triages the

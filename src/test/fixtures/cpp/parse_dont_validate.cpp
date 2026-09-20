@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <stdexcept>
 #include <iostream>
@@ -112,4 +113,43 @@ void cleanConditionalThrow(int amount) {
 // clean — not flagged by parse, don't validate
 void cleanUnconditionalThrow(int amount) {
     throw std::invalid_argument("bad");
+}
+
+
+// flagged — parse, don't validate
+bool flaggedBooleanValidator(const char* pw) {
+    if (pw[0] == '\0') { return false; }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool flaggedThrowingBoolean(const char* pw) {
+    if (pw[0] == '\0') { throw std::invalid_argument("empty"); }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool flaggedNullBooleanValidator(const char* value) {
+    if (value == nullptr) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate
+bool cleanBooleanQuery(const std::string& user) {
+    if (user.empty()) { return false; }
+    return user == "admin";
+}
+
+// flagged — C++ has no standard narrowing annotation a signature can carry, so this
+// null-checking boolean validator still discards the checked value (limitation case for
+// the shared explicit-narrowing row).
+bool cleanExplicitNarrowingValidator(const char* value) {
+    if (value == nullptr) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+bool cleanFlipped(const char* value) {
+    if (value == nullptr) { return true; }
+    return false;
 }

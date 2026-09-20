@@ -166,6 +166,35 @@ let private extractReturnType (node: Node) : string option =
             && nodeType child <> NodeType "attribute_list")
         |> Option.map nodeText
 
+/// Determine whether an attribute is C#'s nullability-flow contract, with or without its suffix
+/// or namespace qualification.
+let private isNotNullWhenAttribute (node: Node) =
+    if nodeType node <> NodeType "attribute" then
+        false
+    else
+        nodeField "name" node
+        |> Option.map nodeText
+        |> Option.exists (fun name ->
+            name = "NotNullWhen"
+            || name = "NotNullWhenAttribute"
+            || name.EndsWith(".NotNullWhen", System.StringComparison.Ordinal)
+            || name.EndsWith(".NotNullWhenAttribute", System.StringComparison.Ordinal))
+
+/// Check that the extracted guard references this specific annotated parameter.
+let private conditionReferencesNotNullWhenParameter condition parameter =
+    let rec references name node =
+        (nodeType node = NodeType "identifier" && nodeText node = name)
+        || (nodeChildren node |> List.exists (references name))
+
+    match nodeField "name" parameter with
+    | Some nameNode ->
+        nodeNamedChildren parameter
+        |> List.filter (fun child -> nodeType child = NodeType "attribute_list")
+        |> List.collect nodeNamedChildren
+        |> List.exists isNotNullWhenAttribute
+        && references (nodeText nameNode) condition
+    | None -> false
+
 let private baseClassNames (node: Node) : string list =
     nodeChildren node
     |> List.tryFind (fun child -> nodeType child = NodeType "base_list")
@@ -349,4 +378,23 @@ let cSharpLanguageAdapter: LanguageAdapter =
               FailureCalls = []
               EmptyValues = []
               IsNonExecutable = fun _ -> false
-              PreservesCheckedInformation = fun node -> nodeType node = NodeType "constructor_declaration" } }
+              BooleanLiteralValue =
+                fun node ->
+                    if nodeType node <> NodeType "boolean_literal" then
+                        None
+                    else
+                        let text = nodeText node
+
+                        if text = "true" then Some LiteralTrue
+                        elif text = "false" then Some LiteralFalse
+                        else None
+              // decision: a parameter `[NotNullWhen(…)]` annotation carries narrowing across the
+              // call site only for that parameter, so an annotation on an unrelated parameter
+              // cannot hide a discarded guard; constructors remain excluded for the same reason.
+              PreservesCheckedInformation =
+                fun node condition ->
+                    nodeType node = NodeType "constructor_declaration"
+                    || (condition
+                        |> Option.exists (fun guardCondition ->
+                            parametersOf node
+                            |> List.exists (conditionReferencesNotNullWhenParameter guardCondition))) } }

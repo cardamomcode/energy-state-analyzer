@@ -89,7 +89,15 @@ let tests =
               StaysClean(FunctionName "cleanGuardThenWork")
               StaysClean(FunctionName "cleanNoCheck")
               StaysClean(FunctionName "cleanConditionalThrow")
-              StaysClean(FunctionName "cleanUnconditionalThrow") ]
+              StaysClean(FunctionName "cleanUnconditionalThrow")
+              ProducesFinding(FunctionName "flaggedBooleanValidator", Some Low)
+              ProducesFinding(FunctionName "flaggedThrowingBoolean", Some Low)
+              ProducesFinding(FunctionName "flaggedNullBooleanValidator", Some Low)
+              StaysClean(FunctionName "cleanBooleanQuery")
+              StaysClean(FunctionName "cleanExplicitNarrowingValidator")
+              // A truthy literal from the guard branch is not a rejection in any language, so
+              // flipped validators never extract.
+              StaysClean(FunctionName "cleanFlipped") ]
         |> List.map (fun item ->
             if item.Language.Id = "typescript" then
                 { item with
@@ -106,31 +114,58 @@ let tests =
             elif item.Language.Id = "python" then
                 // Python-only: a leading docstring is non-executable documentation and must not
                 // break the guard shape; the other languages document with comments, already discarded.
+                // The inverted null comparison flags like its None polarity (direction independence).
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low) ] }
+                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvertedNullBooleanValidator", Some Low) ] }
             elif item.Language.Id = "fsharp" then
-                // F#-only: the printf-style failure variants must reject like their unformatted bases.
+                // F#-only: the printf-style failure variants must reject like their unformatted
+                // bases. F# has no narrowing-contract construct a signature can carry (no type
+                // predicates, no contracts), so its cleanExplicitNarrowingValidator fixture is a
+                // plain boolean null validator and remains a finding (limitation case). The inverted
+                // null comparison flags like its null polarity (direction independence); a throwing
+                // then branch is not an extracted rejection.
                 { item with
                     Expectations =
-                        item.Expectations
+                        (item.Expectations
+                         |> List.map (function
+                             | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
+                                 ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
+                             | other -> other))
                         @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
-                            ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low) ] }
+                            ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvertedNullBooleanValidator", Some Low)
+                            StaysClean(FunctionName "cleanThrowingThen") ] }
             elif item.Language.Id = "kotlin" then
                 // Kotlin-only: nullable parameters whose identity returns discard a non-empty
-                // guarantee are findings, whether the guard is a call or explicit check.
+                // guarantee are findings, whether the guard is a call or explicit check. An
+                // expression-form if (no return statements) extracts like block form.
                 { item with
                     Expectations =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "cleanNullable", Some Low)
-                            ProducesFinding(FunctionName "flaggedNullable", Some Low) ] }
+                            ProducesFinding(FunctionName "flaggedNullable", Some Low)
+                            ProducesFinding(FunctionName "flaggedExpressionIf", Some Low) ] }
             elif item.Language.Id = "csharp" then
                 { item with
                     Expectations =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
+                            ProducesFinding(FunctionName "FlaggedUnrelatedNarrowingValidator", Some Low)
                             StaysClean(FunctionName "public CheckedAmount") ] }
+            elif item.Language.Id = "cpp" then
+                // C++ has no standard narrowing annotation a signature can carry, so its
+                // cleanExplicitNarrowingValidator fixture is a plain boolean null validator and
+                // remains a finding (limitation case).
+                { item with
+                    Expectations =
+                        (item.Expectations
+                         |> List.map (function
+                             | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
+                                 ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
+                             | other -> other)) }
             else
                 item)
 

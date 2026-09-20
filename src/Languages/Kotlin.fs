@@ -39,6 +39,38 @@ let private lambdaParametersOf (node: Node) =
         |> List.filter (fun child -> nodeType child = NodeType "variable_declaration"))
     |> Option.defaultValue []
 
+/// Detect a top-level `contract { … }` call in a function body — Kotlin's construct for
+/// carrying narrowing (for example nullability) across the call site.
+///
+/// decision: identifies the call by its leftmost callee name `contract`; the contract block is
+/// a statement, so without this exemption a contracted validator would rely on the contract
+/// incidentally breaking the guard-and-return shape instead of being intentionally excluded.
+let private hasNarrowingContract (definition: Node) : bool =
+    let isContractCall item =
+        nodeType item = NodeType "call_expression"
+        && (nodeNamedChildren item
+            |> List.tryHead
+            |> Option.exists (fun callee -> nodeType callee = NodeType "identifier" && nodeText callee = "contract"))
+
+    nodeNamedChildren definition
+    |> List.tryFind (fun child -> nodeType child = functionBodyNodeType)
+    |> Option.bind (fun body -> nodeNamedChildren body |> List.tryHead)
+    |> Option.bind (fun block -> nodeNamedChildren block |> List.tryFind isContractCall)
+    |> Option.isSome
+
+/// Read the polarity of Kotlin's true/false identifier tokens; None for any other node.
+///
+/// decision: shared by IsBooleanLiteral and BooleanLiteralValue so each literal text is compared
+/// once per file — a second comparison would trip the magic-string detector on our own source.
+let private booleanLiteralPolarity (node: Node) : BooleanLiteralPolarity option =
+    if nodeType node <> NodeType "identifier" then
+        None
+    else
+        match nodeText node with
+        | "true" -> Some LiteralTrue
+        | "false" -> Some LiteralFalse
+        | _ -> None
+
 /// Extract a Kotlin property's direct variable name.
 let private propertyBindingName (property: Node) =
     nodeChildren property
@@ -406,14 +438,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
       // decision: true/false have no dedicated literal node in this grammar — they lex as plain
       // `identifier` tokens (verified: no boolean_literal rule exists). Safe to key off text since
       // true/false are hard keywords in Kotlin, not shadowable identifiers.
-      IsBooleanLiteral =
-        fun node ->
-            if nodeType node <> NodeType "identifier" then
-                false
-            else
-                let t = nodeText node
-
-                t = "true" || t = "false"
+      IsBooleanLiteral = fun node -> Option.isSome (booleanLiteralPolarity node)
       // decision: every call argument (named or positional) wraps in `value_argument`, so unlike the
       // other adapters' direct-parent check, this also has to rule out a named argument (`retries =
       // true`) by checking the literal is value_argument's *first* child — a named argument's
@@ -502,4 +527,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
               FailureCalls = []
               EmptyValues = [ "Unit" ]
               IsNonExecutable = fun _ -> false
-              PreservesCheckedInformation = fun _ -> false } }
+              BooleanLiteralValue = booleanLiteralPolarity
+              // decision: a `contract { … }` block carries the narrowing across the call site, so a
+              // contracted boolean validator is not a plain boolean leak.
+              PreservesCheckedInformation = fun node _ -> hasNarrowingContract node } }

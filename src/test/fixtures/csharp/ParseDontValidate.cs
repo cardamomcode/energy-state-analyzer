@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 record Positive(int Amount);
 
@@ -113,6 +114,48 @@ void CleanConditionalThrow(int amount) {
 // clean — not flagged by parse, don't validate
 void CleanUnconditionalThrow(int amount) {
     throw new Exception("bad");
+}
+
+// flagged — parse, don't validate
+bool FlaggedBooleanValidator(string pw) {
+    if (pw.IndexOf('@') < 0) { return false; }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool FlaggedThrowingBoolean(string pw) {
+    if (pw.Length == 0) { throw new Exception("empty"); }
+    return true;
+}
+
+// flagged — parse, don't validate
+bool FlaggedNullBooleanValidator(string? value) {
+    if (value == null) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate
+bool CleanBooleanQuery(string user) {
+    if (user.Length == 0) { return false; }
+    return user == "admin";
+}
+
+// clean — not flagged by parse, don't validate
+bool CleanExplicitNarrowingValidator([NotNullWhen(true)] string? value) {
+    if (value == null) { return false; }
+    return true;
+}
+
+// flagged — an annotation on a different parameter does not carry this checked property
+bool FlaggedUnrelatedNarrowingValidator([NotNullWhen(true)] string narrowed, string value) {
+    if (value.Length == 0) { return false; }
+    return true;
+}
+
+// clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
+bool CleanFlipped(string? value) {
+    if (value != null) { return true; }
+    return false;
 }
 }
 
