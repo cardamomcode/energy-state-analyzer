@@ -359,16 +359,17 @@ let cSharpLanguageAdapter: LanguageAdapter =
                         if text = "true" then Some LiteralTrue
                         elif text = "false" then Some LiteralFalse
                         else None
-              // decision: a `[return: NotNullWhen(…)]` annotation carries the narrowing across the
+              // decision: a parameter `[NotNullWhen(…)]` annotation carries narrowing across the
               // call site, so a boolean validator spelled against it is not a plain boolean leak;
               // constructors were already excluded for the same reason.
               PreservesCheckedInformation =
                 fun node ->
                     nodeType node = NodeType "constructor_declaration"
-                    || nodeChildren node
-                       |> List.exists (fun child ->
-                           nodeType child = NodeType "attribute_list"
-                           && nodeChildren child
-                              |> List.exists (fun attribute ->
-                                  nodeType attribute = NodeType "attribute"
-                                  && (nodeText attribute).StartsWith("NotNullWhen(", System.StringComparison.Ordinal))) } }
+                    || parametersOf node
+                       |> List.exists (fun parameter ->
+                           nodeNamedChildren parameter
+                           |> List.filter (fun child -> nodeType child = NodeType "attribute_list")
+                           |> List.collect nodeNamedChildren
+                           |> List.exists (fun attribute ->
+                               nodeType attribute = NodeType "attribute"
+                               && (nodeText attribute).StartsWith("NotNullWhen(", System.StringComparison.Ordinal))) } }

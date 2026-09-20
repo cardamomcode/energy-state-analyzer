@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 record Positive(int Amount);
 
@@ -140,8 +141,7 @@ bool CleanBooleanQuery(string user) {
 }
 
 // clean — not flagged by parse, don't validate
-[return: NotNullWhen(false)]
-bool CleanExplicitNarrowingValidator(string? value) {
+bool CleanExplicitNarrowingValidator([NotNullWhen(true)] string? value) {
     if (value == null) { return false; }
     return true;
 }
