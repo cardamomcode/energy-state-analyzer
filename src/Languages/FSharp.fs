@@ -611,4 +611,4 @@ let fSharpLanguageAdapter: LanguageAdapter =
               // F# has no narrowing construct a signature can carry (no type predicates, no
               // contracts), so nothing besides the shared shapes is preserved; the limitation is
               // documented as a flagged limitation case in the fixture matrix.
-              PreservesCheckedInformation = fun _ -> false } }
+              PreservesCheckedInformation = fun _ _ -> false } }

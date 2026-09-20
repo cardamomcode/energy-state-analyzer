@@ -86,9 +86,9 @@ question the guard never decided (`if user is None: return False; return
 user.role == "admin"`), so only literal-boolean success is flagged. And explicit
 narrowing APIs are excluded where the adapter can identify them precisely:
 TypeScript assertion signatures and type predicates (`x is T`), Python `TypeGuard`
-/`TypeIs` annotations, Kotlin `contract { … }` blocks, C# `[return: NotNullWhen(…)]`,
-and constructors. F# and C++ have no such construct; there a null-checking boolean
-validator remains a finding.
+/`TypeIs` annotations, Kotlin `contract { … }` blocks, C# parameter annotations such
+as `[NotNullWhen(true)] string? value`, and constructors. F# and C++ have no such
+construct; there a null-checking boolean validator remains a finding.
 
 ## Limits
 

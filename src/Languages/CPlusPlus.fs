@@ -489,4 +489,4 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                     else None
               // C++ has no standard narrowing annotation a signature can carry, so nothing besides
               // the shared shapes is preserved; the limitation is documented in the fixture matrix.
-              PreservesCheckedInformation = fun _ -> false } }
+              PreservesCheckedInformation = fun _ _ -> false } }

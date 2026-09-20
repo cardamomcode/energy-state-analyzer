@@ -469,7 +469,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
               // across the call site, so a boolean validator spelled against them is not a plain
               // boolean leak; constructors were already excluded for the same reason.
               PreservesCheckedInformation =
-                fun node ->
+                fun node _ ->
                     nodeNamedChildren node
                     |> List.exists (fun child ->
                         nodeType child = NodeType "asserts_annotation"

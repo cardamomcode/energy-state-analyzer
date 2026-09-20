@@ -146,6 +146,12 @@ bool CleanExplicitNarrowingValidator([NotNullWhen(true)] string? value) {
     return true;
 }
 
+// flagged — an annotation on a different parameter does not carry this checked property
+bool FlaggedUnrelatedNarrowingValidator([NotNullWhen(true)] string narrowed, string value) {
+    if (value.Length == 0) { return false; }
+    return true;
+}
+
 // clean — not flagged by parse, don't validate (a truthy literal from the guard branch is not a rejection)
 bool CleanFlipped(string? value) {
     if (value != null) { return true; }

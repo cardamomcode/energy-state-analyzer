@@ -426,7 +426,7 @@ let pythonLanguageAdapter: LanguageAdapter =
               // site, so a boolean validator spelled against them is not a plain boolean leak. The
               // annotation parses as a `type` node that is a direct child of function_definition.
               PreservesCheckedInformation =
-                fun node ->
+                fun node _ ->
                     nodeChildren node
                     |> List.exists (fun child ->
                         nodeType child = NodeType "type"

@@ -530,4 +530,4 @@ let kotlinLanguageAdapter: LanguageAdapter =
               BooleanLiteralValue = booleanLiteralPolarity
               // decision: a `contract { … }` block carries the narrowing across the call site, so a
               // contracted boolean validator is not a plain boolean leak.
-              PreservesCheckedInformation = hasNarrowingContract } }
+              PreservesCheckedInformation = fun node _ -> hasNarrowingContract node } }

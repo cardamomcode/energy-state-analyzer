@@ -20,7 +20,10 @@ type GuardSyntax =
       // bare verdict). Mirrors each adapter's IsBooleanLiteral hook while returning the polarity
       // the guard logic needs.
       BooleanLiteralValue: Node -> BooleanLiteralPolarity option
-      PreservesCheckedInformation: Node -> bool }
+      // The optional condition is absent during the signature/body-level precheck and present once
+      // a guarded validation has been extracted. Language contracts that apply to a particular
+      // parameter use the latter to avoid suppressing checks of unrelated parameters.
+      PreservesCheckedInformation: Node -> Node option -> bool }
 
 /// Discard comments and non-executable statements while retaining every executable statement.
 let private children syntax node =
@@ -116,7 +119,7 @@ let private bodyItems syntax (head: FunctionHead) =
 let extract syntax (head: FunctionHead) : GuardedValidation option =
     let candidate =
         match
-            (if syntax.PreservesCheckedInformation head.ParametersRoot then
+            (if syntax.PreservesCheckedInformation head.ParametersRoot None then
                  []
              else
                  bodyItems syntax head)
@@ -125,25 +128,30 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
         | [ guard; returned ] -> success syntax returned |> Option.map (fun result -> guard, result)
         | _ -> None
 
-    candidate
-    |> Option.bind (fun (guard, result) ->
-        if nodeType guard <> syntax.Conditional then
-            None
-        else
-            match children syntax guard with
-            | [ condition; rejection ] when rejects syntax rejection ->
-                Some
-                    { Anchor = guard
-                      Condition = condition
-                      Success = result }
-            // F#/Kotlin single-expression `if condition then false else <success>`: the then
-            // branch must be a bare falsy literal. Statement grammars are safe — their if
-            // children are blocks or else-clauses, never bare literals, so only expression
-            // grammars' bare-branch shape can match here. The else branch is itself the success
-            // value (a bare expression, not a return statement), so it is classified directly.
-            | [ condition; thenBranch; elseBranch ] when syntax.BooleanLiteralValue thenBranch = Some LiteralFalse ->
-                Some
-                    { Anchor = guard
-                      Condition = condition
-                      Success = classify syntax elseBranch }
-            | _ -> None)
+    let extracted =
+        candidate
+        |> Option.bind (fun (guard, result) ->
+            if nodeType guard <> syntax.Conditional then
+                None
+            else
+                match children syntax guard with
+                | [ condition; rejection ] when rejects syntax rejection ->
+                    Some
+                        { Anchor = guard
+                          Condition = condition
+                          Success = result }
+                // F#/Kotlin single-expression `if condition then false else <success>`: the then
+                // branch must be a bare falsy literal. Statement grammars are safe — their if
+                // children are blocks or else-clauses, never bare literals, so only expression
+                // grammars' bare-branch shape can match here. The else branch is itself the success
+                // value (a bare expression, not a return statement), so it is classified directly.
+                | [ condition; thenBranch; elseBranch ] when syntax.BooleanLiteralValue thenBranch = Some LiteralFalse ->
+                    Some
+                        { Anchor = guard
+                          Condition = condition
+                          Success = classify syntax elseBranch }
+                | _ -> None)
+
+    extracted
+    |> Option.filter (fun candidate ->
+        not (syntax.PreservesCheckedInformation head.ParametersRoot (Some candidate.Condition)))

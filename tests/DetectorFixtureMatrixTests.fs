@@ -153,6 +153,7 @@ let tests =
                     Expectations =
                         item.Expectations
                         @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
+                            ProducesFinding(FunctionName "FlaggedUnrelatedNarrowingValidator", Some Low)
                             StaysClean(FunctionName "public CheckedAmount") ] }
             elif item.Language.Id = "cpp" then
                 // C++ has no standard narrowing annotation a signature can carry, so its
