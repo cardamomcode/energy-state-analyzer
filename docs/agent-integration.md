@@ -78,14 +78,18 @@ npx energy-state-analyzer src --report md   # table report for a PR comment
 npx energy-state-analyzer 'src/**/*.ts' --report json
 ```
 
-`--report json` prints a structured `{ files, totalScore, totalCounts }` object; `--report md`
-prints the compact table. Both are built for scripts and PR comments. See
+`--report json` prints a structured `{ files, filesScanned, totalScore, totalCounts }` object
+(`files` lists only files with findings, `filesScanned` is the number of files analyzed); `--report md`
+prints the compact table. Both are built for scripts, PR comments, and coding agents — `--report json`
+is the default scan output. See
 `--report human` in [docs/cli.md](cli.md) when you want prose-and-tables output instead.
 
 ## The interoperable path: SARIF
 
-SARIF 2.1.0 is the default scan output, so the analyzer drops into existing agent and code-scanning
-tooling without a custom parser. Each result has a stable `ESA###` rule ID (for example,
+SARIF 2.1.0 is available with `--report sarif`, so the analyzer drops into existing code-scanning
+tooling without a custom parser. Coding agents (Claude, Codex, and similar) should use the default
+JSON report — the same findings in a flat, compact `files[].violations[]` shape — and reach for
+SARIF only when the consumer is a code-scanning service. Each result has a stable `ESA###` rule ID (for example,
 `ESA006` for magic literals), a one-based source location, a severity mapped to SARIF
 `error`/`warning`/`note`, and the detector message with its remediation guidance:
 
@@ -93,7 +97,7 @@ tooling without a custom parser. Each result has a stable `ESA###` rule ID (for 
 npx energy-state-analyzer src > latest.sarif
 ```
 
-Agents that consume SARIF (VS Code's SARIF Viewer, GitHub Code Scanning, Semgrep, etc.) get findings
+Tooling that consumes SARIF (VS Code's SARIF Viewer, GitHub Code Scanning, Semgrep, etc.) gets findings
 for free. In VS Code, **Energy State Analyzer: Export SARIF Report** writes `.energy-state/latest.sarif`
 for the open workspace.
 
