@@ -151,9 +151,12 @@ let runCli () : Task<unit> =
             let parsed = parseArguments (argv ())
             let thresholds = buildThresholds parsed
 
+            // decision: the scan default is JSON — the compact, flat files[].violations shape coding
+            // agents and scripts parse without walking SARIF's nested runs. SARIF stays one flag away
+            // (--report sarif) for code-scanning tooling; diff mode keeps its Markdown default.
             let report =
                 parsed.Report
-                |> Option.defaultValue (if parsed.BaseRef.IsSome then Markdown else Sarif)
+                |> Option.defaultValue (if parsed.BaseRef.IsSome then Markdown else Json)
 
             match parsed.BaseRef, parsed.Paths with
             | Some baseRef, _ -> do! runDiff baseRef parsed.Paths thresholds report

@@ -182,9 +182,9 @@
     "prepublishOnly": "npm run package",
     "fable": "rm -rf fable-out && dotnet fable src/EnergyState.fsproj --lang javascript --outDir fable-out/extension --noCache && dotnet fable cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out/cli --noCache",
     "fable-tests": "rm -rf fable-tests && dotnet fable tests/EnergyState.Tests.fsproj --lang javascript --outDir fable-tests --noCache && echo '{\"type\":\"module\"}' > fable-tests/package.json",
-    "compile": "npm run fable && webpack",
+    "compile": "npm run fable && webpack && chmod +x dist/cli.js",
     "watch": "npm run compile && (dotnet fable watch src/EnergyState.fsproj --lang javascript --outDir fable-out/extension --noCache --runWatch npx webpack & dotnet fable watch cli/EnergyState.Cli.fsproj --lang javascript --outDir fable-out/cli --noCache)",
-    "package": "rm -rf dist && npm run fable && webpack --mode production --devtool hidden-source-map",
+    "package": "rm -rf dist && npm run fable && webpack --mode production --devtool hidden-source-map && chmod +x dist/cli.js",
     "lint": "dotnet fantomas src tests cli --check",
     "format": "dotnet fantomas src tests cli",
     "format-check": "dotnet fantomas src tests cli --check",
@@ -194,7 +194,7 @@
     "license-check": "license-checker --production --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;Unlicense\" --excludePackages \"$npm_package_name@$npm_package_version\""
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.2.1",
+    "@vscode/vsce": "^4.0.0",
     "copy-webpack-plugin": "^14.0.0",
     "license-checker": "^25.0.1",
     "markdownlint-cli": "^0.49.1",
