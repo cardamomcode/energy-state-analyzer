@@ -145,15 +145,19 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
             else
                 Medium
 
-        [ { Line = pos.Line
-            Column = pos.Column
-            Type = Cognitive
-            Severity = severity
-            Message =
-              sprintf
-                  "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
-                  complexity
-            Hotspots = findCognitiveHotspots ctx.Language callable ctx.Positions } ]
+        [
+            {
+                Line = pos.Line
+                Column = pos.Column
+                Type = Cognitive
+                Severity = severity
+                Message =
+                    sprintf
+                        "High cognitive complexity: %d. This function is hard to read; consider flattening nesting or extracting functions."
+                        complexity
+                Hotspots = findCognitiveHotspots ctx.Language callable ctx.Positions
+            }
+        ]
     else
         []
 
@@ -173,5 +177,7 @@ let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
 
 /// Register cognitive scoring in the shared detector pipeline.
 let detector: Detector =
-    { Name = "cognitive"
-      Run = analyzeCognitiveComplexity }
+    {
+        Name = "cognitive"
+        Run = analyzeCognitiveComplexity
+    }

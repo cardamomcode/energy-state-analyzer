@@ -17,27 +17,33 @@ let extractTypeInformation (tree: Tree) (positions: PositionLookup) : TypeInfo =
             match nodeType node with
             | NodeType "function_definition" ->
                 { info with
-                    Functions = info.Functions @ [ extractFunctionTypeInfo positions node ] }
+                    Functions = info.Functions @ [ extractFunctionTypeInfo positions node ]
+                }
             | NodeType "class_definition" ->
                 { info with
-                    Classes = info.Classes @ [ extractClassTypeInfo positions node ] }
+                    Classes = info.Classes @ [ extractClassTypeInfo positions node ]
+                }
             | NodeType "assignment" ->
                 match extractVariableTypeInfo positions node with
                 | Some variable ->
                     { info with
-                        Variables = info.Variables @ [ variable ] }
+                        Variables = info.Variables @ [ variable ]
+                    }
                 | None -> info
             | NodeType "import_statement"
             | NodeType "import_from_statement" ->
                 { info with
-                    Imports = info.Imports @ [ extractImportInfo positions node ] }
+                    Imports = info.Imports @ [ extractImportInfo positions node ]
+                }
             | _ -> info
 
         nodeChildren node |> List.fold (fun state child -> collect child state) updated
 
     collect
         (rootNode tree)
-        { Functions = []
-          Variables = []
-          Classes = []
-          Imports = [] }
+        {
+            Functions = []
+            Variables = []
+            Classes = []
+            Imports = []
+        }

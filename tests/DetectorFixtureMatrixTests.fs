@@ -8,10 +8,12 @@ open Energy.Languages
 open Energy.Tests.TestUtils
 
 let private fixture languageLabel language fixture expectations =
-    { LanguageLabel = languageLabel
-      Language = language
-      Fixture = fixture
-      Expectations = expectations }
+    {
+        LanguageLabel = languageLabel
+        Language = language
+        Fixture = fixture
+        Expectations = expectations
+    }
 
 let private cSharpFunctionName (name: FunctionName) =
     let (FunctionName text) = name
@@ -30,20 +32,24 @@ let private expectationsFor
         expectations
 
 let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
-    [ fixture "Python" Python.pythonLanguageAdapter python []
-      fixture "TypeScript" TypeScript.typeScriptLanguageAdapter typeScript []
-      fixture "F#" FSharp.fSharpLanguageAdapter fsharp []
-      fixture "Kotlin" Kotlin.kotlinLanguageAdapter kotlin []
-      fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus []
-      fixture "C#" CSharp.cSharpLanguageAdapter cSharp [] ]
+    [
+        fixture "Python" Python.pythonLanguageAdapter python []
+        fixture "TypeScript" TypeScript.typeScriptLanguageAdapter typeScript []
+        fixture "F#" FSharp.fSharpLanguageAdapter fsharp []
+        fixture "Kotlin" Kotlin.kotlinLanguageAdapter kotlin []
+        fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus []
+        fixture "C#" CSharp.cSharpLanguageAdapter cSharp []
+    ]
 
 type private FixturePaths =
-    { Python: string
-      TypeScript: string
-      FSharp: string
-      Kotlin: string
-      CPlusPlus: string
-      CSharp: string }
+    {
+        Python: string
+        TypeScript: string
+        FSharp: string
+        Kotlin: string
+        CPlusPlus: string
+        CSharp: string
+    }
 
 let private commonCases (paths: FixturePaths) expectations =
     allLanguages
@@ -55,7 +61,8 @@ let private commonCases (paths: FixturePaths) expectations =
         ("csharp/" + paths.CSharp)
     |> List.map (fun item ->
         { item with
-            Expectations = expectationsFor item.Language expectations })
+            Expectations = expectationsFor item.Language expectations
+        })
 
 /// Exercise named positive and negative detector scenarios through the registered pipeline.
 ///
@@ -66,51 +73,58 @@ let private commonCases (paths: FixturePaths) expectations =
 let tests =
     let parseDontValidate =
         commonCases
-            { Python = "parse_dont_validate.py"
-              TypeScript = "parseDontValidate.ts"
-              FSharp = "ParseDontValidate.fs"
-              Kotlin = "parseDontValidate.kt"
-              CPlusPlus = "parse_dont_validate.cpp"
-              CSharp = "ParseDontValidate.cs" }
-            [ ProducesFinding(FunctionName "flaggedPositive", Some Low)
-              ProducesFinding(FunctionName "flaggedUpperBound", Some Low)
-              StaysClean(FunctionName "cleanConstructed")
-              StaysClean(FunctionName "cleanTransformed")
-              StaysClean(FunctionName "cleanIdentity")
-              StaysClean(FunctionName "cleanOtherInput")
-              StaysClean(FunctionName "cleanNestedThrow")
-              StaysClean(FunctionName "cleanInterveningWork")
-              ProducesFinding(FunctionName "flaggedNonEmpty", Some Low)
-              StaysClean(FunctionName "cleanNull")
-              ProducesFinding(FunctionName "flaggedDispatch", Some Low)
-              ProducesFinding(FunctionName "flaggedCheckOnly", Some Low)
-              ProducesFinding(FunctionName "flaggedExplicitEmpty", Some Low)
-              ProducesFinding(FunctionName "flaggedBareReturn", Some Low)
-              StaysClean(FunctionName "cleanGuardThenWork")
-              StaysClean(FunctionName "cleanNoCheck")
-              StaysClean(FunctionName "cleanConditionalThrow")
-              StaysClean(FunctionName "cleanUnconditionalThrow")
-              ProducesFinding(FunctionName "flaggedBooleanValidator", Some Low)
-              ProducesFinding(FunctionName "flaggedThrowingBoolean", Some Low)
-              ProducesFinding(FunctionName "flaggedNullBooleanValidator", Some Low)
-              StaysClean(FunctionName "cleanBooleanQuery")
-              StaysClean(FunctionName "cleanExplicitNarrowingValidator")
-              // A truthy literal from the guard branch is not a rejection in any language, so
-              // flipped validators never extract.
-              StaysClean(FunctionName "cleanFlipped") ]
+            {
+                Python = "parse_dont_validate.py"
+                TypeScript = "parseDontValidate.ts"
+                FSharp = "ParseDontValidate.fs"
+                Kotlin = "parseDontValidate.kt"
+                CPlusPlus = "parse_dont_validate.cpp"
+                CSharp = "ParseDontValidate.cs"
+            }
+            [
+                ProducesFinding(FunctionName "flaggedPositive", Some Low)
+                ProducesFinding(FunctionName "flaggedUpperBound", Some Low)
+                StaysClean(FunctionName "cleanConstructed")
+                StaysClean(FunctionName "cleanTransformed")
+                StaysClean(FunctionName "cleanIdentity")
+                StaysClean(FunctionName "cleanOtherInput")
+                StaysClean(FunctionName "cleanNestedThrow")
+                StaysClean(FunctionName "cleanInterveningWork")
+                ProducesFinding(FunctionName "flaggedNonEmpty", Some Low)
+                StaysClean(FunctionName "cleanNull")
+                ProducesFinding(FunctionName "flaggedDispatch", Some Low)
+                ProducesFinding(FunctionName "flaggedCheckOnly", Some Low)
+                ProducesFinding(FunctionName "flaggedExplicitEmpty", Some Low)
+                ProducesFinding(FunctionName "flaggedBareReturn", Some Low)
+                StaysClean(FunctionName "cleanGuardThenWork")
+                StaysClean(FunctionName "cleanNoCheck")
+                StaysClean(FunctionName "cleanConditionalThrow")
+                StaysClean(FunctionName "cleanUnconditionalThrow")
+                ProducesFinding(FunctionName "flaggedBooleanValidator", Some Low)
+                ProducesFinding(FunctionName "flaggedThrowingBoolean", Some Low)
+                ProducesFinding(FunctionName "flaggedNullBooleanValidator", Some Low)
+                StaysClean(FunctionName "cleanBooleanQuery")
+                StaysClean(FunctionName "cleanExplicitNarrowingValidator")
+                // A truthy literal from the guard branch is not a rejection in any language, so
+                // flipped validators never extract.
+                StaysClean(FunctionName "cleanFlipped")
+            ]
         |> List.map (fun item ->
             if item.Language.Id = "typescript" then
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ StaysClean(FunctionName "cleanRefined")
+                        @ [
+                            StaysClean(FunctionName "cleanRefined")
                             StaysClean(FunctionName "cleanUntyped")
                             StaysClean(FunctionName "cleanCommentOnly")
                             StaysClean(FunctionName "cleanAssertion")
                             StaysClean(FunctionName "constructor(readonly")
                             ProducesFinding(FunctionName "flaggedOpaqueNullCheck", Some Low)
                             ProducesFinding(FunctionName "flaggedOpaqueNullArgument", Some Low)
-                            ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low) ] }
+                            ProducesFinding(FunctionName "flaggedUntypedCheck", Some Low)
+                        ]
+                }
             elif item.Language.Id = "python" then
                 // Python-only: a leading docstring is non-executable documentation and must not
                 // break the guard shape; the other languages document with comments, already discarded.
@@ -118,8 +132,11 @@ let tests =
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ ProducesFinding(FunctionName "flaggedDocstring", Some Low)
-                            ProducesFinding(FunctionName "flaggedInvertedNullBooleanValidator", Some Low) ] }
+                        @ [
+                            ProducesFinding(FunctionName "flaggedDocstring", Some Low)
+                            ProducesFinding(FunctionName "flaggedInvertedNullBooleanValidator", Some Low)
+                        ]
+                }
             elif item.Language.Id = "fsharp" then
                 // F#-only: the printf-style failure variants must reject like their unformatted
                 // bases. F# has no narrowing-contract construct a signature can carry (no type
@@ -134,10 +151,13 @@ let tests =
                              | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
                                  ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
                              | other -> other))
-                        @ [ ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
+                        @ [
+                            ProducesFinding(FunctionName "flaggedFailWithFormat", Some Low)
                             ProducesFinding(FunctionName "flaggedInvalidArgFormat", Some Low)
                             ProducesFinding(FunctionName "flaggedInvertedNullBooleanValidator", Some Low)
-                            StaysClean(FunctionName "cleanThrowingThen") ] }
+                            StaysClean(FunctionName "cleanThrowingThen")
+                        ]
+                }
             elif item.Language.Id = "kotlin" then
                 // Kotlin-only: nullable parameters whose identity returns discard a non-empty
                 // guarantee are findings, whether the guard is a call or explicit check. An
@@ -145,16 +165,22 @@ let tests =
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ ProducesFinding(FunctionName "cleanNullable", Some Low)
+                        @ [
+                            ProducesFinding(FunctionName "cleanNullable", Some Low)
                             ProducesFinding(FunctionName "flaggedNullable", Some Low)
-                            ProducesFinding(FunctionName "flaggedExpressionIf", Some Low) ] }
+                            ProducesFinding(FunctionName "flaggedExpressionIf", Some Low)
+                        ]
+                }
             elif item.Language.Id = "csharp" then
                 { item with
                     Expectations =
                         item.Expectations
-                        @ [ ProducesFinding(FunctionName "CleanNullCheck", Some Low)
+                        @ [
+                            ProducesFinding(FunctionName "CleanNullCheck", Some Low)
                             ProducesFinding(FunctionName "FlaggedUnrelatedNarrowingValidator", Some Low)
-                            StaysClean(FunctionName "public CheckedAmount") ] }
+                            StaysClean(FunctionName "public CheckedAmount")
+                        ]
+                }
             elif item.Language.Id = "cpp" then
                 // C++ has no standard narrowing annotation a signature can carry, so its
                 // cleanExplicitNarrowingValidator fixture is a plain boolean null validator and
@@ -165,122 +191,159 @@ let tests =
                          |> List.map (function
                              | StaysClean(FunctionName "cleanExplicitNarrowingValidator") ->
                                  ProducesFinding(FunctionName "cleanExplicitNarrowingValidator", Some Low)
-                             | other -> other)) }
+                             | other -> other))
+                }
             else
                 item)
 
     let magicNumbers =
         commonCases
-            { Python = "magic_number.py"
-              TypeScript = "magicNumber.ts"
-              FSharp = "MagicNumber.fs"
-              Kotlin = "MagicNumber.kt"
-              CPlusPlus = "magic_number.cpp"
-              CSharp = "MagicNumber.cs" }
-            [ StaysClean(FunctionName "cleanCommonValues")
-              StaysClean(FunctionName "cleanNegativeValue")
-              ProducesFinding(FunctionName "flaggedMagicNumbers", None) ]
+            {
+                Python = "magic_number.py"
+                TypeScript = "magicNumber.ts"
+                FSharp = "MagicNumber.fs"
+                Kotlin = "MagicNumber.kt"
+                CPlusPlus = "magic_number.cpp"
+                CSharp = "MagicNumber.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanCommonValues")
+                StaysClean(FunctionName "cleanNegativeValue")
+                ProducesFinding(FunctionName "flaggedMagicNumbers", None)
+            ]
 
     let magicStrings =
         commonCases
-            { Python = "magic_string.py"
-              TypeScript = "magicString.ts"
-              FSharp = "MagicString.fs"
-              Kotlin = "MagicString.kt"
-              CPlusPlus = "magic_string.cpp"
-              CSharp = "MagicString.cs" }
-            [ StaysClean(FunctionName "cleanValues")
-              ProducesFinding(FunctionName "flaggedMagicString", None) ]
+            {
+                Python = "magic_string.py"
+                TypeScript = "magicString.ts"
+                FSharp = "MagicString.fs"
+                Kotlin = "MagicString.kt"
+                CPlusPlus = "magic_string.cpp"
+                CSharp = "MagicString.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanValues")
+                ProducesFinding(FunctionName "flaggedMagicString", None)
+            ]
 
     let nesting =
         commonCases
-            { Python = "nesting.py"
-              TypeScript = "nesting.ts"
-              FSharp = "Nesting.fs"
-              Kotlin = "Nesting.kt"
-              CPlusPlus = "nesting.cpp"
-              CSharp = "Nesting.cs" }
-            [ StaysClean(FunctionName "cleanShallowNesting")
-              ProducesFinding(FunctionName "flaggedDeepNesting", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereNesting", Some High)
-              ProducesFinding(FunctionName "flaggedTryNesting", None) ]
+            {
+                Python = "nesting.py"
+                TypeScript = "nesting.ts"
+                FSharp = "Nesting.fs"
+                Kotlin = "Nesting.kt"
+                CPlusPlus = "nesting.cpp"
+                CSharp = "Nesting.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanShallowNesting")
+                ProducesFinding(FunctionName "flaggedDeepNesting", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereNesting", Some High)
+                ProducesFinding(FunctionName "flaggedTryNesting", None)
+            ]
 
     let cyclomatic =
         commonCases
-            { Python = "cyclomatic_complexity.py"
-              TypeScript = "cyclomaticComplexity.ts"
-              FSharp = "CyclomaticComplexity.fs"
-              Kotlin = "CyclomaticComplexity.kt"
-              CPlusPlus = "cyclomatic_complexity.cpp"
-              CSharp = "CyclomaticComplexity.cs" }
-            [ StaysClean(FunctionName "cleanSimpleFunction")
-              ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereFunction", Some High) ]
+            {
+                Python = "cyclomatic_complexity.py"
+                TypeScript = "cyclomaticComplexity.ts"
+                FSharp = "CyclomaticComplexity.fs"
+                Kotlin = "CyclomaticComplexity.kt"
+                CPlusPlus = "cyclomatic_complexity.cpp"
+                CSharp = "CyclomaticComplexity.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanSimpleFunction")
+                ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereFunction", Some High)
+            ]
 
     let cognitive =
         commonCases
-            { Python = "cognitive_complexity.py"
-              TypeScript = "cognitiveComplexity.ts"
-              FSharp = "CognitiveComplexity.fs"
-              Kotlin = "CognitiveComplexity.kt"
-              CPlusPlus = "cognitive_complexity.cpp"
-              CSharp = "CognitiveComplexity.cs" }
-            [ StaysClean(FunctionName "cleanSimpleFunction")
-              ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereFunction", Some High) ]
+            {
+                Python = "cognitive_complexity.py"
+                TypeScript = "cognitiveComplexity.ts"
+                FSharp = "CognitiveComplexity.fs"
+                Kotlin = "CognitiveComplexity.kt"
+                CPlusPlus = "cognitive_complexity.cpp"
+                CSharp = "CognitiveComplexity.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanSimpleFunction")
+                ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereFunction", Some High)
+            ]
 
     let parameters =
         commonCases
-            { Python = "parameter_count.py"
-              TypeScript = "parameterCount.ts"
-              FSharp = "ParameterCount.fs"
-              Kotlin = "ParameterCount.kt"
-              CPlusPlus = "parameter_count.cpp"
-              CSharp = "ParameterCount.cs" }
-            [ StaysClean(FunctionName "cleanFewParams")
-              ProducesFinding(FunctionName "flaggedManyParams", Some Medium)
-              ProducesFinding(FunctionName "flaggedTooManyParams", Some High) ]
+            {
+                Python = "parameter_count.py"
+                TypeScript = "parameterCount.ts"
+                FSharp = "ParameterCount.fs"
+                Kotlin = "ParameterCount.kt"
+                CPlusPlus = "parameter_count.cpp"
+                CSharp = "ParameterCount.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanFewParams")
+                ProducesFinding(FunctionName "flaggedManyParams", Some Medium)
+                ProducesFinding(FunctionName "flaggedTooManyParams", Some High)
+            ]
 
     let anonymousCallablePaths =
-        { Python = "anonymous_callable_analysis.py"
-          TypeScript = "anonymousCallableAnalysis.ts"
-          FSharp = "AnonymousCallableAnalysis.fs"
-          Kotlin = "AnonymousCallableAnalysis.kt"
-          CPlusPlus = "anonymous_callable_analysis.cpp"
-          CSharp = "AnonymousCallableAnalysis.cs" }
+        {
+            Python = "anonymous_callable_analysis.py"
+            TypeScript = "anonymousCallableAnalysis.ts"
+            FSharp = "AnonymousCallableAnalysis.fs"
+            Kotlin = "AnonymousCallableAnalysis.kt"
+            CPlusPlus = "anonymous_callable_analysis.cpp"
+            CSharp = "AnonymousCallableAnalysis.cs"
+        }
 
     let anonymousCyclomatic =
         commonCases
             anonymousCallablePaths
-            [ StaysClean(FunctionName "cleanAnonymousCallable")
-              ProducesFinding(FunctionName "flaggedAnonymousCyclomatic", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereAnonymousCyclomatic", Some High) ]
+            [
+                StaysClean(FunctionName "cleanAnonymousCallable")
+                ProducesFinding(FunctionName "flaggedAnonymousCyclomatic", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereAnonymousCyclomatic", Some High)
+            ]
 
     let anonymousCognitive =
         commonCases
             anonymousCallablePaths
-            [ StaysClean(FunctionName "cleanAnonymousCallable")
-              ProducesFinding(FunctionName "flaggedAnonymousCognitive", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereAnonymousCognitive", Some High) ]
+            [
+                StaysClean(FunctionName "cleanAnonymousCallable")
+                ProducesFinding(FunctionName "flaggedAnonymousCognitive", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereAnonymousCognitive", Some High)
+            ]
 
     let anonymousParameters =
         commonCases
             anonymousCallablePaths
-            [ StaysClean(FunctionName "cleanAnonymousCallable")
-              ProducesFinding(FunctionName "flaggedAnonymousParameters", Some Medium)
-              ProducesFinding(FunctionName "flaggedSevereAnonymousParameters", Some High) ]
+            [
+                StaysClean(FunctionName "cleanAnonymousCallable")
+                ProducesFinding(FunctionName "flaggedAnonymousParameters", Some Medium)
+                ProducesFinding(FunctionName "flaggedSevereAnonymousParameters", Some High)
+            ]
 
     let primitiveObsession =
         commonCases
-            { Python = "primitive_obsession.py"
-              TypeScript = "primitiveObsession.ts"
-              FSharp = "PrimitiveObsession.fs"
-              Kotlin = "PrimitiveObsession.kt"
-              CPlusPlus = "primitive_obsession.cpp"
-              CSharp = "PrimitiveObsession.cs" }
-            [ StaysClean(FunctionName "cleanDistinctTypes")
-              ProducesFinding(FunctionName "flaggedSwapRisk", None)
-              ProducesFinding(FunctionName "flaggedStringlyTyped", None) ]
+            {
+                Python = "primitive_obsession.py"
+                TypeScript = "primitiveObsession.ts"
+                FSharp = "PrimitiveObsession.fs"
+                Kotlin = "PrimitiveObsession.kt"
+                CPlusPlus = "primitive_obsession.cpp"
+                CSharp = "PrimitiveObsession.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanDistinctTypes")
+                ProducesFinding(FunctionName "flaggedSwapRisk", None)
+                ProducesFinding(FunctionName "flaggedStringlyTyped", None)
+            ]
 
     let opaqueBoolean =
         allLanguages
@@ -293,132 +356,166 @@ let tests =
         |> List.mapi (fun index item ->
             { item with
                 Expectations =
-                    [ ProducesFinding(FunctionName "flaggedPositionalBoolean", None)
-                      ProducesFinding(FunctionName "flaggedPositionalBooleanAmongOthers", None)
-                      StaysClean(
-                          FunctionName(
-                              [ "suppressedKeywordArgument"
-                                "suppressedObjectLiteralField"
-                                "suppressedNamedArgument"
-                                "suppressedNamedArgument"
-                                "suppressedLabeledAggregateField"
-                                "suppressedNonCallUsage" ]
-                              |> List.item index
-                          )
-                      )
-                      StaysClean(FunctionName "suppressedNonCallUsage") ] })
+                    [
+                        ProducesFinding(FunctionName "flaggedPositionalBoolean", None)
+                        ProducesFinding(FunctionName "flaggedPositionalBooleanAmongOthers", None)
+                        StaysClean(
+                            FunctionName(
+                                [
+                                    "suppressedKeywordArgument"
+                                    "suppressedObjectLiteralField"
+                                    "suppressedNamedArgument"
+                                    "suppressedNamedArgument"
+                                    "suppressedLabeledAggregateField"
+                                    "suppressedNonCallUsage"
+                                ]
+                                |> List.item index
+                            )
+                        )
+                        StaysClean(FunctionName "suppressedNonCallUsage")
+                    ]
+            })
         |> List.map (fun item ->
             { item with
-                Expectations = expectationsFor item.Language item.Expectations })
+                Expectations = expectationsFor item.Language item.Expectations
+            })
 
     let logicalControlFlow =
-        [ fixture
-              "Python"
-              Python.pythonLanguageAdapter
-              "python/logical_control_flow.py"
-              [ StaysClean(FunctionName "cleanExplicitIf")
-                ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
-                ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low) ]
-          fixture
-              "TypeScript"
-              TypeScript.typeScriptLanguageAdapter
-              "typescript/logicalControlFlow.ts"
-              [ StaysClean(FunctionName "cleanExplicitIf")
-                ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
-                ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low) ]
-          fixture
-              "C++"
-              CPlusPlus.cPlusPlusLanguageAdapter
-              "cpp/logical_control_flow.cpp"
-              [ StaysClean(FunctionName "cleanExplicitIf")
-                ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
-                ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low) ]
-          // C# rejects bare `condition && action()` and `condition || action()` expressions as
-          // statements, so the source-level shorthand this detector recognizes is unavailable.
-          fixture
-              "C#"
-              CSharp.cSharpLanguageAdapter
-              "csharp/LogicalControlFlow.cs"
-              [ StaysClean(FunctionName "CleanExplicitIf") ] ]
+        [
+            fixture
+                "Python"
+                Python.pythonLanguageAdapter
+                "python/logical_control_flow.py"
+                [
+                    StaysClean(FunctionName "cleanExplicitIf")
+                    ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
+                    ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low)
+                ]
+            fixture
+                "TypeScript"
+                TypeScript.typeScriptLanguageAdapter
+                "typescript/logicalControlFlow.ts"
+                [
+                    StaysClean(FunctionName "cleanExplicitIf")
+                    ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
+                    ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low)
+                ]
+            fixture
+                "C++"
+                CPlusPlus.cPlusPlusLanguageAdapter
+                "cpp/logical_control_flow.cpp"
+                [
+                    StaysClean(FunctionName "cleanExplicitIf")
+                    ProducesFinding(FunctionName "flaggedAndAsIf", Some Low)
+                    ProducesFinding(FunctionName "flaggedOrAsUnless", Some Low)
+                ]
+            // C# rejects bare `condition && action()` and `condition || action()` expressions as
+            // statements, so the source-level shorthand this detector recognizes is unavailable.
+            fixture
+                "C#"
+                CSharp.cSharpLanguageAdapter
+                "csharp/LogicalControlFlow.cs"
+                [ StaysClean(FunctionName "CleanExplicitIf") ]
+        ]
 
     let matchOpportunity =
         commonCases
-            { Python = "match_opportunity.py"
-              TypeScript = "matchOpportunity.ts"
-              FSharp = "MatchOpportunity.fs"
-              Kotlin = "MatchOpportunity.kt"
-              CPlusPlus = "match_opportunity.cpp"
-              CSharp = "MatchOpportunity.cs" }
-            [ StaysClean(FunctionName "cleanMixedConditions")
-              ProducesFinding(FunctionName "flaggedThreeWayChain", None) ]
+            {
+                Python = "match_opportunity.py"
+                TypeScript = "matchOpportunity.ts"
+                FSharp = "MatchOpportunity.fs"
+                Kotlin = "MatchOpportunity.kt"
+                CPlusPlus = "match_opportunity.cpp"
+                CSharp = "MatchOpportunity.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanMixedConditions")
+                ProducesFinding(FunctionName "flaggedThreeWayChain", None)
+            ]
 
     // F# has no equivalent block-shaped conditional in its grammar, so its fixture makes the
     // supported-language boundary visible as a clean case rather than pretending it is parity.
     let inversion =
-        [ fixture
-              "Python"
-              Python.pythonLanguageAdapter
-              "python/inversion.py"
-              [ StaysClean(FunctionName "cleanEarlyReturn")
-                ProducesFinding(FunctionName "flaggedDominantIf", None)
-                ProducesFinding(FunctionName "flaggedValidationChain", None) ]
-          fixture
-              "TypeScript"
-              TypeScript.typeScriptLanguageAdapter
-              "typescript/inversion.ts"
-              [ StaysClean(FunctionName "cleanEarlyReturn")
-                ProducesFinding(FunctionName "flaggedDominantIf", None)
-                ProducesFinding(FunctionName "flaggedValidationChain", None) ]
-          fixture
-              "Kotlin"
-              Kotlin.kotlinLanguageAdapter
-              "kotlin/Inversion.kt"
-              [ StaysClean(FunctionName "cleanEarlyReturn")
-                ProducesFinding(FunctionName "flaggedDominantIf", None)
-                ProducesFinding(FunctionName "flaggedValidationChain", None) ]
-          fixture
-              "C++"
-              CPlusPlus.cPlusPlusLanguageAdapter
-              "cpp/inversion.cpp"
-              [ StaysClean(FunctionName "cleanEarlyReturn")
-                ProducesFinding(FunctionName "flaggedDominantIf", None)
-                ProducesFinding(FunctionName "flaggedValidationChain", None) ]
-          fixture
-              "F# (grammar limitation)"
-              FSharp.fSharpLanguageAdapter
-              "fsharp/Inversion.fs"
-              [ StaysClean(FunctionName "unflaggedValidationChain") ]
-          fixture
-              "C#"
-              CSharp.cSharpLanguageAdapter
-              "csharp/Inversion.cs"
-              [ StaysClean(FunctionName "CleanEarlyReturn")
-                ProducesFinding(FunctionName "FlaggedDominantIf", None)
-                ProducesFinding(FunctionName "FlaggedValidationChain", None) ] ]
+        [
+            fixture
+                "Python"
+                Python.pythonLanguageAdapter
+                "python/inversion.py"
+                [
+                    StaysClean(FunctionName "cleanEarlyReturn")
+                    ProducesFinding(FunctionName "flaggedDominantIf", None)
+                    ProducesFinding(FunctionName "flaggedValidationChain", None)
+                ]
+            fixture
+                "TypeScript"
+                TypeScript.typeScriptLanguageAdapter
+                "typescript/inversion.ts"
+                [
+                    StaysClean(FunctionName "cleanEarlyReturn")
+                    ProducesFinding(FunctionName "flaggedDominantIf", None)
+                    ProducesFinding(FunctionName "flaggedValidationChain", None)
+                ]
+            fixture
+                "Kotlin"
+                Kotlin.kotlinLanguageAdapter
+                "kotlin/Inversion.kt"
+                [
+                    StaysClean(FunctionName "cleanEarlyReturn")
+                    ProducesFinding(FunctionName "flaggedDominantIf", None)
+                    ProducesFinding(FunctionName "flaggedValidationChain", None)
+                ]
+            fixture
+                "C++"
+                CPlusPlus.cPlusPlusLanguageAdapter
+                "cpp/inversion.cpp"
+                [
+                    StaysClean(FunctionName "cleanEarlyReturn")
+                    ProducesFinding(FunctionName "flaggedDominantIf", None)
+                    ProducesFinding(FunctionName "flaggedValidationChain", None)
+                ]
+            fixture
+                "F# (grammar limitation)"
+                FSharp.fSharpLanguageAdapter
+                "fsharp/Inversion.fs"
+                [ StaysClean(FunctionName "unflaggedValidationChain") ]
+            fixture
+                "C#"
+                CSharp.cSharpLanguageAdapter
+                "csharp/Inversion.cs"
+                [
+                    StaysClean(FunctionName "CleanEarlyReturn")
+                    ProducesFinding(FunctionName "FlaggedDominantIf", None)
+                    ProducesFinding(FunctionName "FlaggedValidationChain", None)
+                ]
+        ]
 
     // These scenarios distinguish terminal guard candidates from optional work and alternatives.
     let inversionFeedback =
         commonCases
-            { Python = "inversion_feedback.py"
-              TypeScript = "inversionFeedback.ts"
-              FSharp = "Inversion.fs"
-              Kotlin = "InversionFeedback.kt"
-              CPlusPlus = "inversion_feedback.cpp"
-              CSharp = "InversionFeedback.cs" }
-            [ StaysClean(FunctionName "cleanRequiredFollowup")
-              StaysClean(FunctionName "cleanDominantFollowup")
-              StaysClean(FunctionName "cleanInterveningWork")
-              StaysClean(FunctionName "cleanAlternativeBranch")
-              StaysClean(FunctionName "cleanFlatAlternatives")
-              StaysClean(FunctionName "cleanTwoLevels")
-              StaysClean(FunctionName "cleanCommentHeavyBlock")
-              StaysClean(FunctionName "cleanNestedFunction")
-              ProducesFinding(FunctionName "flaggedAlternativeBody", Some Medium)
-              ProducesFinding(FunctionName "flaggedThreeLevels", Some Medium)
-              ProducesFinding(FunctionName "flaggedFourLevels", Some Medium)
-              ProducesFinding(FunctionName "flaggedFiveGuards", Some Medium)
-              ProducesFinding(FunctionName "flaggedNestedElse", Some Medium)
-              ProducesFinding(FunctionName "flaggedImplicitFallthrough", Some Medium) ]
+            {
+                Python = "inversion_feedback.py"
+                TypeScript = "inversionFeedback.ts"
+                FSharp = "Inversion.fs"
+                Kotlin = "InversionFeedback.kt"
+                CPlusPlus = "inversion_feedback.cpp"
+                CSharp = "InversionFeedback.cs"
+            }
+            [
+                StaysClean(FunctionName "cleanRequiredFollowup")
+                StaysClean(FunctionName "cleanDominantFollowup")
+                StaysClean(FunctionName "cleanInterveningWork")
+                StaysClean(FunctionName "cleanAlternativeBranch")
+                StaysClean(FunctionName "cleanFlatAlternatives")
+                StaysClean(FunctionName "cleanTwoLevels")
+                StaysClean(FunctionName "cleanCommentHeavyBlock")
+                StaysClean(FunctionName "cleanNestedFunction")
+                ProducesFinding(FunctionName "flaggedAlternativeBody", Some Medium)
+                ProducesFinding(FunctionName "flaggedThreeLevels", Some Medium)
+                ProducesFinding(FunctionName "flaggedFourLevels", Some Medium)
+                ProducesFinding(FunctionName "flaggedFiveGuards", Some Medium)
+                ProducesFinding(FunctionName "flaggedNestedElse", Some Medium)
+                ProducesFinding(FunctionName "flaggedImplicitFallthrough", Some Medium)
+            ]
         // The existing inversion matrix above explicitly asserts the F# grammar limitation.
         |> List.filter (fun fixtureCase -> fixtureCase.LanguageLabel <> "F#")
         |> List.map (fun item ->
@@ -428,38 +525,47 @@ let tests =
                 { item with
                     Expectations =
                         item.Expectations
-                        @ expectationsFor item.Language [ StaysClean(FunctionName "cleanUnbracedElse") ] })
+                        @ expectationsFor item.Language [ StaysClean(FunctionName "cleanUnbracedElse") ]
+                })
 
     let recoveryRules expectations =
         commonCases
-            { Python = "recovery_rules.py"
-              TypeScript = "recovery_rules.ts"
-              FSharp = "RecoveryRules.fs"
-              Kotlin = "RecoveryRules.kt"
-              CPlusPlus = "recovery_rules.cpp"
-              CSharp = "RecoveryRules.cs" }
+            {
+                Python = "recovery_rules.py"
+                TypeScript = "recovery_rules.ts"
+                FSharp = "RecoveryRules.fs"
+                Kotlin = "RecoveryRules.kt"
+                CPlusPlus = "recovery_rules.cpp"
+                CSharp = "RecoveryRules.cs"
+            }
             expectations
 
     let broadScope =
         recoveryRules
-            [ ProducesFinding(FunctionName "broadScope", Some High)
-              StaysClean(FunctionName "twoLineProtected") ]
+            [
+                ProducesFinding(FunctionName "broadScope", Some High)
+                StaysClean(FunctionName "twoLineProtected")
+            ]
 
     let recoveryDominance =
         recoveryRules
-            [ ProducesFinding(FunctionName "twoLineProtected", Some High)
-              StaysClean(FunctionName "oneLineProtected")
-              ProducesFinding(FunctionName "workBefore", Some Medium)
-              ProducesFinding(FunctionName "workAfter", Some Medium)
-              ProducesFinding(FunctionName "multilineLoop", Some High)
-              StaysClean(FunctionName "commentedTrivial") ]
+            [
+                ProducesFinding(FunctionName "twoLineProtected", Some High)
+                StaysClean(FunctionName "oneLineProtected")
+                ProducesFinding(FunctionName "workBefore", Some Medium)
+                ProducesFinding(FunctionName "workAfter", Some Medium)
+                ProducesFinding(FunctionName "multilineLoop", Some High)
+                StaysClean(FunctionName "commentedTrivial")
+            ]
 
     let oversizedRecovery =
         recoveryRules
-            [ StaysClean(FunctionName "atLimit")
-              ProducesFinding(FunctionName "overLimit", Some Medium)
-              StaysClean(FunctionName "commentedLimit")
-              StaysClean(FunctionName "separateHandlers") ]
+            [
+                StaysClean(FunctionName "atLimit")
+                ProducesFinding(FunctionName "overLimit", Some Medium)
+                StaysClean(FunctionName "commentedLimit")
+                StaysClean(FunctionName "separateHandlers")
+            ]
         |> List.map (fun item ->
             let name =
                 if item.Language.Id = "csharp" then
@@ -470,10 +576,13 @@ let tests =
             { item with
                 Expectations =
                     item.Expectations
-                    @ [ if item.Language.Id = "cpp" then
+                    @ [
+                        if item.Language.Id = "cpp" then
                             StaysClean(FunctionName name)
                         else
-                            ProducesFinding(FunctionName name, Some Medium) ] })
+                            ProducesFinding(FunctionName name, Some Medium)
+                    ]
+            })
 
     let errorShadowing =
         allLanguages
@@ -486,45 +595,54 @@ let tests =
         |> List.map (fun item ->
             { item with
                 Expectations =
-                    [ StaysClean(FunctionName "cleanPath")
-                      StaysClean(FunctionName "shadowedByError") ]
-                    |> expectationsFor item.Language })
+                    [
+                        StaysClean(FunctionName "cleanPath")
+                        StaysClean(FunctionName "shadowedByError")
+                    ]
+                    |> expectationsFor item.Language
+            })
         |> List.append
-            [ fixture
-                  "Python (recovery-dominated regression)"
-                  Python.pythonLanguageAdapter
-                  "python/error_shadowing_recovery_heavy.py"
-                  [ StaysClean(FunctionName "recoveryDominates")
-                    StaysClean(FunctionName "recoveryShadowsRealWork") ] ]
+            [
+                fixture
+                    "Python (recovery-dominated regression)"
+                    Python.pythonLanguageAdapter
+                    "python/error_shadowing_recovery_heavy.py"
+                    [
+                        StaysClean(FunctionName "recoveryDominates")
+                        StaysClean(FunctionName "recoveryShadowsRealWork")
+                    ]
+            ]
 
     testList (
         "Integration: detector fixture parity matrix",
-        [ yield! detectorParityTests "magic numbers" Magic magicNumbers
-          yield! detectorParityTests "magic strings" Magic magicStrings
-          yield! detectorParityTests "nesting" Nesting nesting
-          yield! detectorParityTests "cyclomatic complexity" Complexity cyclomatic
-          yield! detectorParityTests "anonymous cyclomatic complexity" Complexity anonymousCyclomatic
-          yield! detectorParityTests "cognitive complexity" Cognitive cognitive
-          yield! detectorParityTests "anonymous cognitive complexity" Cognitive anonymousCognitive
-          // Exact-score parity includes straight-line, boolean, branch, loop, dispatch and closure
-          // scenarios. Python/F# lack do-while syntax; C++ uses lambdas instead of local named functions.
-          // F# has no early-return statement; its unit conditional is tested without claiming a guard exit.
-          yield! CognitiveRuleTests.fixtureTests
-          yield! detectorParityTests "parameter count" Parameters parameters
-          yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
-          yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
-          yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
-          yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean
-          yield! detectorParityTests "logical control flow" LogicalControlFlow logicalControlFlow
-          yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity
-          yield! detectorParityTests "inversion" Inversion inversion
-          yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
-          yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
-          yield! detectorParityTests "broad protected scope" ErrorShadowing broadScope
-          yield! detectorParityTests "recovery dominance" RecoveryDominance recoveryDominance
-          yield!
-              detectorParityTests
-                  "oversized recovery block (C++ has no finally)"
-                  OversizedRecoveryBlock
-                  oversizedRecovery ]
+        [
+            yield! detectorParityTests "magic numbers" Magic magicNumbers
+            yield! detectorParityTests "magic strings" Magic magicStrings
+            yield! detectorParityTests "nesting" Nesting nesting
+            yield! detectorParityTests "cyclomatic complexity" Complexity cyclomatic
+            yield! detectorParityTests "anonymous cyclomatic complexity" Complexity anonymousCyclomatic
+            yield! detectorParityTests "cognitive complexity" Cognitive cognitive
+            yield! detectorParityTests "anonymous cognitive complexity" Cognitive anonymousCognitive
+            // Exact-score parity includes straight-line, boolean, branch, loop, dispatch and closure
+            // scenarios. Python/F# lack do-while syntax; C++ uses lambdas instead of local named functions.
+            // F# has no early-return statement; its unit conditional is tested without claiming a guard exit.
+            yield! CognitiveRuleTests.fixtureTests
+            yield! detectorParityTests "parameter count" Parameters parameters
+            yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
+            yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
+            yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
+            yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean
+            yield! detectorParityTests "logical control flow" LogicalControlFlow logicalControlFlow
+            yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity
+            yield! detectorParityTests "inversion" Inversion inversion
+            yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
+            yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
+            yield! detectorParityTests "broad protected scope" ErrorShadowing broadScope
+            yield! detectorParityTests "recovery dominance" RecoveryDominance recoveryDominance
+            yield!
+                detectorParityTests
+                    "oversized recovery block (C++ has no finally)"
+                    OversizedRecoveryBlock
+                    oversizedRecovery
+        ]
     )

@@ -40,10 +40,12 @@ let private rootFor resource =
 
 /// Bind every setting lookup to the same resource as the project configuration.
 let private reader resource =
-    { Bool = setting resource
-      Float = setting resource
-      String = setting resource
-      GlobalBool = globalSetting resource }
+    {
+        Bool = setting resource
+        Float = setting resource
+        String = setting resource
+        GlobalBool = globalSetting resource
+    }
 
 /// Read project thresholds and editor toggles for the document or export folder.
 let readAnalyzeThresholdsFor resource : AnalyzeThresholds =

@@ -13,12 +13,14 @@ open Energy.Core.ReportHuman
 open Energy.Core.Violation
 
 let private violation severity violationType message =
-    { Line = 0
-      Column = 0
-      Type = violationType
-      Severity = severity
-      Message = message
-      Hotspots = [] }
+    {
+        Line = 0
+        Column = 0
+        Type = violationType
+        Severity = severity
+        Message = message
+        Hotspots = []
+    }
 
 let private cyclomatic value severity =
     violation
@@ -29,293 +31,353 @@ let private cyclomatic value severity =
 let tests =
     testList (
         "Integration: report (summarize/diff/render)",
-        [ test (
-              "summarizeFile scores by severity weight and tallies counts/types",
-              fun _ ->
-                  let summary =
-                      summarizeFile
-                          { FilePath = "a.py"
-                            Violations =
-                              [ violation Low Complexity "test"
-                                violation Medium Complexity "test"
-                                violation High Complexity "test"
-                                violation High Complexity "test" ] }
+        [
+            test (
+                "summarizeFile scores by severity weight and tallies counts/types",
+                fun _ ->
+                    let summary =
+                        summarizeFile
+                            {
+                                FilePath = "a.py"
+                                Violations =
+                                    [
+                                        violation Low Complexity "test"
+                                        violation Medium Complexity "test"
+                                        violation High Complexity "test"
+                                        violation High Complexity "test"
+                                    ]
+                            }
 
-                  assertThat summary.Score (isEqualTo 23)
-                  assertThat summary.Counts (isEqualTo { Low = 1; Medium = 1; High = 2 })
-                  assertThat (Map.find "complexity" summary.ByType) (isEqualTo 4)
-          )
-          test (
-              "summarize aggregates totals across files",
-              fun _ ->
-                  let summary =
-                      summarize
-                          [ { FilePath = "a.py"
-                              Violations = [ violation High Complexity "test" ] }
-                            { FilePath = "b.py"
-                              Violations = [ violation Medium Complexity "test"; violation Low Complexity "test" ] } ]
+                    assertThat summary.Score (isEqualTo 23)
+                    assertThat summary.Counts (isEqualTo { Low = 1; Medium = 1; High = 2 })
+                    assertThat (Map.find "complexity" summary.ByType) (isEqualTo 4)
+            )
+            test (
+                "summarize aggregates totals across files",
+                fun _ ->
+                    let summary =
+                        summarize
+                            [
+                                {
+                                    FilePath = "a.py"
+                                    Violations = [ violation High Complexity "test" ]
+                                }
+                                {
+                                    FilePath = "b.py"
+                                    Violations = [ violation Medium Complexity "test"; violation Low Complexity "test" ]
+                                }
+                            ]
 
-                  assertThat summary.TotalScore (isEqualTo 14)
-                  assertThat summary.TotalCounts (isEqualTo { Low = 1; Medium = 1; High = 1 })
-          )
-          test (
-              "markdown report includes per-file rows and totals",
-              fun _ ->
-                  let markdown =
-                      summarize
-                          [ { FilePath = "a.py"
-                              Violations = [ violation High Complexity "test" ] }
-                            { FilePath = "clean.py"
-                              Violations = [] } ]
-                      |> renderMarkdownReport
+                    assertThat summary.TotalScore (isEqualTo 14)
+                    assertThat summary.TotalCounts (isEqualTo { Low = 1; Medium = 1; High = 1 })
+            )
+            test (
+                "markdown report includes per-file rows and totals",
+                fun _ ->
+                    let markdown =
+                        summarize
+                            [
+                                {
+                                    FilePath = "a.py"
+                                    Violations = [ violation High Complexity "test" ]
+                                }
+                                {
+                                    FilePath = "clean.py"
+                                    Violations = []
+                                }
+                            ]
+                        |> renderMarkdownReport
 
-                  assertThat (markdown.Contains("| a.py | 9 | 1 | 0 | 0 |")) isTrue
-                  assertThat (markdown.Contains("1 with no findings, 1 with findings")) isTrue
-          )
-          test (
-              "JSON report retains actionable finding locations and messages",
-              fun _ ->
-                  let finding =
-                      { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
-                          Line = 5
-                          Column = 12
-                          Hotspots = [ { Line = 5; Weight = 3 } ] }
+                    assertThat (markdown.Contains("| a.py | 9 | 1 | 0 | 0 |")) isTrue
+                    assertThat (markdown.Contains("1 with no findings, 1 with findings")) isTrue
+            )
+            test (
+                "JSON report retains actionable finding locations and messages",
+                fun _ ->
+                    let finding =
+                        { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
+                            Line = 5
+                            Column = 12
+                            Hotspots = [ { Line = 5; Weight = 3 } ]
+                        }
 
-                  let json =
-                      [ { FilePath = "agents.fs"
-                          Violations = [ finding ] } ]
-                      |> Energy.CliModes.summaryJson
-                      |> Energy.CliNode.stringify
+                    let json =
+                        [
+                            {
+                                FilePath = "agents.fs"
+                                Violations = [ finding ]
+                            }
+                        ]
+                        |> Energy.CliModes.summaryJson
+                        |> Energy.CliNode.stringify
 
-                  assertThat (json.Contains("\"violations\"")) isTrue
-                  assertThat (json.Contains("\"line\": 5")) isTrue
-                  assertThat (json.Contains("\"column\": 12")) isTrue
+                    assertThat (json.Contains("\"violations\"")) isTrue
+                    assertThat (json.Contains("\"line\": 5")) isTrue
+                    assertThat (json.Contains("\"column\": 12")) isTrue
 
-                  assertThat
-                      (json.Contains("\"message\": \"Introduce a value object so swaps fail type checking.\""))
-                      isTrue
+                    assertThat
+                        (json.Contains("\"message\": \"Introduce a value object so swaps fail type checking.\""))
+                        isTrue
 
-                  assertThat (json.Contains("\"hotspots\"")) isTrue
-                  assertThat (json.Contains("\"weight\": 3")) isTrue
-                  assertThat (json.Contains("\"filesScanned\": 1")) isTrue
-          )
-          test (
-              "JSON report omits clean files but keeps the scanned count",
-              fun _ ->
-                  let finding =
-                      { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
-                          Line = 5
-                          Column = 12
-                          Hotspots = [] }
+                    assertThat (json.Contains("\"hotspots\"")) isTrue
+                    assertThat (json.Contains("\"weight\": 3")) isTrue
+                    assertThat (json.Contains("\"filesScanned\": 1")) isTrue
+            )
+            test (
+                "JSON report omits clean files but keeps the scanned count",
+                fun _ ->
+                    let finding =
+                        { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
+                            Line = 5
+                            Column = 12
+                            Hotspots = []
+                        }
 
-                  let json =
-                      [ { FilePath = "dirty.fs"
-                          Violations = [ finding ] }
-                        { FilePath = "clean.fs"
-                          Violations = [] }
-                        { FilePath = "cleaner.py"
-                          Violations = [] } ]
-                      |> Energy.CliModes.summaryJson
-                      |> Energy.CliNode.stringify
+                    let json =
+                        [
+                            {
+                                FilePath = "dirty.fs"
+                                Violations = [ finding ]
+                            }
+                            {
+                                FilePath = "clean.fs"
+                                Violations = []
+                            }
+                            {
+                                FilePath = "cleaner.py"
+                                Violations = []
+                            }
+                        ]
+                        |> Energy.CliModes.summaryJson
+                        |> Energy.CliNode.stringify
 
-                  assertThat (json.Contains("\"dirty.fs\"")) isTrue
-                  assertThat (json.Contains("clean.fs")) isFalse
-                  assertThat (json.Contains("cleaner.py")) isFalse
-                  assertThat (json.Contains("\"filesScanned\": 3")) isTrue
-          )
-          test (
-              "rule IDs are stable and unique across every violation type",
-              fun _ ->
-                  let ids =
-                      [ Nesting
-                        Complexity
-                        Cognitive
-                        Naming
-                        Coherence
-                        Magic
-                        Parameters
-                        Inversion
-                        PrimitiveObsession
-                        MatchOpportunity
-                        LogicalControlFlow
-                        OpaqueBoolean
-                        ErrorShadowing
-                        Suppression
-                        ParseDontValidate
-                        RecoveryDominance
-                        OversizedRecoveryBlock ]
-                      |> List.map violationRuleId
+                    assertThat (json.Contains("\"dirty.fs\"")) isTrue
+                    assertThat (json.Contains("clean.fs")) isFalse
+                    assertThat (json.Contains("cleaner.py")) isFalse
+                    assertThat (json.Contains("\"filesScanned\": 3")) isTrue
+            )
+            test (
+                "rule IDs are stable and unique across every violation type",
+                fun _ ->
+                    let ids =
+                        [
+                            Nesting
+                            Complexity
+                            Cognitive
+                            Naming
+                            Coherence
+                            Magic
+                            Parameters
+                            Inversion
+                            PrimitiveObsession
+                            MatchOpportunity
+                            LogicalControlFlow
+                            OpaqueBoolean
+                            ErrorShadowing
+                            Suppression
+                            ParseDontValidate
+                            RecoveryDominance
+                            OversizedRecoveryBlock
+                        ]
+                        |> List.map violationRuleId
 
-                  assertThat
-                      ids
-                      (isEqualTo
-                          [ "ESA001"
-                            "ESA002"
-                            "ESA003"
-                            "ESA004"
-                            "ESA005"
-                            "ESA006"
-                            "ESA007"
-                            "ESA008"
-                            "ESA009"
-                            "ESA010"
-                            "ESA011"
-                            "ESA012"
-                            "ESA013"
-                            "ESA014"
-                            "ESA015"
-                            "ESA016"
-                            "ESA017" ])
+                    assertThat
+                        ids
+                        (isEqualTo
+                            [
+                                "ESA001"
+                                "ESA002"
+                                "ESA003"
+                                "ESA004"
+                                "ESA005"
+                                "ESA006"
+                                "ESA007"
+                                "ESA008"
+                                "ESA009"
+                                "ESA010"
+                                "ESA011"
+                                "ESA012"
+                                "ESA013"
+                                "ESA014"
+                                "ESA015"
+                                "ESA016"
+                                "ESA017"
+                            ])
 
-                  assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
-          )
-          test (
-              "rule help URIs point to their detector documentation",
-              fun _ ->
-                  let documentation =
-                      [ Nesting, "excessive-nesting.md"
-                        Complexity, "cyclomatic-complexity.md"
-                        Cognitive, "cognitive-complexity.md"
-                        Naming, "file-coherence.md"
-                        Coherence, "file-coherence.md"
-                        Magic, "magic-values.md"
-                        Parameters, "parameter-explosion.md"
-                        Inversion, "inversion-opportunities.md"
-                        PrimitiveObsession, "primitive-obsession.md"
-                        MatchOpportunity, "match-opportunities.md"
-                        LogicalControlFlow, "logical-operator-control-flow.md"
-                        OpaqueBoolean, "opaque-boolean-literal.md"
-                        ErrorShadowing, "error-shadowing.md"
-                        RecoveryDominance, "recovery-dominance.md"
-                        OversizedRecoveryBlock, "oversized-recovery-block.md"
-                        Suppression, "suppression.md"
-                        ParseDontValidate, "parse-dont-validate.md" ]
+                    assertThat (ids |> Set.ofList |> Set.count) (isEqualTo ids.Length)
+            )
+            test (
+                "rule help URIs point to their detector documentation",
+                fun _ ->
+                    let documentation =
+                        [
+                            Nesting, "excessive-nesting.md"
+                            Complexity, "cyclomatic-complexity.md"
+                            Cognitive, "cognitive-complexity.md"
+                            Naming, "file-coherence.md"
+                            Coherence, "file-coherence.md"
+                            Magic, "magic-values.md"
+                            Parameters, "parameter-explosion.md"
+                            Inversion, "inversion-opportunities.md"
+                            PrimitiveObsession, "primitive-obsession.md"
+                            MatchOpportunity, "match-opportunities.md"
+                            LogicalControlFlow, "logical-operator-control-flow.md"
+                            OpaqueBoolean, "opaque-boolean-literal.md"
+                            ErrorShadowing, "error-shadowing.md"
+                            RecoveryDominance, "recovery-dominance.md"
+                            OversizedRecoveryBlock, "oversized-recovery-block.md"
+                            Suppression, "suppression.md"
+                            ParseDontValidate, "parse-dont-validate.md"
+                        ]
 
-                  documentation
-                  |> List.iter (fun (violationType, document) ->
-                      assertThat
-                          ((violationHelpUri violationType).EndsWith(document, System.StringComparison.Ordinal))
-                          isTrue)
-          )
-          test (
-              "SARIF report exposes standard rules, one-based locations, and remediation messages",
-              fun _ ->
-                  let finding =
-                      { violation High Magic "Extract this literal to a named constant." with
-                          Line = 5
-                          Column = 12 }
+                    documentation
+                    |> List.iter (fun (violationType, document) ->
+                        assertThat
+                            ((violationHelpUri violationType).EndsWith(document, System.StringComparison.Ordinal))
+                            isTrue)
+            )
+            test (
+                "SARIF report exposes standard rules, one-based locations, and remediation messages",
+                fun _ ->
+                    let finding =
+                        { violation High Magic "Extract this literal to a named constant." with
+                            Line = 5
+                            Column = 12
+                        }
 
-                  let sarif =
-                      [ { FilePath = "agents.fs"
-                          Violations = [ finding ] } ]
-                      |> Energy.Core.ReportSarif.renderSarif
-                      |> Energy.CliNode.stringify
+                    let sarif =
+                        [
+                            {
+                                FilePath = "agents.fs"
+                                Violations = [ finding ]
+                            }
+                        ]
+                        |> Energy.Core.ReportSarif.renderSarif
+                        |> Energy.CliNode.stringify
 
-                  assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
-                  assertThat (sarif.Contains("\"ruleId\": \"ESA006\"")) isTrue
-                  assertThat (sarif.Contains("\"id\": \"ESA006\"")) isTrue
+                    assertThat (sarif.Contains("\"version\": \"2.1.0\"")) isTrue
+                    assertThat (sarif.Contains("\"ruleId\": \"ESA006\"")) isTrue
+                    assertThat (sarif.Contains("\"id\": \"ESA006\"")) isTrue
 
-                  assertThat
-                      (sarif.Contains(
-                          "\"helpUri\": \"https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/magic-values.md\""
-                      ))
-                      isTrue
+                    assertThat
+                        (sarif.Contains(
+                            "\"helpUri\": \"https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/magic-values.md\""
+                        ))
+                        isTrue
 
-                  assertThat (sarif.Contains("\"startLine\": 6")) isTrue
-                  assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
-                  assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue
-          )
-          test (
-              "error-boundary rules retain independent CLI and SARIF identities",
-              fun _ ->
-                  let findings =
-                      [ violation Medium ErrorShadowing "Broad protected scope"
-                        violation High RecoveryDominance "Recovery dominance"
-                        violation Medium OversizedRecoveryBlock "Oversized recovery block" ]
+                    assertThat (sarif.Contains("\"startLine\": 6")) isTrue
+                    assertThat (sarif.Contains("\"startColumn\": 13")) isTrue
+                    assertThat (sarif.Contains("Extract this literal to a named constant.")) isTrue
+            )
+            test (
+                "error-boundary rules retain independent CLI and SARIF identities",
+                fun _ ->
+                    let findings =
+                        [
+                            violation Medium ErrorShadowing "Broad protected scope"
+                            violation High RecoveryDominance "Recovery dominance"
+                            violation Medium OversizedRecoveryBlock "Oversized recovery block"
+                        ]
 
-                  let results =
-                      [ { FilePath = "recovery.py"
-                          Violations = findings } ]
+                    let results =
+                        [
+                            {
+                                FilePath = "recovery.py"
+                                Violations = findings
+                            }
+                        ]
 
-                  let sarif =
-                      results |> Energy.Core.ReportSarif.renderSarif |> Energy.CliNode.stringify
+                    let sarif =
+                        results |> Energy.Core.ReportSarif.renderSarif |> Energy.CliNode.stringify
 
-                  let json = results |> Energy.CliModes.summaryJson |> Energy.CliNode.stringify
+                    let json = results |> Energy.CliModes.summaryJson |> Energy.CliNode.stringify
 
-                  for kind in [ ErrorShadowing; RecoveryDominance; OversizedRecoveryBlock ] do
-                      assertThat (sarif.Contains(violationRuleId kind)) isTrue
-                      assertThat (sarif.Contains(violationDisplayName kind)) isTrue
-                      assertThat (sarif.Contains(violationHelpUri kind)) isTrue
-                      assertThat (json.Contains(violationTypeName kind)) isTrue
-          )
-          test (
-              "diff identifies every status and renders deltas",
-              fun _ ->
-                  let file path score =
-                      { FilePath = path
-                        Score = score
-                        Counts = emptyCounts
-                        ByType = Map.empty }
+                    for kind in [ ErrorShadowing; RecoveryDominance; OversizedRecoveryBlock ] do
+                        assertThat (sarif.Contains(violationRuleId kind)) isTrue
+                        assertThat (sarif.Contains(violationDisplayName kind)) isTrue
+                        assertThat (sarif.Contains(violationHelpUri kind)) isTrue
+                        assertThat (json.Contains(violationTypeName kind)) isTrue
+            )
+            test (
+                "diff identifies every status and renders deltas",
+                fun _ ->
+                    let file path score =
+                        {
+                            FilePath = path
+                            Score = score
+                            Counts = emptyCounts
+                            ByType = Map.empty
+                        }
 
-                  let entries =
-                      diffSummaries
-                          [ file "worse.py" 0; file "better.py" 9; file "same.py" 4 ]
-                          [ file "worse.py" 9; file "better.py" 0; file "same.py" 4; file "new.py" 1 ]
+                    let entries =
+                        diffSummaries
+                            [ file "worse.py" 0; file "better.py" 9; file "same.py" 4 ]
+                            [ file "worse.py" 9; file "better.py" 0; file "same.py" 4; file "new.py" 1 ]
 
-                  let byPath = entries |> List.map (fun entry -> entry.FilePath, entry) |> Map.ofList
-                  assertThat (Map.find "worse.py" byPath).Status (isEqualTo Worsened)
-                  assertThat (Map.find "better.py" byPath).Status (isEqualTo Improved)
-                  assertThat (Map.find "same.py" byPath).Status (isEqualTo Unchanged)
-                  assertThat (Map.find "new.py" byPath).Status (isEqualTo New)
-                  let markdown = renderDiffMarkdown entries "origin/main"
-                  assertThat (markdown.Contains("| worse.py | 0 | 9 | +9 | 🔴 worsened |")) isTrue
-          )
-          test (
-              "human report preserves complexity scores, fallback scores, and worst-first ordering",
-              fun _ ->
-                  let report =
-                      renderHumanReport
-                          [ { FilePath = "mild.py"
-                              Violations = [ cyclomatic 15 Medium ] }
-                            { FilePath = "severe.py"
-                              Violations = [ cyclomatic 60 High ] }
-                            { FilePath = "pattern.py"
-                              Violations = [ violation High Coherence "test" ] }
-                            { FilePath = "clean.py"
-                              Violations = [] } ]
+                    let byPath = entries |> List.map (fun entry -> entry.FilePath, entry) |> Map.ofList
+                    assertThat (Map.find "worse.py" byPath).Status (isEqualTo Worsened)
+                    assertThat (Map.find "better.py" byPath).Status (isEqualTo Improved)
+                    assertThat (Map.find "same.py" byPath).Status (isEqualTo Unchanged)
+                    assertThat (Map.find "new.py" byPath).Status (isEqualTo New)
+                    let markdown = renderDiffMarkdown entries "origin/main"
+                    assertThat (markdown.Contains("| worse.py | 0 | 9 | +9 | 🔴 worsened |")) isTrue
+            )
+            test (
+                "human report preserves complexity scores, fallback scores, and worst-first ordering",
+                fun _ ->
+                    let report =
+                        renderHumanReport
+                            [
+                                {
+                                    FilePath = "mild.py"
+                                    Violations = [ cyclomatic 15 Medium ]
+                                }
+                                {
+                                    FilePath = "severe.py"
+                                    Violations = [ cyclomatic 60 High ]
+                                }
+                                {
+                                    FilePath = "pattern.py"
+                                    Violations = [ violation High Coherence "test" ]
+                                }
+                                {
+                                    FilePath = "clean.py"
+                                    Violations = []
+                                }
+                            ]
 
-                  assertThat (report.Contains("4 files scanned** — 1 with no findings, 3 flagged")) isTrue
-                  assertThat (report.Contains("## severe.py — Critical (score 9.1)")) isTrue
-                  assertThat (report.Contains("## pattern.py — High (score 7.5)")) isTrue
+                    assertThat (report.Contains("4 files scanned** — 1 with no findings, 3 flagged")) isTrue
+                    assertThat (report.Contains("## severe.py — Critical (score 9.1)")) isTrue
+                    assertThat (report.Contains("## pattern.py — High (score 7.5)")) isTrue
 
-                  assertThat
-                      (report.IndexOf("## severe.py", System.StringComparison.Ordinal) < report.IndexOf(
-                          "## mild.py",
-                          System.StringComparison.Ordinal
-                      ))
-                      isTrue
+                    assertThat
+                        (report.IndexOf("## severe.py", System.StringComparison.Ordinal) <
+                            report.IndexOf("## mild.py", System.StringComparison.Ordinal))
+                        isTrue
 
-                  assertThat (report.Contains("**Repo score: 9.1 (Critical)**")) isTrue
-          )
-          test (
-              "complexity scores retain documented boundaries",
-              fun _ ->
-                  assertThat (complexityToScore 10) (isEqualTo 3.9)
-                  assertThat (complexityToScore 20) (isEqualTo 6.9)
-                  assertThat (classifyComplexityScore 34) (isEqualTo HighRisk)
-                  assertThat (classifyComplexityScore 60) (isEqualTo Critical)
-          )
-          testAsync (
-              "unsupported CLI input becomes a typed analysis error",
-              fun _ ->
-                  toAsync (
-                      task {
-                          // Fully qualified — this file sits at the coherence detector's 10-import
-                          // threshold, and Paths is needed at exactly this one call site.
-                          let! result = analyzeFile (Energy.Core.Paths.Path "unsupported.txt") "" defaultThresholds
+                    assertThat (report.Contains("**Repo score: 9.1 (Critical)**")) isTrue
+            )
+            test (
+                "complexity scores retain documented boundaries",
+                fun _ ->
+                    assertThat (complexityToScore 10) (isEqualTo 3.9)
+                    assertThat (complexityToScore 20) (isEqualTo 6.9)
+                    assertThat (classifyComplexityScore 34) (isEqualTo HighRisk)
+                    assertThat (classifyComplexityScore 60) (isEqualTo Critical)
+            )
+            testAsync (
+                "unsupported CLI input becomes a typed analysis error",
+                fun _ ->
+                    toAsync (
+                        task {
+                            // Fully qualified — this file sits at the coherence detector's 10-import
+                            // threshold, and Paths is needed at exactly this one call site.
+                            let! result =
+                                analyzeFile (Energy.Core.Paths.Path "unsupported.txt") "" defaultThresholds
 
-                          assertThat result (isEqualTo (Error(UnsupportedLanguage "unsupported.txt")))
-                      }
-                  )
-          ) ]
+                            assertThat result (isEqualTo (Error(UnsupportedLanguage "unsupported.txt")))
+                        }
+                    )
+            )
+        ]
     )

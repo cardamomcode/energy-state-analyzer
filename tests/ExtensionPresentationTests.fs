@@ -10,189 +10,213 @@ open Energy.Extension.DecorationModel
 open Energy.Extension.DiagnosticModel
 
 let private violation line column severity violationType message hotspots =
-    { Line = line
-      Column = column
-      Type = violationType
-      Severity = severity
-      Message = message
-      Hotspots = hotspots }
+    {
+        Line = line
+        Column = column
+        Type = violationType
+        Severity = severity
+        Message = message
+        Hotspots = hotspots
+    }
 
 let private defaults =
-    { Bool = fun _ _ fallback -> fallback
-      Float = fun _ _ fallback -> fallback
-      String = fun _ _ fallback -> fallback
-      GlobalBool = fun _ fallback -> fallback }
+    {
+        Bool = fun _ _ fallback -> fallback
+        Float = fun _ _ fallback -> fallback
+        String = fun _ _ fallback -> fallback
+        GlobalBool = fun _ fallback -> fallback
+    }
 
 let tests =
     testList (
         "Extension presentation and configuration",
-        [ test (
-              "keeps project thresholds while reading editor toggles and colors from settings",
-              fun _ ->
-                  let reader =
-                      { defaults with
-                          Float =
-                              fun section key fallback ->
-                                  match section, key with
-                                  | "colors", "backgroundOpacity" -> 0.25
-                                  | _ -> fallback
-                          Bool =
-                              fun section key fallback ->
-                                  match section, key with
-                                  | "recoveryDominance", "enabled" -> false
-                                  | "oversizedRecoveryBlock", "enabled" -> false
-                                  | "parseDontValidate", "enabled" -> false
-                                  | "magicNumber", "enabled" -> false
-                                  | "nesting", "enabled" -> false
-                                  | "cyclomaticComplexity", "enabled" -> true
-                                  | _ -> fallback
-                          GlobalBool =
-                              fun key fallback ->
-                                  match key with
-                                  | "includeTestFiles" -> true
-                                  | _ -> fallback
-                          String =
-                              fun section key fallback ->
-                                  if section = "colors" && key = "highEnergy" then
-                                      "#112233"
-                                  else
-                                      fallback }
+        [
+            test (
+                "keeps project thresholds while reading editor toggles and colors from settings",
+                fun _ ->
+                    let reader =
+                        { defaults with
+                            Float =
+                                fun section key fallback ->
+                                    match section, key with
+                                    | "colors", "backgroundOpacity" -> 0.25
+                                    | _ -> fallback
+                            Bool =
+                                fun section key fallback ->
+                                    match section, key with
+                                    | "recoveryDominance", "enabled" -> false
+                                    | "oversizedRecoveryBlock", "enabled" -> false
+                                    | "parseDontValidate", "enabled" -> false
+                                    | "magicNumber", "enabled" -> false
+                                    | "nesting", "enabled" -> false
+                                    | "cyclomaticComplexity", "enabled" -> true
+                                    | _ -> fallback
+                            GlobalBool =
+                                fun key fallback ->
+                                    match key with
+                                    | "includeTestFiles" -> true
+                                    | _ -> fallback
+                            String =
+                                fun section key fallback ->
+                                    if section = "colors" && key = "highEnergy" then
+                                        "#112233"
+                                    else
+                                        fallback
+                        }
 
-                  let projectOptions =
-                      { defaultAnalyzeOptions with
-                          Nesting =
-                              { defaultNestingThresholds with
-                                  MediumThreshold = 4 }
-                          Coherence =
-                              { defaultCoherenceThresholds with
-                                  SingleDomainNameShare = 0.8 }
-                          MatchOpportunity =
-                              { defaultMatchOpportunityThresholds with
-                                  MinBranches = 5 }
-                          ErrorShadowing =
-                              { defaultErrorShadowingThresholds with
-                                  ProtectedScope =
-                                      { defaultErrorShadowingThresholds.ProtectedScope with
-                                          Threshold = 0.6 } }
-                          MagicNumber =
-                              { defaultMagicNumberOptions with
-                                  Allowlist = [ 0.0; 1.0; -1.0; 2.0; 3.0 ] } }
+                    let projectOptions =
+                        { defaultAnalyzeOptions with
+                            Nesting =
+                                { defaultNestingThresholds with
+                                    MediumThreshold = 4
+                                }
+                            Coherence =
+                                { defaultCoherenceThresholds with
+                                    SingleDomainNameShare = 0.8
+                                }
+                            MatchOpportunity =
+                                { defaultMatchOpportunityThresholds with
+                                    MinBranches = 5
+                                }
+                            ErrorShadowing =
+                                { defaultErrorShadowingThresholds with
+                                    ProtectedScope =
+                                        { defaultErrorShadowingThresholds.ProtectedScope with
+                                            Threshold = 0.6
+                                        }
+                                }
+                            MagicNumber =
+                                { defaultMagicNumberOptions with
+                                    Allowlist = [ 0.0; 1.0; -1.0; 2.0; 3.0 ]
+                                }
+                        }
 
-                  let thresholds = readAnalyzeThresholds reader projectOptions
-                  assertThat thresholds.ParseDontValidate.Enabled isFalse
-                  let colors = readEnergyColors reader
-                  let nesting = thresholds.Nesting
-                  let coherence = thresholds.Coherence
-                  let magicNumber = thresholds.MagicNumber
-                  let magicString = thresholds.MagicString
-                  let matchOpportunity = thresholds.MatchOpportunity
-                  let cyclomatic = thresholds.Cyclomatic
-                  let errorShadowing = thresholds.ErrorShadowing
+                    let thresholds = readAnalyzeThresholds reader projectOptions
+                    assertThat thresholds.ParseDontValidate.Enabled isFalse
+                    let colors = readEnergyColors reader
+                    let nesting = thresholds.Nesting
+                    let coherence = thresholds.Coherence
+                    let magicNumber = thresholds.MagicNumber
+                    let magicString = thresholds.MagicString
+                    let matchOpportunity = thresholds.MatchOpportunity
+                    let cyclomatic = thresholds.Cyclomatic
+                    let errorShadowing = thresholds.ErrorShadowing
 
-                  assertThat nesting.MediumThreshold (isEqualTo 4)
-                  assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
-                  assertThat magicNumber.Enabled isFalse
-                  // the existing `nesting` binding (declared above) reflects its toggled-off value here.
-                  assertThat nesting.Enabled isFalse
-                  assertThat cyclomatic.Enabled isTrue
-                  assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
-                  assertThat magicNumber.IncludeTestFiles isTrue
-                  assertThat magicString.IncludeTestFiles isTrue
-                  assertThat matchOpportunity.MinBranches (isEqualTo 5)
-                  assertThat errorShadowing.RecoveryDominanceEnabled isFalse
-                  assertThat errorShadowing.OversizedRecoveryBlockEnabled isFalse
-                  assertThat errorShadowing.Enabled isTrue
-                  assertThat errorShadowing.ProtectedScope.Threshold (isEqualTo 0.6)
-                  assertThat colors.HighEnergy (isEqualTo "#112233")
-                  assertThat colors.BackgroundOpacity (isEqualTo 0.25)
-          )
-          test (
-              "error-boundary Problems retain all independent rule codes",
-              fun _ ->
-                  let findings =
-                      [ violation 2 4 Medium ErrorShadowing "Broad protected scope" []
-                        violation 2 4 High RecoveryDominance "Recovery dominance" []
-                        violation 8 4 Medium OversizedRecoveryBlock "Oversized recovery block" [] ]
+                    assertThat nesting.MediumThreshold (isEqualTo 4)
+                    assertThat coherence.SingleDomainNameShare (isEqualTo 0.8)
+                    assertThat magicNumber.Enabled isFalse
+                    // the existing `nesting` binding (declared above) reflects its toggled-off value here.
+                    assertThat nesting.Enabled isFalse
+                    assertThat cyclomatic.Enabled isTrue
+                    assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
+                    assertThat magicNumber.IncludeTestFiles isTrue
+                    assertThat magicString.IncludeTestFiles isTrue
+                    assertThat matchOpportunity.MinBranches (isEqualTo 5)
+                    assertThat errorShadowing.RecoveryDominanceEnabled isFalse
+                    assertThat errorShadowing.OversizedRecoveryBlockEnabled isFalse
+                    assertThat errorShadowing.Enabled isTrue
+                    assertThat errorShadowing.ProtectedScope.Threshold (isEqualTo 0.6)
+                    assertThat colors.HighEnergy (isEqualTo "#112233")
+                    assertThat colors.BackgroundOpacity (isEqualTo 0.25)
+            )
+            test (
+                "error-boundary Problems retain all independent rule codes",
+                fun _ ->
+                    let findings =
+                        [
+                            violation 2 4 Medium ErrorShadowing "Broad protected scope" []
+                            violation 2 4 High RecoveryDominance "Recovery dominance" []
+                            violation 8 4 Medium OversizedRecoveryBlock "Oversized recovery block" []
+                        ]
 
-                  let specs = diagnosticSpecs findings
-                  assertThat specs.Length (isEqualTo 2)
-                  let boundary = specs |> List.find (fun spec -> spec.Range.Line = 2)
-                  assertThat (boundary.Code.Contains("ESA013")) isTrue
-                  assertThat (boundary.Code.Contains("ESA016")) isTrue
-                  let handler = specs |> List.find (fun spec -> spec.Range.Line = 8)
-                  assertThat handler.Code (isEqualTo "ESA017")
-          )
-          test (
-              "maps violation categories to their editor ranges and rejects malformed colors",
-              fun _ ->
-                  let coherence = violation 2 8 High Coherence "sprawl" []
-                  let complexity = violation 3 6 Medium Complexity "complex" []
-                  let element = violation 4 6 Low Magic "magic" []
+                    let specs = diagnosticSpecs findings
+                    assertThat specs.Length (isEqualTo 2)
+                    let boundary = specs |> List.find (fun spec -> spec.Range.Line = 2)
+                    assertThat (boundary.Code.Contains("ESA013")) isTrue
+                    assertThat (boundary.Code.Contains("ESA016")) isTrue
+                    let handler = specs |> List.find (fun spec -> spec.Range.Line = 8)
+                    assertThat handler.Code (isEqualTo "ESA017")
+            )
+            test (
+                "maps violation categories to their editor ranges and rejects malformed colors",
+                fun _ ->
+                    let coherence = violation 2 8 High Coherence "sprawl" []
+                    let complexity = violation 3 6 Medium Complexity "complex" []
+                    let element = violation 4 6 Low Magic "magic" []
 
-                  assertThat
-                      (rangeFor "  class Thing:" coherence)
-                      (isEqualTo
-                          { StartLine = 2
-                            StartColumn = 0
-                            EndLine = 2
-                            EndColumn = 14 })
+                    assertThat
+                        (rangeFor "  class Thing:" coherence)
+                        (isEqualTo
+                            {
+                                StartLine = 2
+                                StartColumn = 0
+                                EndLine = 2
+                                EndColumn = 14
+                            })
 
-                  assertThat
-                      (rangeFor "    def complex():" complexity)
-                      (isEqualTo
-                          { StartLine = 3
-                            StartColumn = 4
-                            EndLine = 3
-                            EndColumn = 18 })
+                    assertThat
+                        (rangeFor "    def complex():" complexity)
+                        (isEqualTo
+                            {
+                                StartLine = 3
+                                StartColumn = 4
+                                EndLine = 3
+                                EndColumn = 18
+                            })
 
-                  assertThat
-                      (rangeFor "  key = 123" element)
-                      (isEqualTo
-                          { StartLine = 4
-                            StartColumn = 6
-                            EndLine = 4
-                            EndColumn = 11 })
+                    assertThat
+                        (rangeFor "  key = 123" element)
+                        (isEqualTo
+                            {
+                                StartLine = 4
+                                StartColumn = 6
+                                EndLine = 4
+                                EndColumn = 11
+                            })
 
-                  assertThat (hexToRgba "not-a-color" 0.1 "#fb8500") (isEqualTo "rgba(251, 133, 0, 0.1)")
-          )
-          test (
-              "normalizes complexity heat per violation and ignores out-of-range hotspots",
-              fun _ ->
-                  let complex =
-                      violation
-                          0
-                          0
-                          Medium
-                          Complexity
-                          "complex"
-                          [ { Line = 1; Weight = 1 }; { Line = 2; Weight = 4 }; { Line = 9; Weight = 4 } ]
+                    assertThat (hexToRgba "not-a-color" 0.1 "#fb8500") (isEqualTo "rgba(251, 133, 0, 0.1)")
+            )
+            test (
+                "normalizes complexity heat per violation and ignores out-of-range hotspots",
+                fun _ ->
+                    let complex =
+                        violation
+                            0
+                            0
+                            Medium
+                            Complexity
+                            "complex"
+                            [ { Line = 1; Weight = 1 }; { Line = 2; Weight = 4 }; { Line = 9; Weight = 4 } ]
 
-                  let ranges =
-                      heatRanges
-                          (LineCount 4)
-                          (fun line -> [| "zero"; "one"; "two"; "three" |].[line])
-                          (BandCount 4)
-                          [ complex ]
+                    let ranges =
+                        heatRanges
+                            (LineCount 4)
+                            (fun line -> [| "zero"; "one"; "two"; "three" |].[line])
+                            (BandCount 4)
+                            [ complex ]
 
-                  assertThat ranges.[1].Length (isEqualTo 1)
-                  assertThat ranges.[1].[0].StartLine (isEqualTo 1)
-                  assertThat ranges.[3].Length (isEqualTo 1)
-                  assertThat ranges.[3].[0].StartLine (isEqualTo 2)
-          )
-          test (
-              "groups Problems findings by line with leading severity, tags, and combined codes",
-              fun _ ->
-                  let specs =
-                      diagnosticSpecs
-                          [ violation 8 12 Low Magic "magic" []
-                            violation 8 4 High Complexity "complex" []
-                            violation 8 7 Medium Nesting "nested" [] ]
+                    assertThat ranges.[1].Length (isEqualTo 1)
+                    assertThat ranges.[1].[0].StartLine (isEqualTo 1)
+                    assertThat ranges.[3].Length (isEqualTo 1)
+                    assertThat ranges.[3].[0].StartLine (isEqualTo 2)
+            )
+            test (
+                "groups Problems findings by line with leading severity, tags, and combined codes",
+                fun _ ->
+                    let specs =
+                        diagnosticSpecs
+                            [
+                                violation 8 12 Low Magic "magic" []
+                                violation 8 4 High Complexity "complex" []
+                                violation 8 7 Medium Nesting "nested" []
+                            ]
 
-                  let spec = List.exactlyOne specs
-                  assertThat spec.Severity (isEqualTo ProblemSeverity.Error)
-                  assertThat spec.Range.StartColumn (isEqualTo 4)
-                  assertThat spec.Message (isEqualTo "complex | nested | magic")
-                  assertThat spec.Code (isEqualTo "ESA002,ESA001,ESA006")
-                  assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ])
-          ) ]
+                    let spec = List.exactlyOne specs
+                    assertThat spec.Severity (isEqualTo ProblemSeverity.Error)
+                    assertThat spec.Range.StartColumn (isEqualTo 4)
+                    assertThat spec.Message (isEqualTo "complex | nested | magic")
+                    assertThat spec.Code (isEqualTo "ESA002,ESA001,ESA006")
+                    assertThat spec.Tags (isEqualTo [ Deprecated; Unnecessary ])
+            )
+        ]
     )

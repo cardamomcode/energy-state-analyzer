@@ -13,9 +13,11 @@ open Energy.Extension.Analysis
 open Energy.Languages.Registry
 
 type GrammarContext =
-    { ExtensionPath: string
-      LoadedLanguages: Dictionary<string, LoadedLanguage>
-      InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>> }
+    {
+        ExtensionPath: string
+        LoadedLanguages: Dictionary<string, LoadedLanguage>
+        InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>>
+    }
 
 let private logPath (message: string) (path: Path) : unit = console.log (message, path)
 

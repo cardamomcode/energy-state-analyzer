@@ -12,9 +12,11 @@ let private plainImport children =
             || nodeType child = NodeType "identifier")
         |> List.map nodeText
 
-    { Module = items |> List.tryHead |> Option.defaultValue ""
-      Items = items
-      Line = 0 }
+    {
+        Module = items |> List.tryHead |> Option.defaultValue ""
+        Items = items
+        Line = 0
+    }
 
 let private fromImport children =
     let beforeImport =
@@ -38,9 +40,11 @@ let private fromImport children =
         |> List.filter (fun child -> nodeType child = NodeType "identifier")
         |> List.map nodeText
 
-    { Module = moduleName
-      Items = items
-      Line = 0 }
+    {
+        Module = moduleName
+        Items = items
+        Line = 0
+    }
 
 let extractImportInfo (positions: PositionLookup) node =
     let position = positions.toPosition (nodeStartIndex node)

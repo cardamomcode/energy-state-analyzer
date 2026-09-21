@@ -227,26 +227,30 @@ let private renderFileSection result =
         |> List.groupBy _.Type
         |> List.choose (fun (violationType, violations) -> describeCategoryFindings violationType violations)
 
-    [ sprintf "## %s — %s (score %.1f)" result.FilePath (riskLabel (classifyScore score)) score
-      "" ]
+    [
+        sprintf "## %s — %s (score %.1f)" result.FilePath (riskLabel (classifyScore score)) score
+        ""
+    ]
     @ sections
     |> String.concat "\n"
 
 /// Explain the familiar severity bands, remediation guidance, and score calculation.
 let private scoreLegend =
-    [ "## Score legend"
-      ""
-      "_Scores use the familiar [CVSS 0–10 severity bands](https://www.first.org/cvss/v3.1/specification-document#t5) to communicate the seriousness of analyzer findings. These are code complexity and maintainability scores, not security vulnerability scores._"
-      ""
-      "| Score | Severity | Meaning and action | Cyclomatic/cognitive input |"
-      "| --- | --- | --- | --- |"
-      "| 0.0 | None | No violations found | — |"
-      "| 0.1–3.9 | Low | Relatively simple; keep changes small and verify behavior | 1–10 |"
-      "| 4.0–6.9 | Medium | Becoming harder to understand and test; simplify branching or nesting | 11–20 |"
-      "| 7.0–8.9 | High | Complex and difficult to verify; separate responsibilities and test decisions independently | 21–50 |"
-      "| 9.0–10.0 | Critical | Extremely complex; restructure into smaller, independently understandable and testable units | 50+ |"
-      ""
-      "_Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates reading effort. The report applies the same numeric curve to both as a prioritization heuristic, not evidence that they measure equivalent effort. A file with no complexity violations instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._" ]
+    [
+        "## Score legend"
+        ""
+        "_Scores use the familiar [CVSS 0–10 severity bands](https://www.first.org/cvss/v3.1/specification-document#t5) to communicate the seriousness of analyzer findings. These are code complexity and maintainability scores, not security vulnerability scores._"
+        ""
+        "| Score | Severity | Meaning and action | Cyclomatic/cognitive input |"
+        "| --- | --- | --- | --- |"
+        "| 0.0 | None | No violations found | — |"
+        "| 0.1–3.9 | Low | Relatively simple; keep changes small and verify behavior | 1–10 |"
+        "| 4.0–6.9 | Medium | Becoming harder to understand and test; simplify branching or nesting | 11–20 |"
+        "| 7.0–8.9 | High | Complex and difficult to verify; separate responsibilities and test decisions independently | 21–50 |"
+        "| 9.0–10.0 | Critical | Extremely complex; restructure into smaller, independently understandable and testable units | 50+ |"
+        ""
+        "_Cyclomatic complexity describes independent control-flow paths; cognitive complexity estimates reading effort. The report applies the same numeric curve to both as a prioritization heuristic, not evidence that they measure equivalent effort. A file with no complexity violations instead gets a fixed score from its worst other finding (Low 2.0 / Medium 5.0 / High 7.5)._"
+    ]
     |> String.concat "\n"
 
 /// Render findings, severity, and remediation guidance as a human-readable Markdown report.
@@ -276,7 +280,8 @@ let renderHumanReport results =
                 | Low -> { counts with Low = counts.Low + 1 }
                 | Medium ->
                     { counts with
-                        Medium = counts.Medium + 1 }
+                        Medium = counts.Medium + 1
+                    }
                 | High -> { counts with High = counts.High + 1 })
             emptyCounts
 
@@ -295,19 +300,22 @@ let renderHumanReport results =
     let total = totalCounts.Low + totalCounts.Medium + totalCounts.High
     let findingSuffix = if total = 1 then "" else "s"
 
-    [ "# Energy State Report"
-      ""
-      scoreLegend
-      ""
-      sprintf
-          "**%d file%s scanned** — %d with no findings, %d flagged"
-          results.Length
-          filesSuffix
-          noFindingsCount
-          flagged.Length
-      "" ]
+    [
+        "# Energy State Report"
+        ""
+        scoreLegend
+        ""
+        sprintf
+            "**%d file%s scanned** — %d with no findings, %d flagged"
+            results.Length
+            filesSuffix
+            noFindingsCount
+            flagged.Length
+        ""
+    ]
     @ (flagged |> List.collect (fun result -> [ renderFileSection result; "" ]))
-    @ [ "## Total evaluation"
+    @ [
+        "## Total evaluation"
         ""
         repoLine
         ""
@@ -327,5 +335,6 @@ let renderHumanReport results =
             findingSuffix
             totalCounts.High
             totalCounts.Medium
-            totalCounts.Low ]
+            totalCounts.Low
+    ]
     |> String.concat "\n"

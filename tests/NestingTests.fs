@@ -16,11 +16,13 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/nesting.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/nesting.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp"
+        ]
 
     testList (
         "Integration: nesting (real code examples)",
@@ -35,10 +37,12 @@ let tests =
 
                             let violations =
                                 analyze
-                                    { Source = source
-                                      Tree = tree
-                                      Language = language
-                                      FileName = fixture }
+                                    {
+                                        Source = source
+                                        Tree = tree
+                                        Language = language
+                                        FileName = fixture
+                                    }
                                 |> _.Violations
 
                             assertValidPositions violations source
@@ -67,11 +71,13 @@ let tests =
 // intact — so an editor toggle turns one detector off without silently muting its neighbours.
 let gatingTests =
     let gatingCases =
-        [ "Python", Python.pythonLanguageAdapter, "python/nesting.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/nesting.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/nesting.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/Nesting.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/Nesting.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/nesting.cpp"
+        ]
 
     testList (
         "Integration: nesting enable/disable gating",
@@ -85,16 +91,20 @@ let gatingTests =
                             let! (source, tree) = parseFixture language fixture
 
                             let input =
-                                { Source = source
-                                  Tree = tree
-                                  Language = language
-                                  FileName = fixture }
+                                {
+                                    Source = source
+                                    Tree = tree
+                                    Language = language
+                                    FileName = fixture
+                                }
 
                             let disabledOpts =
                                 { defaultAnalyzeOptions with
                                     Nesting =
                                         { defaultNestingThresholds with
-                                            Enabled = false } }
+                                            Enabled = false
+                                        }
+                                }
 
                             let enabledViolations = input |> analyze |> _.Violations
 

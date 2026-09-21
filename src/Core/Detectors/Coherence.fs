@@ -47,16 +47,18 @@ let private functionCountViolation
     (position: Position.Position)
     (thresholds: CoherenceThresholds)
     : Violation.EnergyViolation =
-    { Line = position.Line
-      Column = position.Column
-      Type = Violation.Coherence
-      Severity =
-        if functionCount > thresholds.HighFunctionCount then
-            Violation.High
-        else
-            Violation.Medium
-      Message = message
-      Hotspots = [] }
+    {
+        Line = position.Line
+        Column = position.Column
+        Type = Violation.Coherence
+        Severity =
+            if functionCount > thresholds.HighFunctionCount then
+                Violation.High
+            else
+                Violation.Medium
+        Message = message
+        Hotspots = []
+    }
 
 /// Flag files with too many unrelated functions (utils/helpers sprawl).
 /// decision: lowers the flagging threshold from 12 to 8 functions when the filename itself signals a
@@ -78,8 +80,10 @@ let private checkFunctionCountSprawl
             TypeCohesion.typeCohesionResult
                 functions
                 language
-                { MaxDiversityRatio = thresholds.MaxTypeDiversityRatio
-                  MinCoverage = thresholds.MinTypedCoverage }
+                {
+                    MaxDiversityRatio = thresholds.MaxTypeDiversityRatio
+                    MinCoverage = thresholds.MinTypedCoverage
+                }
         // decision: an explicit utils/helper/common filename overrides either cohesion signal (naming or
         // type) — a module that already admits to being a grab-bag in its own name doesn't get to argue its
         // way out via consistent prefixes or a shared type.
@@ -161,23 +165,25 @@ let private checkLargeFunctionSprawl
             positions.toPosition (TreeSitter.nodeStartIndex largeFunctions.[0].Anchor)
 
         Some
-            { Line = position.Line
-              Column = position.Column
-              Type = Violation.Coherence
-              Severity =
-                if
-                    float largeFunctions.Length > float thresholds.MaxLargeFunctions
-                                                  * thresholds.LargeFunctionSeverityMultiplier
-                then
-                    Violation.High
-                else
-                    Violation.Medium
-              Message =
-                sprintf
-                    "%d functions exceed %d lines. Large functions carry more complexity than function count alone suggests."
-                    largeFunctions.Length
-                    thresholds.LargeFunctionLines
-              Hotspots = [] }
+            {
+                Line = position.Line
+                Column = position.Column
+                Type = Violation.Coherence
+                Severity =
+                    if
+                        float largeFunctions.Length >
+                            float thresholds.MaxLargeFunctions * thresholds.LargeFunctionSeverityMultiplier
+                    then
+                        Violation.High
+                    else
+                        Violation.Medium
+                Message =
+                    sprintf
+                        "%d functions exceed %d lines. Large functions carry more complexity than function count alone suggests."
+                        largeFunctions.Length
+                        thresholds.LargeFunctionLines
+                Hotspots = []
+            }
 
 /// The "Utils/Helpers Sprawl" detector. Methods are grouped by enclosing class (see
 /// collectFunctionsClassesAndImports), so the function-count sprawl check only sees free-standing
@@ -194,25 +200,31 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
         FreeFunctions @ (Classes |> List.collect (fun c -> List.ofSeq c.Methods))
 
     let findings =
-        [ checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
-          checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
-          ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions ctx.Options.Coherence
-          ClassRelatedness.checkClassRelatedness
-              Classes
-              ctx.Options.Coherence.SingleDomainNameShare
-              ctx.Language
-              ctx.Positions
-          // God-class is the class-level counterpart: one type whose methods span too many unrelated
-          // domains (as opposed to checkClassRelatedness, which is several unrelated types per file).
-          ClassRelatedness.checkGodClass
-              Classes
-              { Language = ctx.Language
-                Thresholds = ctx.Options.Coherence
-                Positions = ctx.Positions } ]
+        [
+            checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
+            checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
+            ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions ctx.Options.Coherence
+            ClassRelatedness.checkClassRelatedness
+                Classes
+                ctx.Options.Coherence.SingleDomainNameShare
+                ctx.Language
+                ctx.Positions
+            // God-class is the class-level counterpart: one type whose methods span too many unrelated
+            // domains (as opposed to checkClassRelatedness, which is several unrelated types per file).
+            ClassRelatedness.checkGodClass
+                Classes
+                {
+                    Language = ctx.Language
+                    Thresholds = ctx.Options.Coherence
+                    Positions = ctx.Positions
+                }
+        ]
         |> List.choose id
 
     Context.addViolations findings ctx
 
 let detector: Context.Detector =
-    { Name = "coherence"
-      Run = analyzeFileCoherence }
+    {
+        Name = "coherence"
+        Run = analyzeFileCoherence
+    }

@@ -82,8 +82,10 @@ let private importBinding (name: string) =
         else
             imported
 
-    { ImportedName = imported
-      LocalName = local }
+    {
+        ImportedName = imported
+        LocalName = local
+    }
 
 /// Build member or wildcard import information from one valid `from ... import ...` statement.
 let private importedMembers (text: string) (importIndex: int) =
@@ -94,9 +96,13 @@ let private importedMembers (text: string) (importIndex: int) =
         text.Substring(importIndex + importSeparator.Length).Trim().Trim([| '('; ')' |])
 
     if names = "*" then
-        [ { Kind = Wildcard
-            Source = source
-            Bindings = [] } ]
+        [
+            {
+                Kind = Wildcard
+                Source = source
+                Bindings = []
+            }
+        ]
     else
         let bindings =
             names.Split(',')
@@ -105,9 +111,13 @@ let private importedMembers (text: string) (importIndex: int) =
             |> List.filter (fun name -> name <> "")
             |> List.map importBinding
 
-        [ { Kind = Members
-            Source = source
-            Bindings = bindings } ]
+        [
+            {
+                Kind = Members
+                Source = source
+                Bindings = bindings
+            }
+        ]
 
 /// Parse a Python `from source import names` statement.
 let private importFromInfo (node: Node) =
@@ -117,18 +127,24 @@ let private importFromInfo (node: Node) =
     if importIndex > fromPrefix.Length then
         importedMembers text importIndex
     else
-        [ { Kind = Members
-            Source = text
-            Bindings = [] } ]
+        [
+            {
+                Kind = Members
+                Source = text
+                Bindings = []
+            }
+        ]
 
 /// Normalize one plain module import while discarding its local alias from the source identity.
 let private moduleImport (item: string) =
     let parts =
         item.Trim().Split([| ' ' |], System.StringSplitOptions.RemoveEmptyEntries)
 
-    { Kind = Module
-      Source = parts.[0]
-      Bindings = [] }
+    {
+        Kind = Module
+        Source = parts.[0]
+        Bindings = []
+    }
 
 /// Normalize Python module, member, alias, and wildcard imports for coherence analysis.
 let importInfo (node: Node) : ImportInfo list =

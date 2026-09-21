@@ -28,22 +28,28 @@ let private findings language source tree fixture threshold =
             Cognitive =
                 { defaultCognitiveThresholds with
                     MediumThreshold = threshold
-                    HighThreshold = threshold + 1 } }
+                    HighThreshold = threshold + 1
+                }
+        }
 
     analyzeWith
         options
-        { Source = source
-          Tree = tree
-          Language = language
-          FileName = fixture }
+        {
+            Source = source
+            Tree = tree
+            Language = language
+            FileName = fixture
+        }
     |> _.Violations
     |> List.filter (fun violation -> violation.Type = Cognitive)
 
 /// Immutable parsed input and pipeline results shared by one fixture's named rule cases.
 type private RuleFixture =
-    { Tree: Node
-      Positions: PositionLookup
-      FindingsAtThreshold: int -> EnergyViolation list }
+    {
+        Tree: Node
+        Positions: PositionLookup
+        FindingsAtThreshold: int -> EnergyViolation list
+    }
 
 /// Parse each fixture once and run its complete pipeline once per distinct threshold.
 ///
@@ -66,9 +72,11 @@ let private prepareFixture language fixture =
                     computed
 
             return
-                { Tree = tree
-                  Positions = createPositionLookup source
-                  FindingsAtThreshold = findingsAtThreshold }
+                {
+                    Tree = tree
+                    Positions = createPositionLookup source
+                    FindingsAtThreshold = findingsAtThreshold
+                }
         })
 
 /// Check exact scores, heatmap accounting, and both sides of the reporting threshold.

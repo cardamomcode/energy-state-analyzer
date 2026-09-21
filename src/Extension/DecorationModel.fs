@@ -18,10 +18,12 @@ let private hexRadix = 16
 /// Node-based Scriptorium tests can preserve presentation behavior without an extension host.
 
 type RangeSpec =
-    { StartLine: int
-      StartColumn: int
-      EndLine: int
-      EndColumn: int }
+    {
+        StartLine: int
+        StartColumn: int
+        EndLine: int
+        EndColumn: int
+    }
 
 /// The number of lines in a document.
 ///
@@ -70,24 +72,30 @@ let private firstNonWhitespace (text: string) =
 /// violation model with UI-specific ranges; detector output stays host-independent for CLI use.
 let rangeFor (lineText: string) (violation: EnergyViolation) =
     if violation.Type = Coherence then
-        { StartLine = violation.Line
-          StartColumn = 0
-          EndLine = violation.Line
-          EndColumn = lineText.Length }
+        {
+            StartLine = violation.Line
+            StartColumn = 0
+            EndLine = violation.Line
+            EndColumn = lineText.Length
+        }
     elif
         violation.Type = Nesting
         || violation.Type = Complexity
         || violation.Type = Cognitive
     then
-        { StartLine = violation.Line
-          StartColumn = firstNonWhitespace lineText
-          EndLine = violation.Line
-          EndColumn = lineText.Length }
+        {
+            StartLine = violation.Line
+            StartColumn = firstNonWhitespace lineText
+            EndLine = violation.Line
+            EndColumn = lineText.Length
+        }
     else
-        { StartLine = violation.Line
-          StartColumn = violation.Column
-          EndLine = violation.Line
-          EndColumn = min (violation.Column + elementHighlightWidth) lineText.Length }
+        {
+            StartLine = violation.Line
+            StartColumn = violation.Column
+            EndLine = violation.Line
+            EndColumn = min (violation.Column + elementHighlightWidth) lineText.Length
+        }
 
 /// Assign each flagged line to a complexity-heat band by its normalized intensity.
 ///
@@ -124,9 +132,11 @@ let heatRanges
 
             if line >= 0 && line < lineCount && index = band then
                 Some
-                    { StartLine = line
-                      StartColumn = 0
-                      EndLine = line
-                      EndColumn = (lineText line).Length }
+                    {
+                        StartLine = line
+                        StartColumn = 0
+                        EndLine = line
+                        EndColumn = (lineText line).Length
+                    }
             else
                 None))

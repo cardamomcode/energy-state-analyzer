@@ -31,30 +31,32 @@ let private statIsFile (stat: obj) : bool = nativeOnly
 
 let private ignoredDirectoryNames =
     Set.ofList
-        [ "node_modules"
-          ".git"
-          "bin"
-          "obj"
-          "dist"
-          "out"
-          "build"
-          "fable-out"
-          "fable_modules"
-          "fable-tests"
-          "spike-js"
-          ".next"
-          "coverage"
-          ".vscode-test"
-          "target"
-          ".gradle"
-          "__pycache__"
-          ".venv"
-          "venv"
-          ".tox"
-          ".nox"
-          ".pytest_cache"
-          ".mypy_cache"
-          ".ruff_cache" ]
+        [
+            "node_modules"
+            ".git"
+            "bin"
+            "obj"
+            "dist"
+            "out"
+            "build"
+            "fable-out"
+            "fable_modules"
+            "fable-tests"
+            "spike-js"
+            ".next"
+            "coverage"
+            ".vscode-test"
+            "target"
+            ".gradle"
+            "__pycache__"
+            ".venv"
+            "venv"
+            ".tox"
+            ".nox"
+            ".pytest_cache"
+            ".mypy_cache"
+            ".ruff_cache"
+        ]
 
 /// Holds the root directory and ignore patterns shared while walking the file tree.
 ///
@@ -126,8 +128,10 @@ let private expandGlobLike (pattern: string) ignore =
 
 let resolveSupportedFiles (inputs: string list) (rootDir: string) : Path list =
     let ignore =
-        { RootDir = Path rootDir
-          Patterns = loadIgnorePatterns rootDir }
+        {
+            RootDir = Path rootDir
+            Patterns = loadIgnorePatterns rootDir
+        }
 
     inputs
     |> List.collect (fun input ->

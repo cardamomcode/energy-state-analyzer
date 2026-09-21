@@ -32,31 +32,41 @@ let private assertManyImports (_src: string) (vs: EnergyViolation list) =
 
     assertThat
         (hitsWithMessage [ "broad dependency surface"; "sibling modules" ] vs
-         |> List.length > 0)
+         |> List.length
+            >
+            0)
         isTrue
 
 let private assertFSharpImportScopeSprawl (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import scope sprawl"; "Energy.Languages"; "name-resolution risk" ] vs
-         |> List.length > 0)
+         |> List.length
+            >
+            0)
         isTrue
 
 let private assertKotlinMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import member fan-out"; "example.services"; "local vocabulary" ] vs
-         |> List.length > 0)
+         |> List.length
+            >
+            0)
         isTrue
 
 let private assertMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import member fan-out"; "local vocabulary" ] vs
-         |> List.length > 0)
+         |> List.length
+            >
+            0)
         isTrue
 
 let private assertWildcardImportScopePollution (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import scope pollution"; "wildcard import" ] vs
-         |> List.length > 0)
+         |> List.length
+            >
+            0)
         isTrue
 
 // "stays quiet" scenarios — assert no matching coherence violation is present.
@@ -101,9 +111,11 @@ let private assertUnrelatedClassesFlagged (_src: string) (vs: EnergyViolation li
 // PascalCase for F#/Kotlin), so one shared stem can no longer resolve across all five.
 // Built into an async test per language below.
 type Scenario =
-    { Name: string
-      Files: Map<string, string>
-      Assert: string -> EnergyViolation list -> unit }
+    {
+        Name: string
+        Files: Map<string, string>
+        Assert: string -> EnergyViolation list -> unit
+    }
 
 let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: string) (scenario: Scenario) =
     let fixture = language.Id + "/coherence/" + Map.find ext scenario.Files + "." + ext
@@ -136,10 +148,12 @@ let private docCommentBoundaryTest (languageLabel: string) (language: LanguageAd
                     assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
 
                     let input =
-                        { Source = sourceCode
-                          Tree = tree
-                          Language = language
-                          FileName = fixture }
+                        {
+                            Source = sourceCode
+                            Tree = tree
+                            Language = language
+                            FileName = fixture
+                        }
 
                     let defaultViolations = analyzeFixture sourceCode tree language fixture
                     assertValidPositions defaultViolations sourceCode
@@ -149,7 +163,9 @@ let private docCommentBoundaryTest (languageLabel: string) (language: LanguageAd
                         { defaultThresholds with
                             Coherence =
                                 { defaultThresholds.Coherence with
-                                    MaxLargeFunctions = 4 } }
+                                    MaxLargeFunctions = 4
+                                }
+                        }
 
                     let boundaryViolations = analyzeWith boundaryThresholds input |> _.Violations
                     assertValidPositions boundaryViolations sourceCode
@@ -165,72 +181,96 @@ let private docCommentBoundaryTest (languageLabel: string) (language: LanguageAd
 
 /// One cross-language bound-callable fixture and the responsibilities its grammar can model.
 type private BoundCallableCase =
-    { Label: string
-      Language: LanguageAdapter
-      Fixture: string
-      FreeFunctions: int option
-      ClassMethods: int option
-      LargeCallables: int }
+    {
+        Label: string
+        Language: LanguageAdapter
+        Fixture: string
+        FreeFunctions: int option
+        ClassMethods: int option
+        LargeCallables: int
+    }
 
 /// Fixtures that combine direct bindings with function-local variables and inline callbacks.
 let private boundCallableCases =
-    [ { Label = "Python"
-        Language = Python.pythonLanguageAdapter
-        Fixture = "python/coherence/bound_callables.py"
-        FreeFunctions = Some 3
-        ClassMethods = Some 3
-        LargeCallables = 6 }
-      { Label = "TypeScript"
-        Language = TypeScript.typeScriptLanguageAdapter
-        Fixture = "typescript/coherence/boundCallables.ts"
-        FreeFunctions = Some 3
-        ClassMethods = Some 3
-        LargeCallables = 6 }
-      { Label = "F#"
-        Language = FSharp.fSharpLanguageAdapter
-        Fixture = "fsharp/coherence/BoundCallables.fs"
-        FreeFunctions = Some 3
-        ClassMethods = None
-        LargeCallables = 3 }
-      { Label = "Kotlin"
-        Language = Kotlin.kotlinLanguageAdapter
-        Fixture = "kotlin/coherence/BoundCallables.kt"
-        FreeFunctions = Some 3
-        ClassMethods = Some 3
-        LargeCallables = 6 }
-      { Label = "C++"
-        Language = CPlusPlus.cPlusPlusLanguageAdapter
-        Fixture = "cpp/coherence/bound_callables.cpp"
-        FreeFunctions = Some 3
-        ClassMethods = Some 3
-        LargeCallables = 6 }
-      { Label = "C#"
-        Language = CSharp.cSharpLanguageAdapter
-        Fixture = "csharp/coherence/BoundCallables.cs"
-        FreeFunctions = None
-        ClassMethods = Some 3
-        LargeCallables = 3 } ]
+    [
+        {
+            Label = "Python"
+            Language = Python.pythonLanguageAdapter
+            Fixture = "python/coherence/bound_callables.py"
+            FreeFunctions = Some 3
+            ClassMethods = Some 3
+            LargeCallables = 6
+        }
+        {
+            Label = "TypeScript"
+            Language = TypeScript.typeScriptLanguageAdapter
+            Fixture = "typescript/coherence/boundCallables.ts"
+            FreeFunctions = Some 3
+            ClassMethods = Some 3
+            LargeCallables = 6
+        }
+        {
+            Label = "F#"
+            Language = FSharp.fSharpLanguageAdapter
+            Fixture = "fsharp/coherence/BoundCallables.fs"
+            FreeFunctions = Some 3
+            ClassMethods = None
+            LargeCallables = 3
+        }
+        {
+            Label = "Kotlin"
+            Language = Kotlin.kotlinLanguageAdapter
+            Fixture = "kotlin/coherence/BoundCallables.kt"
+            FreeFunctions = Some 3
+            ClassMethods = Some 3
+            LargeCallables = 6
+        }
+        {
+            Label = "C++"
+            Language = CPlusPlus.cPlusPlusLanguageAdapter
+            Fixture = "cpp/coherence/bound_callables.cpp"
+            FreeFunctions = Some 3
+            ClassMethods = Some 3
+            LargeCallables = 6
+        }
+        {
+            Label = "C#"
+            Language = CSharp.cSharpLanguageAdapter
+            Fixture = "csharp/coherence/BoundCallables.cs"
+            FreeFunctions = None
+            ClassMethods = Some 3
+            LargeCallables = 3
+        }
+    ]
 
 /// Languages where direct static class-bound callables must retain the namespace exemption.
 let private staticBoundCallableCases =
-    [ { Label = "TypeScript"
-        Language = TypeScript.typeScriptLanguageAdapter
-        Fixture = "typescript/coherence/staticBoundCallables.ts"
-        FreeFunctions = None
-        ClassMethods = Some 3
-        LargeCallables = 3 }
-      { Label = "C++"
-        Language = CPlusPlus.cPlusPlusLanguageAdapter
-        Fixture = "cpp/coherence/static_bound_callables.cpp"
-        FreeFunctions = None
-        ClassMethods = Some 3
-        LargeCallables = 3 }
-      { Label = "C#"
-        Language = CSharp.cSharpLanguageAdapter
-        Fixture = "csharp/coherence/StaticBoundCallables.cs"
-        FreeFunctions = None
-        ClassMethods = Some 3
-        LargeCallables = 3 } ]
+    [
+        {
+            Label = "TypeScript"
+            Language = TypeScript.typeScriptLanguageAdapter
+            Fixture = "typescript/coherence/staticBoundCallables.ts"
+            FreeFunctions = None
+            ClassMethods = Some 3
+            LargeCallables = 3
+        }
+        {
+            Label = "C++"
+            Language = CPlusPlus.cPlusPlusLanguageAdapter
+            Fixture = "cpp/coherence/static_bound_callables.cpp"
+            FreeFunctions = None
+            ClassMethods = Some 3
+            LargeCallables = 3
+        }
+        {
+            Label = "C#"
+            Language = CSharp.cSharpLanguageAdapter
+            Fixture = "csharp/coherence/StaticBoundCallables.cs"
+            FreeFunctions = None
+            ClassMethods = Some 3
+            LargeCallables = 3
+        }
+    ]
 
 /// Analyze a bound-callable fixture with one focused coherence threshold override.
 let private analyzeBoundCallables (case: BoundCallableCase) (coherence: Energy.Core.Config.CoherenceThresholds) =
@@ -239,14 +279,17 @@ let private analyzeBoundCallables (case: BoundCallableCase) (coherence: Energy.C
         assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
 
         let input =
-            { Source = sourceCode
-              Tree = tree
-              Language = case.Language
-              FileName = case.Fixture }
+            {
+                Source = sourceCode
+                Tree = tree
+                Language = case.Language
+                FileName = case.Fixture
+            }
 
         let thresholds =
             { defaultThresholds with
-                Coherence = coherence }
+                Coherence = coherence
+            }
 
         let violations = analyzeWith thresholds input |> _.Violations
         assertValidPositions violations sourceCode
@@ -265,7 +308,8 @@ let private moduleBoundCallableTest (case: BoundCallableCase) =
                     let coherence =
                         { defaultThresholds.Coherence with
                             UtilsFileFunctionCount = 0
-                            GenericFunctionCount = max 0 (expectedCount - 1) }
+                            GenericFunctionCount = max 0 (expectedCount - 1)
+                        }
 
                     let! violations = analyzeBoundCallables case coherence
                     let expectedMessage = sprintf "%d functions in one file" expectedCount
@@ -289,7 +333,8 @@ let private classBoundCallableTest (case: BoundCallableCase) =
                 task {
                     let coherence =
                         { defaultThresholds.Coherence with
-                            MethodCountMedium = max 0 (expectedCount - 1) }
+                            MethodCountMedium = max 0 (expectedCount - 1)
+                        }
 
                     let! violations = analyzeBoundCallables case coherence
                     let expectedMessage = sprintf "this class has %d methods spanning" expectedCount
@@ -313,7 +358,8 @@ let private largeBoundCallableTest (case: BoundCallableCase) =
                         { defaultThresholds.Coherence with
                             LargeFunctionLines = 0
                             MaxLargeFunctions = case.LargeCallables - 1
-                            LargeFunctionSeverityMultiplier = 10.0 }
+                            LargeFunctionSeverityMultiplier = 10.0
+                        }
 
                     let! violations = analyzeBoundCallables case coherence
 
@@ -334,7 +380,8 @@ let private staticBoundCallableTest (case: BoundCallableCase) =
                 task {
                     let coherence =
                         { defaultThresholds.Coherence with
-                            MethodCountMedium = 2 }
+                            MethodCountMedium = 2
+                        }
 
                     let! violations = analyzeBoundCallables case coherence
                     let methodHits = hitsWithMessage [ "methods spanning" ] violations |> List.length
@@ -350,120 +397,172 @@ let tests =
     // the naming-only heuristic before the type-cohesion signal existed (see coherence.ts's decision
     // comments). The relatedClasses/exceptionFamily fixtures guard class-grouping false positives.
     let functionLanguages =
-        [ "Python", Python.pythonLanguageAdapter, "py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp"
+        ]
 
     let classLanguages =
-        [ "Python", Python.pythonLanguageAdapter, "py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp"
+        ]
 
     let block1Scenarios: Scenario list =
-        [ { Name = "too many large functions is flagged"
-            Files =
-              Map.ofList
-                  [ "py", "many_large_functions"
-                    "ts", "manyLargeFunctions"
-                    "fs", "ManyLargeFunctions"
-                    "kt", "ManyLargeFunctions"
-                    "cpp", "many_large_functions" ]
-            Assert = assertManyLargeFunctions }
-          { Name = "import sprawl is flagged"
-            Files =
-              Map.ofList
-                  [ "py", "many_imports"
-                    "ts", "manyImports"
-                    "fs", "ManyImports"
-                    "kt", "ManyImports"
-                    "cpp", "many_imports" ]
-            Assert = assertManyImports }
-          { Name = "many imports from one source stays quiet"
-            Files =
-              Map.ofList
-                  [ "py", "narrow_imports"
-                    "ts", "narrowImports"
-                    "fs", "NarrowImports"
-                    "kt", "NarrowImports"
-                    "cpp", "narrow_imports" ]
-            Assert = assertNarrowImportsQuiet }
-          { Name = "a small module stays quiet"
-            Files = Map.ofList [ "py", "clean"; "ts", "clean"; "fs", "Clean"; "kt", "Clean"; "cpp", "clean" ]
-            Assert = assertCleanQuiet }
-          { Name = "a type-cohesive module with no naming cohesion stays quiet"
-            Files =
-              Map.ofList
-                  [ "py", "type_cohesive"
-                    "ts", "typeCohesive"
-                    "fs", "TypeCohesive"
-                    "kt", "TypeCohesive"
-                    "cpp", "type_cohesive" ]
-            Assert = assertTypeCohesiveQuiet }
-          { Name = "a module with distinct names AND unrelated types gets the stronger entropy-dump message"
-            Files =
-              Map.ofList
-                  [ "py", "entropy_dump"
-                    "ts", "entropyDump"
-                    "fs", "EntropyDump"
-                    "kt", "EntropyDump"
-                    "cpp", "entropy_dump" ]
-            Assert = assertEntropyDump } ]
+        [
+            {
+                Name = "too many large functions is flagged"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "many_large_functions"
+                            "ts", "manyLargeFunctions"
+                            "fs", "ManyLargeFunctions"
+                            "kt", "ManyLargeFunctions"
+                            "cpp", "many_large_functions"
+                        ]
+                Assert = assertManyLargeFunctions
+            }
+            {
+                Name = "import sprawl is flagged"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "many_imports"
+                            "ts", "manyImports"
+                            "fs", "ManyImports"
+                            "kt", "ManyImports"
+                            "cpp", "many_imports"
+                        ]
+                Assert = assertManyImports
+            }
+            {
+                Name = "many imports from one source stays quiet"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "narrow_imports"
+                            "ts", "narrowImports"
+                            "fs", "NarrowImports"
+                            "kt", "NarrowImports"
+                            "cpp", "narrow_imports"
+                        ]
+                Assert = assertNarrowImportsQuiet
+            }
+            {
+                Name = "a small module stays quiet"
+                Files = Map.ofList [ "py", "clean"; "ts", "clean"; "fs", "Clean"; "kt", "Clean"; "cpp", "clean" ]
+                Assert = assertCleanQuiet
+            }
+            {
+                Name = "a type-cohesive module with no naming cohesion stays quiet"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "type_cohesive"
+                            "ts", "typeCohesive"
+                            "fs", "TypeCohesive"
+                            "kt", "TypeCohesive"
+                            "cpp", "type_cohesive"
+                        ]
+                Assert = assertTypeCohesiveQuiet
+            }
+            {
+                Name = "a module with distinct names AND unrelated types gets the stronger entropy-dump message"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "entropy_dump"
+                            "ts", "entropyDump"
+                            "fs", "EntropyDump"
+                            "kt", "EntropyDump"
+                            "cpp", "entropy_dump"
+                        ]
+                Assert = assertEntropyDump
+            }
+        ]
 
     let block2Scenarios: Scenario list =
-        [ { Name = "two classes that construct/return each other stay quiet"
-            Files =
-              Map.ofList
-                  [ "py", "related_classes"
-                    "ts", "relatedClasses"
-                    "fs", "RelatedClasses"
-                    "kt", "RelatedClasses"
-                    "cpp", "related_classes" ]
-            Assert = assertRelatedClassesQuiet }
-          { Name = "two classes with no shared inheritance, type reference, or naming pattern are flagged"
-            Files =
-              Map.ofList
-                  [ "py", "unrelated_classes"
-                    "ts", "unrelatedClasses"
-                    "fs", "UnrelatedClasses"
-                    "kt", "UnrelatedClasses"
-                    "cpp", "unrelated_classes" ]
-            Assert = assertUnrelatedClassesFlagged }
-          { Name = "classes sharing a common base with no naming pattern stay quiet"
-            Files =
-              Map.ofList
-                  [ "py", "exception_family"
-                    "ts", "exceptionFamily"
-                    "fs", "ExceptionFamily"
-                    "kt", "ExceptionFamily"
-                    "cpp", "exception_family" ]
-            Assert = assertExceptionFamilyQuiet } ]
+        [
+            {
+                Name = "two classes that construct/return each other stay quiet"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "related_classes"
+                            "ts", "relatedClasses"
+                            "fs", "RelatedClasses"
+                            "kt", "RelatedClasses"
+                            "cpp", "related_classes"
+                        ]
+                Assert = assertRelatedClassesQuiet
+            }
+            {
+                Name = "two classes with no shared inheritance, type reference, or naming pattern are flagged"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "unrelated_classes"
+                            "ts", "unrelatedClasses"
+                            "fs", "UnrelatedClasses"
+                            "kt", "UnrelatedClasses"
+                            "cpp", "unrelated_classes"
+                        ]
+                Assert = assertUnrelatedClassesFlagged
+            }
+            {
+                Name = "classes sharing a common base with no naming pattern stay quiet"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "exception_family"
+                            "ts", "exceptionFamily"
+                            "fs", "ExceptionFamily"
+                            "kt", "ExceptionFamily"
+                            "cpp", "exception_family"
+                        ]
+                Assert = assertExceptionFamilyQuiet
+            }
+        ]
 
     // decision: god-class scenarios live over the class-supporting languages only — F# has no class
     // construct, so a per-class metric has nothing to measure there (mirrors block2). The quiet fixture
     // is a regression guard for the "stateless module-like value type used for method chaining" case:
     // many methods over one domain type must stay unflagged.
     let godClassScenarios: Scenario list =
-        [ { Name = "a class with many unrelated responsibilities is flagged as a god class"
-            Files =
-              Map.ofList
-                  [ "py", "god_class"
-                    "ts", "godClass"
-                    "fs", "GodClass"
-                    "kt", "GodClass"
-                    "cpp", "god_class" ]
-            Assert = assertGodClassFlagged }
-          { Name = "a cohesive value type with many combinators stays quiet"
-            Files =
-              Map.ofList
-                  [ "py", "cohesive_value_type"
-                    "ts", "cohesiveValueType"
-                    "fs", "CohesiveValueType"
-                    "kt", "CohesiveValueType"
-                    "cpp", "cohesive_value_type" ]
-            Assert = assertCohesiveValueQuiet } ]
+        [
+            {
+                Name = "a class with many unrelated responsibilities is flagged as a god class"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "god_class"
+                            "ts", "godClass"
+                            "fs", "GodClass"
+                            "kt", "GodClass"
+                            "cpp", "god_class"
+                        ]
+                Assert = assertGodClassFlagged
+            }
+            {
+                Name = "a cohesive value type with many combinators stays quiet"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "cohesive_value_type"
+                            "ts", "cohesiveValueType"
+                            "fs", "CohesiveValueType"
+                            "kt", "CohesiveValueType"
+                            "cpp", "cohesive_value_type"
+                        ]
+                Assert = assertCohesiveValueQuiet
+            }
+        ]
 
     // Build one test per (language, scenario) pair. `block1Scenarios`/`block2Scenarios` are Scenario
     // lists; the language triplets carry the extension as a one-element list so this stays uniform.
@@ -476,19 +575,23 @@ let tests =
     let block3 = buildBlock classLanguages godClassScenarios
 
     let docCommentBoundaryTests =
-        [ "Python", Python.pythonLanguageAdapter, "python/coherence/doc_comment_boundary.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/coherence/docCommentBoundary.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/coherence/DocCommentBoundary.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/coherence/DocCommentBoundary.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/coherence/doc_comment_boundary.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/coherence/doc_comment_boundary.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/coherence/docCommentBoundary.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/coherence/DocCommentBoundary.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/coherence/DocCommentBoundary.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/coherence/doc_comment_boundary.cpp"
+        ]
         |> List.map (fun (label, language, fixture) -> docCommentBoundaryTest label language fixture)
 
     let boundCallableTests =
         boundCallableCases
         |> List.collect (fun case ->
-            [ moduleBoundCallableTest case
-              classBoundCallableTest case
-              largeBoundCallableTest case ])
+            [
+                moduleBoundCallableTest case
+                classBoundCallableTest case
+                largeBoundCallableTest case
+            ])
 
     let staticBoundCallableTests =
         staticBoundCallableCases
@@ -499,15 +602,19 @@ let tests =
             "F#"
             FSharp.fSharpLanguageAdapter
             "fs"
-            { Name = "sibling opens warn about name resolution"
-              Files =
-                Map.ofList
-                    [ "py", "sibling_imports"
-                      "ts", "siblingImports"
-                      "fs", "SiblingImports"
-                      "kt", "SiblingImports"
-                      "cpp", "sibling_imports" ]
-              Assert = assertFSharpImportScopeSprawl }
+            {
+                Name = "sibling opens warn about name resolution"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "sibling_imports"
+                            "ts", "siblingImports"
+                            "fs", "SiblingImports"
+                            "kt", "SiblingImports"
+                            "cpp", "sibling_imports"
+                        ]
+                Assert = assertFSharpImportScopeSprawl
+            }
 
     // decision: proves the configured sibling-open threshold actually flows into the detector, not
     // just through Config"s merge — raise it above the fixture"s 7 siblings and the scope-sprawl
@@ -523,17 +630,21 @@ let tests =
                             parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/SiblingImports.fs"
 
                         let input =
-                            { Source = sourceCode
-                              Tree = tree
-                              Language = FSharp.fSharpLanguageAdapter
-                              FileName = "SiblingImports.fs" }
+                            {
+                                Source = sourceCode
+                                Tree = tree
+                                Language = FSharp.fSharpLanguageAdapter
+                                FileName = "SiblingImports.fs"
+                            }
 
                         let withThresholds (siblingOpen: int) (importBreadth: int) =
                             { defaultThresholds with
                                 Coherence =
                                     { defaultThresholds.Coherence with
                                         SiblingOpenThreshold = siblingOpen
-                                        ImportBreadthThreshold = importBreadth } }
+                                        ImportBreadthThreshold = importBreadth
+                                    }
+                            }
 
                         let fired = analyzeWith (withThresholds 5 10) input |> _.Violations
                         let relaxed = analyzeWith (withThresholds 8 10) input |> _.Violations
@@ -560,10 +671,12 @@ let tests =
                             parseFixture FSharp.fSharpLanguageAdapter "fsharp/coherence/EntropyDump.fs"
 
                         let input =
-                            { Source = sourceCode
-                              Tree = tree
-                              Language = FSharp.fSharpLanguageAdapter
-                              FileName = "EntropyDump.fs" }
+                            {
+                                Source = sourceCode
+                                Tree = tree
+                                Language = FSharp.fSharpLanguageAdapter
+                                FileName = "EntropyDump.fs"
+                            }
 
                         // decision: raise the generic function-count bar above the fixture's 13 functions and
                         // the sprawl finding disappears; leave it at the default of 12 and it fires — proving
@@ -572,7 +685,9 @@ let tests =
                             { defaultThresholds with
                                 Coherence =
                                     { defaultThresholds.Coherence with
-                                        GenericFunctionCount = genericFunctionCount } }
+                                        GenericFunctionCount = genericFunctionCount
+                                    }
+                            }
 
                         let fired = analyzeWith (withGeneric 12) input |> _.Violations
                         let relaxed = analyzeWith (withGeneric 14) input |> _.Violations
@@ -593,10 +708,12 @@ let tests =
                             parseFixture Python.pythonLanguageAdapter "python/coherence/god_class.py"
 
                         let input =
-                            { Source = sourceCode
-                              Tree = tree
-                              Language = Python.pythonLanguageAdapter
-                              FileName = "god_class.py" }
+                            {
+                                Source = sourceCode
+                                Tree = tree
+                                Language = Python.pythonLanguageAdapter
+                                FileName = "god_class.py"
+                            }
 
                         // decision: the fixture has 17 methods, so it fires at the default medium bar of 15 but clears
                         // that bar at 18. Assert on the god-class message specifically — this file also trips an
@@ -606,7 +723,9 @@ let tests =
                             { defaultThresholds with
                                 Coherence =
                                     { defaultThresholds.Coherence with
-                                        MethodCountMedium = methodCountMedium } }
+                                        MethodCountMedium = methodCountMedium
+                                    }
+                            }
 
                         let fired = analyzeWith (withMedium 15) input |> _.Violations
                         let relaxed = analyzeWith (withMedium 18) input |> _.Violations
@@ -618,86 +737,108 @@ let tests =
         )
 
     let godClassBoundaryAndStaticMethods =
-        [ "a class at the medium method-count bar stays quiet", "god_class_at_medium"
-          "an all-static class stays quiet", "static_god_class" ]
+        [
+            "a class at the medium method-count bar stays quiet", "god_class_at_medium"
+            "an all-static class stays quiet", "static_god_class"
+        ]
         |> List.map (fun (name, fixture) ->
             buildTest
                 "Python"
                 Python.pythonLanguageAdapter
                 "py"
-                { Name = name
-                  Files = Map.ofList [ "py", fixture ]
-                  Assert = assertGodClassQuiet })
+                {
+                    Name = name
+                    Files = Map.ofList [ "py", fixture ]
+                    Assert = assertGodClassQuiet
+                })
 
     let typeScriptStaticGodClass =
         buildTest
             "TypeScript"
             TypeScript.typeScriptLanguageAdapter
             "ts"
-            { Name = "an all-static class stays quiet"
-              Files = Map.ofList [ "ts", "staticGodClass" ]
-              Assert = assertGodClassQuiet }
+            {
+                Name = "an all-static class stays quiet"
+                Files = Map.ofList [ "ts", "staticGodClass" ]
+                Assert = assertGodClassQuiet
+            }
 
     let kotlinMemberFanOut =
         buildTest
             "Kotlin"
             Kotlin.kotlinLanguageAdapter
             "kt"
-            { Name = "many imported members from one package are flagged"
-              Files =
-                Map.ofList
-                    [ "py", "member_fan_out"
-                      "ts", "memberFanOut"
-                      "fs", "MemberFanOut"
-                      "kt", "MemberFanOut"
-                      "cpp", "member_fan_out" ]
-              Assert = assertKotlinMemberImportFanOut }
+            {
+                Name = "many imported members from one package are flagged"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "member_fan_out"
+                            "ts", "memberFanOut"
+                            "fs", "MemberFanOut"
+                            "kt", "MemberFanOut"
+                            "cpp", "member_fan_out"
+                        ]
+                Assert = assertKotlinMemberImportFanOut
+            }
 
     let memberFanOuts =
-        [ "Python", Python.pythonLanguageAdapter, "py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "ts"
+        ]
         |> List.map (fun (label, language, extension) ->
             buildTest
                 label
                 language
                 extension
-                { Name = "many imported members from one module are flagged"
-                  Files =
-                    Map.ofList
-                        [ "py", "member_fan_out"
-                          "ts", "memberFanOut"
-                          "fs", "MemberFanOut"
-                          "kt", "MemberFanOut"
-                          "cpp", "member_fan_out" ]
-                  Assert = assertMemberImportFanOut })
+                {
+                    Name = "many imported members from one module are flagged"
+                    Files =
+                        Map.ofList
+                            [
+                                "py", "member_fan_out"
+                                "ts", "memberFanOut"
+                                "fs", "MemberFanOut"
+                                "kt", "MemberFanOut"
+                                "cpp", "member_fan_out"
+                            ]
+                    Assert = assertMemberImportFanOut
+                })
 
     let pythonWildcardImport =
         buildTest
             "Python"
             Python.pythonLanguageAdapter
             "py"
-            { Name = "wildcard imports warn about scope pollution"
-              Files =
-                Map.ofList
-                    [ "py", "wildcard_import"
-                      "ts", "wildcardImport"
-                      "fs", "WildcardImport"
-                      "kt", "WildcardImport"
-                      "cpp", "wildcard_import" ]
-              Assert = assertWildcardImportScopePollution }
+            {
+                Name = "wildcard imports warn about scope pollution"
+                Files =
+                    Map.ofList
+                        [
+                            "py", "wildcard_import"
+                            "ts", "wildcardImport"
+                            "fs", "WildcardImport"
+                            "kt", "WildcardImport"
+                            "cpp", "wildcard_import"
+                        ]
+                Assert = assertWildcardImportScopePollution
+            }
 
     testList (
         "Integration: file coherence (real code examples)",
         block1
         @ block2
         @ block3
-        @ [ fSharpScopeSprawl
+        @ [
+            fSharpScopeSprawl
             siblingThresholdIsConfigurable
             functionCountThresholdIsConfigurable
             methodCountThresholdIsConfigurable
             kotlinMemberFanOut
             pythonWildcardImport
-            typeScriptStaticGodClass ]
+            typeScriptStaticGodClass
+        ]
         @ godClassBoundaryAndStaticMethods
         @ memberFanOuts
         @ docCommentBoundaryTests

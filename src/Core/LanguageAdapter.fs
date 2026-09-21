@@ -45,11 +45,13 @@ type RecoveryBody = { Anchor: Node; Items: Node list }
 
 /// One try boundary expressed in language-neutral logical work items.
 type ErrorHandlingRegion =
-    { Anchor: Node
-      ProtectedBody: Node list
-      ProtectedItems: Node list
-      RecoveryItems: Node list
-      RecoveryBodies: RecoveryBody list }
+    {
+        Anchor: Node
+        ProtectedBody: Node list
+        ProtectedItems: Node list
+        RecoveryItems: Node list
+        RecoveryBodies: RecoveryBody list
+    }
 
 /// One direct equality comparison (== / === / F#'s single =) a node represents. A list rather than
 /// a single pair because Python's chained `a == b == c` parses as one comparison_operator holding
@@ -80,9 +82,11 @@ type ValidationSuccess =
 
 /// A syntactically established rejecting guard and its success result.
 type GuardedValidation =
-    { Anchor: Node
-      Condition: Node
-      Success: ValidationSuccess }
+    {
+        Anchor: Node
+        Condition: Node
+        Success: ValidationSuccess
+    }
 
 /// One logical function inside a definition node. Most grammars have exactly one (the definition
 /// node itself). F#'s `and`-binding (a mutually recursive `let rec f ... and g ...`) parses as a
@@ -118,12 +122,14 @@ type CallableRole =
 /// invariant: adding anonymous callables does not broaden named-function-only detectors; consumers
 /// opt into GetCallableViews while IsFunctionDefinition/GetFunctionHeads retain their prior scope.
 type CallableView =
-    { Anchor: Node
-      Body: Node
-      ReturnTypeRoot: Node
-      Role: CallableRole
-      BindingName: string option
-      Parameters: Node list }
+    {
+        Anchor: Node
+        Body: Node
+        ReturnTypeRoot: Node
+        Role: CallableRole
+        BindingName: string option
+        Parameters: Node list
+    }
 
 type ImportKind =
     | Module
@@ -133,13 +139,17 @@ type ImportKind =
     | Header
 
 type ImportBinding =
-    { ImportedName: string
-      LocalName: string }
+    {
+        ImportedName: string
+        LocalName: string
+    }
 
 type ImportInfo =
-    { Kind: ImportKind
-      Source: string
-      Bindings: ImportBinding list }
+    {
+        Kind: ImportKind
+        Source: string
+        Bindings: ImportBinding list
+    }
 
 /// Node-type fields per grammar, using options where a grammar has no equivalent node.
 ///
@@ -147,177 +157,181 @@ type ImportInfo =
 /// missing block node, TypeScript's ternary not reused for if/else) — one field per current
 /// LanguageNodeTypes member.
 type NodeTypes =
-    { Block: NodeType option
-      Parameters: NodeType
-      IfStatement: NodeType option
-      ElseClause: NodeType option
-      ForStatement: NodeType option
-      WhileStatement: NodeType option
-      ConditionalExpression: NodeType option
-      Lambda: NodeType option
-      ImportStatement: NodeType option
-      ImportFromStatement: NodeType option
-      ExpressionStatement: NodeType option
-      Assignment: NodeType option
-      Module: NodeType option
-      // Wraps a top-level assignment when explicitly exported (e.g. TS `export const x = ...`),
-      // between the assignment and the module root. Null for grammars with no such wrapper
-      // (Python, F#).
-      ExportStatement: NodeType option
-      Comment: NodeType option
-      IntegerLiteral: NodeType option
-      FloatLiteral: NodeType option
-      StringLiteral: NodeType option }
+    {
+        Block: NodeType option
+        Parameters: NodeType
+        IfStatement: NodeType option
+        ElseClause: NodeType option
+        ForStatement: NodeType option
+        WhileStatement: NodeType option
+        ConditionalExpression: NodeType option
+        Lambda: NodeType option
+        ImportStatement: NodeType option
+        ImportFromStatement: NodeType option
+        ExpressionStatement: NodeType option
+        Assignment: NodeType option
+        Module: NodeType option
+        // Wraps a top-level assignment when explicitly exported (e.g. TS `export const x = ...`),
+        // between the assignment and the module root. Null for grammars with no such wrapper
+        // (Python, F#).
+        ExportStatement: NodeType option
+        Comment: NodeType option
+        IntegerLiteral: NodeType option
+        FloatLiteral: NodeType option
+        StringLiteral: NodeType option
+    }
 
 /// Per-grammar knowledge as a record of pure predicate hooks over tree-sitter nodes.
 ///
 /// decision: a function that decides something about a node takes the raw `Node` and returns a pure
 /// F# value; null-returning hooks become `... option`. The record below is the full current surface.
 type LanguageAdapter =
-    { Id: string
-      // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
-      GrammarPath: string
-      NodeTypes: NodeTypes
-      // Whether this node represents "a function" for complexity/param-count/coherence purposes.
-      //
-      // decision: a predicate instead of a plain node-type set — some grammars can't tell "function"
-      // apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain
-      // `let x = 5` and monadic `let!` bindings, distinguished only by their children).
-      IsFunctionDefinition: Node -> bool
-      // Given a node for which IsFunctionDefinition is true, decompose it into the logical functions
-      // it contains. Most grammars return a single view wrapping the node itself (one function per
-      // definition node). F# splits an `and`-binding into one view per `function_declaration_left`
-      // head, so each head's parameters and body are analyzed independently rather than merged into
-      // the first head's.
-      //
-      // decision: a hook rather than a detector-side special case — the merged-binding shape is a
-      // grammar fact only the adapter knows, and every consumer (parameter-count, primitive-obsession
-      // swap-risk + stringly control flow, type-cohesion) shares the same per-head views.
-      GetFunctionHeads: Node -> FunctionHead list
-      // Return the independently analyzable callable views represented by this syntax node. Most
-      // nodes return none; F# mutually recursive definitions return one view per logical head.
-      GetCallableViews: Node -> CallableView list
-      // Node types that count as "one parameter" among a parameters node's children.
-      ParameterChildTypes: NodeType list
-      // Node types that count as a decision point for cyclomatic complexity, EXCLUDING boolean and/or
-      // (matched via GetBooleanOperator, since several grammars reuse one generic binary-expression
-      // node type for every infix operator instead of giving and/or their own node type).
-      DecisionNodeTypes: NodeType list
-      // Number of mutually exclusive control-flow outcomes for a multi-way decision node, including
-      // an implicit unmatched path where it has no fallback arm. Returns None for ordinary binary
-      // decisions, which therefore have two outcomes. This makes match/switch/when use their real
-      // branch count for McCabe complexity instead of contributing one unconditionally.
-      CyclomaticBranchCount: Node -> int option
-      // Grammar-specific branches and bodies, independent of optional block wrappers.
-      GetCognitiveStructure: Node -> CognitiveStructure option
-      // Control-flow node types that count toward nesting-depth violations.
-      NestingControlTypes: NodeType list
-      GetBooleanOperator: Node -> BooleanOperator option
-      // Whether this node is specifically a try-statement's `else` clause, as opposed to if/for/while's
-      // `else` (several grammars reuse one else-clause node type for all of them). Only a try's else is
-      // a cyclomatic decision point; always false for grammars with no try-else construct.
-      IsTryElseClause: Node -> bool
-      // Node types that count as "a reference to a plain variable" for the primitive-obsession
-      // detector's stringly-typed-control-flow check (Python: identifier/attribute, TS:
-      // identifier/member_expression, F#: long_identifier_or_op — whose .text is already the bare name).
-      VariableReferenceNodeTypes: NodeType list
-      // Given a candidate parameter node (one of ParameterChildTypes), returns its name and declared
-      // type text if it carries an explicit annotation, else None (untyped/inferred -> None). Drives
-      // the primitive-obsession detector's parameter-swap-risk check.
-      ExtractTypedParameter: Node -> TypedParameter option
-      // Given a function-definition node, returns its declared return-type text if annotated, else None
-      // (inferred/untyped — same null-and-skip convention as ExtractTypedParameter). Drives the
-      // file-coherence detector's type-cohesion signal alongside ExtractTypedParameter.
-      ExtractReturnType: Node -> string option
-      GenericBrackets: GenericBrackets
-      // Unqualified primitive type names this language's swap-risk check treats as
-      // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
-      // boolean, F# string/int/float/bool).
-      PrimitiveTypeNames: Set<string>
-      // Extracts a try boundary's protected and recovery/cleanup logical items. None means this node is
-      // not a try boundary. Each grammar owns its body wrappers and handler shapes here.
-      GetErrorHandlingRegion: Node -> ErrorHandlingRegion option
-      // Returns the statement-like work items in a function. Implementations unwrap only structural body
-      // containers; expressions and control structures stay one item, and nested functions stay separate.
-      GetFunctionLogicalItems: Node -> Node list
-      // Node types that mark "every parameter after this one is keyword-only" (Python's bare `*`
-      // keyword_separator and `*args` list_splat_pattern — both make positional calls to later params
-      // impossible). Drives the primitive-obsession detector's parameter-swap-risk suppression. Empty
-      // for languages with no such enforcement mechanism.
-      KeywordOnlyBoundaryTypes: NodeType list
-      // What to suggest in place of a naked primitive to fix a swap-risk violation, phrased in this
-      // language's own idiom (Python: NewType/dataclass, TS: branded/nominal type, F#: single-case union).
-      DistinctTypeAdvice: string
-      GetEqualityComparisons: Node -> EqualityComparison list
-      // Given a node, if it is a match/switch that dispatches on a simple variable and carries one
-      // or more string-literal case patterns, returns the scrutinee variable node and the
-      // string-literal case-pattern nodes. None otherwise (not a match on a simple variable, or no
-      // string-literal cases). Drives the primitive-obsession detector's stringly-typed control-flow
-      // check for the idiomatic match/switch dispatch form (F#'s `match x with | "a" -> ... | "b" -> ...
-      //`). Always None for languages whose match/switch is already captured by GetEqualityComparisons
-      // or that have no string-dispatch construct.
-      GetMatchStringCases: Node -> (Node * Node list) option
-      // Given a node, returns every 'variable in (literal, ...)' membership check it directly represents
-      // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
-      // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.
-      GetMembershipComparisons: Node -> MembershipComparison list
-      // Whether this literal can be used as a case/pattern value by the language's match-like
-      // construct. This is narrower than the detector-wide literal types: C++ equality checks can
-      // compare strings and floats even though neither is valid in a switch case.
-      IsMatchCaseLiteral: Node -> bool
-      // Given an if-statement/if-expression node, returns the elif-like nodes chained directly onto it
-      // (Python's elif_clause, F#'s elif_expression, both flat siblings of the top if-node) — empty for
-      // grammars with no flat elif node (TypeScript, where `else if` parses as an if_statement nested in
-      // else_clause, and the match-opportunity detector walks that nesting itself).
-      GetElseIfBranches: Node -> Node list
-      // Node types where a literal sits in a collection index/key position, e.g. `d["key"]`/`arr[0]`
-      // (subscript/subscript_expression). Drives the magic-string detector's "dict/object key lookup"
-      // decision point and the magic-number detector's index exemption. Empty for grammars with no direct
-      // subscript node (F#, which indexes via `.[i]`).
-      SubscriptNodeTypes: NodeType list
-      // Whether this string literal node itself carries interpolation (an f-string's `interpolation`
-      // child in Python) or is otherwise involved in %-style / .format() formatting — either is evidence
-      // the string isn't a bare magic value. Always false for grammars where an interpolated string never
-      // shares StringLiteral's node type (TS template literals parse as `template_string`).
-      IsFormattedOrInterpolatedString: Node -> bool
-      // Whether this node is the default-value operand of an optional parameter (Python's
-      // default_parameter/typed_default_parameter, TS's optional_parameter) — exempts it from
-      // magic-number flagging.
-      IsDefaultParameterValue: Node -> bool
-      // Whether this node is a boolean literal (Python/TS true/false, F#'s const node wrapping a bool
-      // child). Drives the opaque-boolean-literal detector; deliberately narrower than the rule's own
-      // stated scope (which also floats flag-like bare 0/1 as a future option).
-      IsBooleanLiteral: Node -> bool
-      // Given a node for which IsBooleanLiteral is true, whether it sits as a direct, unlabeled positional
-      // argument in a call — i.e. not a keyword argument (Python `retries=True`), not an object-literal
-      // field (TS `{ retries: true }`), not F#'s named-argument syntax (`retries = true`), and not simply
-      // unrelated to any call (`let ok = true`). Each language encodes "labeled" differently, so the check
-      // lives here rather than in the detector.
-      IsPositionalCallArgument: Node -> bool
-      // Whether this ancestor node is explicitly marked by the language as a compile-time constant (Kotlin's
-      // `const val`), as opposed to merely sitting at module scope. Stronger, scope-independent signal —
-      // exempts magic-number flagging even nested inside a class/companion object. Always false for languages
-      // with no such marker (Python, TS, F#), which rely on the module-scope heuristic alone. Called on every
-      // ancestor while walking up from the literal (not just ones matching nodeTypes.Assignment).
-      IsExplicitConstant: Node -> bool
-      // Given an import node, preserves both its dependency source and the names it introduces locally.
-      // Coherence uses these separately: source count measures dependency breadth; bindings/open forms
-      // measure local vocabulary and scope pollution.
-      ImportInfo: Node -> ImportInfo list
-      // Whether a node introduces a class-like scope for the file-coherence detector's
-      // class-relatedness check — methods nested inside one are grouped by their enclosing class
-      // instead of counted as free-standing functions. A predicate is required because C++ uses the
-      // same class_specifier/struct_specifier node types for definitions and forward declarations.
-      IsClassDefinition: Node -> bool
-      // Whether a class callable has no instance receiver. God-class scoring intentionally excludes
-      // all-static classes because they are namespaces of functions, not stateful object responsibilities.
-      IsStaticMethod: Node -> bool
-      // Given a class-definition node, returns its declared name, or None if it can't be determined. Always
-      // called with a node for which IsClassDefinition returns true.
-      GetClassName: Node -> string option
-      // Given a class-definition node, returns the names of every class it directly extends/implements, as
-      // written in source (not resolved against imports). Used two ways by checkClassRelatedness: linked
-      // directly if one's base is the other's name; linked as siblings if they share a base name in common.
-      GetBaseClassNames: Node -> string list
-      // Parse a narrow validator body into facts shared by the domain-refinement detector.
-      GetGuardedValidation: FunctionHead -> GuardedValidation option }
+    {
+        Id: string
+        // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
+        GrammarPath: string
+        NodeTypes: NodeTypes
+        // Whether this node represents "a function" for complexity/param-count/coherence purposes.
+        //
+        // decision: a predicate instead of a plain node-type set — some grammars can't tell "function"
+        // apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain
+        // `let x = 5` and monadic `let!` bindings, distinguished only by their children).
+        IsFunctionDefinition: Node -> bool
+        // Given a node for which IsFunctionDefinition is true, decompose it into the logical functions
+        // it contains. Most grammars return a single view wrapping the node itself (one function per
+        // definition node). F# splits an `and`-binding into one view per `function_declaration_left`
+        // head, so each head's parameters and body are analyzed independently rather than merged into
+        // the first head's.
+        //
+        // decision: a hook rather than a detector-side special case — the merged-binding shape is a
+        // grammar fact only the adapter knows, and every consumer (parameter-count, primitive-obsession
+        // swap-risk + stringly control flow, type-cohesion) shares the same per-head views.
+        GetFunctionHeads: Node -> FunctionHead list
+        // Return the independently analyzable callable views represented by this syntax node. Most
+        // nodes return none; F# mutually recursive definitions return one view per logical head.
+        GetCallableViews: Node -> CallableView list
+        // Node types that count as "one parameter" among a parameters node's children.
+        ParameterChildTypes: NodeType list
+        // Node types that count as a decision point for cyclomatic complexity, EXCLUDING boolean and/or
+        // (matched via GetBooleanOperator, since several grammars reuse one generic binary-expression
+        // node type for every infix operator instead of giving and/or their own node type).
+        DecisionNodeTypes: NodeType list
+        // Number of mutually exclusive control-flow outcomes for a multi-way decision node, including
+        // an implicit unmatched path where it has no fallback arm. Returns None for ordinary binary
+        // decisions, which therefore have two outcomes. This makes match/switch/when use their real
+        // branch count for McCabe complexity instead of contributing one unconditionally.
+        CyclomaticBranchCount: Node -> int option
+        // Grammar-specific branches and bodies, independent of optional block wrappers.
+        GetCognitiveStructure: Node -> CognitiveStructure option
+        // Control-flow node types that count toward nesting-depth violations.
+        NestingControlTypes: NodeType list
+        GetBooleanOperator: Node -> BooleanOperator option
+        // Whether this node is specifically a try-statement's `else` clause, as opposed to if/for/while's
+        // `else` (several grammars reuse one else-clause node type for all of them). Only a try's else is
+        // a cyclomatic decision point; always false for grammars with no try-else construct.
+        IsTryElseClause: Node -> bool
+        // Node types that count as "a reference to a plain variable" for the primitive-obsession
+        // detector's stringly-typed-control-flow check (Python: identifier/attribute, TS:
+        // identifier/member_expression, F#: long_identifier_or_op — whose .text is already the bare name).
+        VariableReferenceNodeTypes: NodeType list
+        // Given a candidate parameter node (one of ParameterChildTypes), returns its name and declared
+        // type text if it carries an explicit annotation, else None (untyped/inferred -> None). Drives
+        // the primitive-obsession detector's parameter-swap-risk check.
+        ExtractTypedParameter: Node -> TypedParameter option
+        // Given a function-definition node, returns its declared return-type text if annotated, else None
+        // (inferred/untyped — same null-and-skip convention as ExtractTypedParameter). Drives the
+        // file-coherence detector's type-cohesion signal alongside ExtractTypedParameter.
+        ExtractReturnType: Node -> string option
+        GenericBrackets: GenericBrackets
+        // Unqualified primitive type names this language's swap-risk check treats as
+        // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
+        // boolean, F# string/int/float/bool).
+        PrimitiveTypeNames: Set<string>
+        // Extracts a try boundary's protected and recovery/cleanup logical items. None means this node is
+        // not a try boundary. Each grammar owns its body wrappers and handler shapes here.
+        GetErrorHandlingRegion: Node -> ErrorHandlingRegion option
+        // Returns the statement-like work items in a function. Implementations unwrap only structural body
+        // containers; expressions and control structures stay one item, and nested functions stay separate.
+        GetFunctionLogicalItems: Node -> Node list
+        // Node types that mark "every parameter after this one is keyword-only" (Python's bare `*`
+        // keyword_separator and `*args` list_splat_pattern — both make positional calls to later params
+        // impossible). Drives the primitive-obsession detector's parameter-swap-risk suppression. Empty
+        // for languages with no such enforcement mechanism.
+        KeywordOnlyBoundaryTypes: NodeType list
+        // What to suggest in place of a naked primitive to fix a swap-risk violation, phrased in this
+        // language's own idiom (Python: NewType/dataclass, TS: branded/nominal type, F#: single-case union).
+        DistinctTypeAdvice: string
+        GetEqualityComparisons: Node -> EqualityComparison list
+        // Given a node, if it is a match/switch that dispatches on a simple variable and carries one
+        // or more string-literal case patterns, returns the scrutinee variable node and the
+        // string-literal case-pattern nodes. None otherwise (not a match on a simple variable, or no
+        // string-literal cases). Drives the primitive-obsession detector's stringly-typed control-flow
+        // check for the idiomatic match/switch dispatch form (F#'s `match x with | "a" -> ... | "b" -> ...
+        //`). Always None for languages whose match/switch is already captured by GetEqualityComparisons
+        // or that have no string-dispatch construct.
+        GetMatchStringCases: Node -> (Node * Node list) option
+        // Given a node, returns every 'variable in (literal, ...)' membership check it directly represents
+        // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
+        // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.
+        GetMembershipComparisons: Node -> MembershipComparison list
+        // Whether this literal can be used as a case/pattern value by the language's match-like
+        // construct. This is narrower than the detector-wide literal types: C++ equality checks can
+        // compare strings and floats even though neither is valid in a switch case.
+        IsMatchCaseLiteral: Node -> bool
+        // Given an if-statement/if-expression node, returns the elif-like nodes chained directly onto it
+        // (Python's elif_clause, F#'s elif_expression, both flat siblings of the top if-node) — empty for
+        // grammars with no flat elif node (TypeScript, where `else if` parses as an if_statement nested in
+        // else_clause, and the match-opportunity detector walks that nesting itself).
+        GetElseIfBranches: Node -> Node list
+        // Node types where a literal sits in a collection index/key position, e.g. `d["key"]`/`arr[0]`
+        // (subscript/subscript_expression). Drives the magic-string detector's "dict/object key lookup"
+        // decision point and the magic-number detector's index exemption. Empty for grammars with no direct
+        // subscript node (F#, which indexes via `.[i]`).
+        SubscriptNodeTypes: NodeType list
+        // Whether this string literal node itself carries interpolation (an f-string's `interpolation`
+        // child in Python) or is otherwise involved in %-style / .format() formatting — either is evidence
+        // the string isn't a bare magic value. Always false for grammars where an interpolated string never
+        // shares StringLiteral's node type (TS template literals parse as `template_string`).
+        IsFormattedOrInterpolatedString: Node -> bool
+        // Whether this node is the default-value operand of an optional parameter (Python's
+        // default_parameter/typed_default_parameter, TS's optional_parameter) — exempts it from
+        // magic-number flagging.
+        IsDefaultParameterValue: Node -> bool
+        // Whether this node is a boolean literal (Python/TS true/false, F#'s const node wrapping a bool
+        // child). Drives the opaque-boolean-literal detector; deliberately narrower than the rule's own
+        // stated scope (which also floats flag-like bare 0/1 as a future option).
+        IsBooleanLiteral: Node -> bool
+        // Given a node for which IsBooleanLiteral is true, whether it sits as a direct, unlabeled positional
+        // argument in a call — i.e. not a keyword argument (Python `retries=True`), not an object-literal
+        // field (TS `{ retries: true }`), not F#'s named-argument syntax (`retries = true`), and not simply
+        // unrelated to any call (`let ok = true`). Each language encodes "labeled" differently, so the check
+        // lives here rather than in the detector.
+        IsPositionalCallArgument: Node -> bool
+        // Whether this ancestor node is explicitly marked by the language as a compile-time constant (Kotlin's
+        // `const val`), as opposed to merely sitting at module scope. Stronger, scope-independent signal —
+        // exempts magic-number flagging even nested inside a class/companion object. Always false for languages
+        // with no such marker (Python, TS, F#), which rely on the module-scope heuristic alone. Called on every
+        // ancestor while walking up from the literal (not just ones matching nodeTypes.Assignment).
+        IsExplicitConstant: Node -> bool
+        // Given an import node, preserves both its dependency source and the names it introduces locally.
+        // Coherence uses these separately: source count measures dependency breadth; bindings/open forms
+        // measure local vocabulary and scope pollution.
+        ImportInfo: Node -> ImportInfo list
+        // Whether a node introduces a class-like scope for the file-coherence detector's
+        // class-relatedness check — methods nested inside one are grouped by their enclosing class
+        // instead of counted as free-standing functions. A predicate is required because C++ uses the
+        // same class_specifier/struct_specifier node types for definitions and forward declarations.
+        IsClassDefinition: Node -> bool
+        // Whether a class callable has no instance receiver. God-class scoring intentionally excludes
+        // all-static classes because they are namespaces of functions, not stateful object responsibilities.
+        IsStaticMethod: Node -> bool
+        // Given a class-definition node, returns its declared name, or None if it can't be determined. Always
+        // called with a node for which IsClassDefinition returns true.
+        GetClassName: Node -> string option
+        // Given a class-definition node, returns the names of every class it directly extends/implements, as
+        // written in source (not resolved against imports). Used two ways by checkClassRelatedness: linked
+        // directly if one's base is the other's name; linked as siblings if they share a base name in common.
+        GetBaseClassNames: Node -> string list
+        // Parse a narrow validator body into facts shared by the domain-refinement detector.
+        GetGuardedValidation: FunctionHead -> GuardedValidation option
+    }

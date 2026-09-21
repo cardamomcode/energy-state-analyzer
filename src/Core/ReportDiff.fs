@@ -9,11 +9,13 @@ type DiffStatus =
     | Unchanged
 
 type DiffEntry =
-    { FilePath: string
-      BaseScore: int option
-      HeadScore: int
-      Delta: int
-      Status: DiffStatus }
+    {
+        FilePath: string
+        BaseScore: int option
+        HeadScore: int
+        Delta: int
+        Status: DiffStatus
+    }
 
 let diffSummaries (baseSummaries: FileSummary list) (headSummaries: FileSummary list) =
     let scores =
@@ -35,11 +37,13 @@ let diffSummaries (baseSummaries: FileSummary list) (headSummaries: FileSummary 
             | Some _ when delta > 0 -> Worsened
             | Some _ -> Unchanged
 
-        { FilePath = file.FilePath
-          BaseScore = baseScore
-          HeadScore = file.Score
-          Delta = delta
-          Status = status })
+        {
+            FilePath = file.FilePath
+            BaseScore = baseScore
+            HeadScore = file.Score
+            Delta = delta
+            Status = status
+        })
 
 let private icon =
     function
@@ -87,17 +91,21 @@ let renderDiffMarkdown (entries: DiffEntry list) (baseRef: string) =
 
     let suffix = if entries.Length = 1 then "" else "s"
 
-    [ sprintf "# Energy State Diff vs `%s`" baseRef
-      ""
-      "| File | Base | Head | Δ | Status |"
-      "| --- | --- | --- | --- | --- |" ]
+    [
+        sprintf "# Energy State Diff vs `%s`" baseRef
+        ""
+        "| File | Base | Head | Δ | Status |"
+        "| --- | --- | --- | --- | --- |"
+    ]
     @ rows
-    @ [ ""
+    @ [
+        ""
         sprintf
             "_%d file%s changed, %d worsened, %d improved, %d new._"
             entries.Length
             suffix
             worsened
             improved
-            newFiles ]
+            newFiles
+    ]
     |> String.concat "\n"

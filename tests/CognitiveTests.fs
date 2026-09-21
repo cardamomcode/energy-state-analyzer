@@ -15,11 +15,13 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/cognitive_complexity.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cognitiveComplexity.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/CognitiveComplexity.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/CognitiveComplexity.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cognitive_complexity.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/cognitive_complexity.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/cognitiveComplexity.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/CognitiveComplexity.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/CognitiveComplexity.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/cognitive_complexity.cpp"
+        ]
 
     testList (
         "Integration: cognitive complexity (real code examples)",

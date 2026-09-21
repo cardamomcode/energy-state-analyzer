@@ -15,11 +15,13 @@ open Energy.Tests.TestUtils
 // hooks, position mapping, and registration are exercised together for every supported language.
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/magic_number.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicNumber.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/MagicNumber.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MagicNumber.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magic_number.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/magic_number.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicNumber.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/MagicNumber.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MagicNumber.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magic_number.cpp"
+        ]
 
     let fixtureTests =
         cases
@@ -61,7 +63,8 @@ let tests =
     testList (
         "Integration: magic numbers (real code examples)",
         fixtureTests
-        @ [ testAsync (
+        @ [
+            testAsync (
                 "Python: module constants, index literals, and defaults are exempt",
                 (fun _ ->
                     toAsync (
@@ -91,7 +94,8 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture Kotlin.kotlinLanguageAdapter "kotlin/MagicNumber.kt"
+                            let! (sourceCode, tree) =
+                                parseFixture Kotlin.kotlinLanguageAdapter "kotlin/MagicNumber.kt"
 
                             let violations =
                                 analyzeFixture sourceCode tree Kotlin.kotlinLanguageAdapter "magic_number.kt"
@@ -182,9 +186,12 @@ let tests =
                                     "magic_number.py"
                                     { defaultThresholds with
                                         MagicNumber =
-                                            { Enabled = false
-                                              Allowlist = []
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = false
+                                                Allowlist = []
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicNumbers
                                 |> _.Violations
 
@@ -196,9 +203,12 @@ let tests =
                                     "magic_number.py"
                                     { defaultThresholds with
                                         MagicNumber =
-                                            { Enabled = true
-                                              Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = true
+                                                Allowlist = [ 0.0; 1.0; -1.0; 2.0; 1.08; 50.0; 15.75 ]
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicNumbers
                                 |> _.Violations
 
@@ -218,9 +228,12 @@ let tests =
                                     "PricingTest.py"
                                     { defaultThresholds with
                                         MagicNumber =
-                                            { Enabled = true
-                                              Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
-                                              IncludeTestFiles = true } }
+                                            {
+                                                Enabled = true
+                                                Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
+                                                IncludeTestFiles = true
+                                            }
+                                    }
                                 |> analyzeMagicNumbers
                                 |> _.Violations
 
@@ -242,5 +255,6 @@ let tests =
                                 (isEqualTo 3)
                         }
                     ))
-            ) ]
+            )
+        ]
     )

@@ -21,16 +21,18 @@ let private matchOpportunityViolation
     : EnergyViolation =
     let position = positions.toPosition (nodeStartIndex node)
 
-    { Line = position.Line
-      Column = position.Column
-      Type = MatchOpportunity
-      Severity = Low
-      Message =
-        sprintf
-            "This %d-way if/elif chain all branch on '%s'. Consider a match/switch statement for clearer, exhaustiveness-checked dispatch."
-            branches.Length
-            variable
-      Hotspots = [] }
+    {
+        Line = position.Line
+        Column = position.Column
+        Type = MatchOpportunity
+        Severity = Low
+        Message =
+            sprintf
+                "This %d-way if/elif chain all branch on '%s'. Consider a match/switch statement for clearer, exhaustiveness-checked dispatch."
+                branches.Length
+                variable
+        Hotspots = []
+    }
 
 let analyzeMatchOpportunities (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (consumed: Set<int>) (node: Node) : EnergyViolation list =
@@ -70,5 +72,7 @@ let analyzeMatchOpportunities (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "matchOpportunity"
-      Run = analyzeMatchOpportunities }
+    {
+        Name = "matchOpportunity"
+        Run = analyzeMatchOpportunities
+    }

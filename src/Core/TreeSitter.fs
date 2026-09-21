@@ -167,12 +167,16 @@ let nodeEndRow (node: Node) : int = nativeOnly
 let nodeEndColumn (node: Node) : int = nativeOnly
 
 let nodeStartPosition (node: Node) : SourcePosition =
-    { Row = nodeStartRow node
-      Column = nodeStartColumn node }
+    {
+        Row = nodeStartRow node
+        Column = nodeStartColumn node
+    }
 
 let nodeEndPosition (node: Node) : SourcePosition =
-    { Row = nodeEndRow node
-      Column = nodeEndColumn node }
+    {
+        Row = nodeEndRow node
+        Column = nodeEndColumn node
+    }
 
 /// Children surfaced as F# lists — idiomatic for the detectors' List folds/patterns, and it
 /// avoids the "empty-array ceremony" the coherence detector itself flags (§3.2). The JS

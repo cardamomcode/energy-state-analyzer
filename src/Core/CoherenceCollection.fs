@@ -7,10 +7,12 @@ open Energy.Core.Detectors
 /// decision: methods are grouped by their nearest enclosing class instead of entering the free-function
 /// list because a class is already a responsibility boundary judged by class-relatedness and god-class.
 type Collected =
-    { FreeFunctions: LanguageAdapter.CallableView list
-      Classes: ClassRelatedness.ClassInfo list
-      Imports: LanguageAdapter.ImportInfo list
-      FirstImportNode: TreeSitter.Node option }
+    {
+        FreeFunctions: LanguageAdapter.CallableView list
+        Classes: ClassRelatedness.ClassInfo list
+        Imports: LanguageAdapter.ImportInfo list
+        FirstImportNode: TreeSitter.Node option
+    }
 
 /// Report whether a node is an import statement in the current language.
 let private isImportNode (language: LanguageAdapter.LanguageAdapter) (node: TreeSitter.Node) : bool =
@@ -23,22 +25,27 @@ let private isImportNode (language: LanguageAdapter.LanguageAdapter) (node: Tree
 
 /// Empty collection state for a subtree with no coherence signals.
 let private empty: Collected =
-    { FreeFunctions = []
-      Classes = []
-      Imports = []
-      FirstImportNode = None }
+    {
+        FreeFunctions = []
+        Classes = []
+        Imports = []
+        FirstImportNode = None
+    }
 
 /// Merge sibling subtree results while preserving source order and the earliest import anchor.
 let private merge (left: Collected) (right: Collected) : Collected =
-    { FreeFunctions = left.FreeFunctions @ right.FreeFunctions
-      Classes = left.Classes @ right.Classes
-      Imports = left.Imports @ right.Imports
-      FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode }
+    {
+        FreeFunctions = left.FreeFunctions @ right.FreeFunctions
+        Classes = left.Classes @ right.Classes
+        Imports = left.Imports @ right.Imports
+        FirstImportNode = Option.orElse left.FirstImportNode right.FirstImportNode
+    }
 
 /// Add a direct module responsibility to the free-function collection.
 let private collectFree (callable: LanguageAdapter.CallableView) : Collected =
     { empty with
-        FreeFunctions = [ callable ] }
+        FreeFunctions = [ callable ]
+    }
 
 /// Add a direct class responsibility when the language models its enclosing class.
 let private collectClass
@@ -67,10 +74,12 @@ let private collectCallable enclosingClass (callable: LanguageAdapter.CallableVi
 let private classAt (language: LanguageAdapter.LanguageAdapter) (node: TreeSitter.Node) =
     if language.IsClassDefinition node then
         let classInfo: ClassRelatedness.ClassInfo =
-            { Name = language.GetClassName node
-              Node = node
-              BaseNames = language.GetBaseClassNames node
-              Methods = ResizeArray<LanguageAdapter.CallableView>() }
+            {
+                Name = language.GetClassName node
+                Node = node
+                BaseNames = language.GetBaseClassNames node
+                Methods = ResizeArray<LanguageAdapter.CallableView>()
+            }
 
         Some classInfo
     else
@@ -80,7 +89,8 @@ let private classAt (language: LanguageAdapter.LanguageAdapter) (node: TreeSitte
 let private normalizeImportSource (node: TreeSitter.Node) (importInfo: LanguageAdapter.ImportInfo) =
     if System.String.IsNullOrEmpty importInfo.Source then
         { importInfo with
-            Source = TreeSitter.nodeText node }
+            Source = TreeSitter.nodeText node
+        }
     else
         importInfo
 
@@ -91,7 +101,8 @@ let private collectStructure language node currentClass : Collected =
     | None when isImportNode language node ->
         { empty with
             Imports = language.ImportInfo node |> List.map (normalizeImportSource node)
-            FirstImportNode = Some node }
+            FirstImportNode = Some node
+        }
     | None -> empty
 
 /// Recursively collect coherence responsibilities and structural signals exactly once per node.

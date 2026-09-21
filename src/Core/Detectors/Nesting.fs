@@ -40,12 +40,14 @@ let analyzeNesting (ctx: AnalysisContext) : AnalysisContext =
                     Medium
 
             let v =
-                { Line = pos.Line
-                  Column = pos.Column
-                  Type = Nesting
-                  Severity = severity
-                  Message = sprintf "Excessive nesting depth: %d. Consider extracting." depth
-                  Hotspots = [] }
+                {
+                    Line = pos.Line
+                    Column = pos.Column
+                    Type = Nesting
+                    Severity = severity
+                    Message = sprintf "Excessive nesting depth: %d. Consider extracting." depth
+                    Hotspots = []
+                }
 
             // decision: prepend this node's violation ahead of its subtree (v :: childResults == [ v ] @ childResults)
             // so a control node reports before descending — matching the TS push-to-end ordering, siblings left to right.
@@ -57,5 +59,7 @@ let analyzeNesting (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "nesting"
-      Run = analyzeNesting }
+    {
+        Name = "nesting"
+        Run = analyzeNesting
+    }

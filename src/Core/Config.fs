@@ -21,37 +21,45 @@ open Energy.Core.FsPath
 /// ---------------------------------------------------------------------------
 
 type NestingThresholds =
-    { Enabled: bool
-      MediumThreshold: int
-      HighThreshold: int }
+    {
+        Enabled: bool
+        MediumThreshold: int
+        HighThreshold: int
+    }
 
 type CyclomaticThresholds =
-    { Enabled: bool
-      MediumThreshold: int
-      HighThreshold: int }
+    {
+        Enabled: bool
+        MediumThreshold: int
+        HighThreshold: int
+    }
 
 type CognitiveThresholds =
-    { Enabled: bool
-      MediumThreshold: int
-      HighThreshold: int }
+    {
+        Enabled: bool
+        MediumThreshold: int
+        HighThreshold: int
+    }
 
 type CoherenceThresholds =
-    { Enabled: bool
-      LargeFunctionLines: int
-      MaxLargeFunctions: int
-      SingleDomainNameShare: float
-      MaxTypeDiversityRatio: float
-      MinTypedCoverage: float
-      SiblingOpenThreshold: int
-      ImportBreadthThreshold: int
-      HighImportBreadthThreshold: int
-      MemberImportFanOutThreshold: int
-      UtilsFileFunctionCount: int
-      GenericFunctionCount: int
-      HighFunctionCount: int
-      MethodCountMedium: int
-      MethodCountHigh: int
-      LargeFunctionSeverityMultiplier: float }
+    {
+        Enabled: bool
+        LargeFunctionLines: int
+        MaxLargeFunctions: int
+        SingleDomainNameShare: float
+        MaxTypeDiversityRatio: float
+        MinTypedCoverage: float
+        SiblingOpenThreshold: int
+        ImportBreadthThreshold: int
+        HighImportBreadthThreshold: int
+        MemberImportFanOutThreshold: int
+        UtilsFileFunctionCount: int
+        GenericFunctionCount: int
+        HighFunctionCount: int
+        MethodCountMedium: int
+        MethodCountHigh: int
+        LargeFunctionSeverityMultiplier: float
+    }
 
 type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 
@@ -62,26 +70,32 @@ type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 /// integer unit, and a project should be able to retune exactly where "most of this function is error
 /// handling" begins without editing detector code.
 type ErrorShadowingModeThresholds =
-    { Threshold: float
-      HighThreshold: float
-      MinItems: int }
+    {
+        Threshold: float
+        HighThreshold: float
+        MinItems: int
+    }
 
 /// Limit each individual recovery body independently of its function share.
 type RecoveryBlockThresholds = { MaxLines: int }
 
 /// Configure the error-boundary family and its independent recovery rules.
 type ErrorShadowingThresholds =
-    { Enabled: bool
-      ProtectedScope: ErrorShadowingModeThresholds
-      Recovery: ErrorShadowingModeThresholds
-      RecoveryDominanceEnabled: bool
-      OversizedRecoveryBlockEnabled: bool
-      RecoveryBlock: RecoveryBlockThresholds }
+    {
+        Enabled: bool
+        ProtectedScope: ErrorShadowingModeThresholds
+        Recovery: ErrorShadowingModeThresholds
+        RecoveryDominanceEnabled: bool
+        OversizedRecoveryBlockEnabled: bool
+        RecoveryBlock: RecoveryBlockThresholds
+    }
 
 type ParameterCountThresholds =
-    { Enabled: bool
-      MediumThreshold: int
-      HighThreshold: int }
+    {
+        Enabled: bool
+        MediumThreshold: int
+        HighThreshold: int
+    }
 
 /// Enable-only options shared by the four detectors that have no tunable threshold.
 ///
@@ -96,32 +110,38 @@ type LogicalControlFlowThresholds = { Enabled: bool }
 type InversionThresholds = { Enabled: bool }
 
 type MagicNumberOptions =
-    { Enabled: bool
-      Allowlist: float list
-      IncludeTestFiles: bool }
+    {
+        Enabled: bool
+        Allowlist: float list
+        IncludeTestFiles: bool
+    }
 
 type MagicStringOptions =
-    { Enabled: bool
-      MinDuplicates: int
-      Allowlist: string list
-      IncludeTestFiles: bool }
+    {
+        Enabled: bool
+        MinDuplicates: int
+        Allowlist: string list
+        IncludeTestFiles: bool
+    }
 
 /// Host-independent settings supplied once per analysis request.
 type AnalyzeOptions =
-    { Nesting: NestingThresholds
-      Cyclomatic: CyclomaticThresholds
-      Cognitive: CognitiveThresholds
-      Coherence: CoherenceThresholds
-      MatchOpportunity: MatchOpportunityThresholds
-      ParameterCount: ParameterCountThresholds
-      MagicNumber: MagicNumberOptions
-      MagicString: MagicStringOptions
-      PrimitiveObsession: PrimitiveObsessionThresholds
-      OpaqueBoolean: OpaqueBooleanThresholds
-      ParseDontValidate: ParseDontValidateThresholds
-      LogicalControlFlow: LogicalControlFlowThresholds
-      Inversion: InversionThresholds
-      ErrorShadowing: ErrorShadowingThresholds }
+    {
+        Nesting: NestingThresholds
+        Cyclomatic: CyclomaticThresholds
+        Cognitive: CognitiveThresholds
+        Coherence: CoherenceThresholds
+        MatchOpportunity: MatchOpportunityThresholds
+        ParameterCount: ParameterCountThresholds
+        MagicNumber: MagicNumberOptions
+        MagicString: MagicStringOptions
+        PrimitiveObsession: PrimitiveObsessionThresholds
+        OpaqueBoolean: OpaqueBooleanThresholds
+        ParseDontValidate: ParseDontValidateThresholds
+        LogicalControlFlow: LogicalControlFlowThresholds
+        Inversion: InversionThresholds
+        ErrorShadowing: ErrorShadowingThresholds
+    }
 
 /// The built-in detector thresholds, allowlists, and severity shares applied when no project config exists.
 ///
@@ -134,69 +154,91 @@ type AnalyzeOptions =
 /// decision: magic-detector test files stay exempt by default because their literals are usually intentional.
 /// decision: parameter-count thresholds 5/8 mark the point where callers can no longer recall argument order without the signature.
 let defaultAnalyzeOptions =
-    { Nesting =
-        { Enabled = true
-          MediumThreshold = 3
-          HighThreshold = 5 }
-      Cyclomatic =
-        { Enabled = true
-          MediumThreshold = 10
-          HighThreshold = 15 }
-      Cognitive =
-        { Enabled = true
-          MediumThreshold = 15
-          HighThreshold = 25 }
-      Coherence =
-        { Enabled = true
-          LargeFunctionLines = 20
-          MaxLargeFunctions = 5
-          SingleDomainNameShare = 0.7
-          MaxTypeDiversityRatio = 0.4
-          MinTypedCoverage = 0.5
-          SiblingOpenThreshold = 7
-          ImportBreadthThreshold = 10
-          HighImportBreadthThreshold = 15
-          MemberImportFanOutThreshold = 10
-          UtilsFileFunctionCount = 8
-          GenericFunctionCount = 12
-          HighFunctionCount = 15
-          MethodCountMedium = 15
-          MethodCountHigh = 25
-          LargeFunctionSeverityMultiplier = 1.5 }
-      MatchOpportunity = { Enabled = true; MinBranches = 3 }
-      ParameterCount =
-        { Enabled = true
-          MediumThreshold = 5
-          HighThreshold = 8 }
-      PrimitiveObsession = { Enabled = true }
-      OpaqueBoolean = { Enabled = true }
-      ParseDontValidate = { Enabled = true }
-      LogicalControlFlow = { Enabled = true }
-      Inversion = { Enabled = true }
-      // decision: protected scope and recovery are different boundary smells, so each gets its own
-      // minimum size while retaining the same 50% / 70% severity shares.
-      ErrorShadowing =
-        { Enabled = true
-          ProtectedScope =
-            { Threshold = 0.5
-              HighThreshold = 0.7
-              MinItems = 8 }
-          Recovery =
-            { Threshold = 0.5
-              HighThreshold = 0.7
-              MinItems = 5 }
-          RecoveryDominanceEnabled = true
-          OversizedRecoveryBlockEnabled = true
-          RecoveryBlock = { MaxLines = 20 } }
-      MagicNumber =
-        { Enabled = true
-          Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
-          IncludeTestFiles = false }
-      MagicString =
-        { Enabled = true
-          MinDuplicates = 2
-          Allowlist = [ ""; "utf-8"; "__main__" ]
-          IncludeTestFiles = false } }
+    {
+        Nesting =
+            {
+                Enabled = true
+                MediumThreshold = 3
+                HighThreshold = 5
+            }
+        Cyclomatic =
+            {
+                Enabled = true
+                MediumThreshold = 10
+                HighThreshold = 15
+            }
+        Cognitive =
+            {
+                Enabled = true
+                MediumThreshold = 15
+                HighThreshold = 25
+            }
+        Coherence =
+            {
+                Enabled = true
+                LargeFunctionLines = 20
+                MaxLargeFunctions = 5
+                SingleDomainNameShare = 0.7
+                MaxTypeDiversityRatio = 0.4
+                MinTypedCoverage = 0.5
+                SiblingOpenThreshold = 7
+                ImportBreadthThreshold = 10
+                HighImportBreadthThreshold = 15
+                MemberImportFanOutThreshold = 10
+                UtilsFileFunctionCount = 8
+                GenericFunctionCount = 12
+                HighFunctionCount = 15
+                MethodCountMedium = 15
+                MethodCountHigh = 25
+                LargeFunctionSeverityMultiplier = 1.5
+            }
+        MatchOpportunity = { Enabled = true; MinBranches = 3 }
+        ParameterCount =
+            {
+                Enabled = true
+                MediumThreshold = 5
+                HighThreshold = 8
+            }
+        PrimitiveObsession = { Enabled = true }
+        OpaqueBoolean = { Enabled = true }
+        ParseDontValidate = { Enabled = true }
+        LogicalControlFlow = { Enabled = true }
+        Inversion = { Enabled = true }
+        // decision: protected scope and recovery are different boundary smells, so each gets its own
+        // minimum size while retaining the same 50% / 70% severity shares.
+        ErrorShadowing =
+            {
+                Enabled = true
+                ProtectedScope =
+                    {
+                        Threshold = 0.5
+                        HighThreshold = 0.7
+                        MinItems = 8
+                    }
+                Recovery =
+                    {
+                        Threshold = 0.5
+                        HighThreshold = 0.7
+                        MinItems = 5
+                    }
+                RecoveryDominanceEnabled = true
+                OversizedRecoveryBlockEnabled = true
+                RecoveryBlock = { MaxLines = 20 }
+            }
+        MagicNumber =
+            {
+                Enabled = true
+                Allowlist = [ 0.0; 1.0; -1.0; 2.0 ]
+                IncludeTestFiles = false
+            }
+        MagicString =
+            {
+                Enabled = true
+                MinDuplicates = 2
+                Allowlist = [ ""; "utf-8"; "__main__" ]
+                IncludeTestFiles = false
+            }
+    }
 
 let defaultNestingThresholds = defaultAnalyzeOptions.Nesting
 
@@ -230,16 +272,20 @@ let defaultMagicStringOptions = defaultAnalyzeOptions.MagicString
 /// amber"; the separate "colors stay a VS Code setting" decision only means colors are never *read*
 /// from .esaconfig.json at runtime — this is where they are declared, not where hosts pull them from.
 type EnergyColors =
-    { HighEnergy: string
-      MediumEnergy: string
-      LowEnergy: string
-      BackgroundOpacity: float }
+    {
+        HighEnergy: string
+        MediumEnergy: string
+        LowEnergy: string
+        BackgroundOpacity: float
+    }
 
 let defaultEnergyColors =
-    { HighEnergy = "#fb8500"
-      MediumEnergy = "#ffb703"
-      LowEnergy = "#99dd99"
-      BackgroundOpacity = 0.1 }
+    {
+        HighEnergy = "#fb8500"
+        MediumEnergy = "#ffb703"
+        LowEnergy = "#99dd99"
+        BackgroundOpacity = 0.1
+    }
 
 /// ---------------------------------------------------------------------------
 /// b) Load .esaconfig.json over those defaults. Fable-safe fs + path bindings via the FsPath/Paths
@@ -252,113 +298,151 @@ let configFileName = ".esaconfig.json"
 /// its value and an absent key simply falls back to the default during merge. Public so the extension's
 /// combined reader (Configuration.fs) can layer these values under vscode settings before merging.
 type FileNesting =
-    { MediumThreshold: int option
-      HighThreshold: int option }
+    {
+        MediumThreshold: int option
+        HighThreshold: int option
+    }
 
 type FileCyclomatic =
-    { MediumThreshold: int option
-      HighThreshold: int option }
+    {
+        MediumThreshold: int option
+        HighThreshold: int option
+    }
 
 type FileCognitive =
-    { MediumThreshold: int option
-      HighThreshold: int option }
+    {
+        MediumThreshold: int option
+        HighThreshold: int option
+    }
 
 type FileCoherence =
-    { LargeFunctionLines: int option
-      MaxLargeFunctions: int option
-      SingleDomainNameShare: float option
-      MaxTypeDiversityRatio: float option
-      MinTypedCoverage: float option
-      SiblingOpenThreshold: int option
-      ImportBreadthThreshold: int option
-      HighImportBreadthThreshold: int option
-      MemberImportFanOutThreshold: int option
-      UtilsFileFunctionCount: int option
-      GenericFunctionCount: int option
-      HighFunctionCount: int option
-      MethodCountMedium: int option
-      MethodCountHigh: int option
-      LargeFunctionSeverityMultiplier: float option }
+    {
+        LargeFunctionLines: int option
+        MaxLargeFunctions: int option
+        SingleDomainNameShare: float option
+        MaxTypeDiversityRatio: float option
+        MinTypedCoverage: float option
+        SiblingOpenThreshold: int option
+        ImportBreadthThreshold: int option
+        HighImportBreadthThreshold: int option
+        MemberImportFanOutThreshold: int option
+        UtilsFileFunctionCount: int option
+        GenericFunctionCount: int option
+        HighFunctionCount: int option
+        MethodCountMedium: int option
+        MethodCountHigh: int option
+        LargeFunctionSeverityMultiplier: float option
+    }
 
 type FileMatchOpportunity = { MinBranches: int option }
 
 type FileErrorShadowingMode =
-    { Threshold: float option
-      HighThreshold: float option
-      MinItems: int option }
+    {
+        Threshold: float option
+        HighThreshold: float option
+        MinItems: int option
+    }
 
 /// Optional project thresholds for the independent error-boundary rules.
 type FileErrorShadowing =
-    { ProtectedScope: FileErrorShadowingMode
-      Recovery: FileErrorShadowingMode
-      RecoveryBlockMaxLines: int option }
+    {
+        ProtectedScope: FileErrorShadowingMode
+        Recovery: FileErrorShadowingMode
+        RecoveryBlockMaxLines: int option
+    }
 
 type FileParameterCount =
-    { MediumThreshold: int option
-      HighThreshold: int option }
+    {
+        MediumThreshold: int option
+        HighThreshold: int option
+    }
 
 type FileMagicNumber = { Allowlist: float list option }
 
 type FileMagicString =
-    { MinDuplicates: int option
-      Allowlist: string list option }
+    {
+        MinDuplicates: int option
+        Allowlist: string list option
+    }
 
 type FileConfig =
-    { Nesting: FileNesting
-      Cyclomatic: FileCyclomatic
-      Cognitive: FileCognitive
-      Coherence: FileCoherence
-      MatchOpportunity: FileMatchOpportunity
-      ErrorShadowing: FileErrorShadowing
-      ParameterCount: FileParameterCount
-      MagicNumber: FileMagicNumber
-      MagicString: FileMagicString }
+    {
+        Nesting: FileNesting
+        Cyclomatic: FileCyclomatic
+        Cognitive: FileCognitive
+        Coherence: FileCoherence
+        MatchOpportunity: FileMatchOpportunity
+        ErrorShadowing: FileErrorShadowing
+        ParameterCount: FileParameterCount
+        MagicNumber: FileMagicNumber
+        MagicString: FileMagicString
+    }
 
 /// Represent a project with no threshold overrides.
 let private emptyFileConfig: FileConfig =
-    { Nesting =
-        { MediumThreshold = None
-          HighThreshold = None }
-      Cyclomatic =
-        { MediumThreshold = None
-          HighThreshold = None }
-      Cognitive =
-        { MediumThreshold = None
-          HighThreshold = None }
-      Coherence =
-        { LargeFunctionLines = None
-          MaxLargeFunctions = None
-          SingleDomainNameShare = None
-          MaxTypeDiversityRatio = None
-          MinTypedCoverage = None
-          SiblingOpenThreshold = None
-          ImportBreadthThreshold = None
-          HighImportBreadthThreshold = None
-          MemberImportFanOutThreshold = None
-          UtilsFileFunctionCount = None
-          GenericFunctionCount = None
-          HighFunctionCount = None
-          MethodCountMedium = None
-          MethodCountHigh = None
-          LargeFunctionSeverityMultiplier = None }
-      MatchOpportunity = { MinBranches = None }
-      ErrorShadowing =
-        { ProtectedScope =
-            { Threshold = None
-              HighThreshold = None
-              MinItems = None }
-          Recovery =
-            { Threshold = None
-              HighThreshold = None
-              MinItems = None }
-          RecoveryBlockMaxLines = None }
-      ParameterCount =
-        { MediumThreshold = None
-          HighThreshold = None }
-      MagicNumber = { Allowlist = None }
-      MagicString =
-        { MinDuplicates = None
-          Allowlist = None } }
+    {
+        Nesting =
+            {
+                MediumThreshold = None
+                HighThreshold = None
+            }
+        Cyclomatic =
+            {
+                MediumThreshold = None
+                HighThreshold = None
+            }
+        Cognitive =
+            {
+                MediumThreshold = None
+                HighThreshold = None
+            }
+        Coherence =
+            {
+                LargeFunctionLines = None
+                MaxLargeFunctions = None
+                SingleDomainNameShare = None
+                MaxTypeDiversityRatio = None
+                MinTypedCoverage = None
+                SiblingOpenThreshold = None
+                ImportBreadthThreshold = None
+                HighImportBreadthThreshold = None
+                MemberImportFanOutThreshold = None
+                UtilsFileFunctionCount = None
+                GenericFunctionCount = None
+                HighFunctionCount = None
+                MethodCountMedium = None
+                MethodCountHigh = None
+                LargeFunctionSeverityMultiplier = None
+            }
+        MatchOpportunity = { MinBranches = None }
+        ErrorShadowing =
+            {
+                ProtectedScope =
+                    {
+                        Threshold = None
+                        HighThreshold = None
+                        MinItems = None
+                    }
+                Recovery =
+                    {
+                        Threshold = None
+                        HighThreshold = None
+                        MinItems = None
+                    }
+                RecoveryBlockMaxLines = None
+            }
+        ParameterCount =
+            {
+                MediumThreshold = None
+                HighThreshold = None
+            }
+        MagicNumber = { Allowlist = None }
+        MagicString =
+            {
+                MinDuplicates = None
+                Allowlist = None
+            }
+    }
 
 /// Read one property of a JSON object by key, exposed as a tiny [<Emit>] bracket binding.
 ///
@@ -448,49 +532,75 @@ let parseFileConfig (raw: obj) : FileConfig =
     let magicNumber = field raw "magicNumber"
     let magicString = field raw "magicString"
 
-    { Nesting =
-        { MediumThreshold = readNumber nesting "mediumThreshold" |> Option.map int
-          HighThreshold = readNumber nesting "highThreshold" |> Option.map int }
-      Cyclomatic =
-        { MediumThreshold = readNumber cyclomatic "mediumThreshold" |> Option.map int
-          HighThreshold = readNumber cyclomatic "highThreshold" |> Option.map int }
-      Cognitive =
-        { MediumThreshold = readNumber cognitive "mediumThreshold" |> Option.map int
-          HighThreshold = readNumber cognitive "highThreshold" |> Option.map int }
-      Coherence =
-        { LargeFunctionLines = readNumber coherence "largeFunctionLines" |> Option.map int
-          MaxLargeFunctions = readNumber coherence "maxLargeFunctions" |> Option.map int
-          SingleDomainNameShare = readNumber coherence "singleDomainNameShare"
-          MaxTypeDiversityRatio = readNumber coherence "maxTypeDiversityRatio"
-          MinTypedCoverage = readNumber coherence "minTypedCoverage"
-          SiblingOpenThreshold = readNumber coherence "siblingOpenThreshold" |> Option.map int
-          ImportBreadthThreshold = readNumber coherence "importBreadthThreshold" |> Option.map int
-          HighImportBreadthThreshold = readNumber coherence "highImportBreadthThreshold" |> Option.map int
-          MemberImportFanOutThreshold = readNumber coherence "memberImportFanOutThreshold" |> Option.map int
-          UtilsFileFunctionCount = readNumber coherence "utilsFileFunctionCount" |> Option.map int
-          GenericFunctionCount = readNumber coherence "genericFunctionCount" |> Option.map int
-          HighFunctionCount = readNumber coherence "highFunctionCount" |> Option.map int
-          MethodCountMedium = readNumber coherence "godClassMethodCountMedium" |> Option.map int
-          MethodCountHigh = readNumber coherence "godClassMethodCountHigh" |> Option.map int
-          LargeFunctionSeverityMultiplier = readNumber coherence "largeFunctionSeverityMultiplier" }
-      MatchOpportunity = { MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int }
-      ErrorShadowing =
-        { ProtectedScope =
-            { Threshold = readNumber protectedScope "threshold"
-              HighThreshold = readNumber protectedScope "highThreshold"
-              MinItems = readNumber protectedScope "minItems" |> Option.map int }
-          Recovery =
-            { Threshold = readNumber recovery "threshold"
-              HighThreshold = readNumber recovery "highThreshold"
-              MinItems = readNumber recovery "minItems" |> Option.map int }
-          RecoveryBlockMaxLines = readNumber recoveryBlock "maxLines" |> Option.map int }
-      ParameterCount =
-        { MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
-          HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int }
-      MagicNumber = { Allowlist = readList magicNumber "allowlist" |> Option.map (List.map unbox<float>) }
-      MagicString =
-        { MinDuplicates = readNumber magicString "minDuplicates" |> Option.map int
-          Allowlist = readList magicString "allowlist" |> Option.map (List.map unbox<string>) } }
+    {
+        Nesting =
+            {
+                MediumThreshold = readNumber nesting "mediumThreshold" |> Option.map int
+                HighThreshold = readNumber nesting "highThreshold" |> Option.map int
+            }
+        Cyclomatic =
+            {
+                MediumThreshold = readNumber cyclomatic "mediumThreshold" |> Option.map int
+                HighThreshold = readNumber cyclomatic "highThreshold" |> Option.map int
+            }
+        Cognitive =
+            {
+                MediumThreshold = readNumber cognitive "mediumThreshold" |> Option.map int
+                HighThreshold = readNumber cognitive "highThreshold" |> Option.map int
+            }
+        Coherence =
+            {
+                LargeFunctionLines = readNumber coherence "largeFunctionLines" |> Option.map int
+                MaxLargeFunctions = readNumber coherence "maxLargeFunctions" |> Option.map int
+                SingleDomainNameShare = readNumber coherence "singleDomainNameShare"
+                MaxTypeDiversityRatio = readNumber coherence "maxTypeDiversityRatio"
+                MinTypedCoverage = readNumber coherence "minTypedCoverage"
+                SiblingOpenThreshold = readNumber coherence "siblingOpenThreshold" |> Option.map int
+                ImportBreadthThreshold = readNumber coherence "importBreadthThreshold" |> Option.map int
+                HighImportBreadthThreshold = readNumber coherence "highImportBreadthThreshold" |> Option.map int
+                MemberImportFanOutThreshold = readNumber coherence "memberImportFanOutThreshold" |> Option.map int
+                UtilsFileFunctionCount = readNumber coherence "utilsFileFunctionCount" |> Option.map int
+                GenericFunctionCount = readNumber coherence "genericFunctionCount" |> Option.map int
+                HighFunctionCount = readNumber coherence "highFunctionCount" |> Option.map int
+                MethodCountMedium = readNumber coherence "godClassMethodCountMedium" |> Option.map int
+                MethodCountHigh = readNumber coherence "godClassMethodCountHigh" |> Option.map int
+                LargeFunctionSeverityMultiplier = readNumber coherence "largeFunctionSeverityMultiplier"
+            }
+        MatchOpportunity =
+            {
+                MinBranches = readNumber matchOpportunity "minBranches" |> Option.map int
+            }
+        ErrorShadowing =
+            {
+                ProtectedScope =
+                    {
+                        Threshold = readNumber protectedScope "threshold"
+                        HighThreshold = readNumber protectedScope "highThreshold"
+                        MinItems = readNumber protectedScope "minItems" |> Option.map int
+                    }
+                Recovery =
+                    {
+                        Threshold = readNumber recovery "threshold"
+                        HighThreshold = readNumber recovery "highThreshold"
+                        MinItems = readNumber recovery "minItems" |> Option.map int
+                    }
+                RecoveryBlockMaxLines = readNumber recoveryBlock "maxLines" |> Option.map int
+            }
+        ParameterCount =
+            {
+                MediumThreshold = readNumber parameterCount "mediumThreshold" |> Option.map int
+                HighThreshold = readNumber parameterCount "highThreshold" |> Option.map int
+            }
+        MagicNumber =
+            {
+                Allowlist = readList magicNumber "allowlist" |> Option.map (List.map unbox<float>)
+            }
+        MagicString =
+            {
+                MinDuplicates = readNumber magicString "minDuplicates" |> Option.map int
+                Allowlist = readList magicString "allowlist" |> Option.map (List.map unbox<string>)
+            }
+    }
 
 /// Overlay a parsed project config onto the built-in defaults without dropping structural allowlists.
 ///
@@ -512,108 +622,137 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
         @ (provided
            |> List.filter (fun value -> not (List.contains value structuralMagicStringAllowlist)))
 
-    { Nesting =
-        { defaults.Nesting with
-            MediumThreshold = Option.defaultValue defaults.Nesting.MediumThreshold file.Nesting.MediumThreshold
-            HighThreshold = Option.defaultValue defaults.Nesting.HighThreshold file.Nesting.HighThreshold }
-      Cyclomatic =
-        { defaults.Cyclomatic with
-            MediumThreshold = Option.defaultValue defaults.Cyclomatic.MediumThreshold file.Cyclomatic.MediumThreshold
-            HighThreshold = Option.defaultValue defaults.Cyclomatic.HighThreshold file.Cyclomatic.HighThreshold }
-      Cognitive =
-        { defaults.Cognitive with
-            MediumThreshold = Option.defaultValue defaults.Cognitive.MediumThreshold file.Cognitive.MediumThreshold
-            HighThreshold = Option.defaultValue defaults.Cognitive.HighThreshold file.Cognitive.HighThreshold }
-      Coherence =
-        { Enabled = defaults.Coherence.Enabled
-          LargeFunctionLines =
-            Option.defaultValue defaults.Coherence.LargeFunctionLines file.Coherence.LargeFunctionLines
-          MaxLargeFunctions = Option.defaultValue defaults.Coherence.MaxLargeFunctions file.Coherence.MaxLargeFunctions
-          SingleDomainNameShare =
-            Option.defaultValue defaults.Coherence.SingleDomainNameShare file.Coherence.SingleDomainNameShare
-          MaxTypeDiversityRatio =
-            Option.defaultValue defaults.Coherence.MaxTypeDiversityRatio file.Coherence.MaxTypeDiversityRatio
-          MinTypedCoverage = Option.defaultValue defaults.Coherence.MinTypedCoverage file.Coherence.MinTypedCoverage
-          SiblingOpenThreshold =
-            Option.defaultValue defaults.Coherence.SiblingOpenThreshold file.Coherence.SiblingOpenThreshold
-          ImportBreadthThreshold =
-            Option.defaultValue defaults.Coherence.ImportBreadthThreshold file.Coherence.ImportBreadthThreshold
-          HighImportBreadthThreshold =
-            Option.defaultValue defaults.Coherence.HighImportBreadthThreshold file.Coherence.HighImportBreadthThreshold
-          MemberImportFanOutThreshold =
-            Option.defaultValue
-                defaults.Coherence.MemberImportFanOutThreshold
-                file.Coherence.MemberImportFanOutThreshold
-          UtilsFileFunctionCount =
-            Option.defaultValue defaults.Coherence.UtilsFileFunctionCount file.Coherence.UtilsFileFunctionCount
-          GenericFunctionCount =
-            Option.defaultValue defaults.Coherence.GenericFunctionCount file.Coherence.GenericFunctionCount
-          HighFunctionCount = Option.defaultValue defaults.Coherence.HighFunctionCount file.Coherence.HighFunctionCount
-          MethodCountMedium = Option.defaultValue defaults.Coherence.MethodCountMedium file.Coherence.MethodCountMedium
-          MethodCountHigh = Option.defaultValue defaults.Coherence.MethodCountHigh file.Coherence.MethodCountHigh
-          LargeFunctionSeverityMultiplier =
-            Option.defaultValue
-                defaults.Coherence.LargeFunctionSeverityMultiplier
-                file.Coherence.LargeFunctionSeverityMultiplier }
-      MatchOpportunity =
-        { defaults.MatchOpportunity with
-            MinBranches = Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches }
-      // decision: enable/disable is host-only (like the threshold-less detectors), so a project can
-      // retune only the thresholds via .esaconfig.json — never switch the rule off from a repo config.
-      ErrorShadowing =
-        { defaults.ErrorShadowing with
-            ProtectedScope =
-                { Threshold =
+    {
+        Nesting =
+            { defaults.Nesting with
+                MediumThreshold = Option.defaultValue defaults.Nesting.MediumThreshold file.Nesting.MediumThreshold
+                HighThreshold = Option.defaultValue defaults.Nesting.HighThreshold file.Nesting.HighThreshold
+            }
+        Cyclomatic =
+            { defaults.Cyclomatic with
+                MediumThreshold =
+                    Option.defaultValue defaults.Cyclomatic.MediumThreshold file.Cyclomatic.MediumThreshold
+                HighThreshold = Option.defaultValue defaults.Cyclomatic.HighThreshold file.Cyclomatic.HighThreshold
+            }
+        Cognitive =
+            { defaults.Cognitive with
+                MediumThreshold = Option.defaultValue defaults.Cognitive.MediumThreshold file.Cognitive.MediumThreshold
+                HighThreshold = Option.defaultValue defaults.Cognitive.HighThreshold file.Cognitive.HighThreshold
+            }
+        Coherence =
+            {
+                Enabled = defaults.Coherence.Enabled
+                LargeFunctionLines =
+                    Option.defaultValue defaults.Coherence.LargeFunctionLines file.Coherence.LargeFunctionLines
+                MaxLargeFunctions =
+                    Option.defaultValue defaults.Coherence.MaxLargeFunctions file.Coherence.MaxLargeFunctions
+                SingleDomainNameShare =
+                    Option.defaultValue defaults.Coherence.SingleDomainNameShare file.Coherence.SingleDomainNameShare
+                MaxTypeDiversityRatio =
+                    Option.defaultValue defaults.Coherence.MaxTypeDiversityRatio file.Coherence.MaxTypeDiversityRatio
+                MinTypedCoverage =
+                    Option.defaultValue defaults.Coherence.MinTypedCoverage file.Coherence.MinTypedCoverage
+                SiblingOpenThreshold =
+                    Option.defaultValue defaults.Coherence.SiblingOpenThreshold file.Coherence.SiblingOpenThreshold
+                ImportBreadthThreshold =
+                    Option.defaultValue defaults.Coherence.ImportBreadthThreshold file.Coherence.ImportBreadthThreshold
+                HighImportBreadthThreshold =
                     Option.defaultValue
-                        defaults.ErrorShadowing.ProtectedScope.Threshold
-                        file.ErrorShadowing.ProtectedScope.Threshold
-                  HighThreshold =
+                        defaults.Coherence.HighImportBreadthThreshold
+                        file.Coherence.HighImportBreadthThreshold
+                MemberImportFanOutThreshold =
                     Option.defaultValue
-                        defaults.ErrorShadowing.ProtectedScope.HighThreshold
-                        file.ErrorShadowing.ProtectedScope.HighThreshold
-                  MinItems =
+                        defaults.Coherence.MemberImportFanOutThreshold
+                        file.Coherence.MemberImportFanOutThreshold
+                UtilsFileFunctionCount =
+                    Option.defaultValue defaults.Coherence.UtilsFileFunctionCount file.Coherence.UtilsFileFunctionCount
+                GenericFunctionCount =
+                    Option.defaultValue defaults.Coherence.GenericFunctionCount file.Coherence.GenericFunctionCount
+                HighFunctionCount =
+                    Option.defaultValue defaults.Coherence.HighFunctionCount file.Coherence.HighFunctionCount
+                MethodCountMedium =
+                    Option.defaultValue defaults.Coherence.MethodCountMedium file.Coherence.MethodCountMedium
+                MethodCountHigh = Option.defaultValue defaults.Coherence.MethodCountHigh file.Coherence.MethodCountHigh
+                LargeFunctionSeverityMultiplier =
                     Option.defaultValue
-                        defaults.ErrorShadowing.ProtectedScope.MinItems
-                        file.ErrorShadowing.ProtectedScope.MinItems }
-            Recovery =
-                { Threshold =
-                    Option.defaultValue
-                        defaults.ErrorShadowing.Recovery.Threshold
-                        file.ErrorShadowing.Recovery.Threshold
-                  HighThreshold =
-                    Option.defaultValue
-                        defaults.ErrorShadowing.Recovery.HighThreshold
-                        file.ErrorShadowing.Recovery.HighThreshold
-                  MinItems =
-                    Option.defaultValue defaults.ErrorShadowing.Recovery.MinItems file.ErrorShadowing.Recovery.MinItems }
-            RecoveryBlock =
-                { MaxLines =
-                    Option.defaultValue
-                        defaults.ErrorShadowing.RecoveryBlock.MaxLines
-                        file.ErrorShadowing.RecoveryBlockMaxLines } }
-      ParameterCount =
-        { defaults.ParameterCount with
-            MediumThreshold =
-                Option.defaultValue defaults.ParameterCount.MediumThreshold file.ParameterCount.MediumThreshold
-            HighThreshold = Option.defaultValue defaults.ParameterCount.HighThreshold file.ParameterCount.HighThreshold }
-      MagicNumber =
-        { defaults.MagicNumber with
-            Allowlist =
-                (Option.defaultValue [] file.MagicNumber.Allowlist)
-                |> unionWithStructuralMagicNumber }
-      MagicString =
-        { defaults.MagicString with
-            MinDuplicates = Option.defaultValue defaults.MagicString.MinDuplicates file.MagicString.MinDuplicates
-            Allowlist =
-                (Option.defaultValue [] file.MagicString.Allowlist)
-                |> unionWithStructuralMagicString }
-      // decision: enable/disable is host-only, never a project-file value, so these four threshold-less
-      // detectors pass their built-in defaults straight through the merge untouched.
-      PrimitiveObsession = defaults.PrimitiveObsession
-      OpaqueBoolean = defaults.OpaqueBoolean
-      ParseDontValidate = defaults.ParseDontValidate
-      LogicalControlFlow = defaults.LogicalControlFlow
-      Inversion = defaults.Inversion }
+                        defaults.Coherence.LargeFunctionSeverityMultiplier
+                        file.Coherence.LargeFunctionSeverityMultiplier
+            }
+        MatchOpportunity =
+            { defaults.MatchOpportunity with
+                MinBranches =
+                    Option.defaultValue defaults.MatchOpportunity.MinBranches file.MatchOpportunity.MinBranches
+            }
+        // decision: enable/disable is host-only (like the threshold-less detectors), so a project can
+        // retune only the thresholds via .esaconfig.json — never switch the rule off from a repo config.
+        ErrorShadowing =
+            { defaults.ErrorShadowing with
+                ProtectedScope =
+                    {
+                        Threshold =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.ProtectedScope.Threshold
+                                file.ErrorShadowing.ProtectedScope.Threshold
+                        HighThreshold =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.ProtectedScope.HighThreshold
+                                file.ErrorShadowing.ProtectedScope.HighThreshold
+                        MinItems =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.ProtectedScope.MinItems
+                                file.ErrorShadowing.ProtectedScope.MinItems
+                    }
+                Recovery =
+                    {
+                        Threshold =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.Recovery.Threshold
+                                file.ErrorShadowing.Recovery.Threshold
+                        HighThreshold =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.Recovery.HighThreshold
+                                file.ErrorShadowing.Recovery.HighThreshold
+                        MinItems =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.Recovery.MinItems
+                                file.ErrorShadowing.Recovery.MinItems
+                    }
+                RecoveryBlock =
+                    {
+                        MaxLines =
+                            Option.defaultValue
+                                defaults.ErrorShadowing.RecoveryBlock.MaxLines
+                                file.ErrorShadowing.RecoveryBlockMaxLines
+                    }
+            }
+        ParameterCount =
+            { defaults.ParameterCount with
+                MediumThreshold =
+                    Option.defaultValue defaults.ParameterCount.MediumThreshold file.ParameterCount.MediumThreshold
+                HighThreshold =
+                    Option.defaultValue defaults.ParameterCount.HighThreshold file.ParameterCount.HighThreshold
+            }
+        MagicNumber =
+            { defaults.MagicNumber with
+                Allowlist =
+                    (Option.defaultValue [] file.MagicNumber.Allowlist)
+                    |> unionWithStructuralMagicNumber
+            }
+        MagicString =
+            { defaults.MagicString with
+                MinDuplicates = Option.defaultValue defaults.MagicString.MinDuplicates file.MagicString.MinDuplicates
+                Allowlist =
+                    (Option.defaultValue [] file.MagicString.Allowlist)
+                    |> unionWithStructuralMagicString
+            }
+        // decision: enable/disable is host-only, never a project-file value, so these four threshold-less
+        // detectors pass their built-in defaults straight through the merge untouched.
+        PrimitiveObsession = defaults.PrimitiveObsession
+        OpaqueBoolean = defaults.OpaqueBoolean
+        ParseDontValidate = defaults.ParseDontValidate
+        LogicalControlFlow = defaults.LogicalControlFlow
+        Inversion = defaults.Inversion
+    }
 
 /// Public entry: resolve `.esaconfig.json` from `startDir` (walking up) and overlay it on the defaults.
 ///

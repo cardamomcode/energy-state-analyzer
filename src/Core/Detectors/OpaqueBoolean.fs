@@ -12,15 +12,19 @@ let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
             if ctx.Language.IsBooleanLiteral node && ctx.Language.IsPositionalCallArgument node then
                 let position = ctx.Positions.toPosition (nodeStartIndex node)
 
-                [ { Line = position.Line
-                    Column = position.Column
-                    Type = OpaqueBoolean
-                    Severity = Low
-                    Message =
-                      sprintf
-                          "Opaque boolean literal: a bare '%s' passed positionally tells the reader nothing without checking the callee's signature. Name it at the call site (a keyword argument, an object-literal field, or F#'s named-argument syntax) — or better, split into two clearly named functions (e.g. enableX()/disableX()) or use an enum."
-                          (nodeText node)
-                    Hotspots = [] } ]
+                [
+                    {
+                        Line = position.Line
+                        Column = position.Column
+                        Type = OpaqueBoolean
+                        Severity = Low
+                        Message =
+                            sprintf
+                                "Opaque boolean literal: a bare '%s' passed positionally tells the reader nothing without checking the callee's signature. Name it at the call site (a keyword argument, an object-literal field, or F#'s named-argument syntax) — or better, split into two clearly named functions (e.g. enableX()/disableX()) or use an enum."
+                                (nodeText node)
+                        Hotspots = []
+                    }
+                ]
             else
                 []
 
@@ -30,5 +34,7 @@ let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "opaqueBoolean"
-      Run = analyzeOpaqueBooleanLiteral }
+    {
+        Name = "opaqueBoolean"
+        Run = analyzeOpaqueBooleanLiteral
+    }

@@ -22,21 +22,25 @@ let createPositionLookup (sourceText: string) : PositionLookup =
         if sourceText.[i] = '\n' then
             lineStartOffsets.Add(i + 1)
 
-    { toPosition =
-        fun offset ->
-            // Binary search for the last line-start offset <= offset (mirrors the TS lower-bound
-            // search). The offsets array is monotonic, so standard binary search applies.
-            let mutable low = 0
-            let mutable high = lineStartOffsets.Count - 1
+    {
+        toPosition =
+            fun offset ->
+                // Binary search for the last line-start offset <= offset (mirrors the TS lower-bound
+                // search). The offsets array is monotonic, so standard binary search applies.
+                let mutable low = 0
+                let mutable high = lineStartOffsets.Count - 1
 
-            while low < high do
-                // Upper midpoint ensures that advancing `low` always shrinks the interval.
-                let mid = (low + high + 1) / 2
+                while low < high do
+                    // Upper midpoint ensures that advancing `low` always shrinks the interval.
+                    let mid = (low + high + 1) / 2
 
-                if lineStartOffsets.[mid] <= offset then
-                    low <- mid
-                else
-                    high <- mid - 1
+                    if lineStartOffsets.[mid] <= offset then
+                        low <- mid
+                    else
+                        high <- mid - 1
 
-            { Line = low
-              Column = offset - lineStartOffsets.[low] } }
+                {
+                    Line = low
+                    Column = offset - lineStartOffsets.[low]
+                }
+    }

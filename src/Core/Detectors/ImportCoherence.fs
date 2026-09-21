@@ -120,13 +120,15 @@ let check
             importMessage language.Id hasWildcard memberFanOut fSharpSiblingNamespace importSources.Count
 
         Some
-            { Line = position.Line
-              Column = position.Column
-              Type = Violation.Coherence
-              Severity =
-                if importSources.Count > coherence.HighImportBreadthThreshold then
-                    Violation.High
-                else
-                    Violation.Medium
-              Message = message
-              Hotspots = [] }
+            {
+                Line = position.Line
+                Column = position.Column
+                Type = Violation.Coherence
+                Severity =
+                    if importSources.Count > coherence.HighImportBreadthThreshold then
+                        Violation.High
+                    else
+                        Violation.Medium
+                Message = message
+                Hotspots = []
+            }

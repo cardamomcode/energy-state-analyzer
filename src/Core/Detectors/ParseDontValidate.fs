@@ -84,19 +84,21 @@ let private inspect ctx head =
         |> Option.map (fun (name, _) ->
             let position = ctx.Positions.toPosition (nodeStartIndex candidate.Anchor)
 
-            { Line = position.Line
-              Column = position.Column
-              Type = ParseDontValidate
-              Severity = Low
-              Message =
-                sprintf
-                    "Parse, don't validate: '%s' is checked but %s. Consider returning a domain type that preserves the checked property instead of requiring callers to remember it."
-                    name
-                    (match candidate.Success with
-                     | NoValue -> "success returns no useful value"
-                     | UnchangedInput _ -> "returned unchanged"
-                     | BareBoolean _ -> "success returns only a boolean")
-              Hotspots = [] }))
+            {
+                Line = position.Line
+                Column = position.Column
+                Type = ParseDontValidate
+                Severity = Low
+                Message =
+                    sprintf
+                        "Parse, don't validate: '%s' is checked but %s. Consider returning a domain type that preserves the checked property instead of requiring callers to remember it."
+                        name
+                        (match candidate.Success with
+                         | NoValue -> "success returns no useful value"
+                         | UnchangedInput _ -> "returned unchanged"
+                         | BareBoolean _ -> "success returns only a boolean")
+                Hotspots = []
+            }))
     |> Option.toList
 
 /// Walk named functions independently through the registered language adapter.
@@ -114,5 +116,7 @@ let analyzeParseDontValidate (ctx: AnalysisContext) : AnalysisContext =
 
 /// Register the information-preservation advisory.
 let detector: Detector =
-    { Name = "parseDontValidate"
-      Run = analyzeParseDontValidate }
+    {
+        Name = "parseDontValidate"
+        Run = analyzeParseDontValidate
+    }
