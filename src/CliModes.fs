@@ -73,11 +73,16 @@ let private violationJson violation =
 ///
 /// decision: composes JSON report rows from FileResult rather than FileSummary so agent consumers
 /// receive the same location and remediation message as VS Code without changing summary consumers.
+///
+/// decision: files with no violations are omitted from `files` to keep agent-facing reports
+/// compact — a clean file's row is only zeros. `filesScanned` preserves the distinction between
+/// "every file was clean" and "nothing matched", which would otherwise both read as `"files": []`.
 let summaryJson results =
     let summary = summarize results
 
     let files =
         results
+        |> List.filter (fun result -> result.Violations <> [])
         |> List.map (fun result ->
             let file = summarizeFile result
 
@@ -99,6 +104,7 @@ let summaryJson results =
 
     createObj
         [ "files" ==> files
+          "filesScanned" ==> results.Length
           "totalScore" ==> summary.TotalScore
           "totalCounts"
           ==> createObj

@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ''
   report-format:
-    description: 'Report format: md, json, or human. Diff mode (base-ref set) only supports md/json.'
+    description: 'Report format: json, md, human, or sarif. Diff mode (base-ref set) only supports json/md.'
     required: false
     default: 'md'
   version:

@@ -97,6 +97,31 @@ let tests =
 
                   assertThat (json.Contains("\"hotspots\"")) isTrue
                   assertThat (json.Contains("\"weight\": 3")) isTrue
+                  assertThat (json.Contains("\"filesScanned\": 1")) isTrue
+          )
+          test (
+              "JSON report omits clean files but keeps the scanned count",
+              fun _ ->
+                  let finding =
+                      { violation Medium PrimitiveObsession "Introduce a value object so swaps fail type checking." with
+                          Line = 5
+                          Column = 12
+                          Hotspots = [] }
+
+                  let json =
+                      [ { FilePath = "dirty.fs"
+                          Violations = [ finding ] }
+                        { FilePath = "clean.fs"
+                          Violations = [] }
+                        { FilePath = "cleaner.py"
+                          Violations = [] } ]
+                      |> Energy.CliModes.summaryJson
+                      |> Energy.CliNode.stringify
+
+                  assertThat (json.Contains("\"dirty.fs\"")) isTrue
+                  assertThat (json.Contains("clean.fs")) isFalse
+                  assertThat (json.Contains("cleaner.py")) isFalse
+                  assertThat (json.Contains("\"filesScanned\": 3")) isTrue
           )
           test (
               "rule IDs are stable and unique across every violation type",

@@ -60,17 +60,17 @@ npx energy-state-analyzer src --report md
 **Total score: 13** (1 high, 1 medium, 0 low)
 ```
 
-`--report json` prints the same data as a structured `{ files, totalScore, totalCounts }` object instead. Every file also has a `violations` array: each finding includes its zero-based `line` and `column`, `type`, `severity`, detector `message` (including its suggested fix), and any `hotspots`. This makes the JSON report suitable for coding agents as well as scripts. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a measure of overall code quality. Severity communicates the seriousness of detected readability and maintainability risks under the configured rules; use each finding's location and suggested fix to resolve it. No findings means no enabled rule reported a pattern within its coverage; it does not establish that the code is easy to understand or safe to change. See [Energy and Entropy](energy-and-entropy.md) for how to interpret these signals.
+`--report json` prints the same data as a structured `{ files, filesScanned, totalScore, totalCounts }` object instead. `files` lists only files with at least one finding, and `filesScanned` records how many files were scanned, so a fully clean scan is distinguishable from one that matched nothing. Every listed file has a `violations` array: each finding includes its zero-based `line` and `column`, `type`, `severity`, detector `message` (including its suggested fix), and any `hotspots`. This makes the JSON report the preferred format for coding agents (Claude, Codex, and similar) as well as scripts — and it is the default scan output. The per-file **score** is a simple heuristic, `1×low + 4×medium + 9×high` violation counts, meant for spotting hotspots and tracking direction over time, not a measure of overall code quality. Severity communicates the seriousness of detected readability and maintainability risks under the configured rules; use each finding's location and suggested fix to resolve it. No findings means no enabled rule reported a pattern within its coverage; it does not establish that the code is easy to understand or safe to change. See [Energy and Entropy](energy-and-entropy.md) for how to interpret these signals.
 
-### Default report for agents and code scanning: SARIF
+### SARIF for code-scanning tooling: `--report sarif`
 
-SARIF 2.1.0 is the default scan output for an agent, editor, or code-scanning service:
+SARIF 2.1.0 is the format to pick when the consumer is an editor or a code-scanning service:
 
 ```bash
-npx energy-state-analyzer src
+npx energy-state-analyzer src --report sarif
 ```
 
-Each SARIF result has a stable `ESA###` rule ID (for example, `ESA006` for magic literals), a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. Use `--report json`, `md`, or `human` to select a different scan report. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
+Each SARIF result has a stable `ESA###` rule ID (for example, `ESA006` for magic literals), a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. The default JSON report carries the same findings in a flat `files[].violations[]` shape at roughly half SARIF's size, so there is nothing to walk; use `md` or `human` for human-readable output. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
 
 In VS Code, run **Energy State Analyzer: Export SARIF Report** to scan the open workspace and write `.energy-state/latest.sarif`. Open that file with the [SARIF Viewer](https://marketplace.visualstudio.com/items?itemName=MS-SarifVSCode.sarif-viewer) for its report panel, grouping, and filtering.
 
@@ -91,7 +91,7 @@ This isn't a full `.gitignore` engine: no negation, no `**`, no brace expansion 
 
 ### A report for humans: `--report human`
 
-`--report md`/`--report json` are compact, built for scripts and PR comments. `--report sarif` is the interoperable agent and code-scanning format. `--report human` produces a longer, prose-and-tables report meant to be read by a person auditing a repo or subtree: a section per flagged file, each with its findings translated into plain language, followed by a repo-wide "Total evaluation":
+`--report md`/`--report json` are compact, built for scripts, PR comments, and coding agents. `--report sarif` is the interoperable code-scanning format. `--report human` produces a longer, prose-and-tables report meant to be read by a person auditing a repo or subtree: a section per flagged file, each with its findings translated into plain language, followed by a repo-wide "Total evaluation":
 
 ```bash
 npx energy-state-analyzer src --report human
@@ -176,4 +176,4 @@ _2 files changed, 1 worsened, 1 improved, 1 new._
 Single-file and scan modes exit `1` for any medium/high-severity violation (`0` otherwise).
 Diff mode exits `1` for a score regression in a changed file relative to its base revision, so pre-existing
 debt and new files are reported without blocking the PR. Single-file scans use the same default
-SARIF report as directory scans.
+JSON report as directory scans.
