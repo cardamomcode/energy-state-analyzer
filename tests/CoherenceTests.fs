@@ -332,6 +332,15 @@ let tests =
                     "kt", "ManyLargeFunctions"
                     "cpp", "many_large_functions" ]
             Assert = assertManyLargeFunctions }
+          { Name = "a following function's doc comment does not count toward the previous function's line total"
+            Files =
+              Map.ofList
+                  [ "py", "doc_comment_boundary"
+                    "ts", "docCommentBoundary"
+                    "fs", "DocCommentBoundary"
+                    "kt", "DocCommentBoundary"
+                    "cpp", "doc_comment_boundary" ]
+            Assert = assertCleanQuiet }
           { Name = "import sprawl is flagged"
             Files =
               Map.ofList
