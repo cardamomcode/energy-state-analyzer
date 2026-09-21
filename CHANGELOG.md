@@ -1,6 +1,7 @@
 ---
 last_commit_released: edb9fcbccaedfcfed2c16e16b83980406df943c1
 name: energy-state-analyzer
+force_version: 0.21.0
 updaters:
   - command: npm version {version} --no-git-tag-version --allow-same-version
   - regex:
