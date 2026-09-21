@@ -110,8 +110,10 @@ type TypeCohesionResult =
     | Measured of MeasuredTypeCohesion
 
 type TypeCohesionThresholds =
-    { MaxDiversityRatio: float
-      MinCoverage: float }
+    {
+        MaxDiversityRatio: float
+        MinCoverage: float
+    }
 
 /// Score a module's cohesion from how concentrated its typed functions are around a small set of base types.
 ///
@@ -154,7 +156,9 @@ let typeCohesionResult
         let diversityRatio = float distinctTypes.Count / float typedFunctions.Length
 
         let measuredResult =
-            { Result = diversityRatio <= maxDiversityRatio
-              DistinctTypes = distinctTypes.Count }
+            {
+                Result = diversityRatio <= maxDiversityRatio
+                DistinctTypes = distinctTypes.Count
+            }
 
         Measured measuredResult

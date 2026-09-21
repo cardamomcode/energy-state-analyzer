@@ -19,60 +19,67 @@ open Energy.Tests.TestUtils
 let configOverrideTests =
     testList (
         "Integration: parameter count respects configured thresholds",
-        [ testAsync (
-              "a raised medium threshold clears the 6-param function while high still fires at 9",
-              fun _ ->
-                  toAsync (
-                      task {
-                          let! (_sourceCode, tree) =
-                              parseFixture TypeScript.typeScriptLanguageAdapter "typescript/parameterCount.ts"
+        [
+            testAsync (
+                "a raised medium threshold clears the 6-param function while high still fires at 9",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! (_sourceCode, tree) =
+                                parseFixture TypeScript.typeScriptLanguageAdapter "typescript/parameterCount.ts"
 
-                          let custom =
-                              { defaultThresholds with
-                                  ParameterCount =
-                                      { Enabled = true
-                                        MediumThreshold = 7
-                                        HighThreshold = 8 } }
+                            let custom =
+                                { defaultThresholds with
+                                    ParameterCount =
+                                        {
+                                            Enabled = true
+                                            MediumThreshold = 7
+                                            HighThreshold = 8
+                                        }
+                                }
 
-                          let ctx =
-                              createTestContext
-                                  _sourceCode
-                                  tree
-                                  TypeScript.typeScriptLanguageAdapter
-                                  "typescript/parameterCount.ts"
-                                  custom
+                            let ctx =
+                                createTestContext
+                                    _sourceCode
+                                    tree
+                                    TypeScript.typeScriptLanguageAdapter
+                                    "typescript/parameterCount.ts"
+                                    custom
 
-                          let violations = runPipeline ctx
-                          assertValidPositions violations _sourceCode
+                            let violations = runPipeline ctx
+                            assertValidPositions violations _sourceCode
 
-                          let many = findFunctionRange _sourceCode (FunctionName "flaggedManyParams")
-                          let tooMany = findFunctionRange _sourceCode (FunctionName "flaggedTooManyParams")
+                            let many = findFunctionRange _sourceCode (FunctionName "flaggedManyParams")
+                            let tooMany = findFunctionRange _sourceCode (FunctionName "flaggedTooManyParams")
 
-                          // 6 params is no longer past the raised medium threshold of 7.
-                          assertThat
-                              (violationsIn violations many
-                               |> List.filter (fun v -> v.Type = Parameters)
-                               |> List.length)
-                              (isEqualTo 0)
+                            // 6 params is no longer past the raised medium threshold of 7.
+                            assertThat
+                                (violationsIn violations many
+                                 |> List.filter (fun v -> v.Type = Parameters)
+                                 |> List.length)
+                                (isEqualTo 0)
 
-                          // 9 params still exceeds the high threshold of 8.
-                          let tooManyHits =
-                              violationsIn violations tooMany |> List.filter (fun v -> v.Type = Parameters)
+                            // 9 params still exceeds the high threshold of 8.
+                            let tooManyHits =
+                                violationsIn violations tooMany |> List.filter (fun v -> v.Type = Parameters)
 
-                          assertThat (tooManyHits.Length > 0) isTrue
-                          assertThat (List.head tooManyHits).Severity (isEqualTo High)
-                      }
-                  )
-          ) ]
+                            assertThat (tooManyHits.Length > 0) isTrue
+                            assertThat (List.head tooManyHits).Severity (isEqualTo High)
+                        }
+                    )
+            )
+        ]
     )
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/parameter_count.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/parameterCount.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/ParameterCount.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/ParameterCount.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameter_count.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/parameter_count.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/parameterCount.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/ParameterCount.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/ParameterCount.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/parameter_count.cpp"
+        ]
 
     let perLanguage =
         cases
@@ -121,7 +128,8 @@ let tests =
             (fun _ ->
                 toAsync (
                     task {
-                        let! (sourceCode, tree) = parseFixture FSharp.fSharpLanguageAdapter "fsharp/ParameterCount.fs"
+                        let! (sourceCode, tree) =
+                            parseFixture FSharp.fSharpLanguageAdapter "fsharp/ParameterCount.fs"
 
                         let violations =
                             analyzeFixture sourceCode tree FSharp.fSharpLanguageAdapter "fsharp/ParameterCount.fs"

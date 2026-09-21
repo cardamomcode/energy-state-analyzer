@@ -10,29 +10,33 @@ open Energy.Core.FsPath
 open Energy.Core.Paths
 
 type private ParsedArguments =
-    { Paths: string list
-      BaseRef: string option
-      Report: ReportFormat option
-      ConfigFile: string option
-      Nesting: int option * int option
-      Cyclomatic: int option * int option
-      Cognitive: int option * int option
-      ParameterCount: int option * int option
-      IncludeTestFiles: bool }
+    {
+        Paths: string list
+        BaseRef: string option
+        Report: ReportFormat option
+        ConfigFile: string option
+        Nesting: int option * int option
+        Cyclomatic: int option * int option
+        Cognitive: int option * int option
+        ParameterCount: int option * int option
+        IncludeTestFiles: bool
+    }
 
 let private valueFlags =
     Set.ofList
-        [ "base-ref"
-          "report"
-          "config"
-          "medium-nesting"
-          "high-nesting"
-          "medium-cyclomatic"
-          "high-cyclomatic"
-          "medium-cognitive"
-          "high-cognitive"
-          "medium-parameter-count"
-          "high-parameter-count" ]
+        [
+            "base-ref"
+            "report"
+            "config"
+            "medium-nesting"
+            "high-nesting"
+            "medium-cyclomatic"
+            "high-cyclomatic"
+            "medium-cognitive"
+            "high-cognitive"
+            "medium-parameter-count"
+            "high-parameter-count"
+        ]
 
 /// Parse value-consuming CLI flags into a paths list and a flag map.
 ///
@@ -78,15 +82,17 @@ let private asNumber (flags: Map<string, string>) name =
 let private parseArguments arguments =
     let paths, flags = parseValues arguments
 
-    { Paths = paths
-      BaseRef = Map.tryFind "base-ref" flags
-      Report = Map.tryFind "report" flags |> Option.map parseReportFormat
-      ConfigFile = Map.tryFind "config" flags
-      Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
-      Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
-      Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
-      ParameterCount = asNumber flags "medium-parameter-count", asNumber flags "high-parameter-count"
-      IncludeTestFiles = Map.containsKey "include-test-files" flags }
+    {
+        Paths = paths
+        BaseRef = Map.tryFind "base-ref" flags
+        Report = Map.tryFind "report" flags |> Option.map parseReportFormat
+        ConfigFile = Map.tryFind "config" flags
+        Nesting = asNumber flags "medium-nesting", asNumber flags "high-nesting"
+        Cyclomatic = asNumber flags "medium-cyclomatic", asNumber flags "high-cyclomatic"
+        Cognitive = asNumber flags "medium-cognitive", asNumber flags "high-cognitive"
+        ParameterCount = asNumber flags "medium-parameter-count", asNumber flags "high-parameter-count"
+        IncludeTestFiles = Map.containsKey "include-test-files" flags
+    }
 
 let private thresholdOverride (defaultMedium, defaultHigh) constructor (medium, high) =
     constructor (Option.defaultValue defaultMedium medium) (Option.defaultValue defaultHigh high)
@@ -108,42 +114,53 @@ let private buildThresholds parsed : AnalyzeOptions =
         // overrides them, so a project's config can no longer be silently discarded by the CLI.
         MagicNumber =
             { baseOptions.MagicNumber with
-                IncludeTestFiles = parsed.IncludeTestFiles }
+                IncludeTestFiles = parsed.IncludeTestFiles
+            }
         MagicString =
             { baseOptions.MagicString with
-                IncludeTestFiles = parsed.IncludeTestFiles }
+                IncludeTestFiles = parsed.IncludeTestFiles
+            }
         Nesting =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)
                 (fun medium high ->
-                    { Enabled = true
-                      MediumThreshold = medium
-                      HighThreshold = high })
+                    {
+                        Enabled = true
+                        MediumThreshold = medium
+                        HighThreshold = high
+                    })
                 parsed.Nesting
         Cyclomatic =
             thresholdOverride
                 (defaultCyclomaticThresholds.MediumThreshold, defaultCyclomaticThresholds.HighThreshold)
                 (fun medium high ->
-                    { Enabled = true
-                      MediumThreshold = medium
-                      HighThreshold = high })
+                    {
+                        Enabled = true
+                        MediumThreshold = medium
+                        HighThreshold = high
+                    })
                 parsed.Cyclomatic
         Cognitive =
             thresholdOverride
                 (defaultCognitiveThresholds.MediumThreshold, defaultCognitiveThresholds.HighThreshold)
                 (fun medium high ->
-                    { Enabled = true
-                      MediumThreshold = medium
-                      HighThreshold = high })
+                    {
+                        Enabled = true
+                        MediumThreshold = medium
+                        HighThreshold = high
+                    })
                 parsed.Cognitive
         ParameterCount =
             thresholdOverride
                 (defaultParameterCountThresholds.MediumThreshold, defaultParameterCountThresholds.HighThreshold)
                 (fun medium high ->
-                    { Enabled = true
-                      MediumThreshold = medium
-                      HighThreshold = high })
-                parsed.ParameterCount }
+                    {
+                        Enabled = true
+                        MediumThreshold = medium
+                        HighThreshold = high
+                    })
+                parsed.ParameterCount
+    }
 
 let runCli () : Task<unit> =
     task {

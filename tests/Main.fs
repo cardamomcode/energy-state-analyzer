@@ -8,29 +8,31 @@ open type Scriptorium.Quill.Runner
 [<EntryPoint>]
 let main _ =
     runTests
-        [ SpikeTests.tests
-          ConfigTests.tests
-          CPlusPlusTests.tests
-          CSharpTests.tests
-          AnonymousCallableTests.tests
-          NestingTests.tests
-          NestingTests.gatingTests
-          CyclomaticTests.tests
-          CognitiveTests.tests
-          CoherenceTests.tests
-          MagicNumberTests.tests
-          MagicStringTests.tests
-          InversionTests.tests
-          MatchOpportunityTests.tests
-          LogicalControlFlowTests.tests
-          OpaqueBooleanTests.tests
-          ParseDontValidateTests.tests
-          ParameterCountTests.tests
-          ParameterCountTests.configOverrideTests
-          PrimitiveObsessionTests.tests
-          ErrorShadowingTests.tests
-          RecoveryRuleTests.tests
-          SuppressionsTests.tests
-          DetectorFixtureMatrixTests.tests
-          ReportTests.tests
-          ExtensionPresentationTests.tests ]
+        [
+            SpikeTests.tests
+            ConfigTests.tests
+            CPlusPlusTests.tests
+            CSharpTests.tests
+            AnonymousCallableTests.tests
+            NestingTests.tests
+            NestingTests.gatingTests
+            CyclomaticTests.tests
+            CognitiveTests.tests
+            CoherenceTests.tests
+            MagicNumberTests.tests
+            MagicStringTests.tests
+            InversionTests.tests
+            MatchOpportunityTests.tests
+            LogicalControlFlowTests.tests
+            OpaqueBooleanTests.tests
+            ParseDontValidateTests.tests
+            ParameterCountTests.tests
+            ParameterCountTests.configOverrideTests
+            PrimitiveObsessionTests.tests
+            ErrorShadowingTests.tests
+            RecoveryRuleTests.tests
+            SuppressionsTests.tests
+            DetectorFixtureMatrixTests.tests
+            ReportTests.tests
+            ExtensionPresentationTests.tests
+        ]

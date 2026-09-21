@@ -17,16 +17,20 @@ type SuppressionScope =
     | File
 
 type Suppression =
-    { Line: int
-      Column: int
-      Scope: SuppressionScope
-      Types: Set<ViolationType> option
-      UnknownTypes: string list
-      Standalone: bool }
+    {
+        Line: int
+        Column: int
+        Scope: SuppressionScope
+        Types: Set<ViolationType> option
+        UnknownTypes: string list
+        Standalone: bool
+    }
 
 type ApplySuppressionsResult =
-    { Violations: EnergyViolation list
-      SuppressionNotes: EnergyViolation list }
+    {
+        Violations: EnergyViolation list
+        SuppressionNotes: EnergyViolation list
+    }
 
 let private directivePattern =
     Regex("(//|#)\\s*esa-ignore(-file)?(?::\\s*([\\w,\\s-]+))?\\s*$")
@@ -37,23 +41,25 @@ let private directivePattern =
 /// the detector's internal `Name`, so a user copies the exact string from any report. Multi-word
 /// types are kebab-case (`primitive-obsession`), matching docs and CLI output.
 let private knownTypes =
-    [ "nesting", Nesting
-      "complexity", Complexity
-      "cognitive", Cognitive
-      "naming", Naming
-      "coherence", Coherence
-      "magic", Magic
-      "parameters", Parameters
-      "inversion", Inversion
-      "primitive-obsession", PrimitiveObsession
-      "match-opportunity", MatchOpportunity
-      "logical-control-flow", LogicalControlFlow
-      "opaque-boolean", OpaqueBoolean
-      "parse-dont-validate", ParseDontValidate
-      "error-shadowing", ErrorShadowing
-      "recovery-dominance", RecoveryDominance
-      "oversized-recovery-block", OversizedRecoveryBlock
-      "suppression", Suppression ]
+    [
+        "nesting", Nesting
+        "complexity", Complexity
+        "cognitive", Cognitive
+        "naming", Naming
+        "coherence", Coherence
+        "magic", Magic
+        "parameters", Parameters
+        "inversion", Inversion
+        "primitive-obsession", PrimitiveObsession
+        "match-opportunity", MatchOpportunity
+        "logical-control-flow", LogicalControlFlow
+        "opaque-boolean", OpaqueBoolean
+        "parse-dont-validate", ParseDontValidate
+        "error-shadowing", ErrorShadowing
+        "recovery-dominance", RecoveryDominance
+        "oversized-recovery-block", OversizedRecoveryBlock
+        "suppression", Suppression
+    ]
     |> Map.ofList
 
 /// Parses a type list conservatively: a bare directive means every type, but a list containing only
@@ -94,16 +100,18 @@ let parseSuppressions (sourceText: string) : Suppression list =
             let types, unknownTypes = parseTypeList matched.Groups.[typeGroupIndex].Value
 
             Some
-                { Line = line
-                  Column = matched.Index
-                  Scope =
-                    if matched.Groups.[scopeGroupIndex].Success then
-                        File
-                    else
-                        Line
-                  Types = types
-                  UnknownTypes = unknownTypes
-                  Standalone = lineText.Substring(0, matched.Index).Trim() = "" })
+                {
+                    Line = line
+                    Column = matched.Index
+                    Scope =
+                        if matched.Groups.[scopeGroupIndex].Success then
+                            File
+                        else
+                            Line
+                    Types = types
+                    UnknownTypes = unknownTypes
+                    Standalone = lineText.Substring(0, matched.Index).Trim() = ""
+                })
     |> Array.choose id
     |> Array.toList
 
@@ -125,8 +133,10 @@ let applySuppressions (violations: EnergyViolation list) (sourceText: string) : 
     let suppressions = parseSuppressions sourceText |> List.indexed
 
     if suppressions.IsEmpty then
-        { Violations = violations
-          SuppressionNotes = [] }
+        {
+            Violations = violations
+            SuppressionNotes = []
+        }
     else
         let remaining, suppressedCounts =
             violations
@@ -148,15 +158,19 @@ let applySuppressions (violations: EnergyViolation list) (sourceText: string) : 
                     if suppression.UnknownTypes.IsEmpty then
                         []
                     else
-                        [ { Line = suppression.Line
-                            Column = suppression.Column
-                            Type = Suppression
-                            Severity = Low
-                            Message =
-                              sprintf
-                                  "esa-ignore names unknown violation type(s): %s."
-                                  (System.String.Join(", ", suppression.UnknownTypes))
-                            Hotspots = [] } ]
+                        [
+                            {
+                                Line = suppression.Line
+                                Column = suppression.Column
+                                Type = Suppression
+                                Severity = Low
+                                Message =
+                                    sprintf
+                                        "esa-ignore names unknown violation type(s): %s."
+                                        (System.String.Join(", ", suppression.UnknownTypes))
+                                Hotspots = []
+                            }
+                        ]
 
                 let unusedNote =
                     if Map.tryFind index suppressedCounts |> Option.defaultValue 0 > 0 then
@@ -164,17 +178,23 @@ let applySuppressions (violations: EnergyViolation list) (sourceText: string) : 
                     else
                         let scopeText = if suppression.Scope = File then "file-wide " else ""
 
-                        [ { Line = suppression.Line
-                            Column = suppression.Column
-                            Type = Suppression
-                            Severity = Low
-                            Message =
-                              sprintf
-                                  "Unused %sesa-ignore — no matching violation found. Remove it or fix the type list."
-                                  scopeText
-                            Hotspots = [] } ]
+                        [
+                            {
+                                Line = suppression.Line
+                                Column = suppression.Column
+                                Type = Suppression
+                                Severity = Low
+                                Message =
+                                    sprintf
+                                        "Unused %sesa-ignore — no matching violation found. Remove it or fix the type list."
+                                        scopeText
+                                Hotspots = []
+                            }
+                        ]
 
                 unknownNote @ unusedNote)
 
-        { Violations = List.rev remaining
-          SuppressionNotes = notes }
+        {
+            Violations = List.rev remaining
+            SuppressionNotes = notes
+        }

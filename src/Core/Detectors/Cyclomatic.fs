@@ -31,9 +31,11 @@ type private CallableScope =
 type private FlowEdge = { From: FlowNode; To: FlowNode }
 
 type private ControlFlowGraph =
-    { Nodes: FlowNode list
-      Edges: FlowEdge list
-      ExitPredecessors: FlowNode list }
+    {
+        Nodes: FlowNode list
+        Edges: FlowEdge list
+        ExitPredecessors: FlowNode list
+    }
 
 /// Seed the reduced control-flow graph with the single Entry→Exit path.
 ///
@@ -41,9 +43,11 @@ type private ControlFlowGraph =
 /// E - N + 2P while irrelevant straight-line statements do not inflate the graph.
 /// invariant: every current path to Exit appears once in ExitPredecessors and has one matching edge.
 let private initialGraph =
-    { Nodes = [ Entry; Exit ]
-      Edges = [ { From = Entry; To = Exit } ]
-      ExitPredecessors = [ Entry ] }
+    {
+        Nodes = [ Entry; Exit ]
+        Edges = [ { From = Entry; To = Exit } ]
+        ExitPredecessors = [ Entry ]
+    }
 
 /// Name the fixed terms in McCabe's E - N + 2P formula.
 ///
@@ -62,12 +66,14 @@ let private addDecision (outcomes: int) (graph: ControlFlowGraph) : ControlFlowG
 
     let outcomeEdges = List.replicate outcomes { From = decision; To = Exit }
 
-    { Nodes = decision :: graph.Nodes
-      Edges =
-        (graph.Edges |> List.filter (fun edge -> edge.To <> Exit))
-        @ continuingEdges
-        @ outcomeEdges
-      ExitPredecessors = List.replicate outcomes decision }
+    {
+        Nodes = decision :: graph.Nodes
+        Edges =
+            (graph.Edges |> List.filter (fun edge -> edge.To <> Exit))
+            @ continuingEdges
+            @ outcomeEdges
+        ExitPredecessors = List.replicate outcomes decision
+    }
 
 /// A decision point is any of: a language-declared decision node type, a boolean operator (and/or —
 /// matched separately since several grammars reuse one generic binary-expression node for every
@@ -143,8 +149,12 @@ let rec private findCyclomaticHotspots
 
             let contribution = decisionOutcomes language node - 1
 
-            [ { Line = pos.Line
-                Weight = contribution * (1 + depth) } ]
+            [
+                {
+                    Line = pos.Line
+                    Weight = contribution * (1 + depth)
+                }
+            ]
         else
             []
 
@@ -174,12 +184,16 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
             else
                 Medium
 
-        [ { Line = pos.Line
-            Column = pos.Column
-            Type = Complexity
-            Severity = severity
-            Message = sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
-            Hotspots = findCyclomaticHotspots ctx.Language ctx.Positions callable.Body 0 RootCallable } ]
+        [
+            {
+                Line = pos.Line
+                Column = pos.Column
+                Type = Complexity
+                Severity = severity
+                Message = sprintf "High cyclomatic complexity: %d. Consider breaking down this function." complexity
+                Hotspots = findCyclomaticHotspots ctx.Language ctx.Positions callable.Body 0 RootCallable
+            }
+        ]
     else
         []
 
@@ -198,5 +212,7 @@ let analyzeFunctionComplexity (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "cyclomatic"
-      Run = analyzeFunctionComplexity }
+    {
+        Name = "cyclomatic"
+        Run = analyzeFunctionComplexity
+    }

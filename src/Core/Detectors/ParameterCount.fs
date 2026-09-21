@@ -39,17 +39,23 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
     if parameterCount > ctx.Options.ParameterCount.MediumThreshold then
         let position = ctx.Positions.toPosition (nodeStartIndex callable.Anchor)
 
-        [ { Line = position.Line
-            Column = position.Column
-            Type = Parameters
-            Severity =
-              if parameterCount > ctx.Options.ParameterCount.HighThreshold then
-                  High
-              else
-                  Medium
-            Message =
-              sprintf "Parameter explosion: %d parameters. Consider using objects or builder pattern." parameterCount
-            Hotspots = [] } ]
+        [
+            {
+                Line = position.Line
+                Column = position.Column
+                Type = Parameters
+                Severity =
+                    if parameterCount > ctx.Options.ParameterCount.HighThreshold then
+                        High
+                    else
+                        Medium
+                Message =
+                    sprintf
+                        "Parameter explosion: %d parameters. Consider using objects or builder pattern."
+                        parameterCount
+                Hotspots = []
+            }
+        ]
     else
         []
 
@@ -69,5 +75,7 @@ let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "parameterCount"
-      Run = analyzeParameterCount }
+    {
+        Name = "parameterCount"
+        Run = analyzeParameterCount
+    }

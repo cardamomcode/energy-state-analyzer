@@ -39,10 +39,12 @@ type FixtureExpectation =
     | ProducesFinding of FunctionName * Severity option
 
 type LanguageFixtureCase =
-    { LanguageLabel: string
-      Language: Energy.Core.LanguageAdapter.LanguageAdapter
-      Fixture: string
-      Expectations: FixtureExpectation list }
+    {
+        LanguageLabel: string
+        Language: Energy.Core.LanguageAdapter.LanguageAdapter
+        Fixture: string
+        Expectations: FixtureExpectation list
+    }
 
 /// Pending grammar loads shared by every fixture that uses the same grammar WASM.
 let private grammarLoads =
@@ -97,22 +99,26 @@ let parseFixture (language: Energy.Core.LanguageAdapter.LanguageAdapter) (relati
         pending
 
 let analyzeFixture sourceCode tree language fileName =
-    { Source = sourceCode
-      Tree = tree
-      Language = language
-      FileName = fileName }
+    {
+        Source = sourceCode
+        Tree = tree
+        Language = language
+        FileName = fileName
+    }
     |> analyze
     |> _.Violations
 
 /// Build a detector context for tests that exercise one detector with custom options.
 let createTestContext sourceCode tree language fileName options : Energy.Core.Context.AnalysisContext =
-    { Source = sourceCode
-      Tree = tree
-      Positions = Energy.Core.Position.createPositionLookup sourceCode
-      Language = language
-      FileName = fileName
-      Options = options
-      Violations = [] }
+    {
+        Source = sourceCode
+        Tree = tree
+        Positions = Energy.Core.Position.createPositionLookup sourceCode
+        Language = language
+        FileName = fileName
+        Options = options
+        Violations = []
+    }
 
 // A line range (inclusive, 0-indexed like tree-sitter/EnergyViolation.line) that a named function
 // occupies within a fixture, so tests can assert a violation belongs to a specific example function

@@ -66,10 +66,12 @@ let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresho
                 parserResult
                 |> Result.map (fun parser ->
                     withParsedTree parser sourceText (fun tree ->
-                        { Source = sourceText
-                          Tree = tree
-                          Language = adapter
-                          FileName = filePath }
+                        {
+                            Source = sourceText
+                            Tree = tree
+                            Language = adapter
+                            FileName = filePath
+                        }
                         |> analyzeWith thresholds
                         |> _.Violations))
     }
@@ -112,7 +114,9 @@ let rec analyzeFiles (files: Path list) (thresholds: AnalyzeThresholds) =
                 return
                     remaining
                     |> Result.map (fun results ->
-                        { FilePath = relativePath (Path(cwd ())) file
-                          Violations = violations }
+                        {
+                            FilePath = relativePath (Path(cwd ())) file
+                            Violations = violations
+                        }
                         :: results)
     }

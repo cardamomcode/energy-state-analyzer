@@ -11,8 +11,10 @@ open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Workspace
 
 type LoadedLanguage =
-    { Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
-      Parser: Parser }
+    {
+        Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
+        Parser: Parser
+    }
 
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
@@ -35,10 +37,12 @@ let analyzeSourceWith thresholds loaded fileName source =
     // decision: presentation consumes the Core result directly. Optional Python type-information
     // logging is not part of analysis, so it must never turn valid findings into an empty editor.
     withParsedTree loaded.Parser source (fun root ->
-        { Source = source
-          Tree = root
-          Language = loaded.Adapter
-          FileName = fileName }
+        {
+            Source = source
+            Tree = root
+            Language = loaded.Adapter
+            FileName = fileName
+        }
         |> analyzeWith thresholds
         |> Ok)
 

@@ -6,24 +6,26 @@ open Energy.Core.LanguageAdapter
 /// Grammar shapes needed to recognize a straight-line guard with an unchanged, absent, or
 /// bare-boolean success value.
 type GuardSyntax =
-    { Containers: NodeType list
-      Conditional: NodeType
-      Rejections: NodeType list
-      Return: NodeType option
-      FailureCalls: string list
-      EmptyValues: string list
-      IsNonExecutable: Node -> bool
-      // The polarity of a boolean literal, when this node is one (Python/TS/C++ `true`/`false`
-      // nodes, C# `boolean_literal`, F# `const` wrapping a `bool` child, Kotlin `true`/`false`
-      // identifier tokens). Read as `Some LiteralFalse` in `rejects` (a falsy return is a
-      // rejection) and `Some _` in the success classification (any literal boolean success is a
-      // bare verdict). Mirrors each adapter's IsBooleanLiteral hook while returning the polarity
-      // the guard logic needs.
-      BooleanLiteralValue: Node -> BooleanLiteralPolarity option
-      // The optional condition is absent during the signature/body-level precheck and present once
-      // a guarded validation has been extracted. Language contracts that apply to a particular
-      // parameter use the latter to avoid suppressing checks of unrelated parameters.
-      PreservesCheckedInformation: Node -> Node option -> bool }
+    {
+        Containers: NodeType list
+        Conditional: NodeType
+        Rejections: NodeType list
+        Return: NodeType option
+        FailureCalls: string list
+        EmptyValues: string list
+        IsNonExecutable: Node -> bool
+        // The polarity of a boolean literal, when this node is one (Python/TS/C++ `true`/`false`
+        // nodes, C# `boolean_literal`, F# `const` wrapping a `bool` child, Kotlin `true`/`false`
+        // identifier tokens). Read as `Some LiteralFalse` in `rejects` (a falsy return is a
+        // rejection) and `Some _` in the success classification (any literal boolean success is a
+        // bare verdict). Mirrors each adapter's IsBooleanLiteral hook while returning the polarity
+        // the guard logic needs.
+        BooleanLiteralValue: Node -> BooleanLiteralPolarity option
+        // The optional condition is absent during the signature/body-level precheck and present once
+        // a guarded validation has been extracted. Language contracts that apply to a particular
+        // parameter use the latter to avoid suppressing checks of unrelated parameters.
+        PreservesCheckedInformation: Node -> Node option -> bool
+    }
 
 /// Discard comments and non-executable statements while retaining every executable statement.
 let private children syntax node =
@@ -137,9 +139,11 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
                 match children syntax guard with
                 | [ condition; rejection ] when rejects syntax rejection ->
                     Some
-                        { Anchor = guard
-                          Condition = condition
-                          Success = result }
+                        {
+                            Anchor = guard
+                            Condition = condition
+                            Success = result
+                        }
                 // F#/Kotlin single-expression `if condition then false else <success>`: the then
                 // branch must be a bare falsy literal. Statement grammars are safe — their if
                 // children are blocks or else-clauses, never bare literals, so only expression
@@ -147,9 +151,11 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
                 // value (a bare expression, not a return statement), so it is classified directly.
                 | [ condition; thenBranch; elseBranch ] when syntax.BooleanLiteralValue thenBranch = Some LiteralFalse ->
                     Some
-                        { Anchor = guard
-                          Condition = condition
-                          Success = classify syntax elseBranch }
+                        {
+                            Anchor = guard
+                            Condition = condition
+                            Success = classify syntax elseBranch
+                        }
                 | _ -> None)
 
     extracted

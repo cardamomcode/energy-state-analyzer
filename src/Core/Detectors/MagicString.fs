@@ -84,16 +84,18 @@ let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext 
                 let position = ctx.Positions.toPosition (nodeStartIndex first)
 
                 Some
-                    { Line = position.Line
-                      Column = position.Column
-                      Type = Magic
-                      Severity = Low
-                      Message =
-                        sprintf
-                            "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
-                            content
-                            group.Length
-                      Hotspots = [] })
+                    {
+                        Line = position.Line
+                        Column = position.Column
+                        Type = Magic
+                        Severity = Low
+                        Message =
+                            sprintf
+                                "Magic string: \"%s\" is compared/keyed against directly %d time(s). Consider extracting to a named constant or enum."
+                                content
+                                group.Length
+                        Hotspots = []
+                    })
 
     addViolations findings ctx
 
@@ -107,5 +109,7 @@ let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
         analyzeEnabledMagicStrings ctx
 
 let detector: Detector =
-    { Name = "magicString"
-      Run = analyzeMagicStrings }
+    {
+        Name = "magicString"
+        Run = analyzeMagicStrings
+    }

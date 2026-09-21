@@ -18,66 +18,80 @@ type private CallableExpectation = CallableRole * string option * int
 
 /// Cross-language callable scenarios in their expected source traversal order.
 let private cases =
-    [ "Python",
-      Python.pythonLanguageAdapter,
-      "python/anonymous_callables.py",
-      [ NamedDefinition, Some "named", 1
-        BoundAnonymous ModuleBinding, Some "module_bound", 2
-        BoundAnonymous ClassMemberBinding, Some "class_bound", 1
-        NamedDefinition, Some "outer", 1
-        InlineAnonymous, Some "local_bound", 1
-        InlineAnonymous, None, 1 ]
-      "TypeScript",
-      TypeScript.typeScriptLanguageAdapter,
-      "typescript/anonymousCallables.ts",
-      [ NamedDefinition, Some "named", 1
-        BoundAnonymous ModuleBinding, Some "moduleArrow", 2
-        BoundAnonymous ModuleBinding, Some "moduleFunction", 1
-        BoundAnonymous ClassMemberBinding, Some "classBound", 1
-        NamedDefinition, Some "namedMethod", 1
-        NamedDefinition, Some "outer", 1
-        InlineAnonymous, Some "localBound", 1
-        InlineAnonymous, None, 1 ]
-      "F#",
-      FSharp.fSharpLanguageAdapter,
-      "fsharp/AnonymousCallables.fs",
-      [ NamedDefinition, Some "named", 1
-        NamedDefinition, Some "mutualFirst", 1
-        NamedDefinition, Some "mutualSecond", 2
-        BoundAnonymous ModuleBinding, Some "moduleBound", 2
-        BoundAnonymous ClassMemberBinding, Some "ClassBound", 1
-        NamedDefinition, Some "outer", 1
-        InlineAnonymous, Some "localBound", 1
-        InlineAnonymous, None, 1 ]
-      "Kotlin",
-      Kotlin.kotlinLanguageAdapter,
-      "kotlin/AnonymousCallables.kt",
-      [ NamedDefinition, Some "named", 1
-        BoundAnonymous ModuleBinding, Some "moduleBound", 2
-        BoundAnonymous ClassMemberBinding, Some "classBound", 1
-        NamedDefinition, Some "namedMethod", 1
-        NamedDefinition, Some "outer", 1
-        InlineAnonymous, Some "localBound", 1
-        InlineAnonymous, None, 0 ]
-      "C++",
-      CPlusPlus.cPlusPlusLanguageAdapter,
-      "cpp/anonymous_callables.cpp",
-      [ NamedDefinition, Some "named", 1
-        BoundAnonymous ModuleBinding, Some "moduleBound", 2
-        BoundAnonymous ClassMemberBinding, Some "classBound", 1
-        NamedDefinition, Some "namedMethod", 1
-        NamedDefinition, Some "outer", 0
-        InlineAnonymous, Some "localBound", 1
-        InlineAnonymous, None, 1 ]
-      "C#",
-      CSharp.cSharpLanguageAdapter,
-      "csharp/AnonymousCallables.cs",
-      [ BoundAnonymous ClassMemberBinding, Some "ClassBound", 2
-        BoundAnonymous ClassMemberBinding, Some "ClassMethod", 1
-        NamedDefinition, Some "NamedMethod", 1
-        NamedDefinition, Some "Outer", 1
-        InlineAnonymous, Some "localBound", 1
-        InlineAnonymous, None, 1 ] ]
+    [
+        "Python",
+        Python.pythonLanguageAdapter,
+        "python/anonymous_callables.py",
+        [
+            NamedDefinition, Some "named", 1
+            BoundAnonymous ModuleBinding, Some "module_bound", 2
+            BoundAnonymous ClassMemberBinding, Some "class_bound", 1
+            NamedDefinition, Some "outer", 1
+            InlineAnonymous, Some "local_bound", 1
+            InlineAnonymous, None, 1
+        ]
+        "TypeScript",
+        TypeScript.typeScriptLanguageAdapter,
+        "typescript/anonymousCallables.ts",
+        [
+            NamedDefinition, Some "named", 1
+            BoundAnonymous ModuleBinding, Some "moduleArrow", 2
+            BoundAnonymous ModuleBinding, Some "moduleFunction", 1
+            BoundAnonymous ClassMemberBinding, Some "classBound", 1
+            NamedDefinition, Some "namedMethod", 1
+            NamedDefinition, Some "outer", 1
+            InlineAnonymous, Some "localBound", 1
+            InlineAnonymous, None, 1
+        ]
+        "F#",
+        FSharp.fSharpLanguageAdapter,
+        "fsharp/AnonymousCallables.fs",
+        [
+            NamedDefinition, Some "named", 1
+            NamedDefinition, Some "mutualFirst", 1
+            NamedDefinition, Some "mutualSecond", 2
+            BoundAnonymous ModuleBinding, Some "moduleBound", 2
+            BoundAnonymous ClassMemberBinding, Some "ClassBound", 1
+            NamedDefinition, Some "outer", 1
+            InlineAnonymous, Some "localBound", 1
+            InlineAnonymous, None, 1
+        ]
+        "Kotlin",
+        Kotlin.kotlinLanguageAdapter,
+        "kotlin/AnonymousCallables.kt",
+        [
+            NamedDefinition, Some "named", 1
+            BoundAnonymous ModuleBinding, Some "moduleBound", 2
+            BoundAnonymous ClassMemberBinding, Some "classBound", 1
+            NamedDefinition, Some "namedMethod", 1
+            NamedDefinition, Some "outer", 1
+            InlineAnonymous, Some "localBound", 1
+            InlineAnonymous, None, 0
+        ]
+        "C++",
+        CPlusPlus.cPlusPlusLanguageAdapter,
+        "cpp/anonymous_callables.cpp",
+        [
+            NamedDefinition, Some "named", 1
+            BoundAnonymous ModuleBinding, Some "moduleBound", 2
+            BoundAnonymous ClassMemberBinding, Some "classBound", 1
+            NamedDefinition, Some "namedMethod", 1
+            NamedDefinition, Some "outer", 0
+            InlineAnonymous, Some "localBound", 1
+            InlineAnonymous, None, 1
+        ]
+        "C#",
+        CSharp.cSharpLanguageAdapter,
+        "csharp/AnonymousCallables.cs",
+        [
+            BoundAnonymous ClassMemberBinding, Some "ClassBound", 2
+            BoundAnonymous ClassMemberBinding, Some "ClassMethod", 1
+            NamedDefinition, Some "NamedMethod", 1
+            NamedDefinition, Some "Outer", 1
+            InlineAnonymous, Some "localBound", 1
+            InlineAnonymous, None, 1
+        ]
+    ]
 
 /// Verify the shared callable contract against every bundled grammar.
 let private classificationTests =
@@ -107,17 +121,19 @@ let private classificationTests =
 
 /// Fixture, nested callable name, and exact standalone/enclosing cognitive scores.
 let private boundaryCases =
-    [ "Python", Python.pythonLanguageAdapter, "python/anonymous_callable_analysis.py", "nestedCallableBoundary", 2, 1
-      "TypeScript",
-      TypeScript.typeScriptLanguageAdapter,
-      "typescript/anonymousCallableAnalysis.ts",
-      "nestedCallableBoundary",
-      2,
-      1
-      "F#", FSharp.fSharpLanguageAdapter, "fsharp/AnonymousCallableAnalysis.fs", "nestedCallableBoundary", 3, 2
-      "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/AnonymousCallableAnalysis.kt", "nestedCallableBoundary", 3, 2
-      "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/anonymous_callable_analysis.cpp", "nestedCallableBoundary", 2, 1
-      "C#", CSharp.cSharpLanguageAdapter, "csharp/AnonymousCallableAnalysis.cs", "NestedCallableBoundary", 2, 1 ]
+    [
+        "Python", Python.pythonLanguageAdapter, "python/anonymous_callable_analysis.py", "nestedCallableBoundary", 2, 1
+        "TypeScript",
+        TypeScript.typeScriptLanguageAdapter,
+        "typescript/anonymousCallableAnalysis.ts",
+        "nestedCallableBoundary",
+        2,
+        1
+        "F#", FSharp.fSharpLanguageAdapter, "fsharp/AnonymousCallableAnalysis.fs", "nestedCallableBoundary", 3, 2
+        "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/AnonymousCallableAnalysis.kt", "nestedCallableBoundary", 3, 2
+        "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/anonymous_callable_analysis.cpp", "nestedCallableBoundary", 2, 1
+        "C#", CSharp.cSharpLanguageAdapter, "csharp/AnonymousCallableAnalysis.cs", "NestedCallableBoundary", 2, 1
+    ]
 
 /// Sum cognitive hotspot weights for an exact-score consistency check.
 let private hotspotTotal (violation: EnergyViolation) =
@@ -140,13 +156,18 @@ let private boundaryTests =
                         let options =
                             { defaultThresholds with
                                 Cyclomatic =
-                                    { Enabled = true
-                                      MediumThreshold = 1
-                                      HighThreshold = 100 }
+                                    {
+                                        Enabled = true
+                                        MediumThreshold = 1
+                                        HighThreshold = 100
+                                    }
                                 Cognitive =
-                                    { Enabled = true
-                                      MediumThreshold = 0
-                                      HighThreshold = 100 } }
+                                    {
+                                        Enabled = true
+                                        MediumThreshold = 0
+                                        HighThreshold = 100
+                                    }
+                            }
 
                         let context = createTestContext source tree language fixture options
 
@@ -197,22 +218,24 @@ let private boundaryTests =
 
 /// Anonymous parameter forms whose named equivalents are already counted by their adapters.
 let private parameterShapeCases =
-    [ "Python defaults",
-      Python.pythonLanguageAdapter,
-      "python/anonymous_callable_analysis.py",
-      "flaggedAnonymousParameterForms"
-      "TypeScript defaults, optional, and rest",
-      TypeScript.typeScriptLanguageAdapter,
-      "typescript/anonymousCallableAnalysis.ts",
-      "flaggedAnonymousParameterForms"
-      "C++ defaults and variadic pack",
-      CPlusPlus.cPlusPlusLanguageAdapter,
-      "cpp/anonymous_callable_analysis.cpp",
-      "flaggedAnonymousParameterForms"
-      "C# defaults",
-      CSharp.cSharpLanguageAdapter,
-      "csharp/AnonymousCallableAnalysis.cs",
-      "FlaggedAnonymousParameterForms" ]
+    [
+        "Python defaults",
+        Python.pythonLanguageAdapter,
+        "python/anonymous_callable_analysis.py",
+        "flaggedAnonymousParameterForms"
+        "TypeScript defaults, optional, and rest",
+        TypeScript.typeScriptLanguageAdapter,
+        "typescript/anonymousCallableAnalysis.ts",
+        "flaggedAnonymousParameterForms"
+        "C++ defaults and variadic pack",
+        CPlusPlus.cPlusPlusLanguageAdapter,
+        "cpp/anonymous_callable_analysis.cpp",
+        "flaggedAnonymousParameterForms"
+        "C# defaults",
+        CSharp.cSharpLanguageAdapter,
+        "csharp/AnonymousCallableAnalysis.cs",
+        "FlaggedAnonymousParameterForms"
+    ]
 
 /// Confirm grammar-specific default, optional, rest, and variadic syntax stays in the declared count.
 let private parameterShapeTests =

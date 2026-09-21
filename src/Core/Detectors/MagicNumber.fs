@@ -88,12 +88,17 @@ let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext 
                 else
                     let position = ctx.Positions.toPosition (nodeStartIndex node)
 
-                    [ { Line = position.Line
-                        Column = position.Column
-                        Type = Magic
-                        Severity = Low
-                        Message = sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
-                        Hotspots = [] } ]
+                    [
+                        {
+                            Line = position.Line
+                            Column = position.Column
+                            Type = Magic
+                            Severity = Low
+                            Message =
+                                sprintf "Magic number: %s. Consider extracting to a named constant." (nodeText node)
+                            Hotspots = []
+                        }
+                    ]
             | false, _ -> []
         // A literal's children are fragments of the same value in some grammars, not separate
         // values; never descend after evaluating one.
@@ -113,5 +118,7 @@ let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
         analyzeEnabledMagicNumbers ctx
 
 let detector: Detector =
-    { Name = "magicNumber"
-      Run = analyzeMagicNumbers }
+    {
+        Name = "magicNumber"
+        Run = analyzeMagicNumbers
+    }

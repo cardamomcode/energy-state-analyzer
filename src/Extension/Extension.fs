@@ -24,9 +24,11 @@ open Energy.Extension.Vscode.Workspace
 /// in their domain modules, and the grammar caches are reset for every activation.
 
 type private ExtensionState =
-    { Grammar: GrammarContext
-      Diagnostics: obj
-      mutable Decorations: DecorationSet }
+    {
+        Grammar: GrammarContext
+        Diagnostics: obj
+        mutable Decorations: DecorationSet
+    }
 
 let mutable private state: ExtensionState option = None
 
@@ -122,18 +124,22 @@ let activate (context: obj) : Task<unit> =
             console.log ("✅ Parser initialized")
 
             let grammar =
-                { ExtensionPath = extensionPath context
-                  LoadedLanguages = Dictionary()
-                  InFlightLoads = Dictionary() }
+                {
+                    ExtensionPath = extensionPath context
+                    LoadedLanguages = Dictionary()
+                    InFlightLoads = Dictionary()
+                }
 
             let decorations = createDecorations (getEnergyColors ())
             let diagnostics = createDiagnosticCollection Vscode.Host.languages "energyState"
 
             state <-
                 Some
-                    { Grammar = grammar
-                      Diagnostics = diagnostics
-                      Decorations = decorations }
+                    {
+                        Grammar = grammar
+                        Diagnostics = diagnostics
+                        Decorations = decorations
+                    }
 
             addSubscription context diagnostics
             console.log ("🎨 Decoration types created")

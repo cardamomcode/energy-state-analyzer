@@ -40,14 +40,16 @@ type ViolationType =
 type Hotspot = { Line: int; Weight: int }
 
 type EnergyViolation =
-    { Line: int
-      Column: int
-      Type: ViolationType
-      Severity: Severity
-      Message: string
-      // list, not array — no Option/empty-array ceremony (the coherence detector itself flags
-      // the latter); a detector that emits no hotspots just passes [].
-      Hotspots: Hotspot list }
+    {
+        Line: int
+        Column: int
+        Type: ViolationType
+        Severity: Severity
+        Message: string
+        // list, not array — no Option/empty-array ceremony (the coherence detector itself flags
+        // the latter); a detector that emits no hotspots just passes [].
+        Hotspots: Hotspot list
+    }
 
 /// Stable JSON/report names retained from the public TypeScript CLI contract.
 let violationTypeName =

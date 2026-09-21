@@ -21,9 +21,11 @@ let private parameterListNodeType = NodeType "parameter_list"
 
 /// Keep the existing C++ parameter-declaration contract in one reusable list.
 let private parameterChildTypes =
-    [ NodeType "parameter_declaration"
-      NodeType "optional_parameter_declaration"
-      NodeType "variadic_parameter_declaration" ]
+    [
+        NodeType "parameter_declaration"
+        NodeType "optional_parameter_declaration"
+        NodeType "variadic_parameter_declaration"
+    ]
 
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
@@ -45,19 +47,23 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         children
         |> List.tryFind (fun child -> nodeType child = compoundStatementNodeType)
         |> Option.map (fun protectedBody ->
-            { Anchor = node
-              ProtectedBody = nodeNamedChildren protectedBody
-              ProtectedItems = nodeNamedChildren protectedBody
-              RecoveryItems =
-                children
-                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
-                |> List.collect bodyItems
-              RecoveryBodies =
-                children
-                |> List.filter (fun child -> nodeType child = catchClauseNodeType)
-                |> List.map (fun clause ->
-                    { Anchor = clause
-                      Items = bodyItems clause }) })
+            {
+                Anchor = node
+                ProtectedBody = nodeNamedChildren protectedBody
+                ProtectedItems = nodeNamedChildren protectedBody
+                RecoveryItems =
+                    children
+                    |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                    |> List.collect bodyItems
+                RecoveryBodies =
+                    children
+                    |> List.filter (fun child -> nodeType child = catchClauseNodeType)
+                    |> List.map (fun clause ->
+                        {
+                            Anchor = clause
+                            Items = bodyItems clause
+                        })
+            })
 
 /// The C++ LanguageAdapter. Grammar node names and shapes below target the official
 /// tree-sitter-cpp v0.23.4 WASM bundled in grammars/; its checksum and license are recorded beside
@@ -66,24 +72,28 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
 
 let private typeNodeTypes =
     Set.ofList
-        [ NodeType "primitive_type"
-          NodeType "sized_type_specifier"
-          NodeType "type_identifier"
-          NodeType "qualified_identifier"
-          NodeType "template_type"
-          NodeType "placeholder_type_specifier"
-          NodeType "decltype"
-          NodeType "dependent_type" ]
+        [
+            NodeType "primitive_type"
+            NodeType "sized_type_specifier"
+            NodeType "type_identifier"
+            NodeType "qualified_identifier"
+            NodeType "template_type"
+            NodeType "placeholder_type_specifier"
+            NodeType "decltype"
+            NodeType "dependent_type"
+        ]
 
 let private declaratorNodeTypes =
     Set.ofList
-        [ NodeType "identifier"
-          NodeType "field_identifier"
-          NodeType "pointer_declarator"
-          NodeType "reference_declarator"
-          NodeType "array_declarator"
-          NodeType "function_declarator"
-          NodeType "parenthesized_declarator" ]
+        [
+            NodeType "identifier"
+            NodeType "field_identifier"
+            NodeType "pointer_declarator"
+            NodeType "reference_declarator"
+            NodeType "array_declarator"
+            NodeType "function_declarator"
+            NodeType "parenthesized_declarator"
+        ]
 
 let rec private tryFindDescendant (predicate: Node -> bool) (node: Node) : Node option =
     if predicate node then
@@ -153,21 +163,29 @@ let private anonymousBinding (node: Node) : CallableRole * string option =
 let private callableViews (node: Node) : CallableView list =
     match nodeType node with
     | nodeType when nodeType = functionDefinitionNodeType ->
-        [ { Anchor = node
-            Body = nodeField "body" node |> Option.defaultValue node
-            ReturnTypeRoot = node
-            Role = NamedDefinition
-            BindingName = nodeField "declarator" node |> Option.bind declaratorName
-            Parameters = parametersOf node } ]
+        [
+            {
+                Anchor = node
+                Body = nodeField "body" node |> Option.defaultValue node
+                ReturnTypeRoot = node
+                Role = NamedDefinition
+                BindingName = nodeField "declarator" node |> Option.bind declaratorName
+                Parameters = parametersOf node
+            }
+        ]
     | nodeType when nodeType = lambdaExpressionNodeType ->
         let role, bindingName = anonymousBinding node
 
-        [ { Anchor = node
-            Body = nodeField "body" node |> Option.defaultValue node
-            ReturnTypeRoot = node
-            Role = role
-            BindingName = bindingName
-            Parameters = parametersOf node } ]
+        [
+            {
+                Anchor = node
+                Body = nodeField "body" node |> Option.defaultValue node
+                ReturnTypeRoot = node
+                Role = role
+                BindingName = bindingName
+                Parameters = parametersOf node
+            }
+        ]
     | _ -> []
 
 let private extractTypedParameter (node: Node) : TypedParameter option =
@@ -194,8 +212,10 @@ let private extractTypedParameter (node: Node) : TypedParameter option =
                 |> fun text -> Regex.Replace(text, "\\s+", "")
 
             Some
-                { Name = nodeText name
-                  Type = nodeText declaredType + shape }
+                {
+                    Name = nodeText name
+                    Type = nodeText declaredType + shape
+                }
         | None -> None
     | _ -> None
 
@@ -299,194 +319,214 @@ let private isClassDefinition (node: Node) : bool =
 
 /// Map C++ grammar constructs to the shared detector contracts.
 let cPlusPlusLanguageAdapter: LanguageAdapter =
-    { Id = "cpp"
-      GrammarPath = "grammars/tree-sitter-cpp.wasm"
-      NodeTypes =
-        { Block = Some(NodeType "compound_statement")
-          Parameters = parameterListNodeType
-          IfStatement = Some(NodeType "if_statement")
-          ElseClause = Some(NodeType "else_clause")
-          ForStatement = Some(NodeType "for_statement")
-          WhileStatement = Some(NodeType "while_statement")
-          ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some lambdaExpressionNodeType
-          ImportStatement = Some(NodeType "preproc_include")
-          ImportFromStatement = None
-          ExpressionStatement = Some(NodeType "expression_statement")
-          Assignment = Some(NodeType "declaration")
-          Module = Some(NodeType "translation_unit")
-          ExportStatement = None
-          Comment = Some(NodeType "comment")
-          IntegerLiteral = Some(NodeType "number_literal")
-          FloatLiteral = None
-          StringLiteral = Some(NodeType "string_literal") }
-      IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
-      // C++ has no merged-binding shape: one function_definition is one function.
-      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
-      GetCallableViews = callableViews
-      IsStaticMethod =
-        fun node ->
-            let rec hasStaticOwner candidate =
-                if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
-                    true
-                elif nodeType candidate = NodeType "field_declaration_list" then
-                    false
+    {
+        Id = "cpp"
+        GrammarPath = "grammars/tree-sitter-cpp.wasm"
+        NodeTypes =
+            {
+                Block = Some(NodeType "compound_statement")
+                Parameters = parameterListNodeType
+                IfStatement = Some(NodeType "if_statement")
+                ElseClause = Some(NodeType "else_clause")
+                ForStatement = Some(NodeType "for_statement")
+                WhileStatement = Some(NodeType "while_statement")
+                ConditionalExpression = Some(NodeType "conditional_expression")
+                Lambda = Some lambdaExpressionNodeType
+                ImportStatement = Some(NodeType "preproc_include")
+                ImportFromStatement = None
+                ExpressionStatement = Some(NodeType "expression_statement")
+                Assignment = Some(NodeType "declaration")
+                Module = Some(NodeType "translation_unit")
+                ExportStatement = None
+                Comment = Some(NodeType "comment")
+                IntegerLiteral = Some(NodeType "number_literal")
+                FloatLiteral = None
+                StringLiteral = Some(NodeType "string_literal")
+            }
+        IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
+        // C++ has no merged-binding shape: one function_definition is one function.
+        GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+        GetCallableViews = callableViews
+        IsStaticMethod =
+            fun node ->
+                let rec hasStaticOwner candidate =
+                    if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
+                        true
+                    elif nodeType candidate = NodeType "field_declaration_list" then
+                        false
+                    else
+                        nodeParent candidate |> Option.exists hasStaticOwner
+
+                hasStaticOwner node
+        ParameterChildTypes = parameterChildTypes
+        DecisionNodeTypes =
+            [
+                NodeType "if_statement"
+                NodeType "for_statement"
+                NodeType "for_range_loop"
+                NodeType "while_statement"
+                NodeType "do_statement"
+                NodeType "catch_clause"
+                NodeType "conditional_expression"
+                NodeType "switch_statement"
+            ]
+        CyclomaticBranchCount = switchBranchCount
+        GetCognitiveStructure =
+            CognitiveSyntax.classify
+                [
+                    NodeType "if_statement"
+                    NodeType "for_statement"
+                    NodeType "for_range_loop"
+                    NodeType "while_statement"
+                    NodeType "do_statement"
+                    NodeType "catch_clause"
+                    NodeType "switch_statement"
+                ]
+        NestingControlTypes =
+            [
+                NodeType "if_statement"
+                NodeType "for_statement"
+                NodeType "for_range_loop"
+                NodeType "while_statement"
+                NodeType "do_statement"
+                NodeType "try_statement"
+                NodeType "switch_statement"
+            ]
+        GetBooleanOperator =
+            fun node ->
+                if nodeType node <> NodeType "binary_expression" then
+                    None
                 else
-                    nodeParent candidate |> Option.exists hasStaticOwner
-
-            hasStaticOwner node
-      ParameterChildTypes = parameterChildTypes
-      DecisionNodeTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_range_loop"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "catch_clause"
-          NodeType "conditional_expression"
-          NodeType "switch_statement" ]
-      CyclomaticBranchCount = switchBranchCount
-      GetCognitiveStructure =
-        CognitiveSyntax.classify
-            [ NodeType "if_statement"
-              NodeType "for_statement"
-              NodeType "for_range_loop"
-              NodeType "while_statement"
-              NodeType "do_statement"
-              NodeType "catch_clause"
-              NodeType "switch_statement" ]
-      NestingControlTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "for_range_loop"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "try_statement"
-          NodeType "switch_statement" ]
-      GetBooleanOperator =
-        fun node ->
-            if nodeType node <> NodeType "binary_expression" then
-                None
-            else
-                nodeChildren node
-                |> List.tryPick (fun child ->
-                    match nodeType child with
-                    | NodeType "&&"
-                    | NodeType "and" -> Some And
-                    | NodeType "||"
-                    | NodeType "or" -> Some Or
-                    | _ -> None)
-      IsTryElseClause = fun _ -> false
-      VariableReferenceNodeTypes =
-        [ NodeType "identifier"
-          NodeType "field_expression"
-          NodeType "qualified_identifier" ]
-      ExtractTypedParameter = extractTypedParameter
-      ExtractReturnType = extractReturnType
-      GenericBrackets = { Open = "<"; Close = ">" }
-      PrimitiveTypeNames =
-        Set.ofList
-            [ "bool"
-              "char"
-              "char8_t"
-              "char16_t"
-              "char32_t"
-              "double"
-              "float"
-              "int"
-              "long"
-              "long double"
-              "long int"
-              "long long"
-              "long long int"
-              "short"
-              "short int"
-              "signed"
-              "signed char"
-              "signed int"
-              "signed long"
-              "signed long int"
-              "signed long long"
-              "signed long long int"
-              "signed short"
-              "signed short int"
-              "string"
-              "std::string"
-              "unsigned"
-              "unsigned char"
-              "unsigned int"
-              "unsigned long"
-              "unsigned long int"
-              "unsigned long long"
-              "unsigned long long int"
-              "unsigned short"
-              "unsigned short int"
-              "wchar_t" ]
-      KeywordOnlyBoundaryTypes = []
-      DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
-      GetEqualityComparisons = equalityComparisons
-      // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
-      // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
-      GetMatchStringCases = fun _ -> None
-      GetMembershipComparisons = fun _ -> []
-      IsMatchCaseLiteral = isMatchCaseLiteral
-      GetElseIfBranches = fun _ -> []
-      SubscriptNodeTypes = [ NodeType "subscript_expression" ]
-      // Prefixed literals (u8"...", L"...", etc.) carry encoding semantics; raw strings use a
-      // distinct raw_string_literal node and therefore never enter the bare-string detector.
-      IsFormattedOrInterpolatedString =
-        fun node -> not ((nodeText node).StartsWith("\"", System.StringComparison.Ordinal))
-      IsDefaultParameterValue = isDefaultParameterValue
-      IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
-      IsPositionalCallArgument =
-        fun node ->
-            match nodeParent node with
-            | Some arguments when nodeType arguments = NodeType "argument_list" ->
-                nodeParent arguments
-                |> Option.exists (fun parent -> nodeType parent = NodeType "call_expression")
-            | _ -> false
-      IsExplicitConstant = isExplicitConstant
-      ImportInfo =
-        fun node ->
-            let source =
-                match
                     nodeChildren node
-                    |> List.tryFind (fun child ->
-                        nodeType child = NodeType "system_lib_string"
-                        || nodeType child = NodeType "string_literal"
-                        || nodeType child = NodeType "identifier")
-                with
-                | Some path -> (nodeText path).Trim([| '<'; '>'; '\"' |])
-                | None -> nodeText node
+                    |> List.tryPick (fun child ->
+                        match nodeType child with
+                        | NodeType "&&"
+                        | NodeType "and" -> Some And
+                        | NodeType "||"
+                        | NodeType "or" -> Some Or
+                        | _ -> None)
+        IsTryElseClause = fun _ -> false
+        VariableReferenceNodeTypes =
+            [
+                NodeType "identifier"
+                NodeType "field_expression"
+                NodeType "qualified_identifier"
+            ]
+        ExtractTypedParameter = extractTypedParameter
+        ExtractReturnType = extractReturnType
+        GenericBrackets = { Open = "<"; Close = ">" }
+        PrimitiveTypeNames =
+            Set.ofList
+                [
+                    "bool"
+                    "char"
+                    "char8_t"
+                    "char16_t"
+                    "char32_t"
+                    "double"
+                    "float"
+                    "int"
+                    "long"
+                    "long double"
+                    "long int"
+                    "long long"
+                    "long long int"
+                    "short"
+                    "short int"
+                    "signed"
+                    "signed char"
+                    "signed int"
+                    "signed long"
+                    "signed long int"
+                    "signed long long"
+                    "signed long long int"
+                    "signed short"
+                    "signed short int"
+                    "string"
+                    "std::string"
+                    "unsigned"
+                    "unsigned char"
+                    "unsigned int"
+                    "unsigned long"
+                    "unsigned long int"
+                    "unsigned long long"
+                    "unsigned long long int"
+                    "unsigned short"
+                    "unsigned short int"
+                    "wchar_t"
+                ]
+        KeywordOnlyBoundaryTypes = []
+        DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
+        GetEqualityComparisons = equalityComparisons
+        // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
+        // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
+        GetMatchStringCases = fun _ -> None
+        GetMembershipComparisons = fun _ -> []
+        IsMatchCaseLiteral = isMatchCaseLiteral
+        GetElseIfBranches = fun _ -> []
+        SubscriptNodeTypes = [ NodeType "subscript_expression" ]
+        // Prefixed literals (u8"...", L"...", etc.) carry encoding semantics; raw strings use a
+        // distinct raw_string_literal node and therefore never enter the bare-string detector.
+        IsFormattedOrInterpolatedString =
+            fun node -> not ((nodeText node).StartsWith("\"", System.StringComparison.Ordinal))
+        IsDefaultParameterValue = isDefaultParameterValue
+        IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
+        IsPositionalCallArgument =
+            fun node ->
+                match nodeParent node with
+                | Some arguments when nodeType arguments = NodeType "argument_list" ->
+                    nodeParent arguments
+                    |> Option.exists (fun parent -> nodeType parent = NodeType "call_expression")
+                | _ -> false
+        IsExplicitConstant = isExplicitConstant
+        ImportInfo =
+            fun node ->
+                let source =
+                    match
+                        nodeChildren node
+                        |> List.tryFind (fun child ->
+                            nodeType child = NodeType "system_lib_string"
+                            || nodeType child = NodeType "string_literal"
+                            || nodeType child = NodeType "identifier")
+                    with
+                    | Some path -> (nodeText path).Trim([| '<'; '>'; '\"' |])
+                    | None -> nodeText node
 
-            [ { Kind = Header
-                Source = source
-                Bindings = [] } ]
-      IsClassDefinition = isClassDefinition
-      GetClassName =
-        fun node ->
-            nodeChildren node
-            |> List.tryFind (fun child ->
-                nodeType child = NodeType "type_identifier"
-                || nodeType child = NodeType "qualified_identifier")
-            |> Option.map nodeText
-      GetBaseClassNames = baseClassNames
-      GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems
-      GetGuardedValidation =
-        ValidationSyntax.extract
-            { Containers = [ NodeType "compound_statement" ]
-              Conditional = NodeType "if_statement"
-              Rejections = [ NodeType "throw_statement" ]
-              Return = Some(NodeType "return_statement")
-              FailureCalls = []
-              EmptyValues = []
-              IsNonExecutable = fun _ -> false
-              BooleanLiteralValue =
-                fun node ->
-                    if nodeType node = NodeType "true" then Some LiteralTrue
-                    elif nodeType node = NodeType "false" then Some LiteralFalse
-                    else None
-              // C++ has no standard narrowing annotation a signature can carry, so nothing besides
-              // the shared shapes is preserved; the limitation is documented in the fixture matrix.
-              PreservesCheckedInformation = fun _ _ -> false } }
+                [
+                    {
+                        Kind = Header
+                        Source = source
+                        Bindings = []
+                    }
+                ]
+        IsClassDefinition = isClassDefinition
+        GetClassName =
+            fun node ->
+                nodeChildren node
+                |> List.tryFind (fun child ->
+                    nodeType child = NodeType "type_identifier"
+                    || nodeType child = NodeType "qualified_identifier")
+                |> Option.map nodeText
+        GetBaseClassNames = baseClassNames
+        GetErrorHandlingRegion = errorHandlingRegion
+        GetFunctionLogicalItems = bodyItems
+        GetGuardedValidation =
+            ValidationSyntax.extract
+                {
+                    Containers = [ NodeType "compound_statement" ]
+                    Conditional = NodeType "if_statement"
+                    Rejections = [ NodeType "throw_statement" ]
+                    Return = Some(NodeType "return_statement")
+                    FailureCalls = []
+                    EmptyValues = []
+                    IsNonExecutable = fun _ -> false
+                    BooleanLiteralValue =
+                        fun node ->
+                            if nodeType node = NodeType "true" then Some LiteralTrue
+                            elif nodeType node = NodeType "false" then Some LiteralFalse
+                            else None
+                    // C++ has no standard narrowing annotation a signature can carry, so nothing besides
+                    // the shared shapes is preserved; the limitation is documented in the fixture matrix.
+                    PreservesCheckedInformation = fun _ _ -> false
+                }
+    }

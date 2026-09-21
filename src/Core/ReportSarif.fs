@@ -35,13 +35,17 @@ let renderSarif results =
         |> List.sortBy violationTypeName
         |> List.map (fun violationType ->
             createObj
-                [ "id" ==> violationRuleId violationType
-                  "name" ==> violationRuleName violationType
-                  "shortDescription"
-                  ==> createObj
-                          [ "text"
-                            ==> ("Energy State Analyzer " + violationDisplayName violationType + " finding") ]
-                  "helpUri" ==> violationHelpUri violationType ])
+                [
+                    "id" ==> violationRuleId violationType
+                    "name" ==> violationRuleName violationType
+                    "shortDescription"
+                    ==> createObj
+                            [
+                                "text"
+                                ==> ("Energy State Analyzer " + violationDisplayName violationType + " finding")
+                            ]
+                    "helpUri" ==> violationHelpUri violationType
+                ])
         |> List.toArray
 
     let sarifResults =
@@ -53,36 +57,59 @@ let renderSarif results =
                 |> List.toArray
 
             createObj
-                [ "ruleId" ==> violationRuleId violation.Type
-                  "level" ==> sarifLevel violation.Severity
-                  "message" ==> createObj [ "text" ==> violation.Message ]
-                  "locations"
-                  ==> [| createObj
-                             [ "physicalLocation"
-                               ==> createObj
-                                       [ "artifactLocation" ==> createObj [ "uri" ==> filePath ]
-                                         "region"
-                                         ==> createObj
-                                                 [ "startLine" ==> violation.Line + 1
-                                                   "startColumn" ==> violation.Column + 1 ] ] ] |]
-                  "properties"
-                  ==> createObj
-                          [ "energyStateSeverity" ==> severityName violation.Severity
-                            "hotspots" ==> hotspots ] ])
+                [
+                    "ruleId" ==> violationRuleId violation.Type
+                    "level" ==> sarifLevel violation.Severity
+                    "message" ==> createObj [ "text" ==> violation.Message ]
+                    "locations"
+                    ==> [|
+                        createObj
+                            [
+                                "physicalLocation"
+                                ==> createObj
+                                        [
+                                            "artifactLocation" ==> createObj [ "uri" ==> filePath ]
+                                            "region"
+                                            ==> createObj
+                                                    [
+                                                        "startLine" ==> violation.Line + 1
+                                                        "startColumn" ==> violation.Column + 1
+                                                    ]
+                                        ]
+                            ]
+                    |]
+                    "properties"
+                    ==> createObj
+                            [
+                                "energyStateSeverity" ==> severityName violation.Severity
+                                "hotspots" ==> hotspots
+                            ]
+                ])
         |> List.toArray
 
     createObj
-        [ "$schema"
-          ==> "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json"
-          "version" ==> "2.1.0"
-          "runs"
-          ==> [| createObj
-                     [ "tool"
-                       ==> createObj
-                               [ "driver"
-                                 ==> createObj
-                                         [ "name" ==> "Energy State Analyzer"
-                                           "version" ==> toolVersion
-                                           "informationUri" ==> "https://github.com/cardamomcode/energy-state-analyzer"
-                                           "rules" ==> rules ] ]
-                       "results" ==> sarifResults ] |] ]
+        [
+            "$schema"
+            ==> "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json"
+            "version" ==> "2.1.0"
+            "runs"
+            ==> [|
+                createObj
+                    [
+                        "tool"
+                        ==> createObj
+                                [
+                                    "driver"
+                                    ==> createObj
+                                            [
+                                                "name" ==> "Energy State Analyzer"
+                                                "version" ==> toolVersion
+                                                "informationUri"
+                                                ==> "https://github.com/cardamomcode/energy-state-analyzer"
+                                                "rules" ==> rules
+                                            ]
+                                ]
+                        "results" ==> sarifResults
+                    ]
+            |]
+        ]

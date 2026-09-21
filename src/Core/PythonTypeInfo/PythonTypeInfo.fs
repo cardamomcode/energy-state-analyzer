@@ -6,38 +6,50 @@ open Energy.Core.TreeSitter
 /// logged by the extension without affecting detector output.
 
 type ParameterTypeInfo =
-    { Name: string
-      Type: string option
-      HasDefault: bool }
+    {
+        Name: string
+        Type: string option
+        HasDefault: bool
+    }
 
 type FunctionTypeInfo =
-    { Name: string
-      Line: int
-      Parameters: ParameterTypeInfo list
-      ReturnType: string option }
+    {
+        Name: string
+        Line: int
+        Parameters: ParameterTypeInfo list
+        ReturnType: string option
+    }
 
 type VariableTypeInfo =
-    { Name: string
-      Type: string
-      Line: int }
+    {
+        Name: string
+        Type: string
+        Line: int
+    }
 
 type ClassTypeInfo =
-    { Name: string
-      Line: int
-      BaseClasses: string list
-      IsTypedDict: bool
-      Fields: VariableTypeInfo list }
+    {
+        Name: string
+        Line: int
+        BaseClasses: string list
+        IsTypedDict: bool
+        Fields: VariableTypeInfo list
+    }
 
 type ImportInfo =
-    { Module: string
-      Items: string list
-      Line: int }
+    {
+        Module: string
+        Items: string list
+        Line: int
+    }
 
 type TypeInfo =
-    { Functions: FunctionTypeInfo list
-      Variables: VariableTypeInfo list
-      Classes: ClassTypeInfo list
-      Imports: ImportInfo list }
+    {
+        Functions: FunctionTypeInfo list
+        Variables: VariableTypeInfo list
+        Classes: ClassTypeInfo list
+        Imports: ImportInfo list
+    }
 
 let childOfType name node =
     nodeChildren node |> List.tryFind (fun child -> nodeType child = NodeType name)

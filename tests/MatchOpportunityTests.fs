@@ -10,11 +10,13 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/match_opportunity.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/matchOpportunity.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/MatchOpportunity.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MatchOpportunity.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/match_opportunity.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/match_opportunity.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/matchOpportunity.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/MatchOpportunity.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MatchOpportunity.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/match_opportunity.cpp"
+        ]
 
     let languageCases =
         cases
@@ -47,7 +49,8 @@ let tests =
     testList (
         "Integration: match opportunities (real code examples)",
         languageCases
-        @ [ testAsync (
+        @ [
+            testAsync (
                 "C++: string and floating-point equality chains stay quiet",
                 fun _ ->
                     toAsync (
@@ -70,5 +73,6 @@ let tests =
                                     (isEqualTo 0)
                         }
                     )
-            ) ]
+            )
+        ]
     )

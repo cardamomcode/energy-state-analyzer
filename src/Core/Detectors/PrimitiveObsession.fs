@@ -24,10 +24,12 @@ let private sampleSize = 4
 let private booleanTypeNames = Set.ofList [ "bool"; "boolean"; "Boolean" ]
 
 type private TypedParameterNode =
-    { Name: string
-      Type: string
-      Node: Node
-      KeywordOnly: bool }
+    {
+        Name: string
+        Type: string
+        Node: Node
+        KeywordOnly: bool
+    }
 
 /// Detects adjacent, identically typed non-boolean primitive parameters that callers can accidentally
 /// transpose.
@@ -50,13 +52,15 @@ let private findSwapRiskViolations
         && not (Set.contains first.Type booleanTypeNames)
         && not (first.KeywordOnly && second.KeywordOnly))
     |> List.map (fun (first, second) ->
-        { Line = (positions.toPosition (nodeStartIndex first.Node)).Line
-          Column = (positions.toPosition (nodeStartIndex first.Node)).Column
-          Type = PrimitiveObsession
-          Severity = Medium
-          Message =
-            $"Primitive obsession: consecutive parameters '%s{first.Name}: %s{first.Type}' and '%s{second.Name}: %s{second.Type}' share the same primitive type — a caller can swap them and nothing will complain. Consider %s{language.DistinctTypeAdvice} so the type checker catches it."
-          Hotspots = [] })
+        {
+            Line = (positions.toPosition (nodeStartIndex first.Node)).Line
+            Column = (positions.toPosition (nodeStartIndex first.Node)).Column
+            Type = PrimitiveObsession
+            Severity = Medium
+            Message =
+                $"Primitive obsession: consecutive parameters '%s{first.Name}: %s{first.Type}' and '%s{second.Name}: %s{second.Type}' share the same primitive type — a caller can swap them and nothing will complain. Consider %s{language.DistinctTypeAdvice} so the type checker catches it."
+            Hotspots = []
+        })
 
 /// Detects two or more boolean parameters in a signature, adjacent or not: a non-boolean parameter
 /// between two booleans breaks swap-risk adjacency, but a caller reading `f(mode, name, notify)` still
@@ -75,13 +79,15 @@ let private findBooleanBlindness (typed: TypedParameterNode list) (positions: Po
         let suffix = if count > 2 then ", ..." else ""
 
         Some
-            { Line = (positions.toPosition (nodeStartIndex first.Node)).Line
-              Column = (positions.toPosition (nodeStartIndex first.Node)).Column
-              Type = PrimitiveObsession
-              Severity = Medium
-              Message =
-                $"Boolean blindness: this signature takes %d{count} boolean parameters (%s{names}), adjacent or not — a call site like f(true, false%s{suffix}) doesn't say which flag is which, and combinations invalid in this domain still type-check. Consider a single enum or union naming the valid combinations instead of independent booleans."
-              Hotspots = [] }
+            {
+                Line = (positions.toPosition (nodeStartIndex first.Node)).Line
+                Column = (positions.toPosition (nodeStartIndex first.Node)).Column
+                Type = PrimitiveObsession
+                Severity = Medium
+                Message =
+                    $"Boolean blindness: this signature takes %d{count} boolean parameters (%s{names}), adjacent or not — a call site like f(true, false%s{suffix}) doesn't say which flag is which, and combinations invalid in this domain still type-check. Consider a single enum or union naming the valid combinations instead of independent booleans."
+                Hotspots = []
+            }
     | _ -> None
 
 let private findParameterCollisions (paramsNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
@@ -96,10 +102,14 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
                     | Some parameter ->
                         keywordOnly,
                         typed
-                        @ [ { Name = parameter.Name
-                              Type = parameter.Type
-                              Node = node
-                              KeywordOnly = keywordOnly } ]
+                        @ [
+                            {
+                                Name = parameter.Name
+                                Type = parameter.Type
+                                Node = node
+                                KeywordOnly = keywordOnly
+                            }
+                        ]
                     | None -> keywordOnly, typed)
             (false, [])
 
@@ -181,18 +191,20 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
             let suffix = if Set.count values > sample.Length then ", …" else ""
 
             Some
-                { Line = position.Line
-                  Column = position.Column
-                  Type = PrimitiveObsession
-                  Severity = Low
-                  Message =
-                    sprintf
-                        "Stringly-typed control flow: '%s' is compared against %d distinct string literals (%s%s). Consider an Enum or Literal type to catch typos and get exhaustiveness checking."
-                        name
-                        (Set.count values)
-                        (String.concat ", " sample)
-                        suffix
-                  Hotspots = [] })
+                {
+                    Line = position.Line
+                    Column = position.Column
+                    Type = PrimitiveObsession
+                    Severity = Low
+                    Message =
+                        sprintf
+                            "Stringly-typed control flow: '%s' is compared against %d distinct string literals (%s%s). Consider an Enum or Literal type to catch typos and get exhaustiveness checking."
+                            name
+                            (Set.count values)
+                            (String.concat ", " sample)
+                            suffix
+                    Hotspots = []
+                })
 
 /// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
 /// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
@@ -224,5 +236,7 @@ let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "primitiveObsession"
-      Run = analyzePrimitiveObsession }
+    {
+        Name = "primitiveObsession"
+        Run = analyzePrimitiveObsession
+    }

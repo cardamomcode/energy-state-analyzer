@@ -15,11 +15,13 @@ open Energy.Tests.TestUtils
 // recognize decision-point strings consistently in every supported grammar.
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/magic_string.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicString.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/MagicString.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MagicString.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magic_string.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/magic_string.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/magicString.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/MagicString.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/MagicString.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/magic_string.cpp"
+        ]
 
     let fixtureTests =
         cases
@@ -51,7 +53,8 @@ let tests =
     testList (
         "Integration: magic strings (real code examples)",
         fixtureTests
-        @ [ testAsync (
+        @ [
+            testAsync (
                 "Python membership strings and repeated dictionary keys are grouped",
                 (fun _ ->
                     toAsync (
@@ -101,10 +104,13 @@ let tests =
                                     "magic_string.py"
                                     { defaultThresholds with
                                         MagicString =
-                                            { Enabled = false
-                                              MinDuplicates = 2
-                                              Allowlist = []
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = false
+                                                MinDuplicates = 2
+                                                Allowlist = []
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicStrings
                                 |> _.Violations
 
@@ -116,10 +122,13 @@ let tests =
                                     "magic_string.py"
                                     { defaultThresholds with
                                         MagicString =
-                                            { Enabled = true
-                                              MinDuplicates = 1
-                                              Allowlist = [ ""; "utf-8"; "__main__" ]
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = true
+                                                MinDuplicates = 1
+                                                Allowlist = [ ""; "utf-8"; "__main__" ]
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicStrings
                                 |> _.Violations
 
@@ -131,10 +140,13 @@ let tests =
                                     "magic_string.py"
                                     { defaultThresholds with
                                         MagicString =
-                                            { Enabled = true
-                                              MinDuplicates = 2
-                                              Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = true
+                                                MinDuplicates = 2
+                                                Allowlist = [ ""; "utf-8"; "__main__"; "pending" ]
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicStrings
                                 |> _.Violations
 
@@ -143,7 +155,9 @@ let tests =
                             assertThat
                                 (violationsIn singleUse clean
                                  |> List.filter (fun v -> v.Type = Magic)
-                                 |> List.length > 0)
+                                 |> List.length
+                                    >
+                                    0)
                                 isTrue
 
                             assertThat
@@ -173,10 +187,13 @@ let tests =
                                     "src/test/magicString.py"
                                     { defaultThresholds with
                                         MagicString =
-                                            { Enabled = true
-                                              MinDuplicates = 2
-                                              Allowlist = [ ""; "utf-8"; "__main__" ]
-                                              IncludeTestFiles = false } }
+                                            {
+                                                Enabled = true
+                                                MinDuplicates = 2
+                                                Allowlist = [ ""; "utf-8"; "__main__" ]
+                                                IncludeTestFiles = false
+                                            }
+                                    }
                                 |> analyzeMagicStrings
                                 |> _.Violations
 
@@ -188,10 +205,13 @@ let tests =
                                     "src/test/magicString.py"
                                     { defaultThresholds with
                                         MagicString =
-                                            { Enabled = true
-                                              MinDuplicates = 2
-                                              Allowlist = [ ""; "utf-8"; "__main__" ]
-                                              IncludeTestFiles = true } }
+                                            {
+                                                Enabled = true
+                                                MinDuplicates = 2
+                                                Allowlist = [ ""; "utf-8"; "__main__" ]
+                                                IncludeTestFiles = true
+                                            }
+                                    }
                                 |> analyzeMagicStrings
                                 |> _.Violations
 
@@ -208,5 +228,6 @@ let tests =
                                 (isEqualTo 1)
                         }
                     ))
-            ) ]
+            )
+        ]
     )

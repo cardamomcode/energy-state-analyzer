@@ -11,11 +11,13 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/error_shadowing.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/errorShadowing.ts"
-          "F#", FSharp.fSharpLanguageAdapter, "fsharp/ErrorShadowing.fs"
-          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/errorShadowing.kt"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/error_shadowing.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/error_shadowing.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/errorShadowing.ts"
+            "F#", FSharp.fSharpLanguageAdapter, "fsharp/ErrorShadowing.fs"
+            "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/errorShadowing.kt"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/error_shadowing.cpp"
+        ]
 
     testList (
         "Integration: error handling shadows logic",
@@ -47,7 +49,10 @@ let tests =
                                              ProtectedScope =
                                                  { defaultErrorShadowingThresholds.ProtectedScope with
                                                      Threshold = 0.0
-                                                     MinItems = 1 } } }
+                                                     MinItems = 1
+                                                 }
+                                         }
+                                 }
 
                              let protectedFindings =
                                  createTestContext source tree language fixture permissiveOptions
@@ -64,7 +69,8 @@ let tests =
                          }
                      )
              )))
-        @ [ testAsync (
+        @ [
+            testAsync (
                 "does not flag ordinary recovery inside a nested function",
                 fun _ ->
                     toAsync (
@@ -136,7 +142,10 @@ let tests =
                                         { defaultErrorShadowingThresholds with
                                             ProtectedScope =
                                                 { defaultErrorShadowingThresholds.ProtectedScope with
-                                                    Threshold = 0.4 } } }
+                                                    Threshold = 0.4
+                                                }
+                                        }
+                                }
 
                             let violations =
                                 createTestContext
@@ -181,7 +190,10 @@ let tests =
                                             Recovery =
                                                 { defaultErrorShadowingThresholds.Recovery with
                                                     Threshold = 0.0
-                                                    MinItems = 1 } } }
+                                                    MinItems = 1
+                                                }
+                                        }
+                                }
 
                             let violations =
                                 createTestContext
@@ -204,7 +216,8 @@ let tests =
                 fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture Python.pythonLanguageAdapter "python/error_shadowing.py"
+                            let! (source, tree) =
+                                parseFixture Python.pythonLanguageAdapter "python/error_shadowing.py"
 
                             let options =
                                 { defaultAnalyzeOptions with
@@ -212,16 +225,22 @@ let tests =
                                         { defaultErrorShadowingThresholds with
                                             ProtectedScope =
                                                 { defaultErrorShadowingThresholds.ProtectedScope with
-                                                    Threshold = 0.0 }
+                                                    Threshold = 0.0
+                                                }
                                             Recovery =
                                                 { defaultErrorShadowingThresholds.Recovery with
-                                                    Threshold = 0.0 } } }
+                                                    Threshold = 0.0
+                                                }
+                                        }
+                                }
 
                             let violations =
-                                { Source = source
-                                  Tree = tree
-                                  Language = Python.pythonLanguageAdapter
-                                  FileName = "python/error_shadowing.py" }
+                                {
+                                    Source = source
+                                    Tree = tree
+                                    Language = Python.pythonLanguageAdapter
+                                    FileName = "python/error_shadowing.py"
+                                }
                                 |> analyzeWith options
                                 |> _.Violations
 
@@ -239,16 +258,22 @@ let tests =
                                         { options.ErrorShadowing with
                                             ProtectedScope =
                                                 { options.ErrorShadowing.ProtectedScope with
-                                                    Threshold = 1.0 }
+                                                    Threshold = 1.0
+                                                }
                                             Recovery =
                                                 { options.ErrorShadowing.Recovery with
-                                                    Threshold = 1.0 } } }
+                                                    Threshold = 1.0
+                                                }
+                                        }
+                                }
 
                             let strictViolations =
-                                { Source = source
-                                  Tree = tree
-                                  Language = Python.pythonLanguageAdapter
-                                  FileName = "python/error_shadowing.py" }
+                                {
+                                    Source = source
+                                    Tree = tree
+                                    Language = Python.pythonLanguageAdapter
+                                    FileName = "python/error_shadowing.py"
+                                }
                                 |> analyzeWith strictOptions
                                 |> _.Violations
 
@@ -261,5 +286,6 @@ let tests =
                                 (isEqualTo 0)
                         }
                     )
-            ) ]
+            )
+        ]
     )

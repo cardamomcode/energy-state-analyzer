@@ -62,12 +62,14 @@ let private violationJson violation =
         |> List.toArray
 
     createObj
-        [ "line" ==> violation.Line
-          "column" ==> violation.Column
-          "type" ==> violationTypeName violation.Type
-          "severity" ==> severityName violation.Severity
-          "message" ==> violation.Message
-          "hotspots" ==> hotspots ]
+        [
+            "line" ==> violation.Line
+            "column" ==> violation.Column
+            "type" ==> violationTypeName violation.Type
+            "severity" ==> severityName violation.Severity
+            "message" ==> violation.Message
+            "hotspots" ==> hotspots
+        ]
 
 /// Render per-file and aggregate JSON for agent consumers from raw results.
 ///
@@ -87,30 +89,38 @@ let summaryJson results =
             let file = summarizeFile result
 
             createObj
-                [ "filePath" ==> file.FilePath
-                  "score" ==> file.Score
-                  "counts"
-                  ==> createObj
-                          [ "low" ==> file.Counts.Low
-                            "medium" ==> file.Counts.Medium
-                            "high" ==> file.Counts.High ]
-                  "byType"
-                  ==> (file.ByType
-                       |> Map.toList
-                       |> List.map (fun (key, value) -> key ==> value)
-                       |> createObj)
-                  "violations" ==> (result.Violations |> List.map violationJson |> List.toArray) ])
+                [
+                    "filePath" ==> file.FilePath
+                    "score" ==> file.Score
+                    "counts"
+                    ==> createObj
+                            [
+                                "low" ==> file.Counts.Low
+                                "medium" ==> file.Counts.Medium
+                                "high" ==> file.Counts.High
+                            ]
+                    "byType"
+                    ==> (file.ByType
+                         |> Map.toList
+                         |> List.map (fun (key, value) -> key ==> value)
+                         |> createObj)
+                    "violations" ==> (result.Violations |> List.map violationJson |> List.toArray)
+                ])
         |> List.toArray
 
     createObj
-        [ "files" ==> files
-          "filesScanned" ==> results.Length
-          "totalScore" ==> summary.TotalScore
-          "totalCounts"
-          ==> createObj
-                  [ "low" ==> summary.TotalCounts.Low
-                    "medium" ==> summary.TotalCounts.Medium
-                    "high" ==> summary.TotalCounts.High ] ]
+        [
+            "files" ==> files
+            "filesScanned" ==> results.Length
+            "totalScore" ==> summary.TotalScore
+            "totalCounts"
+            ==> createObj
+                    [
+                        "low" ==> summary.TotalCounts.Low
+                        "medium" ==> summary.TotalCounts.Medium
+                        "high" ==> summary.TotalCounts.High
+                    ]
+        ]
 
 let private diffJson entries =
     entries
@@ -123,11 +133,13 @@ let private diffJson entries =
             | Unchanged -> "unchanged"
 
         createObj
-            [ "filePath" ==> entry.FilePath
-              "baseScore" ==> entry.BaseScore
-              "headScore" ==> entry.HeadScore
-              "delta" ==> entry.Delta
-              "status" ==> status ])
+            [
+                "filePath" ==> entry.FilePath
+                "baseScore" ==> entry.BaseScore
+                "headScore" ==> entry.HeadScore
+                "delta" ==> entry.Delta
+                "status" ==> status
+            ])
     |> List.toArray
     |> box
 
@@ -202,8 +214,10 @@ let rec private analyzeChanged baseRef thresholds files bases heads =
             | Ok headViolations ->
                 let head =
                     summarizeFile
-                        { FilePath = filePath
-                          Violations = headViolations }
+                        {
+                            FilePath = filePath
+                            Violations = headViolations
+                        }
 
                 match readAtRef baseRef filePath with
                 | None -> return! analyzeChanged baseRef thresholds remaining bases (head :: heads)
@@ -215,8 +229,10 @@ let rec private analyzeChanged baseRef thresholds files bases heads =
                     | Ok baseViolations ->
                         let baseSummary =
                             summarizeFile
-                                { FilePath = filePath
-                                  Violations = baseViolations }
+                                {
+                                    FilePath = filePath
+                                    Violations = baseViolations
+                                }
 
                         return! analyzeChanged baseRef thresholds remaining (baseSummary :: bases) (head :: heads)
     }

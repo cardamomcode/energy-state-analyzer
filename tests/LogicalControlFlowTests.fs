@@ -10,9 +10,11 @@ open Energy.Tests.TestUtils
 
 let tests =
     let cases =
-        [ "Python", Python.pythonLanguageAdapter, "python/logical_control_flow.py"
-          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/logicalControlFlow.ts"
-          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/logical_control_flow.cpp" ]
+        [
+            "Python", Python.pythonLanguageAdapter, "python/logical_control_flow.py"
+            "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/logicalControlFlow.ts"
+            "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/logical_control_flow.cpp"
+        ]
 
     testList (
         "Integration: logical control flow",

@@ -16,16 +16,20 @@ type ProblemTag =
     | Deprecated
 
 type ProblemRange =
-    { Line: int
-      StartColumn: int
-      EndColumn: int }
+    {
+        Line: int
+        StartColumn: int
+        EndColumn: int
+    }
 
 type DiagnosticSpec =
-    { Range: ProblemRange
-      Message: string
-      Severity: ProblemSeverity
-      Code: string
-      Tags: ProblemTag list }
+    {
+        Range: ProblemRange
+        Message: string
+        Severity: ProblemSeverity
+        Code: string
+        Tags: ProblemTag list
+    }
 
 let private diagnosticRangeWidth = 10
 
@@ -62,14 +66,18 @@ let diagnosticSpecs (violations: EnergyViolation list) : DiagnosticSpec list =
 
         let lead = List.head ordered
 
-        { Range =
-            { Line = lead.Line
-              StartColumn = lead.Column
-              EndColumn = lead.Column + diagnosticRangeWidth }
-          Message = ordered |> List.map _.Message |> String.concat " | "
-          Severity = severityFor lead.Severity
-          Code =
-            ordered
-            |> List.map (fun violation -> violationRuleId violation.Type)
-            |> String.concat ","
-          Tags = ordered |> List.collect (fun violation -> tagsFor violation.Type) })
+        {
+            Range =
+                {
+                    Line = lead.Line
+                    StartColumn = lead.Column
+                    EndColumn = lead.Column + diagnosticRangeWidth
+                }
+            Message = ordered |> List.map _.Message |> String.concat " | "
+            Severity = severityFor lead.Severity
+            Code =
+                ordered
+                |> List.map (fun violation -> violationRuleId violation.Type)
+                |> String.concat ","
+            Tags = ordered |> List.collect (fun violation -> tagsFor violation.Type)
+        })

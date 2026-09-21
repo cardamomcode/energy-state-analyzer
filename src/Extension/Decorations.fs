@@ -11,10 +11,12 @@ open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Presentation
 
 type DecorationSet =
-    { HighEnergy: obj
-      MediumEnergy: obj
-      LowEnergy: obj
-      ComplexityHeat: obj array }
+    {
+        HighEnergy: obj
+        MediumEnergy: obj
+        LowEnergy: obj
+        ComplexityHeat: obj array
+    }
 
 let private heatBandAlphas = [| 0.1; 0.18; 0.28; 0.42 |]
 
@@ -34,10 +36,12 @@ let private lightningIcon color =
 
 let private decorationOptions backgroundColor gutterIcon =
     createObj
-        [ "backgroundColor" ==> backgroundColor
-          "borderRadius" ==> "2px"
-          "gutterIconPath" ==> gutterIcon
-          "gutterIconSize" ==> "contain" ]
+        [
+            "backgroundColor" ==> backgroundColor
+            "borderRadius" ==> "2px"
+            "gutterIconPath" ==> gutterIcon
+            "gutterIconSize" ==> "contain"
+        ]
 
 let createDecorations (colors: EnergyColors) : DecorationSet =
     let create color fallback =
@@ -51,13 +55,17 @@ let createDecorations (colors: EnergyColors) : DecorationSet =
             createTextEditorDecorationType
                 window
                 (createObj
-                    [ "backgroundColor"
-                      ==> hexToRgba colors.HighEnergy alpha defaultEnergyColors.HighEnergy ]))
+                    [
+                        "backgroundColor"
+                        ==> hexToRgba colors.HighEnergy alpha defaultEnergyColors.HighEnergy
+                    ]))
 
-    { HighEnergy = create colors.HighEnergy defaultEnergyColors.HighEnergy
-      MediumEnergy = create colors.MediumEnergy defaultEnergyColors.MediumEnergy
-      LowEnergy = create colors.LowEnergy defaultEnergyColors.LowEnergy
-      ComplexityHeat = heat }
+    {
+        HighEnergy = create colors.HighEnergy defaultEnergyColors.HighEnergy
+        MediumEnergy = create colors.MediumEnergy defaultEnergyColors.MediumEnergy
+        LowEnergy = create colors.LowEnergy defaultEnergyColors.LowEnergy
+        ComplexityHeat = heat
+    }
 
 let disposeDecorations (decorations: DecorationSet) =
     [ decorations.HighEnergy; decorations.MediumEnergy; decorations.LowEnergy ]
@@ -69,9 +77,15 @@ let private makeDecorationOption violation lineText =
     let range = rangeFor lineText violation
 
     createObj
-        [ "range"
-          ==> makeRange (Line range.StartLine) (Column range.StartColumn) (Line range.EndLine) (Column range.EndColumn)
-          "hoverMessage" ==> "🔋 Energy Violation: " + violation.Message ]
+        [
+            "range"
+            ==> makeRange
+                    (Line range.StartLine)
+                    (Column range.StartColumn)
+                    (Line range.EndLine)
+                    (Column range.EndColumn)
+            "hoverMessage" ==> "🔋 Energy Violation: " + violation.Message
+        ]
 
 let applyDecorations (editor: obj) (decorations: DecorationSet) (violations: EnergyViolation list) =
     let document = editorDocument editor

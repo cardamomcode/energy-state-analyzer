@@ -24,10 +24,12 @@ let defaultThresholds = defaultAnalyzeOptions
 /// The parser and file-system adapters deliberately stay outside this input: Core transforms
 /// already-available source and syntax data without knowing whether it came from VS Code or Node.
 type AnalysisInput =
-    { Source: string
-      Tree: Node
-      Language: LanguageAdapter
-      FileName: string }
+    {
+        Source: string
+        Tree: Node
+        Language: LanguageAdapter
+        FileName: string
+    }
 
 /// The value produced by the host-independent analyzer pipeline.
 type AnalysisResult = { Violations: EnergyViolation list }
@@ -64,13 +66,15 @@ let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
     completed.Violations |> List.rev |> applySuppressionStage completed
 
 let private createContext (options: AnalyzeOptions) (input: AnalysisInput) : AnalysisContext =
-    { Source = input.Source
-      Tree = input.Tree
-      Positions = createPositionLookup input.Source
-      Language = input.Language
-      FileName = input.FileName
-      Options = options
-      Violations = [] }
+    {
+        Source = input.Source
+        Tree = input.Tree
+        Positions = createPositionLookup input.Source
+        Language = input.Language
+        FileName = input.FileName
+        Options = options
+        Violations = []
+    }
 
 let private toResult violations : AnalysisResult = { Violations = violations }
 

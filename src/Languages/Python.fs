@@ -56,10 +56,12 @@ let private lambdaParametersNodeType = NodeType "lambda_parameters"
 
 /// Keep the existing Python parameter-node contract in one reusable list.
 let private parameterChildTypes =
-    [ identifierNodeType
-      NodeType "default_parameter"
-      NodeType "typed_parameter"
-      typedDefaultParameterNodeType ]
+    [
+        identifierNodeType
+        NodeType "default_parameter"
+        NodeType "typed_parameter"
+        typedDefaultParameterNodeType
+    ]
 
 /// Extract explicit parameters from the supplied Python parameter container.
 let private parametersOf containerType (node: Node) =
@@ -100,21 +102,29 @@ let private anonymousBinding (node: Node) : CallableRole * string option =
 let private callableViews (node: Node) : CallableView list =
     match nodeType node with
     | nodeType when nodeType = functionDefinitionNodeType ->
-        [ { Anchor = node
-            Body = nodeField "body" node |> Option.defaultValue node
-            ReturnTypeRoot = node
-            Role = NamedDefinition
-            BindingName = nodeField "name" node |> Option.map nodeText
-            Parameters = parametersOf parametersNodeType node } ]
+        [
+            {
+                Anchor = node
+                Body = nodeField "body" node |> Option.defaultValue node
+                ReturnTypeRoot = node
+                Role = NamedDefinition
+                BindingName = nodeField "name" node |> Option.map nodeText
+                Parameters = parametersOf parametersNodeType node
+            }
+        ]
     | nodeType when nodeType = lambdaNodeType ->
         let role, bindingName = anonymousBinding node
 
-        [ { Anchor = node
-            Body = nodeField "body" node |> Option.defaultValue node
-            ReturnTypeRoot = node
-            Role = role
-            BindingName = bindingName
-            Parameters = parametersOf lambdaParametersNodeType node } ]
+        [
+            {
+                Anchor = node
+                Body = nodeField "body" node |> Option.defaultValue node
+                ReturnTypeRoot = node
+                Role = role
+                BindingName = bindingName
+                Parameters = parametersOf lambdaParametersNodeType node
+            }
+        ]
     | _ -> []
 
 /// Recognize a docstring — a bare string-literal statement — so it is discarded like a comment.
@@ -150,21 +160,25 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
 
         protectedItems
         |> Option.map (fun protectedItems ->
-            { Anchor = node
-              ProtectedBody = protectedItems
-              ProtectedItems = protectedItems
-              RecoveryItems =
-                children
-                |> List.filter (fun child ->
-                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.collect bodyItems
-              RecoveryBodies =
-                children
-                |> List.filter (fun child ->
-                    nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.map (fun clause ->
-                    { Anchor = clause
-                      Items = bodyItems clause }) })
+            {
+                Anchor = node
+                ProtectedBody = protectedItems
+                ProtectedItems = protectedItems
+                RecoveryItems =
+                    children
+                    |> List.filter (fun child ->
+                        nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                    |> List.collect bodyItems
+                RecoveryBodies =
+                    children
+                    |> List.filter (fun child ->
+                        nodeType child = exceptClauseNodeType || nodeType child = finallyClauseNodeType)
+                    |> List.map (fun clause ->
+                        {
+                            Anchor = clause
+                            Items = bodyItems clause
+                        })
+            })
 
 let private isFirstChild (node: Node) (parent: Node) =
     parent
@@ -194,243 +208,258 @@ let private isFormattedStringParent (node: Node) (parent: Node) =
 
 /// Map Python grammar constructs to the shared detector contracts.
 let pythonLanguageAdapter: LanguageAdapter =
-    { Id = "python"
-      GrammarPath = "grammars/tree-sitter-python.wasm"
-      NodeTypes =
-        { Block = Some(NodeType "block")
-          Parameters = parametersNodeType
-          IfStatement = Some(NodeType "if_statement")
-          ElseClause = Some(NodeType "else_clause")
-          ForStatement = Some(NodeType "for_statement")
-          WhileStatement = Some(NodeType "while_statement")
-          ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some lambdaNodeType
-          ImportStatement = Some(NodeType "import_statement")
-          ImportFromStatement = Some(NodeType "import_from_statement")
-          ExpressionStatement = Some(NodeType "expression_statement")
-          Assignment = Some(NodeType "assignment")
-          Module = Some(NodeType "module")
-          ExportStatement = None
-          Comment = Some(NodeType "comment")
-          IntegerLiteral = Some(NodeType "integer")
-          FloatLiteral = Some(NodeType "float")
-          StringLiteral = Some(NodeType "string") }
-      IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
-      // Python has no merged-binding shape: one definition node is one function.
-      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
-      GetCallableViews = callableViews
-      IsStaticMethod =
-        fun node ->
-            nodeParent node
-            |> Option.filter (fun parent -> nodeType parent = NodeType "decorated_definition")
-            |> Option.exists (fun decorated ->
-                decorated
-                |> nodeChildren
-                |> List.exists (fun child -> nodeType child = NodeType "decorator" && nodeText child = "@staticmethod"))
-      ParameterChildTypes = parameterChildTypes
-      DecisionNodeTypes =
-        [ NodeType "if_statement"
-          NodeType "elif_clause"
-          NodeType "while_statement"
-          NodeType "for_statement"
-          NodeType "except_clause"
-          NodeType "conditional_expression"
-          NodeType "match_statement" ]
-      CyclomaticBranchCount =
-        fun node ->
-            if nodeType node <> NodeType "match_statement" then
-                None
-            else
-                let cases =
-                    nodeNamedChildren node
-                    |> List.collect nodeNamedChildren
-                    |> List.filter (fun child -> nodeType child = NodeType "case_clause")
+    {
+        Id = "python"
+        GrammarPath = "grammars/tree-sitter-python.wasm"
+        NodeTypes =
+            {
+                Block = Some(NodeType "block")
+                Parameters = parametersNodeType
+                IfStatement = Some(NodeType "if_statement")
+                ElseClause = Some(NodeType "else_clause")
+                ForStatement = Some(NodeType "for_statement")
+                WhileStatement = Some(NodeType "while_statement")
+                ConditionalExpression = Some(NodeType "conditional_expression")
+                Lambda = Some lambdaNodeType
+                ImportStatement = Some(NodeType "import_statement")
+                ImportFromStatement = Some(NodeType "import_from_statement")
+                ExpressionStatement = Some(NodeType "expression_statement")
+                Assignment = Some(NodeType "assignment")
+                Module = Some(NodeType "module")
+                ExportStatement = None
+                Comment = Some(NodeType "comment")
+                IntegerLiteral = Some(NodeType "integer")
+                FloatLiteral = Some(NodeType "float")
+                StringLiteral = Some(NodeType "string")
+            }
+        IsFunctionDefinition = fun node -> nodeType node = functionDefinitionNodeType
+        // Python has no merged-binding shape: one definition node is one function.
+        GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+        GetCallableViews = callableViews
+        IsStaticMethod =
+            fun node ->
+                nodeParent node
+                |> Option.filter (fun parent -> nodeType parent = NodeType "decorated_definition")
+                |> Option.exists (fun decorated ->
+                    decorated
+                    |> nodeChildren
+                    |> List.exists (fun child ->
+                        nodeType child = NodeType "decorator" && nodeText child = "@staticmethod"))
+        ParameterChildTypes = parameterChildTypes
+        DecisionNodeTypes =
+            [
+                NodeType "if_statement"
+                NodeType "elif_clause"
+                NodeType "while_statement"
+                NodeType "for_statement"
+                NodeType "except_clause"
+                NodeType "conditional_expression"
+                NodeType "match_statement"
+            ]
+        CyclomaticBranchCount =
+            fun node ->
+                if nodeType node <> NodeType "match_statement" then
+                    None
+                else
+                    let cases =
+                        nodeNamedChildren node
+                        |> List.collect nodeNamedChildren
+                        |> List.filter (fun child -> nodeType child = NodeType "case_clause")
 
-                let hasFallback =
-                    cases
-                    |> List.exists (fun caseClause -> nodeText caseClause |> _.Contains("case _"))
+                    let hasFallback =
+                        cases
+                        |> List.exists (fun caseClause -> nodeText caseClause |> _.Contains("case _"))
 
-                Some(cases.Length + if hasFallback then 0 else 1)
-      GetCognitiveStructure =
-        CognitiveSyntax.classify
-            [ NodeType "if_statement"
-              NodeType "elif_clause"
-              NodeType "for_statement"
-              NodeType "while_statement"
-              NodeType "except_clause"
-              NodeType "match_statement" ]
-      NestingControlTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "while_statement"
-          NodeType "with_statement"
-          NodeType "try_statement"
-          NodeType "match_statement" ]
-      GetBooleanOperator =
-        fun node ->
-            if nodeType node = NodeType "boolean_operator" then
-                nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = andOperatorNodeType || nodeType c = NodeType "or")
-                |> Option.map (fun c -> if nodeType c = andOperatorNodeType then And else Or)
-            else
-                None
-      // decision: `else_clause` is shared by if/for/while/try in tree-sitter-python, but only a
-      // try's else is a real decision point (mirrors ruff's C901: a non-vacuous try-else adds 1).
-      // if/for/while's else already scores 0 via DecisionNodeTypes — this predicate exists to avoid
-      // conflating try's else with those.
-      IsTryElseClause =
-        fun node ->
-            nodeType node = NodeType "else_clause"
-            && (match nodeParent node with
-                | Some p -> nodeType p = NodeType "try_statement"
-                | None -> false)
-      VariableReferenceNodeTypes = [ identifierNodeType; attributeNodeType ]
-      ExtractTypedParameter =
-        fun node ->
-            if
-                nodeType node = NodeType "typed_parameter"
-                || nodeType node = typedDefaultParameterNodeType
-            then
-                let nameNode =
-                    nodeChildren node |> List.tryFind (fun c -> nodeType c = identifierNodeType)
-
-                let typeNode =
-                    nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
-
-                Option.map2 (fun n t -> { Name = nodeText n; Type = nodeText t }) nameNode typeNode
-            else
-                None
-      ExtractReturnType =
-        fun node ->
-            match nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = NodeType "->") with
-            | Some arrowIndex ->
-                let children = nodeChildren node
-
-                if arrowIndex + 1 < List.length children then
-                    let typeNode = children.[arrowIndex + 1]
-
-                    if nodeType typeNode = typeAnnotationNodeType then
-                        Some(nodeText typeNode)
-                    else
-                        None
+                    Some(cases.Length + if hasFallback then 0 else 1)
+        GetCognitiveStructure =
+            CognitiveSyntax.classify
+                [
+                    NodeType "if_statement"
+                    NodeType "elif_clause"
+                    NodeType "for_statement"
+                    NodeType "while_statement"
+                    NodeType "except_clause"
+                    NodeType "match_statement"
+                ]
+        NestingControlTypes =
+            [
+                NodeType "if_statement"
+                NodeType "for_statement"
+                NodeType "while_statement"
+                NodeType "with_statement"
+                NodeType "try_statement"
+                NodeType "match_statement"
+            ]
+        GetBooleanOperator =
+            fun node ->
+                if nodeType node = NodeType "boolean_operator" then
+                    nodeChildren node
+                    |> List.tryFind (fun c -> nodeType c = andOperatorNodeType || nodeType c = NodeType "or")
+                    |> Option.map (fun c -> if nodeType c = andOperatorNodeType then And else Or)
                 else
                     None
-            | None -> None
-      GenericBrackets = { Open = "["; Close = "]" }
-      PrimitiveTypeNames = Set.ofList [ "str"; "int"; "float"; "bool"; "bytes" ]
-      KeywordOnlyBoundaryTypes = [ NodeType "keyword_separator"; NodeType "list_splat_pattern" ]
-      DistinctTypeAdvice = "NewType or a dataclass"
-      GetEqualityComparisons =
-        fun node ->
-            if nodeType node = comparisonOperatorNodeType then
-                let children = nodeChildren node
-
-                children
-                |> List.mapi (fun i c -> i, c)
-                |> List.filter (fun (i, _) -> i >= 1 && i + 1 < List.length children)
-                |> List.filter (fun (_, c) -> nodeType c = NodeType "==")
-                |> List.map (fun (i, _) ->
-                    { Left = children.[i - 1]
-                      Right = children.[i + 1] })
-            else
-                []
-      // Python's match is a `match ... case` statement; its string-case dispatch is already captured by
-      // the equality/membership hooks for the if/elif form this detector models — the match form is a
-      // documented gap shared with TS/Kotlin/C++ (only F#'s `match` gets the dedicated hook).
-      GetMatchStringCases = fun _ -> None
-      // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
-      // comparison node) and F# has no direct construct; both still accumulate distinct literals across
-      // separate equality comparisons via GetEqualityComparisons.
-      GetMembershipComparisons = PythonAdapterSyntax.membershipComparisons
-      IsMatchCaseLiteral =
-        fun node ->
-            nodeType node = NodeType "string"
-            || nodeType node = NodeType "integer"
-            || nodeType node = NodeType "float"
-      GetElseIfBranches = fun node -> nodeChildren node |> List.filter (fun c -> nodeType c = NodeType "elif_clause")
-      SubscriptNodeTypes = [ NodeType "subscript" ]
-      // decision: compares node identity by `.id`, not reference equality — web-tree-sitter mints a
-      // fresh JS wrapper object on every `.children`/`.parent` access, so two accessors that reach the
-      // same underlying tree node are not reference-equal even though `.id` matches.
-      IsFormattedOrInterpolatedString =
-        fun node ->
-            match
-                nodeChildren node
-                |> List.tryFind (fun c -> nodeType c = NodeType "interpolation")
-            with
-            | Some _ -> true
-            | None -> nodeParent node |> Option.exists (isFormattedStringParent node)
-      IsDefaultParameterValue =
-        fun node ->
-            match nodeParent node with
-            | Some parent ->
-                let pc = nodeChildren parent
-
-                (nodeType parent = NodeType "default_parameter"
-                 || nodeType parent = typedDefaultParameterNodeType)
-                && List.length pc > 0
-                && nodeId (pc.[List.length pc - 1]) = nodeId node
-            | None -> false
-      IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
-      // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument` node, so a
-      // labeled boolean's parent is never `argument_list` directly.
-      IsPositionalCallArgument =
-        fun node ->
-            match nodeParent node with
-            | Some parent ->
-                nodeType parent = argumentListNodeType
-                && (match nodeParent parent with
-                    | Some pp -> nodeType pp = callNodeType
+        // decision: `else_clause` is shared by if/for/while/try in tree-sitter-python, but only a
+        // try's else is a real decision point (mirrors ruff's C901: a non-vacuous try-else adds 1).
+        // if/for/while's else already scores 0 via DecisionNodeTypes — this predicate exists to avoid
+        // conflating try's else with those.
+        IsTryElseClause =
+            fun node ->
+                nodeType node = NodeType "else_clause"
+                && (match nodeParent node with
+                    | Some p -> nodeType p = NodeType "try_statement"
                     | None -> false)
-            | None -> false
-      // Python has no dedicated compile-time-constant marker — module-scope assignment is the only
-      // signal (see isInConstantContext in magicNumber.ts).
-      IsExplicitConstant = fun _ -> false
-      // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
-      // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
-      ImportInfo = PythonAdapterSyntax.importInfo
-      IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
-      GetClassName =
-        fun node ->
-            nodeChildren node
-            |> List.tryFind (fun c -> nodeType c = identifierNodeType)
-            |> Option.map nodeText
-      // `class Foo(Bar, Baz):` -> ['Bar', 'Baz']; `class Foo(meta=Meta):` skips the keyword_argument
-      // (not a base class); `class Foo(pkg.Bar):` -> ['pkg.Bar'] via the attribute node's own text.
-      GetBaseClassNames =
-        fun node ->
-            match nodeChildren node |> List.tryFind (fun c -> nodeType c = argumentListNodeType) with
-            | Some argumentList ->
-                argumentList
-                |> nodeChildren
-                |> List.filter (fun c -> nodeType c = identifierNodeType || nodeType c = attributeNodeType)
-                |> List.map nodeText
-            | None -> []
-      GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems
-      GetGuardedValidation =
-        ValidationSyntax.extract
-            { Containers = [ NodeType "block" ]
-              Conditional = NodeType "if_statement"
-              Rejections = [ NodeType "raise_statement" ]
-              Return = Some(NodeType "return_statement")
-              FailureCalls = []
-              EmptyValues = [ "None" ]
-              IsNonExecutable = isDocstring
-              BooleanLiteralValue =
-                fun node ->
-                    if nodeType node = NodeType "true" then Some LiteralTrue
-                    elif nodeType node = NodeType "false" then Some LiteralFalse
-                    else None
-              // decision: TypeGuard/TypeIs return annotations carry the narrowing across the call
-              // site, so a boolean validator spelled against them is not a plain boolean leak. The
-              // annotation parses as a `type` node that is a direct child of function_definition.
-              PreservesCheckedInformation =
-                fun node _ ->
-                    nodeChildren node
-                    |> List.exists (fun child ->
-                        nodeType child = NodeType "type"
-                        && (let text = nodeText child in
+        VariableReferenceNodeTypes = [ identifierNodeType; attributeNodeType ]
+        ExtractTypedParameter =
+            fun node ->
+                if
+                    nodeType node = NodeType "typed_parameter"
+                    || nodeType node = typedDefaultParameterNodeType
+                then
+                    let nameNode =
+                        nodeChildren node |> List.tryFind (fun c -> nodeType c = identifierNodeType)
 
-                            text.Contains("TypeGuard[", System.StringComparison.Ordinal)
-                            || text.Contains("TypeIs[", System.StringComparison.Ordinal))) } }
+                    let typeNode =
+                        nodeChildren node |> List.tryFind (fun c -> nodeType c = typeAnnotationNodeType)
+
+                    Option.map2 (fun n t -> { Name = nodeText n; Type = nodeText t }) nameNode typeNode
+                else
+                    None
+        ExtractReturnType =
+            fun node ->
+                match nodeChildren node |> List.tryFindIndex (fun c -> nodeType c = NodeType "->") with
+                | Some arrowIndex ->
+                    let children = nodeChildren node
+
+                    if arrowIndex + 1 < List.length children then
+                        let typeNode = children.[arrowIndex + 1]
+
+                        if nodeType typeNode = typeAnnotationNodeType then
+                            Some(nodeText typeNode)
+                        else
+                            None
+                    else
+                        None
+                | None -> None
+        GenericBrackets = { Open = "["; Close = "]" }
+        PrimitiveTypeNames = Set.ofList [ "str"; "int"; "float"; "bool"; "bytes" ]
+        KeywordOnlyBoundaryTypes = [ NodeType "keyword_separator"; NodeType "list_splat_pattern" ]
+        DistinctTypeAdvice = "NewType or a dataclass"
+        GetEqualityComparisons =
+            fun node ->
+                if nodeType node = comparisonOperatorNodeType then
+                    let children = nodeChildren node
+
+                    children
+                    |> List.mapi (fun i c -> i, c)
+                    |> List.filter (fun (i, _) -> i >= 1 && i + 1 < List.length children)
+                    |> List.filter (fun (_, c) -> nodeType c = NodeType "==")
+                    |> List.map (fun (i, _) ->
+                        {
+                            Left = children.[i - 1]
+                            Right = children.[i + 1]
+                        })
+                else
+                    []
+        // Python's match is a `match ... case` statement; its string-case dispatch is already captured by
+        // the equality/membership hooks for the if/elif form this detector models — the match form is a
+        // documented gap shared with TS/Kotlin/C++ (only F#'s `match` gets the dedicated hook).
+        GetMatchStringCases = fun _ -> None
+        // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
+        // comparison node) and F# has no direct construct; both still accumulate distinct literals across
+        // separate equality comparisons via GetEqualityComparisons.
+        GetMembershipComparisons = PythonAdapterSyntax.membershipComparisons
+        IsMatchCaseLiteral =
+            fun node ->
+                nodeType node = NodeType "string"
+                || nodeType node = NodeType "integer"
+                || nodeType node = NodeType "float"
+        GetElseIfBranches = fun node -> nodeChildren node |> List.filter (fun c -> nodeType c = NodeType "elif_clause")
+        SubscriptNodeTypes = [ NodeType "subscript" ]
+        // decision: compares node identity by `.id`, not reference equality — web-tree-sitter mints a
+        // fresh JS wrapper object on every `.children`/`.parent` access, so two accessors that reach the
+        // same underlying tree node are not reference-equal even though `.id` matches.
+        IsFormattedOrInterpolatedString =
+            fun node ->
+                match
+                    nodeChildren node
+                    |> List.tryFind (fun c -> nodeType c = NodeType "interpolation")
+                with
+                | Some _ -> true
+                | None -> nodeParent node |> Option.exists (isFormattedStringParent node)
+        IsDefaultParameterValue =
+            fun node ->
+                match nodeParent node with
+                | Some parent ->
+                    let pc = nodeChildren parent
+
+                    (nodeType parent = NodeType "default_parameter"
+                     || nodeType parent = typedDefaultParameterNodeType)
+                    && List.length pc > 0
+                    && nodeId (pc.[List.length pc - 1]) = nodeId node
+                | None -> false
+        IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
+        // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument` node, so a
+        // labeled boolean's parent is never `argument_list` directly.
+        IsPositionalCallArgument =
+            fun node ->
+                match nodeParent node with
+                | Some parent ->
+                    nodeType parent = argumentListNodeType
+                    && (match nodeParent parent with
+                        | Some pp -> nodeType pp = callNodeType
+                        | None -> false)
+                | None -> false
+        // Python has no dedicated compile-time-constant marker — module-scope assignment is the only
+        // signal (see isInConstantContext in magicNumber.ts).
+        IsExplicitConstant = fun _ -> false
+        // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
+        // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
+        ImportInfo = PythonAdapterSyntax.importInfo
+        IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
+        GetClassName =
+            fun node ->
+                nodeChildren node
+                |> List.tryFind (fun c -> nodeType c = identifierNodeType)
+                |> Option.map nodeText
+        // `class Foo(Bar, Baz):` -> ['Bar', 'Baz']; `class Foo(meta=Meta):` skips the keyword_argument
+        // (not a base class); `class Foo(pkg.Bar):` -> ['pkg.Bar'] via the attribute node's own text.
+        GetBaseClassNames =
+            fun node ->
+                match nodeChildren node |> List.tryFind (fun c -> nodeType c = argumentListNodeType) with
+                | Some argumentList ->
+                    argumentList
+                    |> nodeChildren
+                    |> List.filter (fun c -> nodeType c = identifierNodeType || nodeType c = attributeNodeType)
+                    |> List.map nodeText
+                | None -> []
+        GetErrorHandlingRegion = errorHandlingRegion
+        GetFunctionLogicalItems = bodyItems
+        GetGuardedValidation =
+            ValidationSyntax.extract
+                {
+                    Containers = [ NodeType "block" ]
+                    Conditional = NodeType "if_statement"
+                    Rejections = [ NodeType "raise_statement" ]
+                    Return = Some(NodeType "return_statement")
+                    FailureCalls = []
+                    EmptyValues = [ "None" ]
+                    IsNonExecutable = isDocstring
+                    BooleanLiteralValue =
+                        fun node ->
+                            if nodeType node = NodeType "true" then Some LiteralTrue
+                            elif nodeType node = NodeType "false" then Some LiteralFalse
+                            else None
+                    // decision: TypeGuard/TypeIs return annotations carry the narrowing across the call
+                    // site, so a boolean validator spelled against them is not a plain boolean leak. The
+                    // annotation parses as a `type` node that is a direct child of function_definition.
+                    PreservesCheckedInformation =
+                        fun node _ ->
+                            nodeChildren node
+                            |> List.exists (fun child ->
+                                nodeType child = NodeType "type"
+                                && (let text = nodeText child in
+
+                                    text.Contains("TypeGuard[", System.StringComparison.Ordinal)
+                                    || text.Contains("TypeIs[", System.StringComparison.Ordinal)))
+                }
+    }

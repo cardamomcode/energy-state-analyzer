@@ -30,15 +30,17 @@ let extractClassTypeInfo (positions: PositionLookup) node =
     let isTypedDict = List.contains "TypedDict" bases
     let position = positions.toPosition (nodeStartIndex node)
 
-    { Name =
-        childOfType "identifier" node
-        |> Option.map nodeText
-        |> Option.defaultValue "unknown"
-      Line = position.Line
-      BaseClasses = bases
-      IsTypedDict = isTypedDict
-      Fields =
-        if isTypedDict then
-            typedDictFields positions (childOfType "block" node)
-        else
-            [] }
+    {
+        Name =
+            childOfType "identifier" node
+            |> Option.map nodeText
+            |> Option.defaultValue "unknown"
+        Line = position.Line
+        BaseClasses = bases
+        IsTypedDict = isTypedDict
+        Fields =
+            if isTypedDict then
+                typedDictFields positions (childOfType "block" node)
+            else
+                []
+    }

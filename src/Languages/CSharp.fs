@@ -20,9 +20,11 @@ let private parameterListNodeType = NodeType "parameter_list"
 /// Keep the existing set of C# named-function forms explicit.
 let private namedFunctionNodeTypes =
     Set.ofList
-        [ NodeType "method_declaration"
-          NodeType "constructor_declaration"
-          NodeType "local_function_statement" ]
+        [
+            NodeType "method_declaration"
+            NodeType "constructor_declaration"
+            NodeType "local_function_statement"
+        ]
 
 /// Extract parenthesized or single implicit C# parameters.
 let private parametersOf (node: Node) =
@@ -62,24 +64,32 @@ let private callableBody (node: Node) =
 /// Normalize C# named functions, lambdas, and anonymous methods into callable views.
 let private callableViews (node: Node) : CallableView list =
     if Set.contains (nodeType node) namedFunctionNodeTypes then
-        [ { Anchor = node
-            Body = callableBody node
-            ReturnTypeRoot = node
-            Role = NamedDefinition
-            BindingName = nodeField "name" node |> Option.map nodeText
-            Parameters = parametersOf node } ]
+        [
+            {
+                Anchor = node
+                Body = callableBody node
+                ReturnTypeRoot = node
+                Role = NamedDefinition
+                BindingName = nodeField "name" node |> Option.map nodeText
+                Parameters = parametersOf node
+            }
+        ]
     elif
         nodeType node = lambdaExpressionNodeType
         || nodeType node = anonymousMethodNodeType
     then
         let role, bindingName = anonymousBinding node
 
-        [ { Anchor = node
-            Body = callableBody node
-            ReturnTypeRoot = node
-            Role = role
-            BindingName = bindingName
-            Parameters = parametersOf node } ]
+        [
+            {
+                Anchor = node
+                Body = callableBody node
+                ReturnTypeRoot = node
+                Role = role
+                BindingName = bindingName
+                Parameters = parametersOf node
+            }
+        ]
     else
         []
 
@@ -100,21 +110,25 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
         children
         |> List.tryFind (fun child -> nodeType child = blockNodeType)
         |> Option.map (fun protectedBody ->
-            { Anchor = node
-              ProtectedBody = nodeNamedChildren protectedBody
-              ProtectedItems = nodeNamedChildren protectedBody
-              RecoveryItems =
-                children
-                |> List.filter (fun child ->
-                    nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.collect bodyItems
-              RecoveryBodies =
-                children
-                |> List.filter (fun child ->
-                    nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
-                |> List.map (fun clause ->
-                    { Anchor = clause
-                      Items = bodyItems clause }) })
+            {
+                Anchor = node
+                ProtectedBody = nodeNamedChildren protectedBody
+                ProtectedItems = nodeNamedChildren protectedBody
+                RecoveryItems =
+                    children
+                    |> List.filter (fun child ->
+                        nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
+                    |> List.collect bodyItems
+                RecoveryBodies =
+                    children
+                    |> List.filter (fun child ->
+                        nodeType child = catchClauseNodeType || nodeType child = finallyClauseNodeType)
+                    |> List.map (fun clause ->
+                        {
+                            Anchor = clause
+                            Items = bodyItems clause
+                        })
+            })
 
 let private switchBranchCount (node: Node) : int option =
     if nodeType node <> NodeType "switch_statement" then
@@ -152,8 +166,10 @@ let private extractTypedParameter (node: Node) : TypedParameter option =
         match nodeNamedChildren node with
         | declaredType :: name :: _ ->
             Some
-                { Name = nodeText name
-                  Type = nodeText declaredType }
+                {
+                    Name = nodeText name
+                    Type = nodeText declaredType
+                }
         | _ -> None
 
 let private extractReturnType (node: Node) : string option =
@@ -209,192 +225,210 @@ let private baseClassNames (node: Node) : string list =
 /// invariant: interpolated strings stay outside StringLiteral because the grammar represents them as
 /// interpolated_string_expression rather than ordinary string_literal nodes.
 let cSharpLanguageAdapter: LanguageAdapter =
-    { Id = "csharp"
-      GrammarPath = "grammars/tree-sitter-c-sharp.wasm"
-      NodeTypes =
-        { Block = Some blockNodeType
-          Parameters = parameterListNodeType
-          IfStatement = Some(NodeType "if_statement")
-          ElseClause = None
-          ForStatement = Some(NodeType "for_statement")
-          WhileStatement = Some(NodeType "while_statement")
-          ConditionalExpression = Some(NodeType "conditional_expression")
-          Lambda = Some lambdaExpressionNodeType
-          ImportStatement = Some(NodeType "using_directive")
-          ImportFromStatement = None
-          ExpressionStatement = Some(NodeType "expression_statement")
-          Assignment = Some(NodeType "variable_declaration")
-          Module = Some(NodeType "compilation_unit")
-          ExportStatement = None
-          Comment = Some(NodeType "comment")
-          IntegerLiteral = Some(NodeType "integer_literal")
-          FloatLiteral = Some(NodeType "real_literal")
-          StringLiteral = Some(NodeType "string_literal") }
-      IsFunctionDefinition = fun node -> Set.contains (nodeType node) namedFunctionNodeTypes
-      GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
-      GetCallableViews = callableViews
-      IsStaticMethod =
-        fun node ->
-            let rec hasStaticOwner candidate =
-                if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
-                    true
-                elif nodeType candidate = NodeType "declaration_list" then
-                    false
-                else
-                    nodeParent candidate |> Option.exists hasStaticOwner
-
-            hasStaticOwner node
-      ParameterChildTypes = [ NodeType "parameter" ]
-      DecisionNodeTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "foreach_statement"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "catch_clause"
-          NodeType "conditional_expression"
-          NodeType "switch_statement" ]
-      CyclomaticBranchCount = switchBranchCount
-      GetCognitiveStructure =
-        CognitiveSyntax.classify
-            [ NodeType "if_statement"
-              NodeType "for_statement"
-              NodeType "foreach_statement"
-              NodeType "while_statement"
-              NodeType "do_statement"
-              NodeType "catch_clause"
-              NodeType "switch_statement" ]
-      NestingControlTypes =
-        [ NodeType "if_statement"
-          NodeType "for_statement"
-          NodeType "foreach_statement"
-          NodeType "while_statement"
-          NodeType "do_statement"
-          NodeType "try_statement"
-          NodeType "switch_statement" ]
-      GetBooleanOperator =
-        fun node ->
-            if nodeType node <> NodeType "binary_expression" then
-                None
-            else
-                nodeChildren node
-                |> List.tryPick (fun child ->
-                    match nodeType child with
-                    | NodeType "&&" -> Some And
-                    | NodeType "||" -> Some Or
-                    | _ -> None)
-      IsTryElseClause = fun _ -> false
-      VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_access_expression" ]
-      ExtractTypedParameter = extractTypedParameter
-      ExtractReturnType = extractReturnType
-      GenericBrackets = { Open = "<"; Close = ">" }
-      PrimitiveTypeNames =
-        Set.ofList
-            [ "bool"
-              "byte"
-              "char"
-              "decimal"
-              "double"
-              "float"
-              "int"
-              "long"
-              "sbyte"
-              "short"
-              "string"
-              "uint"
-              "ulong"
-              "ushort" ]
-      KeywordOnlyBoundaryTypes = []
-      DistinctTypeAdvice = "a readonly record struct or enum"
-      GetEqualityComparisons = equalityComparisons
-      GetMatchStringCases = fun _ -> None
-      GetMembershipComparisons = fun _ -> []
-      IsMatchCaseLiteral =
-        fun node ->
-            nodeType node = NodeType "integer_literal"
-            || nodeType node = NodeType "character_literal"
-      GetElseIfBranches = fun _ -> []
-      SubscriptNodeTypes = [ NodeType "element_access_expression" ]
-      IsFormattedOrInterpolatedString = fun _ -> false
-      IsDefaultParameterValue =
-        fun node ->
-            match nodeParent node with
-            | Some parent when nodeType parent = NodeType "parameter" ->
-                let children = nodeChildren parent
-
-                List.exists (fun child -> nodeType child = NodeType "=") children
-                && (children
-                    |> List.tryLast
-                    |> Option.exists (fun last -> nodeId last = nodeId node))
-            | _ -> false
-      IsBooleanLiteral = fun node -> nodeType node = NodeType "boolean_literal"
-      IsPositionalCallArgument =
-        fun node ->
-            match nodeParent node with
-            | Some argument when nodeType argument = NodeType "argument" ->
-                match nodeParent argument with
-                | Some arguments when nodeType arguments = NodeType "argument_list" ->
-                    match nodeParent arguments with
-                    | Some invocation -> nodeType invocation = NodeType "invocation_expression"
-                    | None -> false
-                | None -> false
-                | _ -> false
-            | _ -> false
-      IsExplicitConstant =
-        fun node ->
-            nodeType node = NodeType "field_declaration"
-            && (nodeChildren node |> List.exists (fun child -> nodeText child = "const"))
-      ImportInfo =
-        fun node ->
-            let source =
-                nodeNamedChildren node
-                |> List.tryLast
-                |> Option.map nodeText
-                |> Option.defaultValue (nodeText node)
-
-            [ { Kind = Module
-                Source = source
-                Bindings = [] } ]
-      IsClassDefinition =
-        fun node ->
-            nodeType node = NodeType "class_declaration"
-            || nodeType node = NodeType "struct_declaration"
-            || nodeType node = NodeType "record_declaration"
-            || nodeType node = NodeType "interface_declaration"
-      GetClassName =
-        fun node ->
-            nodeChildren node
-            |> List.tryFind (fun child -> nodeType child = NodeType "identifier")
-            |> Option.map nodeText
-      GetBaseClassNames = baseClassNames
-      GetErrorHandlingRegion = errorHandlingRegion
-      GetFunctionLogicalItems = bodyItems
-      GetGuardedValidation =
-        ValidationSyntax.extract
-            { Containers = [ NodeType "block" ]
-              Conditional = NodeType "if_statement"
-              Rejections = [ NodeType "throw_statement" ]
-              Return = Some(NodeType "return_statement")
-              FailureCalls = []
-              EmptyValues = []
-              IsNonExecutable = fun _ -> false
-              BooleanLiteralValue =
-                fun node ->
-                    if nodeType node <> NodeType "boolean_literal" then
-                        None
+    {
+        Id = "csharp"
+        GrammarPath = "grammars/tree-sitter-c-sharp.wasm"
+        NodeTypes =
+            {
+                Block = Some blockNodeType
+                Parameters = parameterListNodeType
+                IfStatement = Some(NodeType "if_statement")
+                ElseClause = None
+                ForStatement = Some(NodeType "for_statement")
+                WhileStatement = Some(NodeType "while_statement")
+                ConditionalExpression = Some(NodeType "conditional_expression")
+                Lambda = Some lambdaExpressionNodeType
+                ImportStatement = Some(NodeType "using_directive")
+                ImportFromStatement = None
+                ExpressionStatement = Some(NodeType "expression_statement")
+                Assignment = Some(NodeType "variable_declaration")
+                Module = Some(NodeType "compilation_unit")
+                ExportStatement = None
+                Comment = Some(NodeType "comment")
+                IntegerLiteral = Some(NodeType "integer_literal")
+                FloatLiteral = Some(NodeType "real_literal")
+                StringLiteral = Some(NodeType "string_literal")
+            }
+        IsFunctionDefinition = fun node -> Set.contains (nodeType node) namedFunctionNodeTypes
+        GetFunctionHeads = fun node -> [ { ParametersRoot = node; Body = node } ]
+        GetCallableViews = callableViews
+        IsStaticMethod =
+            fun node ->
+                let rec hasStaticOwner candidate =
+                    if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
+                        true
+                    elif nodeType candidate = NodeType "declaration_list" then
+                        false
                     else
-                        let text = nodeText node
+                        nodeParent candidate |> Option.exists hasStaticOwner
 
-                        if text = "true" then Some LiteralTrue
-                        elif text = "false" then Some LiteralFalse
-                        else None
-              // decision: a parameter `[NotNullWhen(…)]` annotation carries narrowing across the
-              // call site only for that parameter, so an annotation on an unrelated parameter
-              // cannot hide a discarded guard; constructors remain excluded for the same reason.
-              PreservesCheckedInformation =
-                fun node condition ->
-                    nodeType node = NodeType "constructor_declaration"
-                    || (condition
-                        |> Option.exists (fun guardCondition ->
-                            parametersOf node
-                            |> List.exists (conditionReferencesNotNullWhenParameter guardCondition))) } }
+                hasStaticOwner node
+        ParameterChildTypes = [ NodeType "parameter" ]
+        DecisionNodeTypes =
+            [
+                NodeType "if_statement"
+                NodeType "for_statement"
+                NodeType "foreach_statement"
+                NodeType "while_statement"
+                NodeType "do_statement"
+                NodeType "catch_clause"
+                NodeType "conditional_expression"
+                NodeType "switch_statement"
+            ]
+        CyclomaticBranchCount = switchBranchCount
+        GetCognitiveStructure =
+            CognitiveSyntax.classify
+                [
+                    NodeType "if_statement"
+                    NodeType "for_statement"
+                    NodeType "foreach_statement"
+                    NodeType "while_statement"
+                    NodeType "do_statement"
+                    NodeType "catch_clause"
+                    NodeType "switch_statement"
+                ]
+        NestingControlTypes =
+            [
+                NodeType "if_statement"
+                NodeType "for_statement"
+                NodeType "foreach_statement"
+                NodeType "while_statement"
+                NodeType "do_statement"
+                NodeType "try_statement"
+                NodeType "switch_statement"
+            ]
+        GetBooleanOperator =
+            fun node ->
+                if nodeType node <> NodeType "binary_expression" then
+                    None
+                else
+                    nodeChildren node
+                    |> List.tryPick (fun child ->
+                        match nodeType child with
+                        | NodeType "&&" -> Some And
+                        | NodeType "||" -> Some Or
+                        | _ -> None)
+        IsTryElseClause = fun _ -> false
+        VariableReferenceNodeTypes = [ NodeType "identifier"; NodeType "member_access_expression" ]
+        ExtractTypedParameter = extractTypedParameter
+        ExtractReturnType = extractReturnType
+        GenericBrackets = { Open = "<"; Close = ">" }
+        PrimitiveTypeNames =
+            Set.ofList
+                [
+                    "bool"
+                    "byte"
+                    "char"
+                    "decimal"
+                    "double"
+                    "float"
+                    "int"
+                    "long"
+                    "sbyte"
+                    "short"
+                    "string"
+                    "uint"
+                    "ulong"
+                    "ushort"
+                ]
+        KeywordOnlyBoundaryTypes = []
+        DistinctTypeAdvice = "a readonly record struct or enum"
+        GetEqualityComparisons = equalityComparisons
+        GetMatchStringCases = fun _ -> None
+        GetMembershipComparisons = fun _ -> []
+        IsMatchCaseLiteral =
+            fun node ->
+                nodeType node = NodeType "integer_literal"
+                || nodeType node = NodeType "character_literal"
+        GetElseIfBranches = fun _ -> []
+        SubscriptNodeTypes = [ NodeType "element_access_expression" ]
+        IsFormattedOrInterpolatedString = fun _ -> false
+        IsDefaultParameterValue =
+            fun node ->
+                match nodeParent node with
+                | Some parent when nodeType parent = NodeType "parameter" ->
+                    let children = nodeChildren parent
+
+                    List.exists (fun child -> nodeType child = NodeType "=") children
+                    && (children
+                        |> List.tryLast
+                        |> Option.exists (fun last -> nodeId last = nodeId node))
+                | _ -> false
+        IsBooleanLiteral = fun node -> nodeType node = NodeType "boolean_literal"
+        IsPositionalCallArgument =
+            fun node ->
+                match nodeParent node with
+                | Some argument when nodeType argument = NodeType "argument" ->
+                    match nodeParent argument with
+                    | Some arguments when nodeType arguments = NodeType "argument_list" ->
+                        match nodeParent arguments with
+                        | Some invocation -> nodeType invocation = NodeType "invocation_expression"
+                        | None -> false
+                    | None -> false
+                    | _ -> false
+                | _ -> false
+        IsExplicitConstant =
+            fun node ->
+                nodeType node = NodeType "field_declaration"
+                && (nodeChildren node |> List.exists (fun child -> nodeText child = "const"))
+        ImportInfo =
+            fun node ->
+                let source =
+                    nodeNamedChildren node
+                    |> List.tryLast
+                    |> Option.map nodeText
+                    |> Option.defaultValue (nodeText node)
+
+                [
+                    {
+                        Kind = Module
+                        Source = source
+                        Bindings = []
+                    }
+                ]
+        IsClassDefinition =
+            fun node ->
+                nodeType node = NodeType "class_declaration"
+                || nodeType node = NodeType "struct_declaration"
+                || nodeType node = NodeType "record_declaration"
+                || nodeType node = NodeType "interface_declaration"
+        GetClassName =
+            fun node ->
+                nodeChildren node
+                |> List.tryFind (fun child -> nodeType child = NodeType "identifier")
+                |> Option.map nodeText
+        GetBaseClassNames = baseClassNames
+        GetErrorHandlingRegion = errorHandlingRegion
+        GetFunctionLogicalItems = bodyItems
+        GetGuardedValidation =
+            ValidationSyntax.extract
+                {
+                    Containers = [ NodeType "block" ]
+                    Conditional = NodeType "if_statement"
+                    Rejections = [ NodeType "throw_statement" ]
+                    Return = Some(NodeType "return_statement")
+                    FailureCalls = []
+                    EmptyValues = []
+                    IsNonExecutable = fun _ -> false
+                    BooleanLiteralValue =
+                        fun node ->
+                            if nodeType node <> NodeType "boolean_literal" then
+                                None
+                            else
+                                let text = nodeText node
+
+                                if text = "true" then Some LiteralTrue
+                                elif text = "false" then Some LiteralFalse
+                                else None
+                    // decision: a parameter `[NotNullWhen(…)]` annotation carries narrowing across the
+                    // call site only for that parameter, so an annotation on an unrelated parameter
+                    // cannot hide a discarded guard; constructors remain excluded for the same reason.
+                    PreservesCheckedInformation =
+                        fun node condition ->
+                            nodeType node = NodeType "constructor_declaration"
+                            || (condition
+                                |> Option.exists (fun guardCondition ->
+                                    parametersOf node
+                                    |> List.exists (conditionReferencesNotNullWhenParameter guardCondition)))
+                }
+    }

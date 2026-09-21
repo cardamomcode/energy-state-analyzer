@@ -16,24 +16,32 @@ let analyzeLogicalControlFlow (ctx: AnalysisContext) : AnalysisContext =
                 ->
                 let position = ctx.Positions.toPosition (nodeStartIndex node)
 
-                [ { Line = position.Line
-                    Column = position.Column
-                    Type = LogicalControlFlow
-                    Severity = Low
-                    Message = "If-statement disguised as '&&'. Consider an explicit if-statement instead."
-                    Hotspots = [] } ]
+                [
+                    {
+                        Line = position.Line
+                        Column = position.Column
+                        Type = LogicalControlFlow
+                        Severity = Low
+                        Message = "If-statement disguised as '&&'. Consider an explicit if-statement instead."
+                        Hotspots = []
+                    }
+                ]
             | Some Or, Some parent when
                 ctx.Language.NodeTypes.ExpressionStatement
                 |> Option.exists ((=) (nodeType parent))
                 ->
                 let position = ctx.Positions.toPosition (nodeStartIndex node)
 
-                [ { Line = position.Line
-                    Column = position.Column
-                    Type = LogicalControlFlow
-                    Severity = Low
-                    Message = "If-statement disguised as '||'. Consider an explicit if-statement instead."
-                    Hotspots = [] } ]
+                [
+                    {
+                        Line = position.Line
+                        Column = position.Column
+                        Type = LogicalControlFlow
+                        Severity = Low
+                        Message = "If-statement disguised as '||'. Consider an explicit if-statement instead."
+                        Hotspots = []
+                    }
+                ]
             | _ -> []
 
         own @ (nodeChildren node |> List.collect traverse)
@@ -42,5 +50,7 @@ let analyzeLogicalControlFlow (ctx: AnalysisContext) : AnalysisContext =
     addViolations findings ctx
 
 let detector: Detector =
-    { Name = "logicalControlFlow"
-      Run = analyzeLogicalControlFlow }
+    {
+        Name = "logicalControlFlow"
+        Run = analyzeLogicalControlFlow
+    }

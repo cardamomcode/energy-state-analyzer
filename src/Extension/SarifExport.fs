@@ -41,8 +41,10 @@ let rec private analyzeFiles rootDir grammar thresholds files =
                             rest
                             |> Result.map (fun results ->
                                 let fileResult: Energy.Core.Report.FileResult =
-                                    { FilePath = relativePath rootDir file
-                                      Violations = result.Violations }
+                                    {
+                                        FilePath = relativePath rootDir file
+                                        Violations = result.Violations
+                                    }
 
                                 fileResult :: results)
     }
@@ -90,7 +92,9 @@ let createCommand getGrammar () : Task<unit> =
                 showErrorMessage window ("Could not export SARIF: " + analysisErrorMessage analysisError)
             | Ok reportPath ->
                 let (Path reportFile) = reportPath
-                let! _ = showTextDocument window (Energy.Extension.Vscode.Presentation.uriFromFilePath reportFile)
+
+                let! _ =
+                    showTextDocument window (Energy.Extension.Vscode.Presentation.uriFromFilePath reportFile)
 
                 showInformationMessage window ("SARIF report exported to " + root + "/.energy-state/latest.sarif")
     }

@@ -54,14 +54,18 @@ let private percentScale = 100.0
 
 /// Describe one qualifying logical-work share and its severity.
 type private ModeMeasurement =
-    { ItemCount: int
-      Share: float
-      Severity: Severity }
+    {
+        ItemCount: int
+        Share: float
+        Severity: Severity
+    }
 
 /// Pair boundary work with its enclosing function denominator.
 type private MeasurementInput =
-    { ItemCount: int
-      FunctionItemCount: int }
+    {
+        ItemCount: int
+        FunctionItemCount: int
+    }
 
 /// Apply the configured minimum size and severity shares.
 let private qualifies (thresholds: ErrorShadowingModeThresholds) (input: MeasurementInput) : ModeMeasurement option =
@@ -74,35 +78,43 @@ let private qualifies (thresholds: ErrorShadowingModeThresholds) (input: Measure
             None
         else
             Some
-                { ItemCount = input.ItemCount
-                  Share = share
-                  Severity = if share >= thresholds.HighThreshold then High else Medium }
+                {
+                    ItemCount = input.ItemCount
+                    Share = share
+                    Severity = if share >= thresholds.HighThreshold then High else Medium
+                }
 
 /// Construct a finding at the boundary or individual recovery clause.
 let private finding (ctx: AnalysisContext) anchor kind severity message =
     let position = ctx.Positions.toPosition (nodeStartIndex anchor)
 
-    { Line = position.Line
-      Column = position.Column
-      Type = kind
-      Severity = severity
-      Message = message
-      Hotspots = [] }
+    {
+        Line = position.Line
+        Column = position.Column
+        Type = kind
+        Severity = severity
+        Message = message
+        Hotspots = []
+    }
 
 /// Pair a rule's identity and thresholds with the body work it measures.
 type private ShareRule =
-    { Kind: ViolationType
-      Label: string
-      Advice: string
-      Thresholds: ErrorShadowingModeThresholds
-      Items: Node list }
+    {
+        Kind: ViolationType
+        Label: string
+        Advice: string
+        Thresholds: ErrorShadowingModeThresholds
+        Items: Node list
+    }
 
 /// Evaluate one logical-share rule without combining independent diagnostics.
 let private shareFinding ctx (region: ErrorHandlingRegion) totalItems rule =
     qualifies
         rule.Thresholds
-        { ItemCount = List.length rule.Items
-          FunctionItemCount = totalItems }
+        {
+            ItemCount = List.length rule.Items
+            FunctionItemCount = totalItems
+        }
     |> Option.map (fun measurement ->
         sprintf
             "%s: %d logical items (%d%%) of %d function logical items. %s"
@@ -142,28 +154,34 @@ let private boundaryFindings ctx totalItems region =
     let protectedBodyLines =
         Energy.Core.BodyLines.count ctx.Source ctx.Positions region.ProtectedBody
 
-    [ yield!
-          shareFinding
-              ctx
-              region
-              totalItems
-              { Kind = ErrorShadowing
-                Label = "Broad protected scope"
-                Advice = "Narrow the protected region to operations this boundary can recover from."
-                Thresholds = thresholds.ProtectedScope
-                Items = region.ProtectedItems }
-      if thresholds.RecoveryDominanceEnabled && protectedBodyLines > 1 then
-          yield!
-              shareFinding
-                  ctx
-                  region
-                  totalItems
-                  { Kind = RecoveryDominance
-                    Label = "Recovery/cleanup dominance"
-                    Advice = "Extract or simplify recovery and cleanup policy so the happy path remains clear."
-                    Thresholds = thresholds.Recovery
-                    Items = region.RecoveryItems }
-      yield! oversizedFindings ctx region ]
+    [
+        yield!
+            shareFinding
+                ctx
+                region
+                totalItems
+                {
+                    Kind = ErrorShadowing
+                    Label = "Broad protected scope"
+                    Advice = "Narrow the protected region to operations this boundary can recover from."
+                    Thresholds = thresholds.ProtectedScope
+                    Items = region.ProtectedItems
+                }
+        if thresholds.RecoveryDominanceEnabled && protectedBodyLines > 1 then
+            yield!
+                shareFinding
+                    ctx
+                    region
+                    totalItems
+                    {
+                        Kind = RecoveryDominance
+                        Label = "Recovery/cleanup dominance"
+                        Advice = "Extract or simplify recovery and cleanup policy so the happy path remains clear."
+                        Thresholds = thresholds.Recovery
+                        Items = region.RecoveryItems
+                    }
+        yield! oversizedFindings ctx region
+    ]
 
 /// Evaluate broad protected scope, recovery dominance, and each oversized recovery body independently.
 let analyzeErrorShadowing (ctx: AnalysisContext) : AnalysisContext =
@@ -177,5 +195,7 @@ let analyzeErrorShadowing (ctx: AnalysisContext) : AnalysisContext =
 
 /// Register the error-boundary family behind its existing host switch.
 let detector: Detector =
-    { Name = "errorShadowing"
-      Run = analyzeErrorShadowing }
+    {
+        Name = "errorShadowing"
+        Run = analyzeErrorShadowing
+    }

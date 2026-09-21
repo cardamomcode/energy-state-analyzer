@@ -14,12 +14,14 @@ open Energy.Languages.CSharp
 /// decision: the registry is keyed by VS Code language id; the extension receives that canonical
 /// identifier directly, while the CLI resolves an extension through the same registry below.
 let languages: Map<string, LanguageAdapter> =
-    [ "python", pythonLanguageAdapter
-      "fsharp", fSharpLanguageAdapter
-      "typescript", typeScriptLanguageAdapter
-      "kotlin", kotlinLanguageAdapter
-      "cpp", cPlusPlusLanguageAdapter
-      "csharp", cSharpLanguageAdapter ]
+    [
+        "python", pythonLanguageAdapter
+        "fsharp", fSharpLanguageAdapter
+        "typescript", typeScriptLanguageAdapter
+        "kotlin", kotlinLanguageAdapter
+        "cpp", cPlusPlusLanguageAdapter
+        "csharp", cSharpLanguageAdapter
+    ]
     |> Map.ofList
 
 /// Map a file's trailing suffix to its language id, longest suffix first.
@@ -29,39 +31,41 @@ let languages: Map<string, LanguageAdapter> =
 /// deterministic if future suffixes overlap, while ordinal case-insensitive comparison preserves the
 /// CLI's current case-insensitive behavior without locale-dependent filename rules.
 let private suffixToLanguageId =
-    [ ".py", "python"
-      ".fs", "fsharp"
-      ".fsx", "fsharp"
-      ".fsi", "fsharp"
-      ".ts", "typescript"
-      ".cs", "csharp"
-      ".csx", "csharp"
-      ".kt", "kotlin"
-      ".kts", "kotlin"
-      ".cpp", "cpp"
-      ".cppm", "cpp"
-      ".cc", "cpp"
-      ".ccm", "cpp"
-      ".cxx", "cpp"
-      ".cxxm", "cpp"
-      ".c++", "cpp"
-      ".c++m", "cpp"
-      ".hpp", "cpp"
-      ".hh", "cpp"
-      ".hxx", "cpp"
-      ".h++", "cpp"
-      ".h", "cpp"
-      ".ii", "cpp"
-      ".ino", "cpp"
-      ".inl", "cpp"
-      ".ipp", "cpp"
-      ".ixx", "cpp"
-      ".mpp", "cpp"
-      ".mxx", "cpp"
-      ".tpp", "cpp"
-      ".txx", "cpp"
-      ".hpp.in", "cpp"
-      ".h.in", "cpp" ]
+    [
+        ".py", "python"
+        ".fs", "fsharp"
+        ".fsx", "fsharp"
+        ".fsi", "fsharp"
+        ".ts", "typescript"
+        ".cs", "csharp"
+        ".csx", "csharp"
+        ".kt", "kotlin"
+        ".kts", "kotlin"
+        ".cpp", "cpp"
+        ".cppm", "cpp"
+        ".cc", "cpp"
+        ".ccm", "cpp"
+        ".cxx", "cpp"
+        ".cxxm", "cpp"
+        ".c++", "cpp"
+        ".c++m", "cpp"
+        ".hpp", "cpp"
+        ".hh", "cpp"
+        ".hxx", "cpp"
+        ".h++", "cpp"
+        ".h", "cpp"
+        ".ii", "cpp"
+        ".ino", "cpp"
+        ".inl", "cpp"
+        ".ipp", "cpp"
+        ".ixx", "cpp"
+        ".mpp", "cpp"
+        ".mxx", "cpp"
+        ".tpp", "cpp"
+        ".txx", "cpp"
+        ".hpp.in", "cpp"
+        ".h.in", "cpp"
+    ]
     |> List.sortByDescending (fun (suffix, _) -> suffix.Length)
 
 let tryFind languageId = Map.tryFind languageId languages

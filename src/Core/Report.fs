@@ -13,19 +13,25 @@ let private highWeight = 9
 type SeverityCounts = { Low: int; Medium: int; High: int }
 
 type FileResult =
-    { FilePath: string
-      Violations: EnergyViolation list }
+    {
+        FilePath: string
+        Violations: EnergyViolation list
+    }
 
 type FileSummary =
-    { FilePath: string
-      Score: int
-      Counts: SeverityCounts
-      ByType: Map<string, int> }
+    {
+        FilePath: string
+        Score: int
+        Counts: SeverityCounts
+        ByType: Map<string, int>
+    }
 
 type AggregateSummary =
-    { Files: FileSummary list
-      TotalScore: int
-      TotalCounts: SeverityCounts }
+    {
+        Files: FileSummary list
+        TotalScore: int
+        TotalCounts: SeverityCounts
+    }
 
 let emptyCounts = { Low = 0; Medium = 0; High = 0 }
 
@@ -34,7 +40,8 @@ let private addViolation counts violation =
     | Low -> { counts with Low = counts.Low + 1 }
     | Medium ->
         { counts with
-            Medium = counts.Medium + 1 }
+            Medium = counts.Medium + 1
+        }
     | High -> { counts with High = counts.High + 1 }
 
 let private score counts =
@@ -55,10 +62,12 @@ let summarizeFile result =
                 Map.change name (Option.defaultValue 0 >> (+) 1 >> Some) types)
             Map.empty
 
-    { FilePath = result.FilePath
-      Score = score counts
-      Counts = counts
-      ByType = byType }
+    {
+        FilePath = result.FilePath
+        Score = score counts
+        Counts = counts
+        ByType = byType
+    }
 
 let summarize results =
     let files = results |> List.map summarizeFile
@@ -67,14 +76,18 @@ let summarize results =
         files
         |> List.fold
             (fun counts file ->
-                { Low = counts.Low + file.Counts.Low
-                  Medium = counts.Medium + file.Counts.Medium
-                  High = counts.High + file.Counts.High })
+                {
+                    Low = counts.Low + file.Counts.Low
+                    Medium = counts.Medium + file.Counts.Medium
+                    High = counts.High + file.Counts.High
+                })
             emptyCounts
 
-    { Files = files
-      TotalScore = files |> List.sumBy _.Score
-      TotalCounts = totalCounts }
+    {
+        Files = files
+        TotalScore = files |> List.sumBy _.Score
+        TotalCounts = totalCounts
+    }
 
 let hasBlockingViolations counts = counts.Medium > 0 || counts.High > 0
 
@@ -97,23 +110,27 @@ let renderMarkdownReport summary =
                 file.Counts.Medium
                 file.Counts.Low)
 
-    [ "# Energy State Report"
-      ""
-      sprintf
-          "**%d file%s scanned** — %d with no findings, %d with findings"
-          fileCount
-          suffix
-          noFindingsCount
-          (fileCount - noFindingsCount)
-      ""
-      "| File | Score | High | Medium | Low |"
-      "| --- | --- | --- | --- | --- |" ]
+    [
+        "# Energy State Report"
+        ""
+        sprintf
+            "**%d file%s scanned** — %d with no findings, %d with findings"
+            fileCount
+            suffix
+            noFindingsCount
+            (fileCount - noFindingsCount)
+        ""
+        "| File | Score | High | Medium | Low |"
+        "| --- | --- | --- | --- | --- |"
+    ]
     @ rows
-    @ [ ""
+    @ [
+        ""
         sprintf
             "**Total score: %d** (%d high, %d medium, %d low)"
             summary.TotalScore
             summary.TotalCounts.High
             summary.TotalCounts.Medium
-            summary.TotalCounts.Low ]
+            summary.TotalCounts.Low
+    ]
     |> String.concat "\n"

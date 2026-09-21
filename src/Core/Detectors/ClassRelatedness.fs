@@ -20,10 +20,12 @@ open Energy.Core.TypeCohesion
 /// non-class nesting like a method's own closures) inside it. `Methods` is mutable to mirror the TS
 /// array that methods are pushed into during collection; read as a sequence elsewhere.
 type ClassInfo =
-    { Name: string option
-      Node: Node
-      BaseNames: string list
-      Methods: ResizeArray<CallableView> }
+    {
+        Name: string option
+        Node: Node
+        BaseNames: string list
+        Methods: ResizeArray<CallableView>
+    }
 
 /// Zero-based index of a class within the file, branded so two can't be transposed.
 ///
@@ -38,8 +40,10 @@ type ClassIndex = int
 /// operation needed is "merge these two classes' families" then "list the resulting families", which a
 /// parent-pointer array covers in a few lines.
 type private UnionFind =
-    { Find: ClassIndex -> ClassIndex
-      Union: ClassIndex -> ClassIndex -> unit }
+    {
+        Find: ClassIndex -> ClassIndex
+        Union: ClassIndex -> ClassIndex -> unit
+    }
 
 let private unionFind (size: int) : UnionFind =
     let parent = Array.init size (fun i -> i)
@@ -52,14 +56,16 @@ let private unionFind (size: int) : UnionFind =
         else
             i
 
-    { Find = find
-      Union =
-        fun a b ->
-            let rootA = find a
-            let rootB = find b
+    {
+        Find = find
+        Union =
+            fun a b ->
+                let rootA = find a
+                let rootB = find b
 
-            if rootA <> rootB then
-                parent.[rootA] <- rootB }
+                if rootA <> rootB then
+                    parent.[rootA] <- rootB
+    }
 
 /// Links two classes directly — one's base name is literally the other's own name (e.g. `class
 /// CancellationToken(Disposable)` where `Disposable` is itself another class in this file).
@@ -189,17 +195,19 @@ let checkClassRelatedness
             let position = positions.toPosition (nodeStartIndex classes.[0].Node)
 
             Some
-                { Line = position.Line
-                  Column = position.Column
-                  Type = Coherence
-                  Severity = if groups.Length > 2 then High else Medium
-                  Message =
-                    sprintf
-                        "File coherence warning: %d classes in one file split into %d unrelated groups: %s. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file."
-                        classes.Length
-                        groups.Length
-                        (groupDescription groups names)
-                  Hotspots = [] }
+                {
+                    Line = position.Line
+                    Column = position.Column
+                    Type = Coherence
+                    Severity = if groups.Length > 2 then High else Medium
+                    Message =
+                        sprintf
+                            "File coherence warning: %d classes in one file split into %d unrelated groups: %s. These share no inheritance, type relationship, or naming pattern — each group likely belongs in its own file."
+                            classes.Length
+                            groups.Length
+                            (groupDescription groups names)
+                    Hotspots = []
+                }
 
 // God-class side of the file-coherence detector.
 //
@@ -238,9 +246,11 @@ let checkClassRelatedness
 /// short — threading three separate arguments would push that function past the 20-line large-function bar.
 /// Public because checkGodClass exposes it in its signature; Coherence.fs builds this record at the call site.
 type GodClassCtx =
-    { Language: LanguageAdapter
-      Thresholds: Energy.Core.Config.CoherenceThresholds
-      Positions: PositionLookup }
+    {
+        Language: LanguageAdapter
+        Thresholds: Energy.Core.Config.CoherenceThresholds
+        Positions: PositionLookup
+    }
 
 /// Method count and distinct-type count for a class, branded against transpose.
 ///
@@ -251,25 +261,29 @@ type private MethodSignals =
 
 /// A class that passed the god-class test, carrying what Create renders into a violation.
 type private GodClassCandidate =
-    { Class: ClassInfo
-      Signals: MethodSignals
-      Severity: Severity }
+    {
+        Class: ClassInfo
+        Signals: MethodSignals
+        Severity: Severity
+    }
     // decision: rendering lives on the record as a static Create so the violation shape stays close to the
     // data it describes; positions is supplied by the caller, never stored in the candidate.
     static member Create(positions: PositionLookup) : GodClassCandidate -> EnergyViolation =
         fun candidate ->
             let pos = positions.toPosition (nodeStartIndex candidate.Class.Node)
 
-            { Line = pos.Line
-              Column = pos.Column
-              Type = Coherence
-              Severity = candidate.Severity
-              Message =
-                sprintf
-                    "File coherence warning: this class has %d methods spanning %d unrelated types. Its methods touch too many distinct concerns to be one responsibility — consider splitting it, or confirm these are one cohesive API (e.g. a tagged union of combinators over a single domain type)."
-                    candidate.Signals.MethodCount
-                    candidate.Signals.DistinctTypes
-              Hotspots = [] }
+            {
+                Line = pos.Line
+                Column = pos.Column
+                Type = Coherence
+                Severity = candidate.Severity
+                Message =
+                    sprintf
+                        "File coherence warning: this class has %d methods spanning %d unrelated types. Its methods touch too many distinct concerns to be one responsibility — consider splitting it, or confirm these are one cohesive API (e.g. a tagged union of combinators over a single domain type)."
+                        candidate.Signals.MethodCount
+                        candidate.Signals.DistinctTypes
+                Hotspots = []
+            }
 
 /// Decide whether a class past the method-count bar is worth measuring for god-class diversity.
 ///
@@ -288,8 +302,10 @@ let private distinctSignals (ctx: GodClassCtx) (cls: ClassInfo) : (int * int) op
     let methods = List.ofSeq cls.Methods
     // decision: pass the cohesion thresholds as one value so the typeCohesionResult call stays a single line.
     let thresholds =
-        { MaxDiversityRatio = ctx.Thresholds.MaxTypeDiversityRatio
-          MinCoverage = ctx.Thresholds.MinTypedCoverage }
+        {
+            MaxDiversityRatio = ctx.Thresholds.MaxTypeDiversityRatio
+            MinCoverage = ctx.Thresholds.MinTypedCoverage
+        }
 
     if not (shouldMeasureGodClass ctx methods) then
         None
@@ -304,15 +320,19 @@ let private considerGodClass (ctx: GodClassCtx) (cls: ClassInfo) : GodClassCandi
     match distinctSignals ctx cls with
     | Some(methodCount, distinctTypes) ->
         Some
-            { Class = cls
-              Signals =
-                { MethodCount = methodCount
-                  DistinctTypes = distinctTypes }
-              Severity =
-                if methodCount > ctx.Thresholds.MethodCountHigh then
-                    High
-                else
-                    Medium }
+            {
+                Class = cls
+                Signals =
+                    {
+                        MethodCount = methodCount
+                        DistinctTypes = distinctTypes
+                    }
+                Severity =
+                    if methodCount > ctx.Thresholds.MethodCountHigh then
+                        High
+                    else
+                        Medium
+            }
     | _ -> None
 
 /// Flag the worst single class whose methods span too many unrelated domain types (a god class), as one

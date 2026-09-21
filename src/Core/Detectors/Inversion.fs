@@ -166,12 +166,14 @@ let analyzeInversionOpportunities (ctx: AnalysisContext) : AnalysisContext =
                 |> Option.map (fun (anchor, message) ->
                     let position = ctx.Positions.toPosition (nodeStartIndex anchor)
 
-                    { Line = position.Line
-                      Column = position.Column
-                      Type = Inversion
-                      Severity = Medium
-                      Message = message
-                      Hotspots = [] })
+                    {
+                        Line = position.Line
+                        Column = position.Column
+                        Type = Inversion
+                        Severity = Medium
+                        Message = message
+                        Hotspots = []
+                    })
                 |> Option.toList
             else
                 []
@@ -182,5 +184,7 @@ let analyzeInversionOpportunities (ctx: AnalysisContext) : AnalysisContext =
 
 /// Register the shared inversion detector.
 let detector: Detector =
-    { Name = "inversion"
-      Run = analyzeInversionOpportunities }
+    {
+        Name = "inversion"
+        Run = analyzeInversionOpportunities
+    }
