@@ -22,6 +22,7 @@ fun largeFunction0(): Int {
     val v20 = 20
     val v21 = 21
     return v0
+}
 
 fun largeFunction1(): Int {
     val v0 = 0
@@ -47,6 +48,7 @@ fun largeFunction1(): Int {
     val v20 = 20
     val v21 = 21
     return v0
+}
 
 fun largeFunction2(): Int {
     val v0 = 0
@@ -72,6 +74,7 @@ fun largeFunction2(): Int {
     val v20 = 20
     val v21 = 21
     return v0
+}
 
 fun largeFunction3(): Int {
     val v0 = 0
@@ -97,6 +100,7 @@ fun largeFunction3(): Int {
     val v20 = 20
     val v21 = 21
     return v0
+}
 
 fun smallFunction(): Int {
     val v0 = 0
@@ -116,6 +120,7 @@ fun smallFunction(): Int {
     val v14 = 14
     val v15 = 15
     return v0
+}
 
 /* largeFunction5 is a fifth large function. A block comment between functions must not count
  * against the previous function's line total; counting it would push the 18-line smallFunction
@@ -145,3 +150,4 @@ fun largeFunction5(): Int {
     val v20 = 20
     val v21 = 21
     return v0
+}

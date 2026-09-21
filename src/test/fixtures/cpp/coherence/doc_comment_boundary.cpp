@@ -21,7 +21,8 @@ int largeFunction0() {
     int v19 = 19;
     int v20 = 20;
     int v21 = 21;
-    return v;0
+    return v0;
+}
 
 int largeFunction1() {
     int v0 = 0;
@@ -46,7 +47,8 @@ int largeFunction1() {
     int v19 = 19;
     int v20 = 20;
     int v21 = 21;
-    return v;0
+    return v0;
+}
 
 int largeFunction2() {
     int v0 = 0;
@@ -71,7 +73,8 @@ int largeFunction2() {
     int v19 = 19;
     int v20 = 20;
     int v21 = 21;
-    return v;0
+    return v0;
+}
 
 int largeFunction3() {
     int v0 = 0;
@@ -96,7 +99,8 @@ int largeFunction3() {
     int v19 = 19;
     int v20 = 20;
     int v21 = 21;
-    return v;0
+    return v0;
+}
 
 int smallFunction() {
     int v0 = 0;
@@ -115,7 +119,8 @@ int smallFunction() {
     int v13 = 13;
     int v14 = 14;
     int v15 = 15;
-    return v;0
+    return v0;
+}
 
 /* largeFunction5 is a fifth large function. A block comment between functions must not count
  * against the previous function's line total; counting it would push the 18-line smallFunction
@@ -144,4 +149,5 @@ int largeFunction5() {
     int v19 = 19;
     int v20 = 20;
     int v21 = 21;
-    return v;0
+    return v0;
+}

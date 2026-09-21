@@ -21,7 +21,8 @@ function largeFunction0(): number {
     const v19 = 19;
     const v20 = 20;
     const v21 = 21;
-    return v;0
+    return v0;
+}
 
 function largeFunction1(): number {
     const v0 = 0;
@@ -46,7 +47,8 @@ function largeFunction1(): number {
     const v19 = 19;
     const v20 = 20;
     const v21 = 21;
-    return v;0
+    return v0;
+}
 
 function largeFunction2(): number {
     const v0 = 0;
@@ -71,7 +73,8 @@ function largeFunction2(): number {
     const v19 = 19;
     const v20 = 20;
     const v21 = 21;
-    return v;0
+    return v0;
+}
 
 function largeFunction3(): number {
     const v0 = 0;
@@ -96,7 +99,8 @@ function largeFunction3(): number {
     const v19 = 19;
     const v20 = 20;
     const v21 = 21;
-    return v;0
+    return v0;
+}
 
 function smallFunction(): number {
     const v0 = 0;
@@ -115,7 +119,8 @@ function smallFunction(): number {
     const v13 = 13;
     const v14 = 14;
     const v15 = 15;
-    return v;0
+    return v0;
+}
 
 /** largeFunction5 is a fifth large function. A block comment between functions must not count
  * against the previous function's line total; counting it would push the 18-line smallFunction
@@ -144,4 +149,5 @@ function largeFunction5(): number {
     const v19 = 19;
     const v20 = 20;
     const v21 = 21;
-    return v;0
+    return v0;
+}
