@@ -123,6 +123,46 @@ let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: 
             ))
     )
 
+/// Verify a valid boundary fixture has five large callables and stays below the default sprawl limit.
+let private docCommentBoundaryTest (languageLabel: string) (language: LanguageAdapter) (fixture: string) =
+    testAsync (
+        sprintf
+            "%s: a following function's doc comment does not count toward the previous function's line total"
+            languageLabel,
+        fun _ ->
+            toAsync (
+                task {
+                    let! sourceCode, tree = parseFixture language fixture
+                    assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
+
+                    let input =
+                        { Source = sourceCode
+                          Tree = tree
+                          Language = language
+                          FileName = fixture }
+
+                    let defaultViolations = analyzeFixture sourceCode tree language fixture
+                    assertValidPositions defaultViolations sourceCode
+                    assertCleanQuiet sourceCode defaultViolations
+
+                    let boundaryThresholds =
+                        { defaultThresholds with
+                            Coherence =
+                                { defaultThresholds.Coherence with
+                                    MaxLargeFunctions = 4 } }
+
+                    let boundaryViolations = analyzeWith boundaryThresholds input |> _.Violations
+                    assertValidPositions boundaryViolations sourceCode
+
+                    let countHits =
+                        hitsWithMessage [ "5 functions exceed 20 lines" ] boundaryViolations
+                        |> List.length
+
+                    assertThat countHits (isEqualTo 1)
+                }
+            )
+    )
+
 /// One cross-language bound-callable fixture and the responsibilities its grammar can model.
 type private BoundCallableCase =
     { Label: string
@@ -435,6 +475,14 @@ let tests =
     let block2 = buildBlock classLanguages block2Scenarios
     let block3 = buildBlock classLanguages godClassScenarios
 
+    let docCommentBoundaryTests =
+        [ "Python", Python.pythonLanguageAdapter, "python/coherence/doc_comment_boundary.py"
+          "TypeScript", TypeScript.typeScriptLanguageAdapter, "typescript/coherence/docCommentBoundary.ts"
+          "F#", FSharp.fSharpLanguageAdapter, "fsharp/coherence/DocCommentBoundary.fs"
+          "Kotlin", Kotlin.kotlinLanguageAdapter, "kotlin/coherence/DocCommentBoundary.kt"
+          "C++", CPlusPlus.cPlusPlusLanguageAdapter, "cpp/coherence/doc_comment_boundary.cpp" ]
+        |> List.map (fun (label, language, fixture) -> docCommentBoundaryTest label language fixture)
+
     let boundCallableTests =
         boundCallableCases
         |> List.collect (fun case ->
@@ -652,6 +700,7 @@ let tests =
             typeScriptStaticGodClass ]
         @ godClassBoundaryAndStaticMethods
         @ memberFanOuts
+        @ docCommentBoundaryTests
         @ boundCallableTests
         @ staticBoundCallableTests
     )
