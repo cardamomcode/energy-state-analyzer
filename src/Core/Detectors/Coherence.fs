@@ -123,9 +123,25 @@ let private checkFunctionCountSprawl
                         thresholds
                 )
 
+/// Count a callable's source lines from its anchor to the end of its body.
+///
+/// decision: tree-sitter-fsharp attaches the FOLLOWING binding's xml_doc block to the end of the
+/// previous declaration_expression, so the raw body end row counts another function's doc comment
+/// as this function's lines — adding doc lines above one function used to resize its neighbor and
+/// push it across the large-function threshold (guarded by the DocCommentBoundary fixtures).
+/// Skip trailing documentation nodes when locating the body's last line.
 let private lineCount (callable: LanguageAdapter.CallableView) : int =
-    TreeSitter.nodeEndRow callable.Body - TreeSitter.nodeStartRow callable.Anchor
-    + 1
+    let lastCodeChild =
+        TreeSitter.nodeChildren callable.Body
+        |> List.rev
+        |> List.tryFind (fun c -> TreeSitter.nodeType c <> TreeSitter.NodeType "xml_doc")
+
+    let bodyEndRow =
+        match lastCodeChild with
+        | Some child -> TreeSitter.nodeEndRow child
+        | None -> TreeSitter.nodeEndRow callable.Body
+
+    bodyEndRow - TreeSitter.nodeStartRow callable.Anchor + 1
 
 /// Flag files with too many large functions, regardless of total function count — a module with 30 small
 /// functions is fine, one with 6 sprawling ones isn't. Anchored on the first large function in source order.

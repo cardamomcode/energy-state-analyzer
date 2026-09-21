@@ -194,7 +194,7 @@
     "license-check": "license-checker --production --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;Unlicense\" --excludePackages \"$npm_package_name@$npm_package_version\""
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.2.1",
+    "@vscode/vsce": "^4.0.0",
     "copy-webpack-plugin": "^14.0.0",
     "license-checker": "^25.0.1",
     "markdownlint-cli": "^0.49.1",
