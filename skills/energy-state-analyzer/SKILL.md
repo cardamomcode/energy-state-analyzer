@@ -39,5 +39,14 @@ are zero-based. Exit `1` means blocking findings or analysis failure, so inspect
 Triage each finding as valid, an intentional exception, or a detector/configuration problem. Use
 its message and hotspots to fix valid issues without changing behavior; run focused tests and scan
 again. Add a typed `esa-ignore` only for a reviewed, reasoned exception allowed by project policy.
+
+If you genuinely see that refactoring to satisfy a finding has made the code less readable or
+maintainable, keep or restore the better implementation. Do not change intended behavior or weaken
+configuration just to clear the finding. Report the unresolved finding and suggest opening an
+[analyzer issue](https://github.com/cardamomcode/energy-state-analyzer/issues/new)
+with the rule ID, language, relevant configuration, analyzer output, and a minimal before/after
+example explaining why the compliant refactor is worse. Draft the issue first; post it only with
+user approval and without private code.
+
 Report unresolved findings. A clean scan covers only enabled detectors, not correctness or overall
 code quality.
