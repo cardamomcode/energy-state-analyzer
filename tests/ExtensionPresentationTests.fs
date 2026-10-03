@@ -111,6 +111,7 @@ let tests =
                     assertThat magicNumber.Allowlist (isEqualTo [ 0.0; 1.0; -1.0; 2.0; 3.0 ])
                     assertThat magicNumber.IncludeTestFiles isTrue
                     assertThat magicString.IncludeTestFiles isTrue
+                    assertThat thresholds.OpaqueBoolean.IncludeTestFiles isTrue
                     assertThat matchOpportunity.MinBranches (isEqualTo 5)
                     assertThat errorShadowing.RecoveryDominanceEnabled isFalse
                     assertThat errorShadowing.OversizedRecoveryBlockEnabled isFalse

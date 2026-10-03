@@ -53,7 +53,7 @@ let printUsage () =
     error
         "Thresholds: --medium-nesting N --high-nesting N --medium-cyclomatic N --high-cyclomatic N --medium-cognitive N --high-cognitive N --medium-parameter-count N --high-parameter-count N"
 
-    error "Flags: --include-test-files (also flag magic numbers and magic strings in test files)"
+    error "Flags: --include-test-files (also flag magic numbers, magic strings, and opaque booleans in test files)"
 
 let private violationJson violation =
     let hotspots =

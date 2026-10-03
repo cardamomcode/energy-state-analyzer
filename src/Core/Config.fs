@@ -97,12 +97,18 @@ type ParameterCountThresholds =
         HighThreshold: int
     }
 
-/// Enable-only options shared by the four detectors that have no tunable threshold.
+/// Enable-only options for primitive obsession, which has no tunable threshold.
 ///
-/// decision: these four detectors have no tunable threshold, so their options record is just the
+/// decision: primitive obsession has no tunable threshold, so its options record is just the
 /// enable flag — a uniform shape that lets the pipeline guard every detector identically.
 type PrimitiveObsessionThresholds = { Enabled: bool }
-type OpaqueBooleanThresholds = { Enabled: bool }
+
+/// Configure opaque boolean detection and whether intentional test literals are included.
+type OpaqueBooleanThresholds =
+    {
+        Enabled: bool
+        IncludeTestFiles: bool
+    }
 
 /// Enable the advisory for checks whose result loses the checked property.
 type ParseDontValidateThresholds = { Enabled: bool }
@@ -200,7 +206,11 @@ let defaultAnalyzeOptions =
                 HighThreshold = 8
             }
         PrimitiveObsession = { Enabled = true }
-        OpaqueBoolean = { Enabled = true }
+        OpaqueBoolean =
+            {
+                Enabled = true
+                IncludeTestFiles = false
+            }
         ParseDontValidate = { Enabled = true }
         LogicalControlFlow = { Enabled = true }
         Inversion = { Enabled = true }

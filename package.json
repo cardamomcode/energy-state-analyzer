@@ -65,7 +65,7 @@
         "energyStateAnalyzer.includeTestFiles": {
           "type": "boolean",
           "default": false,
-          "description": "Also flag magic numbers and magic strings in test files (test_*.py, *_test.py, *Test.py, *.test.ts, etc.). Off by default because test code is full of intentional literals."
+          "description": "Also flag magic numbers, magic strings, and opaque boolean literals in test files (test_*.py, *_test.py, *Test.py, *.test.ts, etc.). Off by default because test code is full of intentional literals."
         },
         "energyStateAnalyzer.magicNumber.enabled": {
           "type": "boolean",

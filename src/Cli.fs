@@ -120,6 +120,10 @@ let private buildThresholds parsed : AnalyzeOptions =
             { baseOptions.MagicString with
                 IncludeTestFiles = parsed.IncludeTestFiles
             }
+        OpaqueBoolean =
+            { baseOptions.OpaqueBoolean with
+                IncludeTestFiles = parsed.IncludeTestFiles
+            }
         Nesting =
             thresholdOverride
                 (defaultNestingThresholds.MediumThreshold, defaultNestingThresholds.HighThreshold)

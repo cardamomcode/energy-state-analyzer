@@ -9,7 +9,7 @@ type SettingReader =
         Float: string -> string -> float -> float
         String: string -> string -> string -> string
         // decision: a top-level (non-namespaced) boolean reader for settings that apply across
-        // detectors, e.g. includeTestFiles, which now governs both magic detectors.
+        // detectors, e.g. includeTestFiles, which governs magic and opaque boolean literals.
         GlobalBool: string -> bool -> bool
     }
 
@@ -55,6 +55,7 @@ let readAnalyzeThresholds (reader: SettingReader) (options: AnalyzeThresholds) :
         OpaqueBoolean =
             { options.OpaqueBoolean with
                 Enabled = reader.Bool "opaqueBoolean" "enabled" options.OpaqueBoolean.Enabled
+                IncludeTestFiles = reader.GlobalBool "includeTestFiles" options.OpaqueBoolean.IncludeTestFiles
             }
         LogicalControlFlow =
             { options.LogicalControlFlow with

@@ -141,6 +141,7 @@ let defaultsTests =
                         assertThat defaultParameterCountThresholds.Enabled (isTrue)
                         assertThat defaultPrimitiveObsessionThresholds.Enabled (isTrue)
                         assertThat defaultOpaqueBooleanThresholds.Enabled (isTrue)
+                        assertThat defaultOpaqueBooleanThresholds.IncludeTestFiles (isFalse)
                         assertThat defaultLogicalControlFlowThresholds.Enabled (isTrue)
                         assertThat defaultInversionThresholds.Enabled (isTrue)
                     }

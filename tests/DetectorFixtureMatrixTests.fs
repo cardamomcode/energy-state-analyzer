@@ -359,6 +359,7 @@ let tests =
                     [
                         ProducesFinding(FunctionName "flaggedPositionalBoolean", None)
                         ProducesFinding(FunctionName "flaggedPositionalBooleanAmongOthers", None)
+                        ProducesFinding(FunctionName "flaggedAssertionBoolean", Some Low)
                         StaysClean(
                             FunctionName(
                                 [
