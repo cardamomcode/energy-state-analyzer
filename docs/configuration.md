@@ -121,4 +121,7 @@ npx energy-state-analyzer src \
 
 Recognized flags: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`, `--medium-parameter-count`, `--high-parameter-count`, and `--include-test-files`. Each threshold flag overrides only the value it provides, so a file can set cyclomatic thresholds while a CI run tightens just cognitive. The magic allowlists, `enabled` flags, and `minDuplicates` all come from the merged base (file over defaults) — only `--include-test-files` overrides them.
 
+`--include-test-files` enables magic-number, magic-string, and opaque-boolean findings in test files;
+all three exempt test files by default.
+
 See [Command-Line Usage](cli.md) for scanning, reports, and diffing against a base branch.

@@ -5,8 +5,10 @@ open Energy.Core.Violation
 open Energy.Core.Position
 open Energy.Core.LanguageAdapter
 open Energy.Core.Context
+open Energy.Core.Detectors.TestFile
 
-let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
+/// Collect positional boolean literals from an enabled source file.
+let private analyzeEnabledOpaqueBooleans (ctx: AnalysisContext) : AnalysisContext =
     let rec walk node =
         let own =
             if ctx.Language.IsBooleanLiteral node && ctx.Language.IsPositionalCallArgument node then
@@ -33,6 +35,20 @@ let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
     let findings = walk ctx.Tree
     addViolations findings ctx
 
+/// Skip intentional test literals unless the host explicitly includes test-file findings.
+///
+/// decision: test assertions routinely pass expected true/false values positionally, so this
+/// detector shares the magic detectors' test-file exemption and opt-in policy.
+let analyzeOpaqueBooleanLiteral (ctx: AnalysisContext) : AnalysisContext =
+    if
+        not ctx.Options.OpaqueBoolean.Enabled
+        || (not ctx.Options.OpaqueBoolean.IncludeTestFiles && isTestFile ctx.FileName)
+    then
+        ctx
+    else
+        analyzeEnabledOpaqueBooleans ctx
+
+/// Register opaque boolean detection in the shared pipeline.
 let detector: Detector =
     {
         Name = "opaqueBoolean"

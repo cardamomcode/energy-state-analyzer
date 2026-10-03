@@ -4,6 +4,11 @@ Flags a bare `true`/`false` passed positionally into a call, since a reader can'
 
 ## What it flags
 
+Test files are exempt by default: assertions such as `assert_equal(actual, True)` intentionally
+pass expected boolean values. Recognition follows the same test-directory and filename rules as
+[magic numbers](magic-numbers.md). Enable `energyStateAnalyzer.includeTestFiles` in VS Code or pass
+`--include-test-files` to the CLI to include these findings in tests.
+
 Unlike [primitive obsession](primitive-obsession.md)'s parameter-swap check, this doesn't need a second adjacent parameter to be a problem: one opaque literal is enough. It's suppressed when the boolean is labeled at the call site, whatever the language allows:
 
 - A Python keyword argument: `configure(retries=True)`.

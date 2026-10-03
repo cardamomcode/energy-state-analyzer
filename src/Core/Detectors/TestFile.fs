@@ -2,7 +2,7 @@ module Energy.Core.Detectors.TestFile
 
 /// Split a filename into words on separators and camel-case boundaries for test-file recognition.
 ///
-/// decision: shared test-file recognition used by both magic detectors. Recognizes test files by
+/// decision: shared test-file recognition used by literal detectors. Recognizes test files by
 /// path segment (test/, tests/) and camel-case word boundaries in the filename stem rather than a
 /// substring search — names such as latest_pricing.py must still be analyzed.
 let private splitIntoWords (text: string) : string list =
@@ -24,6 +24,7 @@ let private splitIntoWords (text: string) : string list =
     |> Array.filter (System.String.IsNullOrWhiteSpace >> not)
     |> Array.toList
 
+/// Recognize test directories and test words at either end of a filename stem.
 let isTestFile (fileName: string) : bool =
     let segments =
         fileName.Replace("\\", "/").Split('/')
