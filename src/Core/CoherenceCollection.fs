@@ -22,6 +22,7 @@ let private isImportNode (language: LanguageAdapter.LanguageAdapter) (node: Tree
 
     language.NodeTypes.ImportStatement |> Option.exists ((=) nodeType)
     || language.NodeTypes.ImportFromStatement |> Option.exists ((=) nodeType)
+    || List.contains nodeType language.NodeTypes.AdditionalImportTypes
 
 /// Empty collection state for a subtree with no coherence signals.
 let private empty: Collected =

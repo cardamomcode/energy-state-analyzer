@@ -281,6 +281,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
                 Lambda = Some lambdaLiteralNodeType
                 ImportStatement = Some(NodeType "import")
                 ImportFromStatement = None
+                AdditionalImportTypes = []
                 ExpressionStatement = None
                 // 'property_declaration' (val/var NAME = value), not 'assignment' (bare reassignment `x = 5`)
                 // — the only consumer (magicNumber.ts's isInConstantContext) wants "is this literal the value
@@ -463,6 +464,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
         // decision: true/false have no dedicated literal node in this grammar — they lex as plain
         // `identifier` tokens (verified: no boolean_literal rule exists). Safe to key off text since
         // true/false are hard keywords in Kotlin, not shadowable identifiers.
+        IsStructuralNumber = fun _ -> false
         IsBooleanLiteral = fun node -> Option.isSome (booleanLiteralPolarity node)
         // decision: every call argument (named or positional) wraps in `value_argument`, so unlike the
         // other adapters' direct-parent check, this also has to rule out a named argument (`retries =

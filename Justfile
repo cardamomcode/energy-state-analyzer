@@ -71,7 +71,7 @@ test:
 # Production build + package into a .vsix via vsce
 pack:
     npm run package
-    npx @vscode/vsce package
+    npx @vscode/vsce package --no-dependencies
 
 # Install .NET tools (ShipIt, Fable, Fantomas)
 setup:
