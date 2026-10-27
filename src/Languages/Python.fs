@@ -223,6 +223,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                 Lambda = Some lambdaNodeType
                 ImportStatement = Some(NodeType "import_statement")
                 ImportFromStatement = Some(NodeType "import_from_statement")
+                AdditionalImportTypes = []
                 ExpressionStatement = Some(NodeType "expression_statement")
                 Assignment = Some(NodeType "assignment")
                 Module = Some(NodeType "module")
@@ -397,6 +398,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                     && List.length pc > 0
                     && nodeId (pc.[List.length pc - 1]) = nodeId node
                 | None -> false
+        IsStructuralNumber = fun _ -> false
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument` node, so a
         // labeled boolean's parent is never `argument_list` directly.

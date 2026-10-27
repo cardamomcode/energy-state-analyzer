@@ -78,6 +78,7 @@ let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext 
 
                 let isExempt =
                     List.contains value ctx.Options.MagicNumber.Allowlist
+                    || ctx.Language.IsStructuralNumber node
                     || isInConstantContext ctx.Language node
                     || (nodeParent node
                         |> Option.exists (fun parent -> List.contains (nodeType parent) ctx.Language.SubscriptNodeTypes))

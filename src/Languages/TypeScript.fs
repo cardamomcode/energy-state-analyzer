@@ -214,6 +214,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                 ImportStatement = Some(NodeType "import_statement")
                 // import_statement already covers every import form.
                 ImportFromStatement = None
+                AdditionalImportTypes = []
                 ExpressionStatement = Some(NodeType "expression_statement")
                 Assignment = Some(NodeType "lexical_declaration")
                 Module = Some(NodeType "program")
@@ -393,6 +394,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                         | Some last -> nodeId last = nodeId node
                         | None -> false)
                 | _ -> false
+        IsStructuralNumber = fun _ -> false
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         // An object-literal field (`{ retries: true }`) wraps the literal in `pair` inside `object`, so
         // a labeled boolean's parent is never `arguments` directly.

@@ -31,6 +31,7 @@ All threshold flags are optional: `--medium-nesting`, `--high-nesting`, `--mediu
 | F# | `.fs`, `.fsx`, `.fsi` |
 | TypeScript | `.ts` |
 | C# | `.cs`, `.csx` |
+| Erlang | `.erl`, `.hrl` |
 | Kotlin | `.kt`, `.kts` |
 | C++ | `.cpp`, `.cppm`, `.cc`, `.ccm`, `.cxx`, `.cxxm`, `.c++`, `.c++m`, `.hpp`, `.hh`, `.hxx`, `.h++`, `.h`, `.ii`, `.ino`, `.inl`, `.ipp`, `.ixx`, `.mpp`, `.mxx`, `.tpp`, `.txx`, `.hpp.in`, `.h.in` |
 

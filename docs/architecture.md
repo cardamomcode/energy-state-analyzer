@@ -15,7 +15,7 @@ one past its responsibility.
 | Area | Owns | State |
 | --- | --- | --- |
 | `src/Core/` | Violation model, parser facade, detector pipeline, suppressions, scanning and reports | No host state |
-| `src/Languages/` | Python, F#, TypeScript, Kotlin, and C++ `LanguageAdapter` records | Static registry |
+| `src/Languages/` | Grammar-specific `LanguageAdapter` records for the supported languages | Static registry |
 | `src/Extension/Vscode*.fs` | Narrow Fable facade over VS Code | No |
 | `src/Extension/Configuration*.fs` | VS Code settings and pure settings-to-threshold mapping | No |
 | `src/Extension/Grammar.fs` | Parser initialization, loaded grammar cache, in-flight load cache | Cache supplied by root |

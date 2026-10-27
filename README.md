@@ -1,12 +1,12 @@
 # Energy State Analyzer
 
-Visualizes "energy states" in Python, F#, TypeScript, Kotlin, C++, and C# code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
+Visualizes "energy states" in Python, F#, TypeScript, Kotlin, C++, C#, and Erlang code as you edit: parts of a file that are complex, deeply nested, or otherwise harder to understand and maintain get highlighted with colored gutter icons, inline decorations, and entries in the Problems panel.
 
 ![Energy State Analyzer screenshot](https://raw.githubusercontent.com/cardamomcode/energy-state-analyzer/99f806f/images/energy-state-analyzer.png)
 
 ## Features
 
-Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, or C# file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
+Real-time analysis of the active Python, F#, TypeScript, Kotlin, C++, C#, or Erlang file, re-run on every edit and on editor focus change, via these detectors (see [docs/detectors](docs/detectors/README.md) for full detail on each):
 
 - [Cyclomatic complexity](docs/detectors/cyclomatic-complexity.md), too many independent execution paths.
 - [Cognitive complexity](docs/detectors/cognitive-complexity.md), too hard to read due to nesting.
@@ -74,7 +74,7 @@ for the current project, or run the command without agent flags to choose target
 
 ## Requirements
 
-The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, C++, or C# file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).
+The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, C++, C#, or Erlang file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. Erlang `.erl` and `.hrl` files are registered by this extension. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).
 
 ## Development
 
@@ -153,4 +153,8 @@ To exclude files/folders (e.g. test fixtures, generated code) from both the exte
   direct anonymous-callable bindings are not yet treated as file or class responsibilities.
 - C++ analysis is syntax-only: it does not preprocess macros, resolve includes, instantiate
   templates, or perform type checking. Macro-generated callable syntax is therefore invisible.
+- Erlang analysis is syntax-only. Each named function clause is analyzed independently; a
+  multi-clause function's complexity and parameter count are reported per clause. Type-based
+  parameter checks and parse-don't-validate analysis are not implemented for Erlang. Error-boundary
+  scoring currently skips `try ... of` because its success clauses need a separate work count.
 - Several detectors have per-language gaps beyond the above, see the "Known limitations" section of the relevant [detector doc](docs/detectors/README.md).
