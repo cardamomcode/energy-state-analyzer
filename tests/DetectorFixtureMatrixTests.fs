@@ -195,6 +195,17 @@ let tests =
                 }
             else
                 item)
+        // Erlang guards and pattern matches do not expose the validator/refinement contract used
+        // by this rule; the query case documents the clean limitation explicitly.
+        |> fun cases ->
+            cases
+            @ [
+                fixture
+                    "Erlang (validator limitation)"
+                    Erlang.erlangLanguageAdapter
+                    "erlang/Primitive.erl"
+                    [ StaysClean(FunctionName "validation_query") ]
+            ]
 
     let magicNumbers =
         commonCases
@@ -211,6 +222,16 @@ let tests =
                 StaysClean(FunctionName "cleanNegativeValue")
                 ProducesFinding(FunctionName "flaggedMagicNumbers", None)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/Adapter.erl"
+                [
+                    StaysClean(FunctionName "clean_values")
+                    ProducesFinding(FunctionName "flagged_magic", Some Low)
+                ]
+        ]
 
     let magicStrings =
         commonCases
@@ -226,6 +247,16 @@ let tests =
                 StaysClean(FunctionName "cleanValues")
                 ProducesFinding(FunctionName "flaggedMagicString", None)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [
+                    StaysClean(FunctionName "clean_strings")
+                    ProducesFinding(FunctionName "flagged_strings", Some Low)
+                ]
+        ]
 
     let nesting =
         commonCases
@@ -243,6 +274,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedSevereNesting", Some High)
                 ProducesFinding(FunctionName "flaggedTryNesting", None)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [
+                    StaysClean(FunctionName "clean_branching")
+                    ProducesFinding(FunctionName "deep_nesting", Some Medium)
+                ]
+        ]
 
     let cyclomatic =
         commonCases
@@ -259,6 +300,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
                 ProducesFinding(FunctionName "flaggedSevereFunction", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [
+                    StaysClean(FunctionName "clean_branching")
+                    ProducesFinding(FunctionName "flagged_branching", Some Medium)
+                ]
+        ]
 
     let cognitive =
         commonCases
@@ -275,6 +326,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedComplexFunction", Some Medium)
                 ProducesFinding(FunctionName "flaggedSevereFunction", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [
+                    StaysClean(FunctionName "clean_branching")
+                    ProducesFinding(FunctionName "deep_nesting", Some Medium)
+                ]
+        ]
 
     let parameters =
         commonCases
@@ -291,6 +352,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedManyParams", Some Medium)
                 ProducesFinding(FunctionName "flaggedTooManyParams", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/Adapter.erl"
+                [
+                    StaysClean(FunctionName "clean_values")
+                    ProducesFinding(FunctionName "flagged_parameters", Some Medium)
+                ]
+        ]
 
     let anonymousCallablePaths =
         {
@@ -310,6 +381,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedAnonymousCyclomatic", Some Medium)
                 ProducesFinding(FunctionName "flaggedSevereAnonymousCyclomatic", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/Anonymous.erl"
+                [
+                    StaysClean(FunctionName "clean_anon")
+                    ProducesFinding(FunctionName "branchy_anon", Some Medium)
+                ]
+        ]
 
     let anonymousCognitive =
         commonCases
@@ -319,6 +400,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedAnonymousCognitive", Some Medium)
                 ProducesFinding(FunctionName "flaggedSevereAnonymousCognitive", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/Anonymous.erl"
+                [
+                    StaysClean(FunctionName "clean_anon")
+                    ProducesFinding(FunctionName "deep_anon", None)
+                ]
+        ]
 
     let anonymousParameters =
         commonCases
@@ -328,6 +419,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedAnonymousParameters", Some Medium)
                 ProducesFinding(FunctionName "flaggedSevereAnonymousParameters", Some High)
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/Anonymous.erl"
+                [
+                    StaysClean(FunctionName "clean_anon")
+                    ProducesFinding(FunctionName "many_args", Some Medium)
+                ]
+        ]
 
     let primitiveObsession =
         commonCases
@@ -344,6 +445,16 @@ let tests =
                 ProducesFinding(FunctionName "flaggedSwapRisk", None)
                 ProducesFinding(FunctionName "flaggedStringlyTyped", None)
             ]
+        @ [
+            fixture
+                "Erlang (string dispatch; no static parameter types)"
+                Erlang.erlangLanguageAdapter
+                "erlang/Primitive.erl"
+                [
+                    StaysClean(FunctionName "clean_dispatch")
+                    ProducesFinding(FunctionName "flagged_dispatch", Some Low)
+                ]
+        ]
 
     let opaqueBoolean =
         allLanguages
@@ -380,6 +491,18 @@ let tests =
             { item with
                 Expectations = expectationsFor item.Language item.Expectations
             })
+        |> fun cases ->
+            cases
+            @ [
+                fixture
+                    "Erlang"
+                    Erlang.erlangLanguageAdapter
+                    "erlang/Adapter.erl"
+                    [
+                        StaysClean(FunctionName "clean_values")
+                        ProducesFinding(FunctionName "flagged_boolean", Some Low)
+                    ]
+            ]
 
     let logicalControlFlow =
         [
@@ -417,6 +540,13 @@ let tests =
                 CSharp.cSharpLanguageAdapter
                 "csharp/LogicalControlFlow.cs"
                 [ StaysClean(FunctionName "CleanExplicitIf") ]
+            // Erlang's clause body has expressions rather than statement wrappers; the current
+            // detector's JS-style shorthand does not describe this syntax.
+            fixture
+                "Erlang (statement-form limitation)"
+                Erlang.erlangLanguageAdapter
+                "erlang/Primitive.erl"
+                [ StaysClean(FunctionName "flagged_dispatch") ]
         ]
 
     let matchOpportunity =
@@ -433,6 +563,14 @@ let tests =
                 StaysClean(FunctionName "cleanMixedConditions")
                 ProducesFinding(FunctionName "flaggedThreeWayChain", None)
             ]
+        // Erlang dispatches through `case` or guarded `if` clauses, not an if/elif chain.
+        @ [
+            fixture
+                "Erlang (clause-dispatch limitation)"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [ StaysClean(FunctionName "clean_branching") ]
+        ]
 
     // F# has no equivalent block-shaped conditional in its grammar, so its fixture makes the
     // supported-language boundary visible as a clean case rather than pretending it is parity.
@@ -488,6 +626,13 @@ let tests =
                     ProducesFinding(FunctionName "FlaggedDominantIf", None)
                     ProducesFinding(FunctionName "FlaggedValidationChain", None)
                 ]
+            // Erlang `if` is a guard-clause dispatch, so the imperative guard-extraction rule
+            // does not apply; nested cases remain visible to nesting/cognitive detectors.
+            fixture
+                "Erlang (guard-clause limitation)"
+                Erlang.erlangLanguageAdapter
+                "erlang/ControlFlow.erl"
+                [ StaysClean(FunctionName "deep_nesting") ]
         ]
 
     // These scenarios distinguish terminal guard candidates from optional work and alternatives.
@@ -547,6 +692,16 @@ let tests =
                 ProducesFinding(FunctionName "broadScope", Some High)
                 StaysClean(FunctionName "twoLineProtected")
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ErrorBoundary.erl"
+                [
+                    StaysClean(FunctionName "clean_boundary")
+                    ProducesFinding(FunctionName "broad_boundary", Some High)
+                ]
+        ]
 
     let recoveryDominance =
         recoveryRules
@@ -558,6 +713,16 @@ let tests =
                 ProducesFinding(FunctionName "multilineLoop", Some High)
                 StaysClean(FunctionName "commentedTrivial")
             ]
+        @ [
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/ErrorBoundary.erl"
+                [
+                    StaysClean(FunctionName "clean_boundary")
+                    ProducesFinding(FunctionName "recovery_heavy", Some High)
+                ]
+        ]
 
     let oversizedRecovery =
         recoveryRules
@@ -584,6 +749,18 @@ let tests =
                             ProducesFinding(FunctionName name, Some Medium)
                     ]
             })
+        |> fun cases ->
+            cases
+            @ [
+                fixture
+                    "Erlang"
+                    Erlang.erlangLanguageAdapter
+                    "erlang/ErrorBoundary.erl"
+                    [
+                        StaysClean(FunctionName "clean_boundary")
+                        ProducesFinding(FunctionName "oversized_recovery", Some Medium)
+                    ]
+            ]
 
     let errorShadowing =
         allLanguages
@@ -611,6 +788,14 @@ let tests =
                     [
                         StaysClean(FunctionName "recoveryDominates")
                         StaysClean(FunctionName "recoveryShadowsRealWork")
+                    ]
+                fixture
+                    "Erlang"
+                    Erlang.erlangLanguageAdapter
+                    "erlang/ErrorBoundary.erl"
+                    [
+                        StaysClean(FunctionName "clean_boundary")
+                        StaysClean(FunctionName "recovery_heavy")
                     ]
             ]
 

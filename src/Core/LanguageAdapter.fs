@@ -168,6 +168,7 @@ type NodeTypes =
         Lambda: NodeType option
         ImportStatement: NodeType option
         ImportFromStatement: NodeType option
+        AdditionalImportTypes: NodeType list
         ExpressionStatement: NodeType option
         Assignment: NodeType option
         Module: NodeType option
@@ -297,6 +298,9 @@ type LanguageAdapter =
         // default_parameter/typed_default_parameter, TS's optional_parameter) — exempts it from
         // magic-number flagging.
         IsDefaultParameterValue: Node -> bool
+        // Whether a numeric token describes syntax rather than a runtime value (Erlang's
+        // function arity in `name/2`, for example). Such tokens are not magic numbers.
+        IsStructuralNumber: Node -> bool
         // Whether this node is a boolean literal (Python/TS true/false, F#'s const node wrapping a bool
         // child). Drives the opaque-boolean-literal detector; deliberately narrower than the rule's own
         // stated scope (which also floats flag-like bare 0/1 as a future option).

@@ -334,6 +334,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                 Lambda = Some lambdaExpressionNodeType
                 ImportStatement = Some(NodeType "preproc_include")
                 ImportFromStatement = None
+                AdditionalImportTypes = []
                 ExpressionStatement = Some(NodeType "expression_statement")
                 Assignment = Some(NodeType "declaration")
                 Module = Some(NodeType "translation_unit")
@@ -470,6 +471,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
         IsFormattedOrInterpolatedString =
             fun node -> not ((nodeText node).StartsWith("\"", System.StringComparison.Ordinal))
         IsDefaultParameterValue = isDefaultParameterValue
+        IsStructuralNumber = fun _ -> false
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         IsPositionalCallArgument =
             fun node ->

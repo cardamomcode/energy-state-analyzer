@@ -240,6 +240,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
                 Lambda = Some lambdaExpressionNodeType
                 ImportStatement = Some(NodeType "using_directive")
                 ImportFromStatement = None
+                AdditionalImportTypes = []
                 ExpressionStatement = Some(NodeType "expression_statement")
                 Assignment = Some(NodeType "variable_declaration")
                 Module = Some(NodeType "compilation_unit")
@@ -354,6 +355,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
                         |> List.tryLast
                         |> Option.exists (fun last -> nodeId last = nodeId node))
                 | _ -> false
+        IsStructuralNumber = fun _ -> false
         IsBooleanLiteral = fun node -> nodeType node = NodeType "boolean_literal"
         IsPositionalCallArgument =
             fun node ->

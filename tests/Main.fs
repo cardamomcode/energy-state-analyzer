@@ -13,6 +13,7 @@ let main _ =
             ConfigTests.tests
             CPlusPlusTests.tests
             CSharpTests.tests
+            ErlangTests.tests
             AnonymousCallableTests.tests
             NestingTests.tests
             NestingTests.gatingTests

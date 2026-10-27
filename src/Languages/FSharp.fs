@@ -350,6 +350,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
                 // `open X`.
                 ImportStatement = Some(NodeType "import_decl")
                 ImportFromStatement = None
+                AdditionalImportTypes = []
                 // F# has no string-literal docstring convention.
                 ExpressionStatement = None
                 Assignment = Some(NodeType "function_or_value_defn")
@@ -546,6 +547,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
         // here — a known gap, same tradeoff as leaving callNodeTypes unmodeled above.
         IsFormattedOrInterpolatedString = fun _ -> false
         IsDefaultParameterValue = fun _ -> false
+        IsStructuralNumber = fun _ -> false
         // A bool literal parses as a `const` node wrapping a `bool` child (its .text is already
         // "true"/"false", same as Python/TS's dedicated literal node types).
         IsBooleanLiteral =

@@ -2,12 +2,6 @@ module Energy.Languages.Registry
 
 open System
 open Energy.Core.LanguageAdapter
-open Energy.Languages.Python
-open Energy.Languages.TypeScript
-open Energy.Languages.FSharp
-open Energy.Languages.Kotlin
-open Energy.Languages.CPlusPlus
-open Energy.Languages.CSharp
 
 /// Register every supported language adapter, keyed by VS Code language id.
 ///
@@ -15,12 +9,13 @@ open Energy.Languages.CSharp
 /// identifier directly, while the CLI resolves an extension through the same registry below.
 let languages: Map<string, LanguageAdapter> =
     [
-        "python", pythonLanguageAdapter
-        "fsharp", fSharpLanguageAdapter
-        "typescript", typeScriptLanguageAdapter
-        "kotlin", kotlinLanguageAdapter
-        "cpp", cPlusPlusLanguageAdapter
-        "csharp", cSharpLanguageAdapter
+        "python", Python.pythonLanguageAdapter
+        "fsharp", FSharp.fSharpLanguageAdapter
+        "typescript", TypeScript.typeScriptLanguageAdapter
+        "kotlin", Kotlin.kotlinLanguageAdapter
+        "cpp", CPlusPlus.cPlusPlusLanguageAdapter
+        "csharp", CSharp.cSharpLanguageAdapter
+        "erlang", Erlang.erlangLanguageAdapter
     ]
     |> Map.ofList
 
@@ -39,6 +34,8 @@ let private suffixToLanguageId =
         ".ts", "typescript"
         ".cs", "csharp"
         ".csx", "csharp"
+        ".erl", "erlang"
+        ".hrl", "erlang"
         ".kt", "kotlin"
         ".kts", "kotlin"
         ".cpp", "cpp"
