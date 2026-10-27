@@ -2,7 +2,7 @@
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
   "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++, C#, Erlang)",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "publisher": "cardamom-code",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -54,7 +54,10 @@
     "languages": [
       {
         "id": "erlang",
-        "extensions": [".erl", ".hrl"]
+        "extensions": [
+          ".erl",
+          ".hrl"
+        ]
       }
     ],
     "commands": [
