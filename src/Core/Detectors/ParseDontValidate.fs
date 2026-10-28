@@ -45,7 +45,8 @@ let private rejectsNull language name condition =
 
 /// Identify parameters whose checked property is not carried by the success result.
 ///
-/// tradeoff: identity returns still require an annotation; check-only validators also accept simple untyped parameters because they expose no result to refine.
+/// tradeoff: statement-form identity returns require an annotation, while an adapter may accept an
+/// untyped identity only after extracting an explicit rejecting clause and its success branch.
 /// decision: the rejectsNull exception stays limited to identity returns, where the returned value
 /// itself can preserve language-level narrowing; a bare boolean success never carries the checked
 /// value or its narrowing across the call, so plain is_not_null-style boolean validators remain
@@ -71,8 +72,11 @@ let private checkedParameter (language: LanguageAdapter) head candidate =
            | UnchangedInput value ->
                nodeText value = name
                && List.contains (nodeType value) language.VariableReferenceNodeTypes
-               && (parameterType
-                   |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
+               && (match candidate.IdentityReturnPolicy with
+                   | AcceptUntypedParameter -> true
+                   | RequireParameterAnnotation ->
+                       parameterType
+                       |> Option.exists (fun expected -> returnType |> Option.forall ((=) expected)))
                && not (rejectsNull language name candidate.Condition)
            | BareBoolean _ -> true)
 

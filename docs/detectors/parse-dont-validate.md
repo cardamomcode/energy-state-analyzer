@@ -32,7 +32,8 @@ property. Using exceptions versus `Result` is a separate choice.
 
 ## Detection
 
-**Severity: Low.** Enabled by default in Python, F#, TypeScript, Kotlin, C++, and C#.
+**Severity: Low.** Enabled by default in Python, F#, TypeScript, Kotlin, C++, C#,
+and Erlang.
 
 The rule recognizes a function consisting of:
 
@@ -61,6 +62,23 @@ supported. Comments and Python docstrings do not count as executable items.
 
 Numeric bounds, non-empty collection checks, and boolean validators are covered by
 the cross-language fixture matrix.
+
+In Erlang, the rule recognizes a single `case` or `if` expression with two clauses:
+the first rejects through `error/1,2`, `throw/1`, or `exit/1` (including explicit
+`erlang:` calls), and the second returns the checked parameter or a bare boolean.
+A `case` rejection needs a selective literal or collection pattern; an `if` success
+clause needs `true` as its fallback guard. Erlang has no
+statement-form `return`, so its identity cases use this explicit rejecting clause
+instead of a parameter annotation as evidence of validation. An ordinary predicate
+query remains clean when neither clause calls a terminating function.
+
+```erlang
+checked_items(Items) ->
+    case Items of
+        [] -> error(empty);
+        _ -> Items % flagged: the successful result is still a plain list
+    end.
+```
 
 ### Boolean validators
 
@@ -120,6 +138,10 @@ checked property belongs in the public contract before introducing a domain type
   remain candidates because no narrowed value is returned.
 - The analyzer does not resolve aliases, infer types, follow callers, prove
   predicate purity, or resolve shadowed F# failure-function names.
+- Erlang validation spread across function clauses, function-head guards, guarded
+  `case` clauses, reversed clause order, and clause bodies with additional work are
+  outside this rule. It does not read Erlang `-spec` declarations or resolve local
+  functions that shadow unqualified `error`, `throw`, or `exit` calls.
 
 ## Configuration and suppression
 
