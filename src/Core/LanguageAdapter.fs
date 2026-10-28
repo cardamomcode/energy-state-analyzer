@@ -80,12 +80,18 @@ type ValidationSuccess =
     /// third leak shape beside identity returns and absent success values.
     | BareBoolean of Node
 
+/// State when an identity return has enough syntax evidence without a parameter annotation.
+type IdentityReturnPolicy =
+    | RequireParameterAnnotation
+    | AcceptUntypedParameter
+
 /// A syntactically established rejecting guard and its success result.
 type GuardedValidation =
     {
         Anchor: Node
         Condition: Node
         Success: ValidationSuccess
+        IdentityReturnPolicy: IdentityReturnPolicy
     }
 
 /// One logical function inside a definition node. Most grammars have exactly one (the definition

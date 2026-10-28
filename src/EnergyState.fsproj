@@ -38,6 +38,7 @@
     <Compile Include="Languages/Kotlin.fs" />
     <Compile Include="Languages/CPlusPlus.fs" />
     <Compile Include="Languages/CSharp.fs" />
+    <Compile Include="Languages/ErlangValidation.fs" />
     <Compile Include="Languages/Erlang.fs" />
     <Compile Include="Languages/Registry.fs" />
     <Compile Include="Core/Detectors/Nesting.fs" />

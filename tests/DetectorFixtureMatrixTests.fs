@@ -195,16 +195,38 @@ let tests =
                 }
             else
                 item)
-        // Erlang guards and pattern matches do not expose the validator/refinement contract used
-        // by this rule; the query case documents the clean limitation explicitly.
+        // Erlang's explicit rejecting case and if clauses expose a local validator contract.
+        // Function-head guards and cross-clause validation remain outside this row.
         |> fun cases ->
             cases
             @ [
                 fixture
-                    "Erlang (validator limitation)"
+                    "Erlang"
                     Erlang.erlangLanguageAdapter
-                    "erlang/Primitive.erl"
-                    [ StaysClean(FunctionName "validation_query") ]
+                    "erlang/ParseDontValidate.erl"
+                    [
+                        ProducesFinding(FunctionName "flagged_empty_case", Some Low)
+                        ProducesFinding(FunctionName "flagged_positive_if", Some Low)
+                        ProducesFinding(FunctionName "flagged_predicate_case", Some Low)
+                        ProducesFinding(FunctionName "flagged_error_two_args", Some Low)
+                        ProducesFinding(FunctionName "flagged_boolean_success", Some Low)
+                        ProducesFinding(FunctionName "flagged_rejection_comment", Some Low)
+                        ProducesFinding(FunctionName "flagged_success_comment", Some Low)
+                        ProducesFinding(FunctionName "flagged_throw_argument_comment", Some Low)
+                        ProducesFinding(FunctionName "flagged_if_comments", Some Low)
+                        ProducesFinding(FunctionName "flagged_function_body_comment", Some Low)
+                        StaysClean(FunctionName "clean_constructed")
+                        StaysClean(FunctionName "clean_transformed")
+                        StaysClean(FunctionName "clean_boolean_query")
+                        StaysClean(FunctionName "clean_if_query")
+                        StaysClean(FunctionName "clean_other_input")
+                        StaysClean(FunctionName "clean_intervening_work")
+                        StaysClean(FunctionName "clean_commented_intervening_work")
+                        StaysClean(FunctionName "clean_exit_signal")
+                        StaysClean(FunctionName "clean_other_module")
+                        StaysClean(FunctionName "clean_head_guard")
+                        StaysClean(FunctionName "clean_cross_clause")
+                    ]
             ]
 
     let magicNumbers =

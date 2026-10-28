@@ -339,5 +339,5 @@ let erlangLanguageAdapter: LanguageAdapter =
         GetBaseClassNames = fun _ -> []
         GetErrorHandlingRegion = errorHandlingRegion
         GetFunctionLogicalItems = bodyItems
-        GetGuardedValidation = fun _ -> None
+        GetGuardedValidation = ErlangValidation.extract
     }

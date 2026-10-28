@@ -155,6 +155,8 @@ To exclude files/folders (e.g. test fixtures, generated code) from both the exte
   templates, or perform type checking. Macro-generated callable syntax is therefore invisible.
 - Erlang analysis is syntax-only. Each named function clause is analyzed independently; a
   multi-clause function's complexity and parameter count are reported per clause. Type-based
-  parameter checks and parse-don't-validate analysis are not implemented for Erlang. Error-boundary
-  scoring currently skips `try ... of` because its success clauses need a separate work count.
+  parameter checks are not implemented for Erlang. Parse-don't-validate recognizes local
+  `case`/`if` validators with an explicit rejecting clause, but not validation spread across
+  function clauses. Error-boundary scoring currently skips `try ... of` because its success
+  clauses need a separate work count.
 - Several detectors have per-language gaps beyond the above, see the "Known limitations" section of the relevant [detector doc](docs/detectors/README.md).

@@ -143,6 +143,7 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
                             Anchor = guard
                             Condition = condition
                             Success = result
+                            IdentityReturnPolicy = RequireParameterAnnotation
                         }
                 // F#/Kotlin single-expression `if condition then false else <success>`: the then
                 // branch must be a bare falsy literal. Statement grammars are safe — their if
@@ -155,6 +156,7 @@ let extract syntax (head: FunctionHead) : GuardedValidation option =
                             Anchor = guard
                             Condition = condition
                             Success = classify syntax elseBranch
+                            IdentityReturnPolicy = RequireParameterAnnotation
                         }
                 | _ -> None)
 
