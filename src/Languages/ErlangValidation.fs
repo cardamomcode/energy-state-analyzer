@@ -6,11 +6,18 @@ open Energy.Core.LanguageAdapter
 /// Name the atom used by an unconditional Erlang if clause.
 let private trueAtom = "true"
 
+/// Keep only executable children when checking Erlang expression counts.
+///
+/// invariant: a named comment never changes a validator's expression or failure-call arity.
+let private expressionChildren node =
+    nodeNamedChildren node
+    |> List.filter (fun child -> nodeType child <> NodeType "comment")
+
 /// Read a clause only when its body has one executable expression.
 let private singleClauseExpression clause =
     nodeField "body" clause
     |> Option.bind (fun body ->
-        match nodeNamedChildren body with
+        match expressionChildren body with
         | [ expression ] -> Some expression
         | _ -> None)
 
@@ -28,7 +35,7 @@ let private isFailureCall node =
         let name = nodeField "expr" expression |> Option.map nodeText
 
         let arity =
-            nodeField "args" expression |> Option.map (nodeNamedChildren >> List.length)
+            nodeField "args" expression |> Option.map (expressionChildren >> List.length)
 
         match name, arity with
         | Some "error", Some(1 | 2)
@@ -103,7 +110,7 @@ let extract (head: FunctionHead) : GuardedValidation option =
     match nodeField "body" head.Body with
     | Some body when nodeField "guard" head.ParametersRoot |> Option.isNone ->
         let result =
-            match nodeNamedChildren body with
+            match expressionChildren body with
             | [ decision ] ->
                 match nodeType decision with
                 | NodeType "case_expr" -> caseValidation decision |> Option.map (fun value -> decision, value)

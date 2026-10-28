@@ -30,6 +30,48 @@ flagged_boolean_success(Value) ->
         _ -> true
     end.
 
+flagged_rejection_comment(Value) ->
+    case Value of
+        undefined ->
+            % The rejection is still the only expression.
+            error(badarg);
+        _ -> Value
+    end.
+
+flagged_success_comment(Value) ->
+    case Value of
+        undefined -> error(badarg);
+        _ ->
+            % The unchanged value is still the only expression.
+            Value
+    end.
+
+flagged_throw_argument_comment(Value) ->
+    case Value of
+        undefined -> throw(
+            % The call still has one argument.
+            badarg
+        );
+        _ -> Value
+    end.
+
+flagged_if_comments(Value) ->
+    if
+        Value =< 0 ->
+            % The guard still rejects.
+            error(badarg);
+        true ->
+            % The fallback still returns the input.
+            Value
+    end.
+
+flagged_function_body_comment(Value) ->
+    % The case is still the only function-body expression.
+    case Value of
+        undefined -> error(badarg);
+        _ -> Value
+    end.
+
 clean_constructed(Items) ->
     case Items of
         [] -> error(empty);
@@ -63,6 +105,15 @@ clean_other_input(Value, Limit) ->
 clean_intervening_work(Items) ->
     case Items of
         [] -> log(empty), error(empty);
+        _ -> Items
+    end.
+
+clean_commented_intervening_work(Items) ->
+    case Items of
+        [] ->
+            log(empty),
+            % Comments do not hide the second executable expression.
+            error(empty);
         _ -> Items
     end.
 
