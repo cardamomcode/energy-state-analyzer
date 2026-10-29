@@ -50,4 +50,4 @@ This receives no guard recommendation: an early return could skip `record_attemp
 
 ## Known limitations
 
-Runs for Python, TypeScript, Kotlin, C++, and C#. F#'s grammar has no block-boundary node to anchor this heuristic on. Guard-chain recognition follows explicit block bodies, so unbraced chains may be missed. Dominant-block recognition requires an explicit block; general depth detection also handles unbraced conditionals. In C++, only explicit syntax is considered; macro-expanded guard chains are not visible.
+Runs for Python, TypeScript, Kotlin, C++, C#, and Rust. F#'s grammar has no block-boundary node to anchor this heuristic on. Guard-chain recognition follows explicit block bodies, so unbraced chains may be missed. Dominant-block recognition requires an explicit block; general depth detection also handles unbraced conditionals. In C++, only explicit syntax is considered; macro-expanded guard chains are not visible.

@@ -6,7 +6,7 @@ Flags an `if`/`elif`/`elif` chain (or a nested `else if` in TypeScript, Kotlin, 
 
 A chain of 3 or more branches (configurable), all discriminating via equality or membership checks against the *same single variable*, is flagged. An unconditional catch-all `else` at the end still qualifies, since it contributes no discriminant and isn't itself a "branch" for this check, but a chain mixing unrelated conditions across branches does not qualify, since a `match`/`switch` can't express that kind of dispatch anyway.
 
-Runs on Python, F#, TypeScript, Kotlin, and C++.
+Runs on Python, F#, TypeScript, Kotlin, C++, and Rust.
 
 For C++, only character and integral literals qualify because `switch` does not accept string or
 floating-point case values.

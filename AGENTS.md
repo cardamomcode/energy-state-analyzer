@@ -3,7 +3,7 @@
 ## Project overview
 
 Energy State Analyzer is a VS Code extension and CLI that analyze Python, F#, TypeScript, Kotlin,
-C++, C#, and Erlang through `web-tree-sitter` grammars in `grammars/`. Product source is F# and is compiled
+C++, C#, Erlang, and Rust through `web-tree-sitter` grammars in `grammars/`. Product source is F# and is compiled
 by Fable 5 to JavaScript before webpack packages the extension and CLI.
 
 See `energy-state.md` for the original design rationale and `docs/fable-rewrite-plan.md` for the
@@ -45,7 +45,7 @@ order.
 - **`src/Core/`**: host-independent synchronous detector pipeline, tree-sitter facade,
   suppression, scanning, and report rendering. `Analyze.fs` is the one detector composition
   point shared by extension and CLI.
-- **`src/Languages/`**: grammar-specific `LanguageAdapter` records for the seven supported
+- **`src/Languages/`**: grammar-specific `LanguageAdapter` records for the eight supported
   analyzed languages.
 - **`src/Extension/`**: VS Code Fable facade, configuration boundary, grammar cache, analysis
   orchestration, editor/Problems presentation, and `Extension.fs` composition root. The narrow

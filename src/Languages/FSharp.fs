@@ -548,6 +548,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
         IsFormattedOrInterpolatedString = fun _ -> false
         IsDefaultParameterValue = fun _ -> false
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         // A bool literal parses as a `const` node wrapping a `bool` child (its .text is already
         // "true"/"false", same as Python/TS's dedicated literal node types).
         IsBooleanLiteral =

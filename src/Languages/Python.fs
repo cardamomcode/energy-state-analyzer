@@ -399,6 +399,7 @@ let pythonLanguageAdapter: LanguageAdapter =
                     && nodeId (pc.[List.length pc - 1]) = nodeId node
                 | None -> false
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         // A keyword argument (`retries=True`) wraps the literal in its own `keyword_argument` node, so a
         // labeled boolean's parent is never `argument_list` directly.

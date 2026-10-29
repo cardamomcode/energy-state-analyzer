@@ -821,36 +821,246 @@ let tests =
                     ]
             ]
 
+    let rust expectations =
+        fixture "Rust" Rust.rustLanguageAdapter "rust/Adapter.rs" expectations
+
     testList (
         "Integration: detector fixture parity matrix",
         [
             yield! detectorParityTests "magic numbers" Magic magicNumbers
+            yield!
+                detectorParityTests
+                    "Rust magic values"
+                    Magic
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_magic", Some Low)
+                                ProducesFinding(FunctionName "flagged_string", Some Low)
+                                StaysClean(FunctionName "clean_string")
+                            ]
+                    ]
+            yield!
+                detectorParityTests
+                    "Rust suffixed magic numbers"
+                    Magic
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/Constants.rs"
+                            [
+                                ProducesFinding(FunctionName "flagged_u32", Some Low)
+                                ProducesFinding(FunctionName "flagged_i32", Some Low)
+                                ProducesFinding(FunctionName "flagged_f64", Some Low)
+                                StaysClean(FunctionName "clean_allowlisted_suffix")
+                            ]
+                    ]
             yield! detectorParityTests "magic strings" Magic magicStrings
             yield! detectorParityTests "nesting" Nesting nesting
+            yield!
+                detectorParityTests
+                    "Rust nesting"
+                    Nesting
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_deep", Some Medium)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
             yield! detectorParityTests "cyclomatic complexity" Complexity cyclomatic
+            yield!
+                detectorParityTests
+                    "Rust cyclomatic complexity"
+                    Complexity
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_complexity", Some Medium)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
             yield! detectorParityTests "anonymous cyclomatic complexity" Complexity anonymousCyclomatic
             yield! detectorParityTests "cognitive complexity" Cognitive cognitive
+            yield!
+                detectorParityTests
+                    "Rust cognitive complexity"
+                    Cognitive
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_deep", Some Medium)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
             yield! detectorParityTests "anonymous cognitive complexity" Cognitive anonymousCognitive
             // Exact-score parity includes straight-line, boolean, branch, loop, dispatch and closure
             // scenarios. Python/F# lack do-while syntax; C++ uses lambdas instead of local named functions.
             // F# has no early-return statement; its unit conditional is tested without claiming a guard exit.
             yield! CognitiveRuleTests.fixtureTests
             yield! detectorParityTests "parameter count" Parameters parameters
+            yield!
+                detectorParityTests
+                    "Rust parameter count"
+                    Parameters
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_parameters", Some Medium)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
+            yield!
+                detectorParityTests
+                    "Rust import coherence"
+                    Coherence
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/Imports.rs"
+                            [
+                                ProducesFinding(FunctionName "flagged_wildcard", Some Medium)
+                                StaysClean(FunctionName "clean_import")
+                            ]
+                    ]
+            yield!
+                detectorParityTests
+                    "Rust explicit member fan-out"
+                    Coherence
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/ExplicitImports.rs"
+                            [ ProducesFinding(FunctionName "flagged_explicit_members", Some Medium) ]
+                    ]
             yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
+            yield!
+                detectorParityTests
+                    "Rust closure parameter count"
+                    Parameters
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "closure_owner", Some Medium)
+                                ProducesFinding(FunctionName "untyped_closure_owner", Some Medium)
+                            ]
+                    ]
             yield! detectorParityTests "primitive obsession" PrimitiveObsession primitiveObsession
+            yield!
+                detectorParityTests
+                    "Rust primitive obsession"
+                    PrimitiveObsession
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_boolean", Some Medium)
+                                StaysClean(FunctionName "flagged_magic")
+                            ]
+                    ]
             yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
+            yield!
+                detectorParityTests
+                    "Rust parse-don't-validate"
+                    ParseDontValidate
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/ParseDontValidate.rs"
+                            [
+                                ProducesFinding(FunctionName "flagged_result_guard", Some Low)
+                                ProducesFinding(FunctionName "flagged_option_guard", Some Low)
+                                ProducesFinding(FunctionName "flagged_explicit_return", Some Low)
+                                ProducesFinding(FunctionName "flagged_result_match", Some Low)
+                                ProducesFinding(FunctionName "flagged_option_match", Some Low)
+                                StaysClean(FunctionName "clean_constructed")
+                                StaysClean(FunctionName "clean_option_constructed")
+                                StaysClean(FunctionName "clean_transformed")
+                                StaysClean(FunctionName "clean_other_input")
+                                StaysClean(FunctionName "clean_unrelated_result")
+                                StaysClean(FunctionName "clean_unrelated_option")
+                                StaysClean(FunctionName "clean_intervening_work")
+                                StaysClean(FunctionName "clean_nested_rejection")
+                                StaysClean(FunctionName "clean_panic")
+                                StaysClean(FunctionName "clean_guarded_match")
+                                StaysClean(FunctionName "clean_guarded_literal_match")
+                            ]
+                    ]
             yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean
+            yield!
+                detectorParityTests
+                    "Rust opaque boolean"
+                    OpaqueBoolean
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_opaque", Some Low)
+                                StaysClean(FunctionName "clean_named_boolean")
+                            ]
+                    ]
             yield! detectorParityTests "logical control flow" LogicalControlFlow logicalControlFlow
+            yield!
+                detectorParityTests
+                    "Rust logical control flow"
+                    LogicalControlFlow
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_logical", Some Low)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
             yield! detectorParityTests "match opportunity" MatchOpportunity matchOpportunity
+            yield!
+                detectorParityTests
+                    "Rust match opportunity"
+                    MatchOpportunity
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_match_opportunity", Some Low)
+                                StaysClean(FunctionName "clean_match")
+                            ]
+                    ]
             yield! detectorParityTests "inversion" Inversion inversion
+            yield!
+                detectorParityTests
+                    "Rust inversion"
+                    Inversion
+                    [
+                        rust
+                            [
+                                ProducesFinding(FunctionName "flagged_deep", Some Medium)
+                                StaysClean(FunctionName "clean_values")
+                            ]
+                    ]
             yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
             yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
+            // Rust has no catch/finally construct; Result/Option propagation is a separate policy.
+            yield!
+                detectorParityTests
+                    "Rust error-boundary limitation"
+                    ErrorShadowing
+                    [ rust [ StaysClean(FunctionName "clean_validator") ] ]
             yield! detectorParityTests "broad protected scope" ErrorShadowing broadScope
             yield! detectorParityTests "recovery dominance" RecoveryDominance recoveryDominance
+            yield!
+                detectorParityTests
+                    "Rust recovery limitation"
+                    RecoveryDominance
+                    [ rust [ StaysClean(FunctionName "clean_validator") ] ]
             yield!
                 detectorParityTests
                     "oversized recovery block (C++ has no finally)"
                     OversizedRecoveryBlock
                     oversizedRecovery
+            yield!
+                detectorParityTests
+                    "Rust cleanup limitation"
+                    OversizedRecoveryBlock
+                    [ rust [ StaysClean(FunctionName "clean_validator") ] ]
         ]
     )

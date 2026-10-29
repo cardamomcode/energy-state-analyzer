@@ -472,6 +472,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
             fun node -> not ((nodeText node).StartsWith("\"", System.StringComparison.Ordinal))
         IsDefaultParameterValue = isDefaultParameterValue
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         IsPositionalCallArgument =
             fun node ->

@@ -356,6 +356,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
                         |> Option.exists (fun last -> nodeId last = nodeId node))
                 | _ -> false
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         IsBooleanLiteral = fun node -> nodeType node = NodeType "boolean_literal"
         IsPositionalCallArgument =
             fun node ->

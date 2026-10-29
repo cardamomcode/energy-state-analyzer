@@ -55,8 +55,8 @@ This implementation does not claim full SonarSource compatibility:
 - Match/when constructs use one structural increment, including pattern-based dispatch.
 - Preprocessor conditionals and macro-expanded control flow are not scored.
 - Anonymous callables are recognized directly from syntax: Python lambdas, F# function
-  expressions, TypeScript arrows and function expressions, Kotlin and C++ lambdas, and C# lambdas
-  and anonymous methods. Aliases and callables created by macro expansion are not resolved.
+  expressions, TypeScript arrows and function expressions, Kotlin and C++ lambdas, C# lambdas
+  and anonymous methods, and Rust closures. Aliases and callables created by macro expansion are not resolved.
 
 Python and F# have no `do`-`while` syntax. C++ local callables are covered through lambdas,
 not nested named function declarations.

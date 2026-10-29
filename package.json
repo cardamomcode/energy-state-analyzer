@@ -1,7 +1,7 @@
 {
   "name": "energy-state-analyzer",
   "displayName": "Energy State Analyzer",
-  "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++, C#, Erlang)",
+  "description": "Visualize code energy states in real-time (Python, F#, TypeScript, Kotlin, C++, C#, Erlang, Rust)",
   "version": "0.22.0",
   "publisher": "cardamom-code",
   "license": "MIT",
@@ -26,6 +26,7 @@
     "c++",
     "csharp",
     "erlang",
+    "rust",
     "code quality",
     "cyclomatic complexity",
     "cognitive complexity",
@@ -40,7 +41,8 @@
     "onLanguage:kotlin",
     "onLanguage:cpp",
     "onLanguage:csharp",
-    "onLanguage:erlang"
+    "onLanguage:erlang",
+    "onLanguage:rust"
   ],
   "main": "./dist/extension.js",
   "bin": {
@@ -57,6 +59,12 @@
         "extensions": [
           ".erl",
           ".hrl"
+        ]
+      },
+      {
+        "id": "rust",
+        "extensions": [
+          ".rs"
         ]
       }
     ],

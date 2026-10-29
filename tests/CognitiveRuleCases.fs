@@ -162,4 +162,5 @@ let cases =
             "ordinaryBreak", 1
             "bracedElseCheck", 4
         ]
+        Rust.rustLanguageAdapter, "rust/CognitiveRules.rs", [ "matchArmNested", 3; "matchArmPlain", 1 ]
     ]
