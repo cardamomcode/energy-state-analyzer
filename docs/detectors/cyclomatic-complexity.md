@@ -16,8 +16,7 @@ Starting from a base of **1**, every decision point adds **+1**, no matter how d
 
 A nested named or anonymous callable is scored separately, as its own violation, and is never
 folded into the enclosing callable's count. This includes Python lambdas, F# function expressions,
-TypeScript arrows and function expressions, Kotlin and C++ lambdas, and C# lambdas and anonymous
-methods.
+TypeScript arrows and function expressions, Kotlin and C++ lambdas, C# lambdas and anonymous methods, and Rust closures.
 
 Two functions with the same number of `if`s score the same whether those `if`s are sequential or nested five deep. This metric measures *independent control-flow paths*, rather than every possible execution.
 [Cognitive complexity](cognitive-complexity.md) estimates reading effort through breaks in

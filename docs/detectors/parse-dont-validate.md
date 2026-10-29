@@ -33,7 +33,8 @@ property. Using exceptions versus `Result` is a separate choice.
 ## Detection
 
 **Severity: Low.** Enabled by default in Python, F#, TypeScript, Kotlin, C++, C#,
-and Erlang.
+and Erlang. Rust currently has no guard extractor for `Result`/`Option` and panic-based
+validation, so this rule does not report Rust findings.
 
 The rule recognizes a function consisting of:
 

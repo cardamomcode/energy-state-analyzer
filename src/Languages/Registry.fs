@@ -16,6 +16,7 @@ let languages: Map<string, LanguageAdapter> =
         "cpp", CPlusPlus.cPlusPlusLanguageAdapter
         "csharp", CSharp.cSharpLanguageAdapter
         "erlang", Erlang.erlangLanguageAdapter
+        "rust", Rust.rustLanguageAdapter
     ]
     |> Map.ofList
 
@@ -36,6 +37,7 @@ let private suffixToLanguageId =
         ".csx", "csharp"
         ".erl", "erlang"
         ".hrl", "erlang"
+        ".rs", "rust"
         ".kt", "kotlin"
         ".kts", "kotlin"
         ".cpp", "cpp"

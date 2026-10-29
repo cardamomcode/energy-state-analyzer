@@ -8,6 +8,11 @@ subscripts, `if`/loops/`try`/`catch`, ternaries, and branch-aware `switch` state
 syntax-only: preprocessing, include resolution, template instantiation, overload resolution, and
 type checking remain the compiler's job.
 
+Rust uses the same detector pipeline for functions, closures, typed parameters, literals, `use`
+imports, `if`/loop/match complexity, nesting, and control-flow opportunities. Rust parsing is
+syntax-only, so macro expansion and type resolution are not modeled. The parse-don't-validate
+and error-boundary families do not yet classify Rust `Result`/`Option` propagation.
+
 ## Complexity and structure
 
 - [ESA002: Cyclomatic complexity](cyclomatic-complexity.md), too many independent execution paths.

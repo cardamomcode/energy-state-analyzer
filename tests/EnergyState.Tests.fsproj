@@ -15,6 +15,7 @@
     <Compile Include="CPlusPlusTests.fs" />
     <Compile Include="CSharpTests.fs" />
     <Compile Include="ErlangTests.fs" />
+    <Compile Include="RustTests.fs" />
     <Compile Include="AnonymousCallableTests.fs" />
     <Compile Include="NestingTests.fs" />
     <Compile Include="CyclomaticTests.fs" />

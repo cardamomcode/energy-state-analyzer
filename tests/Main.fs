@@ -14,6 +14,7 @@ let main _ =
             CPlusPlusTests.tests
             CSharpTests.tests
             ErlangTests.tests
+            RustTests.tests
             AnonymousCallableTests.tests
             NestingTests.tests
             NestingTests.gatingTests

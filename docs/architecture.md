@@ -64,3 +64,7 @@ The registry is keyed by VS Code language ID. CLI filenames are matched against 
 case-insensitive suffix table, which is required for compound C++ suffixes such as `.hpp.in` and
 keeps C, CUDA, and Objective-C++ outside the C++ adapter. Bundled third-party grammar artifacts keep
 their provenance, checksum, and license notice beside the WASM.
+
+Rust `.rs` files use the same registry and parser pipeline. The Rust adapter maps syntax from
+`tree-sitter-rust` to the shared detector contracts, including function and closure views,
+typed parameters, `use` imports, and multi-arm `match` decisions.
