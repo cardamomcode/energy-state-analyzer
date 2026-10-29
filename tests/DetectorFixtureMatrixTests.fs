@@ -840,6 +840,22 @@ let tests =
                                 StaysClean(FunctionName "clean_string")
                             ]
                     ]
+            yield!
+                detectorParityTests
+                    "Rust suffixed magic numbers"
+                    Magic
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/Constants.rs"
+                            [
+                                ProducesFinding(FunctionName "flagged_u32", Some Low)
+                                ProducesFinding(FunctionName "flagged_i32", Some Low)
+                                ProducesFinding(FunctionName "flagged_f64", Some Low)
+                                StaysClean(FunctionName "clean_allowlisted_suffix")
+                            ]
+                    ]
             yield! detectorParityTests "magic strings" Magic magicStrings
             yield! detectorParityTests "nesting" Nesting nesting
             yield!
@@ -909,6 +925,17 @@ let tests =
                                 StaysClean(FunctionName "clean_import")
                             ]
                     ]
+            yield!
+                detectorParityTests
+                    "Rust explicit member fan-out"
+                    Coherence
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/ExplicitImports.rs"
+                            [ ProducesFinding(FunctionName "flagged_explicit_members", Some Medium) ]
+                    ]
             yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
             yield!
                 detectorParityTests
@@ -934,12 +961,34 @@ let tests =
                             ]
                     ]
             yield! detectorParityTests "parse, don't validate" ParseDontValidate parseDontValidate
-            // Rust's Result/Option and panic syntax is not represented by the shared guard extractor.
             yield!
                 detectorParityTests
-                    "Rust parse-don't-validate limitation"
+                    "Rust parse-don't-validate"
                     ParseDontValidate
-                    [ rust [ StaysClean(FunctionName "clean_validator") ] ]
+                    [
+                        fixture
+                            "Rust"
+                            Rust.rustLanguageAdapter
+                            "rust/ParseDontValidate.rs"
+                            [
+                                ProducesFinding(FunctionName "flagged_result_guard", Some Low)
+                                ProducesFinding(FunctionName "flagged_option_guard", Some Low)
+                                ProducesFinding(FunctionName "flagged_explicit_return", Some Low)
+                                ProducesFinding(FunctionName "flagged_result_match", Some Low)
+                                ProducesFinding(FunctionName "flagged_option_match", Some Low)
+                                StaysClean(FunctionName "clean_constructed")
+                                StaysClean(FunctionName "clean_option_constructed")
+                                StaysClean(FunctionName "clean_transformed")
+                                StaysClean(FunctionName "clean_other_input")
+                                StaysClean(FunctionName "clean_unrelated_result")
+                                StaysClean(FunctionName "clean_unrelated_option")
+                                StaysClean(FunctionName "clean_intervening_work")
+                                StaysClean(FunctionName "clean_nested_rejection")
+                                StaysClean(FunctionName "clean_panic")
+                                StaysClean(FunctionName "clean_guarded_match")
+                                StaysClean(FunctionName "clean_guarded_literal_match")
+                            ]
+                    ]
             yield! detectorParityTests "opaque boolean" OpaqueBoolean opaqueBoolean
             yield!
                 detectorParityTests

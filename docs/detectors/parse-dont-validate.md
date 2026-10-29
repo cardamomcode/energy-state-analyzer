@@ -33,8 +33,8 @@ property. Using exceptions versus `Result` is a separate choice.
 ## Detection
 
 **Severity: Low.** Enabled by default in Python, F#, TypeScript, Kotlin, C++, C#,
-and Erlang. Rust currently has no guard extractor for `Result`/`Option` and panic-based
-validation, so this rule does not report Rust findings.
+Erlang, and Rust. Rust recognizes a narrow set of `Result`/`Option` validators;
+panic-based validation remains outside the rule.
 
 The rule recognizes a function consisting of:
 
@@ -81,6 +81,24 @@ checked_items(Items) ->
     end.
 ```
 
+In Rust, a direct `if` guard that returns `Err(...)` or `None`, followed by
+`Ok(input)` or `Some(input)`, is reported when the returned input is the checked
+parameter. The same applies to a two-arm `match` with a selective rejecting
+pattern and an unguarded `_` success arm. The error carrier alone does not encode
+the checked property in the successful value:
+
+```rust
+fn positive(value: i32) -> Result<i32, &'static str> {
+    if value <= 0 { return Err("must be positive"); }
+    Ok(value) // flagged: the successful value is still an unconstrained i32
+}
+```
+
+Returning a constructed domain type, such as `Result<Positive, E>`, stays clean.
+The Rust extractor requires an unqualified `Result` or `Option` return
+type and direct `Err`/`Ok` or `None`/`Some` variants; it does not infer aliases or
+validate arbitrary calls. It cannot resolve names that shadow those variants.
+
 ### Boolean validators
 
 A boolean result carries the verdict, never the value: `bool` is two states with no
@@ -114,7 +132,8 @@ construct; there a null-checking boolean validator remains a finding.
 This is a syntax heuristic, not a proof about domain invariants. Review whether the
 checked property belongs in the public contract before introducing a domain type.
 
-- Untyped identity returns, multiple guards, `Ok input`, and assertion statements
+- Untyped identity returns, multiple guards, `Ok input` in languages without a
+  dedicated wrapper extractor, and assertion statements
   are not yet recognized. `if/else` result expressions are recognized only when the
   rejection branch is a bare falsy literal; other rejection branches (for example
   F# `if … then failwith() else …`) are not. Indirect validation calls are
@@ -143,6 +162,10 @@ checked property belongs in the public contract before introducing a domain type
   `case` clauses, reversed clause order, and clause bodies with additional work are
   outside this rule. It does not read Erlang `-spec` declarations or resolve local
   functions that shadow unqualified `error`, `throw`, or `exit` calls.
+- Rust validation with `panic!`, `?`, `unwrap`, guarded match arms, multiple arms,
+  qualified or aliased variants, or intervening work is outside the narrow
+  `Result`/`Option` extractor. Its syntax check cannot prove that an `Ok` or `Some`
+  payload's type actually enforces a domain invariant.
 
 ## Configuration and suppression
 

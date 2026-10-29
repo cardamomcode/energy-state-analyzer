@@ -395,6 +395,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                         | None -> false)
                 | _ -> false
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         IsBooleanLiteral = fun node -> nodeType node = NodeType "true" || nodeType node = NodeType "false"
         // An object-literal field (`{ retries: true }`) wraps the literal in `pair` inside `object`, so
         // a labeled boolean's parent is never `arguments` directly.

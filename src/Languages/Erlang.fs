@@ -321,6 +321,7 @@ let erlangLanguageAdapter: LanguageAdapter =
             fun node ->
                 nodeParent node
                 |> Option.exists (fun parent -> nodeType parent = NodeType "arity")
+        NumericLiteralText = nodeText
         IsBooleanLiteral =
             fun node ->
                 nodeType node = NodeType "atom"

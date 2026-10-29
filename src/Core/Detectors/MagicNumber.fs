@@ -72,7 +72,7 @@ let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext 
         if isLiteral node then
             // decision: parses every numeric literal as float because TypeScript uses one node
             // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
-            match Double.TryParse(nodeText node) with
+            match Double.TryParse(ctx.Language.NumericLiteralText node) with
             | true, rawValue ->
                 let value = signedValue node rawValue
 

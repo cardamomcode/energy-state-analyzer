@@ -1,5 +1,6 @@
 module Energy.Languages.Rust
 
+open System.Text.RegularExpressions
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
@@ -94,13 +95,7 @@ let private branchCount node =
 /// Keep match arm bodies nested under their dispatch for cognitive scoring.
 let private cognitiveStructure node =
     if is "match_expression" node then
-        let arms =
-            nodeField "body" node
-            |> Option.map nodeNamedChildren
-            |> Option.defaultValue []
-            |> List.filter (is "match_arm")
-
-        Some(Flow(Structural, arms))
+        Some(Flow(Structural, nodeField "body" node |> Option.toList))
     else
         CognitiveSyntax.classify
             [
@@ -110,6 +105,12 @@ let private cognitiveStructure node =
                 kind "loop_expression"
             ]
             node
+
+/// Remove Rust decimal separators and type suffixes before numeric parsing.
+let private numericLiteralText node =
+    nodeText node
+    |> fun text -> Regex.Replace(text, "_?(?:u(?:8|16|32|64|128|size)|i(?:8|16|32|64|128|size)|f(?:32|64))$", "")
+    |> fun text -> text.Replace("_", "")
 
 /// Adapt the official tree-sitter-rust v0.24.2 grammar to the shared pipeline.
 let rustLanguageAdapter: LanguageAdapter =
@@ -232,6 +233,7 @@ let rustLanguageAdapter: LanguageAdapter =
         IsFormattedOrInterpolatedString = fun _ -> false
         IsDefaultParameterValue = fun _ -> false
         IsStructuralNumber = fun node -> nodeParent node |> Option.exists (is "array_type")
+        NumericLiteralText = numericLiteralText
         IsBooleanLiteral = is "boolean_literal"
         IsPositionalCallArgument =
             fun node ->
@@ -254,5 +256,5 @@ let rustLanguageAdapter: LanguageAdapter =
                 nodeField "body" node
                 |> Option.map nodeNamedChildren
                 |> Option.defaultValue (nodeNamedChildren node)
-        GetGuardedValidation = fun _ -> None
+        GetGuardedValidation = RustValidation.extract
     }

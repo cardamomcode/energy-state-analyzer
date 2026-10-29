@@ -10,8 +10,9 @@ type checking remain the compiler's job.
 
 Rust uses the same detector pipeline for functions, closures, typed parameters, literals, `use`
 imports, `if`/loop/match complexity, nesting, and control-flow opportunities. Rust parsing is
-syntax-only, so macro expansion and type resolution are not modeled. The parse-don't-validate
-and error-boundary families do not yet classify Rust `Result`/`Option` propagation.
+syntax-only, so macro expansion and type resolution are not modeled. Parse-don't-validate
+recognizes direct Rust `Result`/`Option` guard and match validators; error-boundary
+rules do not yet classify Rust `Result`/`Option` propagation.
 
 ## Complexity and structure
 

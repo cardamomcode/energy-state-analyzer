@@ -43,6 +43,33 @@ let private aliasImport prefix item =
         ]
     | _ -> []
 
+/// Attribute a single explicitly imported member to its containing module.
+let private memberImport prefix item =
+    match nodeField "path" item, nodeField "name" item with
+    | Some path, Some name ->
+        let source =
+            if prefix = "" then
+                nodeText path
+            else
+                prefix + "::" + nodeText path
+
+        let importedName = nodeText name
+
+        [
+            {
+                Kind = Members
+                Source = source
+                Bindings =
+                    [
+                        {
+                            ImportedName = importedName
+                            LocalName = importedName
+                        }
+                    ]
+            }
+        ]
+    | _ -> []
+
 /// Retain wildcard scope pollution with its complete source path.
 let private wildcardImport prefix item =
     let source =
@@ -65,6 +92,7 @@ let rec private readUseTree prefix item =
     | NodeType "scoped_use_list" -> scopedImport prefix item
     | NodeType "use_list" -> nodeNamedChildren item |> List.collect (readUseTree prefix)
     | NodeType "use_as_clause" -> aliasImport prefix item
+    | NodeType "scoped_identifier" -> memberImport prefix item
     | NodeType "use_wildcard" -> wildcardImport prefix item
     | _ -> simpleImport prefix item
 

@@ -307,6 +307,9 @@ type LanguageAdapter =
         // Whether a numeric token describes syntax rather than a runtime value (Erlang's
         // function arity in `name/2`, for example). Such tokens are not magic numbers.
         IsStructuralNumber: Node -> bool
+        // Return the grammar-normalized numeric text for parsing; the reported literal keeps its
+        // original spelling. Rust type suffixes are syntax, not part of the numeric value.
+        NumericLiteralText: Node -> string
         // Whether this node is a boolean literal (Python/TS true/false, F#'s const node wrapping a bool
         // child). Drives the opaque-boolean-literal detector; deliberately narrower than the rule's own
         // stated scope (which also floats flag-like bare 0/1 as a future option).

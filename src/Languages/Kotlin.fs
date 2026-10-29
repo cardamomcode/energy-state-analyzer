@@ -465,6 +465,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
         // `identifier` tokens (verified: no boolean_literal rule exists). Safe to key off text since
         // true/false are hard keywords in Kotlin, not shadowable identifiers.
         IsStructuralNumber = fun _ -> false
+        NumericLiteralText = nodeText
         IsBooleanLiteral = fun node -> Option.isSome (booleanLiteralPolarity node)
         // decision: every call argument (named or positional) wraps in `value_argument`, so unlike the
         // other adapters' direct-parent check, this also has to rule out a named argument (`retries =

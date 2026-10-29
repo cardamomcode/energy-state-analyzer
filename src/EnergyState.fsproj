@@ -41,6 +41,7 @@
     <Compile Include="Languages/ErlangValidation.fs" />
     <Compile Include="Languages/Erlang.fs" />
     <Compile Include="Languages/RustImports.fs" />
+    <Compile Include="Languages/RustValidation.fs" />
     <Compile Include="Languages/Rust.fs" />
     <Compile Include="Languages/Registry.fs" />
     <Compile Include="Core/Detectors/Nesting.fs" />

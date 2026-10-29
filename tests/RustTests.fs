@@ -114,8 +114,56 @@ let tests =
                                 analyzeFixture source tree Rust.rustLanguageAdapter "Constants.rs"
                                 |> List.filter (fun violation -> violation.Type = Magic)
 
-                            assertThat magic.Length (isEqualTo 1)
-                            assertThat (magic.Head.Message.Contains("37")) isTrue
+                            assertThat magic.Length (isEqualTo 4)
+
+                            assertThat
+                                (magic
+                                 |> List.map _.Message
+                                 |> List.exists (fun message -> message.Contains("37_i32")))
+                                isTrue
+                        }
+                    )
+            )
+            testAsync (
+                "groups separately declared members under their shared source",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/ExplicitImports.rs"
+                            assertThat (nodeHasError tree) isFalse
+
+                            let imports =
+                                nodesOfType (NodeType "use_declaration") tree
+                                |> List.collect Rust.rustLanguageAdapter.ImportInfo
+
+                            assertThat (imports |> List.map _.Source) (isEqualTo (List.replicate 10 "example::api"))
+
+                            assertThat
+                                (imports |> List.collect _.Bindings |> List.map _.ImportedName)
+                                (isEqualTo [ "T0"; "T1"; "T2"; "T3"; "T4"; "T5"; "T6"; "T7"; "T8"; "T9" ])
+
+                            let coherence =
+                                analyzeFixture source tree Rust.rustLanguageAdapter "ExplicitImports.rs"
+                                |> List.filter (fun violation -> violation.Type = Coherence)
+
+                            assertThat coherence.Length (isEqualTo 1)
+                            assertThat (coherence.Head.Message.Contains("10 declarations from example::api")) isTrue
+                        }
+                    )
+            )
+            testAsync (
+                "parses Result and Option validation examples without grammar errors",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/ParseDontValidate.rs"
+                            assertThat (nodeHasError tree) isFalse
+
+                            let findings =
+                                analyzeFixture source tree Rust.rustLanguageAdapter "ParseDontValidate.rs"
+                                |> List.filter (fun violation -> violation.Type = ParseDontValidate)
+
+                            assertThat findings.Length (isEqualTo 5)
                         }
                     )
             )
