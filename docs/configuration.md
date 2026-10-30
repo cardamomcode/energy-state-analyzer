@@ -123,5 +123,8 @@ Recognized flags: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `
 
 `--include-test-files` enables magic-number, magic-string, and opaque-boolean findings in test files;
 all three exempt test files by default.
+For Rust, this includes files under `test/` or `tests/`, plus `test_*.rs`, `*_test.rs`,
+`tests.rs`, and `*_tests.rs`. An inline `#[cfg(test)] mod tests` inside a production
+file still belongs to that production file and is analyzed.
 
 See [Command-Line Usage](cli.md) for scanning, reports, and diffing against a base branch.

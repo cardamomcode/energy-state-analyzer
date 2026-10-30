@@ -55,6 +55,52 @@ let tests =
         fixtureTests
         @ [
             testAsync (
+                "Rust: test files and directories exempt magic strings",
+                (fun _ ->
+                    toAsync (
+                        task {
+                            let! (sourceCode, tree) = parseFixture Rust.rustLanguageAdapter "rust/Adapter.rs"
+                            let flagged = findFunctionRange sourceCode (FunctionName "flagged_string")
+
+                            let count fileName options =
+                                {
+                                    Source = sourceCode
+                                    Tree = tree
+                                    Language = Rust.rustLanguageAdapter
+                                    FileName = fileName
+                                }
+                                |> analyzeWith options
+                                |> _.Violations
+                                |> fun violations -> violationsIn violations flagged
+                                |> List.filter (fun violation -> violation.Message.StartsWith("Magic string:"))
+                                |> List.length
+
+                            assertThat (count "src/pricing.rs" defaultThresholds) (isEqualTo 1)
+                            assertThat (count "src/latest_pricing.rs" defaultThresholds) (isEqualTo 1)
+
+                            for fileName in
+                                [
+                                    "tests/pricing.rs"
+                                    "src/test/pricing.rs"
+                                    "src/pricing_test.rs"
+                                    "src/pricing_tests.rs"
+                                    "src/tests.rs"
+                                ] do
+                                assertThat (count fileName defaultThresholds) (isEqualTo 0)
+
+                            let includeTests =
+                                { defaultThresholds with
+                                    MagicString =
+                                        { defaultThresholds.MagicString with
+                                            IncludeTestFiles = true
+                                        }
+                                }
+
+                            assertThat (count "src/pricing_tests.rs" includeTests) (isEqualTo 1)
+                        }
+                    ))
+            )
+            testAsync (
                 "Python membership strings and repeated dictionary keys are grouped",
                 (fun _ ->
                     toAsync (

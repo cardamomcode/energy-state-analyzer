@@ -25,6 +25,7 @@ let private splitIntoWords (text: string) : string list =
     |> Array.toList
 
 /// Recognize test directories and test words at either end of a filename stem.
+/// Rust also uses the plural `tests` for test modules in separate files.
 let isTestFile (fileName: string) : bool =
     let segments =
         fileName.Replace("\\", "/").Split('/')
@@ -46,6 +47,11 @@ let isTestFile (fileName: string) : bool =
             else
                 baseName
 
+        let isRustFile = baseName.EndsWith(".rs", System.StringComparison.OrdinalIgnoreCase)
+
+        let isTestWord word =
+            word = "test" || (isRustFile && word = "tests")
+
         match splitIntoWords stem |> List.map _.ToLowerInvariant() with
-        | first :: _ when first = "test" -> true
-        | words -> words |> List.tryLast = Some "test"
+        | first :: _ when isTestWord first -> true
+        | words -> words |> List.tryLast |> Option.exists isTestWord
