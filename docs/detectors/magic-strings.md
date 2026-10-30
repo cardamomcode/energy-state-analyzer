@@ -29,7 +29,8 @@ def route(status):
 - `energyStateAnalyzer.magicString.enabled` (default `true`)
 - `energyStateAnalyzer.magicString.minDuplicates` (default `2`)
 - `energyStateAnalyzer.magicString.allowlist` (default `["", "utf-8", "__main__"]`)
-- Test files are exempt by default, including Rust `tests.rs` and `*_tests.rs`; use
+- Test files and Rust inline test modules are exempt by default, including Rust
+  `tests.rs` and `*_tests.rs`; use
   `energyStateAnalyzer.includeTestFiles` or CLI `--include-test-files` to include them.
 
 ## Known limitations

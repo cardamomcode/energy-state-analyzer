@@ -59,7 +59,7 @@ let tests =
                 (fun _ ->
                     toAsync (
                         task {
-                            let! (sourceCode, tree) = parseFixture Rust.rustLanguageAdapter "rust/Adapter.rs"
+                            let! (sourceCode, tree) = parseFixture Rust.rustLanguageAdapter "rust/adapter.rs"
                             let flagged = findFunctionRange sourceCode (FunctionName "flagged_string")
 
                             let count fileName options =

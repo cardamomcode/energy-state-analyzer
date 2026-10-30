@@ -822,7 +822,7 @@ let tests =
             ]
 
     let rust expectations =
-        fixture "Rust" Rust.rustLanguageAdapter "rust/Adapter.rs" expectations
+        fixture "Rust" Rust.rustLanguageAdapter "rust/adapter.rs" expectations
 
     testList (
         "Integration: detector fixture parity matrix",
@@ -848,7 +848,7 @@ let tests =
                         fixture
                             "Rust"
                             Rust.rustLanguageAdapter
-                            "rust/Constants.rs"
+                            "rust/constants.rs"
                             [
                                 ProducesFinding(FunctionName "flagged_u32", Some Low)
                                 ProducesFinding(FunctionName "flagged_i32", Some Low)
@@ -919,7 +919,7 @@ let tests =
                         fixture
                             "Rust"
                             Rust.rustLanguageAdapter
-                            "rust/Imports.rs"
+                            "rust/imports.rs"
                             [
                                 ProducesFinding(FunctionName "flagged_wildcard", Some Medium)
                                 StaysClean(FunctionName "clean_import")
@@ -933,7 +933,7 @@ let tests =
                         fixture
                             "Rust"
                             Rust.rustLanguageAdapter
-                            "rust/ExplicitImports.rs"
+                            "rust/explicit_imports.rs"
                             [ ProducesFinding(FunctionName "flagged_explicit_members", Some Medium) ]
                     ]
             yield! detectorParityTests "anonymous parameter count" Parameters anonymousParameters
@@ -969,7 +969,7 @@ let tests =
                         fixture
                             "Rust"
                             Rust.rustLanguageAdapter
-                            "rust/ParseDontValidate.rs"
+                            "rust/parse_dont_validate.rs"
                             [
                                 ProducesFinding(FunctionName "flagged_result_guard", Some Low)
                                 ProducesFinding(FunctionName "flagged_option_guard", Some Low)
