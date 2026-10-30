@@ -69,7 +69,12 @@ let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext 
         || isNodeType ctx.Language.NodeTypes.FloatLiteral node
 
     let rec traverse (node: Node) : EnergyViolation list =
-        if isLiteral node then
+        if
+            not ctx.Options.MagicNumber.IncludeTestFiles
+            && isRustTestModule ctx.Language node
+        then
+            []
+        elif isLiteral node then
             // decision: parses every numeric literal as float because TypeScript uses one node
             // type for integers and floats; parsing as int would turn 1.08 into allowlisted 1.
             match Double.TryParse(ctx.Language.NumericLiteralText node) with

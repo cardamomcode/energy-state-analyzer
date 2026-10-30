@@ -6,6 +6,7 @@ open type Scriptorium.Quill.Test
 open Energy.Core.TreeSitter
 open Energy.Core.Detectors.Cyclomatic
 open Energy.Core.Violation
+open Energy.Core.Analyze
 open Energy.Languages
 open Energy.Languages.Registry
 open Energy.Tests.TestUtils
@@ -33,7 +34,7 @@ let tests =
                 fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture Rust.rustLanguageAdapter "rust/Adapter.rs"
+                            let! (source, tree) = parseFixture Rust.rustLanguageAdapter "rust/adapter.rs"
                             assertThat (nodeHasError tree) isFalse
 
                             let functions = nodesOfType (NodeType "function_item") tree
@@ -85,7 +86,7 @@ let tests =
                                 (matches |> List.map Rust.rustLanguageAdapter.CyclomaticBranchCount)
                                 (isEqualTo [ Some 3; Some 4 ])
 
-                            let violations = analyzeFixture source tree Rust.rustLanguageAdapter "Adapter.rs"
+                            let violations = analyzeFixture source tree Rust.rustLanguageAdapter "adapter.rs"
                             assertValidPositions violations source
                             assertThat (violations |> List.exists (fun v -> v.Type = Magic)) isTrue
                             assertThat (violations |> List.exists (fun v -> v.Type = Parameters)) isTrue
@@ -107,11 +108,11 @@ let tests =
                 fun _ ->
                     toAsync (
                         task {
-                            let! (source, tree) = parseFixture Rust.rustLanguageAdapter "rust/Constants.rs"
+                            let! (source, tree) = parseFixture Rust.rustLanguageAdapter "rust/constants.rs"
                             assertThat (nodeHasError tree) isFalse
 
                             let magic =
-                                analyzeFixture source tree Rust.rustLanguageAdapter "Constants.rs"
+                                analyzeFixture source tree Rust.rustLanguageAdapter "constants.rs"
                                 |> List.filter (fun violation -> violation.Type = Magic)
 
                             assertThat magic.Length (isEqualTo 4)
@@ -125,11 +126,97 @@ let tests =
                     )
             )
             testAsync (
+                "exempts inline test modules while retaining production literals",
+                fun _ ->
+                    toAsync (
+                        task {
+                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/inline_tests.rs"
+                            assertThat (nodeHasError tree) isFalse
+
+                            let input =
+                                {
+                                    Source = source
+                                    Tree = tree
+                                    Language = Rust.rustLanguageAdapter
+                                    FileName = "src/lib.rs"
+                                }
+
+                            let defaultFindings = (analyze input).Violations
+                            let functions = nodesOfType (NodeType "function_item") tree
+
+                            let count kind name findings =
+                                let functionNode =
+                                    functions
+                                    |> List.find (fun node ->
+                                        nodeField "name" node |> Option.exists (fun field -> nodeText field = name))
+
+                                let range =
+                                    {
+                                        Start = nodeStartRow functionNode
+                                        End = nodeEndRow functionNode
+                                    }
+
+                                violationsIn findings range
+                                |> List.filter (fun violation -> violation.Type = kind)
+                                |> List.length
+
+                            for name, kind in
+                                [
+                                    "production_number", Magic
+                                    "production_string", Magic
+                                    "production_boolean", OpaqueBoolean
+                                    "feature_number", Magic
+                                    "release_number", Magic
+                                    "later_production_number", Magic
+                                ] do
+                                assertThat (count kind name defaultFindings) (isEqualTo 1)
+
+                            // A test-only duplicate must not turn a production string into a finding.
+                            assertThat (count Magic "production_single" defaultFindings) (isEqualTo 0)
+
+                            let testCases =
+                                [
+                                    "named_number", Magic
+                                    "named_string", Magic
+                                    "named_boolean", OpaqueBoolean
+                                    "attributed_number", Magic
+                                    "plural_number", Magic
+                                ]
+
+                            for name, kind in testCases do
+                                assertThat (count kind name defaultFindings) (isEqualTo 0)
+
+                            let includeTests =
+                                { defaultThresholds with
+                                    MagicNumber =
+                                        { defaultThresholds.MagicNumber with
+                                            IncludeTestFiles = true
+                                        }
+                                    MagicString =
+                                        { defaultThresholds.MagicString with
+                                            IncludeTestFiles = true
+                                        }
+                                    OpaqueBoolean =
+                                        { defaultThresholds.OpaqueBoolean with
+                                            IncludeTestFiles = true
+                                        }
+                                }
+
+                            let includedFindings = (analyzeWith includeTests input).Violations
+
+                            assertThat (count Magic "production_single" includedFindings) (isEqualTo 1)
+
+                            for name, kind in testCases do
+                                assertThat (count kind name includedFindings) (isEqualTo 1)
+                        }
+                    )
+            )
+            testAsync (
                 "groups separately declared members under their shared source",
                 fun _ ->
                     toAsync (
                         task {
-                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/ExplicitImports.rs"
+                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/explicit_imports.rs"
                             assertThat (nodeHasError tree) isFalse
 
                             let imports =
@@ -143,7 +230,7 @@ let tests =
                                 (isEqualTo [ "T0"; "T1"; "T2"; "T3"; "T4"; "T5"; "T6"; "T7"; "T8"; "T9" ])
 
                             let coherence =
-                                analyzeFixture source tree Rust.rustLanguageAdapter "ExplicitImports.rs"
+                                analyzeFixture source tree Rust.rustLanguageAdapter "explicit_imports.rs"
                                 |> List.filter (fun violation -> violation.Type = Coherence)
 
                             assertThat coherence.Length (isEqualTo 1)
@@ -156,11 +243,13 @@ let tests =
                 fun _ ->
                     toAsync (
                         task {
-                            let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/ParseDontValidate.rs"
+                            let! source, tree =
+                                parseFixture Rust.rustLanguageAdapter "rust/parse_dont_validate.rs"
+
                             assertThat (nodeHasError tree) isFalse
 
                             let findings =
-                                analyzeFixture source tree Rust.rustLanguageAdapter "ParseDontValidate.rs"
+                                analyzeFixture source tree Rust.rustLanguageAdapter "parse_dont_validate.rs"
                                 |> List.filter (fun violation -> violation.Type = ParseDontValidate)
 
                             assertThat findings.Length (isEqualTo 5)

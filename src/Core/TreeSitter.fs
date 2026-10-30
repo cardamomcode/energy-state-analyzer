@@ -5,7 +5,6 @@ open System.Threading.Tasks
 open Fable.Core
 open Energy.Core.Paths
 
-// esa-ignore-file: coherence
 // Binding facade.
 
 // web-tree-sitter (0.26) is an ES module (with a CJS build for `require`) that exposes the
@@ -214,6 +213,15 @@ let nodeParent (node: Node) : Node option =
     match nodeParentRaw node with
     | null -> None
     | p -> Some p
+
+/// Return the preceding named sibling, if one exists.
+[<Emit("$0.previousNamedSibling")>]
+let private nodePreviousNamedSiblingRaw (node: Node) : obj = nativeOnly
+
+let nodePreviousNamedSibling (node: Node) : Node option =
+    match nodePreviousNamedSiblingRaw node with
+    | null -> None
+    | sibling -> Some sibling
 
 // ---------------------------------------------------------------------------
 // Convenience: load a grammar and parse in one promise chain

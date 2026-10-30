@@ -1,5 +1,8 @@
 module Energy.Core.Detectors.TestFile
 
+open Energy.Core.TreeSitter
+open Energy.Core.LanguageAdapter
+
 /// Split a filename into words on separators and camel-case boundaries for test-file recognition.
 ///
 /// decision: shared test-file recognition used by literal detectors. Recognizes test files by
@@ -25,6 +28,7 @@ let private splitIntoWords (text: string) : string list =
     |> Array.toList
 
 /// Recognize test directories and test words at either end of a filename stem.
+/// Rust also uses the plural `tests` for test modules in separate files.
 let isTestFile (fileName: string) : bool =
     let segments =
         fileName.Replace("\\", "/").Split('/')
@@ -46,6 +50,46 @@ let isTestFile (fileName: string) : bool =
             else
                 baseName
 
+        let isRustFile = baseName.EndsWith(".rs", System.StringComparison.OrdinalIgnoreCase)
+
+        let isTestWord word =
+            word = "test" || (isRustFile && word = "tests")
+
         match splitIntoWords stem |> List.map _.ToLowerInvariant() with
-        | first :: _ when first = "test" -> true
-        | words -> words |> List.tryLast = Some "test"
+        | first :: _ when isTestWord first -> true
+        | words -> words |> List.tryLast |> Option.exists isTestWord
+
+let private isCfgTestAttribute (node: Node) : bool =
+    if nodeType node <> NodeType "attribute_item" then
+        false
+    else
+        match nodeNamedChildren node with
+        | [ attribute ] ->
+            match nodeNamedChildren attribute with
+            | [ name; arguments ] when nodeText name = "cfg" ->
+                match nodeNamedChildren arguments with
+                | [ test ] -> nodeType test = NodeType "identifier" && nodeText test = "test"
+                | _ -> false
+            | _ -> false
+        | _ -> false
+
+let rec private hasCfgTestAttribute (previous: Node option) : bool =
+    match previous with
+    | Some attribute when nodeType attribute = NodeType "attribute_item" ->
+        isCfgTestAttribute attribute
+        || hasCfgTestAttribute (nodePreviousNamedSibling attribute)
+    | _ -> false
+
+/// Recognize Rust inline test modules without hiding production siblings in the same file.
+///
+/// decision: a `mod tests` name or direct `#[cfg(test)]` attribute marks only that module's
+/// subtree as test code; a feature named "test" and `cfg(not(test))` do not imply test-only code.
+let isRustTestModule (language: LanguageAdapter) (node: Node) : bool =
+    if language.Id <> "rust" || nodeType node <> NodeType "mod_item" then
+        false
+    else
+        let namedAsTest =
+            nodeField "name" node
+            |> Option.exists (fun name -> isTestFile (nodeText name + ".rs"))
+
+        namedAsTest || hasCfgTestAttribute (nodePreviousNamedSibling node)

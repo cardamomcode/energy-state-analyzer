@@ -44,34 +44,41 @@ let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
-let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext =
-    let isLiteral node =
+let private decisionStringCandidate (ctx: AnalysisContext) (node: Node) : (Node * string) list =
+    let isLiteral =
         ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
 
+    if not isLiteral then
+        []
+    else
+        let content = stripQuotes (nodeText node)
+
+        let isDecisionPoint =
+            isEqualityComparisonOperand ctx.Language node
+            || isMembershipOperand ctx.Language node content
+            || isKeyOrIndexPosition ctx.Language node
+
+        let isExempt =
+            isDocstring ctx.Language node
+            || ctx.Language.IsFormattedOrInterpolatedString node
+            || List.contains content ctx.Options.MagicString.Allowlist
+            || content.Length <= 1
+
+        if isDecisionPoint && not isExempt then
+            [ node, content ]
+        else
+            []
+
+let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext =
     let rec traverse (node: Node) : (Node * string) list =
-        let ownCandidate =
-            if isLiteral node then
-                let content = stripQuotes (nodeText node)
-
-                let isDecisionPoint =
-                    isEqualityComparisonOperand ctx.Language node
-                    || isMembershipOperand ctx.Language node content
-                    || isKeyOrIndexPosition ctx.Language node
-
-                let isExempt =
-                    isDocstring ctx.Language node
-                    || ctx.Language.IsFormattedOrInterpolatedString node
-                    || List.contains content ctx.Options.MagicString.Allowlist
-                    || content.Length <= 1
-
-                if isDecisionPoint && not isExempt then
-                    [ node, content ]
-                else
-                    []
-            else
-                []
-
-        ownCandidate @ (nodeChildren node |> List.collect traverse)
+        if
+            not ctx.Options.MagicString.IncludeTestFiles
+            && isRustTestModule ctx.Language node
+        then
+            []
+        else
+            let ownCandidate = decisionStringCandidate ctx node
+            ownCandidate @ (nodeChildren node |> List.collect traverse)
 
     let findings =
         traverse ctx.Tree
