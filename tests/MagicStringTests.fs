@@ -72,7 +72,8 @@ let tests =
                                 |> analyzeWith options
                                 |> _.Violations
                                 |> fun violations -> violationsIn violations flagged
-                                |> List.filter (fun violation -> violation.Message.StartsWith("Magic string:"))
+                                |> List.filter (fun violation ->
+                                    violation.Message.StartsWith("Magic string:", System.StringComparison.Ordinal))
                                 |> List.length
 
                             assertThat (count "src/pricing.rs" defaultThresholds) (isEqualTo 1)
