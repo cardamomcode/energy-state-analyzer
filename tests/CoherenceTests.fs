@@ -709,15 +709,21 @@ let tests =
                 ExpectSprawl = true
             }
             {
-                Name = "Python: an import-only __init__.py re-exports relative imports"
+                Name = "Python: static __all__ marks relative imports as exports"
                 Language = Python.pythonLanguageAdapter
                 Fixture = "python/coherence/facade/__init__.py"
                 ExpectSprawl = false
             }
             {
-                Name = "Python: an implicit package facade needs no __all__ declaration"
+                Name = "Python: implicit imports remain dependencies under strict typing"
                 Language = Python.pythonLanguageAdapter
                 Fixture = "python/coherence/implicit/__init__.py"
+                ExpectSprawl = true
+            }
+            {
+                Name = "Python: same-name aliases mark explicit re-exports"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/aliases/__init__.py"
                 ExpectSprawl = false
             }
             {
