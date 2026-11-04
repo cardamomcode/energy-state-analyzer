@@ -244,6 +244,7 @@ let rustLanguageAdapter: LanguageAdapter =
         IsExplicitConstant =
             fun node -> List.contains (nodeType node) [ kind "const_item"; kind "static_item"; kind "enum_variant" ]
         ImportInfo = RustImports.importInfo
+        IsReExport = RustImports.isReExport
         // decision: an impl block owns its methods for coherence; Rust structs contain fields,
         // while methods live in impl blocks and must not inflate the free-function count.
         IsClassDefinition = is "impl_item"

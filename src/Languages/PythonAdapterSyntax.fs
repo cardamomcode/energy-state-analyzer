@@ -155,3 +155,73 @@ let importInfo (node: Node) : ImportInfo list =
         |> fun text -> text.Substring(importPrefix.Length).Split(',')
         |> Array.toList
         |> List.map moduleImport
+
+/// Read a static public-name list without treating arbitrary initializer work as facade wiring.
+let private staticAllNames node =
+    match nodeNamedChildren node with
+    | [ assignment ] when nodeType assignment = NodeType "assignment" ->
+        match nodeField "left" assignment, nodeField "right" assignment with
+        | Some left, Some right when nodeText left = "__all__" ->
+            if List.contains (nodeType right) [ NodeType "list"; NodeType "tuple" ] then
+                let names = nodeNamedChildren right
+
+                if names |> List.forall (fun item -> nodeType item = NodeType "string") then
+                    Some(names |> List.map (fun item -> (nodeText item).Trim([| '\''; '"' |])))
+                else
+                    None
+            else
+                None
+        | _ -> None
+    | _ -> None
+
+/// A package facade contains only imports, a docstring, and an optional static __all__ list.
+let private isFacadeItem node =
+    match nodeType node with
+    | NodeType "import_statement"
+    | NodeType "import_from_statement"
+    | NodeType "comment" -> true
+    | NodeType "expression_statement" ->
+        (nodeNamedChildren node
+         |> List.exists (fun child -> nodeType child = NodeType "string"))
+        || (staticAllNames node |> Option.isSome)
+    | _ -> false
+
+/// Names marked by the explicit `from .part import Name as Name` re-export idiom.
+let private sameNameAliases node =
+    nodeNamedChildren node
+    |> List.filter (fun child -> nodeType child = NodeType "aliased_import")
+    |> List.choose (fun alias ->
+        match nodeField "name" alias, nodeField "alias" alias with
+        | Some name, Some local when nodeText name = nodeText local -> Some(nodeText local)
+        | _ -> None)
+
+/// Count package-initializer imports as re-exports only when the file is a declarative facade.
+///
+/// decision: Python has no export keyword, so a relative from-import only qualifies when every
+/// binding is named by static __all__ or a same-name alias; implicit imports remain dependencies
+/// under strict typing, and executable initializer work retains its dependency-breadth signal.
+let isReExport (fileName: string) node =
+    let baseName = fileName.Replace('\\', '/').Split('/') |> Array.last
+
+    if baseName <> "__init__.py" || nodeType node <> importFromStatementNodeType then
+        false
+    else
+        match nodeParent node, nodeField "module_name" node with
+        | Some parent, Some source when nodeType parent = NodeType "module" ->
+            let items = nodeNamedChildren parent
+
+            let publicNames =
+                items
+                |> List.choose staticAllNames
+                |> List.collect id
+                |> Set.ofList
+                |> Set.union (sameNameAliases node |> Set.ofList)
+
+            let imports = importFromInfo node
+            let bindings = imports |> List.collect _.Bindings
+
+            nodeType source = NodeType "relative_import"
+            && (items |> List.forall isFacadeItem)
+            && not bindings.IsEmpty
+            && (bindings |> List.forall (fun binding -> publicNames.Contains binding.LocalName))
+        | _ -> false

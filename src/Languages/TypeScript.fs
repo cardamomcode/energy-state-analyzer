@@ -468,6 +468,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                             Bindings = []
                         }
                     ]
+        IsReExport = TypeScriptReExports.isReExport
         // `abstract class Foo` parses as its own node type, distinct from a plain `class Foo`.
         IsClassDefinition =
             fun node ->

@@ -389,6 +389,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
                         Bindings = []
                     }
                 ]
+        IsReExport = fun _ _ -> false
         IsClassDefinition =
             fun node ->
                 nodeType node = NodeType "class_declaration"

@@ -131,3 +131,29 @@ let importInfo node =
     nodeField "argument" node
     |> Option.map (readUseTree "")
     |> Option.defaultValue []
+
+/// Treat a visibility-marked use in a declarative module as a re-export.
+///
+/// decision: classify syntax instead of exempting mod.rs by name, so private uses in mod.rs and
+/// public uses alongside implementation work still contribute to coherence.
+let isReExport (_fileName: string) node =
+    let isFacadeItem item =
+        match nodeType item with
+        | NodeType "mod_item" -> nodeField "body" item |> Option.isNone
+        | kind ->
+            List.contains
+                kind
+                [
+                    NodeType "use_declaration"
+                    NodeType "line_comment"
+                    NodeType "block_comment"
+                    NodeType "attribute_item"
+                    NodeType "inner_attribute_item"
+                ]
+
+    match nodeParent node with
+    | Some parent when nodeType parent = NodeType "source_file" ->
+        (nodeChildren node
+         |> List.exists (fun child -> nodeType child = NodeType "visibility_modifier"))
+        && (nodeNamedChildren parent |> List.forall isFacadeItem)
+    | _ -> false

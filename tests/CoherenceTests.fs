@@ -135,6 +135,37 @@ let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: 
             ))
     )
 
+/// A real facade or initializer whose imports either do or do not supply implementation work.
+type private ReExportCase =
+    {
+        Name: string
+        Language: LanguageAdapter
+        Fixture: string
+        ExpectSprawl: bool
+    }
+
+/// Run the complete pipeline so a re-export exclusion cannot hide another coherence signal.
+let private reExportTest (case: ReExportCase) =
+    testAsync (
+        case.Name,
+        fun _ ->
+            toAsync (
+                task {
+                    let! source, tree = parseFixture case.Language case.Fixture
+                    assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
+
+                    let findings = analyzeFixture source tree case.Language case.Fixture
+                    assertValidPositions findings source
+
+                    let sprawl = hitsWithMessage [ "Import sprawl" ] findings
+                    assertThat (not sprawl.IsEmpty) (isEqualTo case.ExpectSprawl)
+
+                    if not case.ExpectSprawl then
+                        assertCleanQuiet source findings
+                }
+            )
+    )
+
 /// Verify a valid boundary fixture has five large callables and stays below the default sprawl limit.
 let private docCommentBoundaryTest (languageLabel: string) (language: LanguageAdapter) (fixture: string) =
     testAsync (
@@ -657,6 +688,71 @@ let tests =
         staticBoundCallableCases
         |> List.collect (fun case -> [ largeBoundCallableTest case; staticBoundCallableTest case ])
 
+    let reExportTests =
+        [
+            {
+                Name = "Rust: public use declarations assemble a mod.rs facade"
+                Language = Rust.rustLanguageAdapter
+                Fixture = "rust/coherence/facade/mod.rs"
+                ExpectSprawl = false
+            }
+            {
+                Name = "Rust: private use declarations in mod.rs retain import sprawl"
+                Language = Rust.rustLanguageAdapter
+                Fixture = "rust/coherence/private/mod.rs"
+                ExpectSprawl = true
+            }
+            {
+                Name = "Rust: public uses alongside implementation work retain import sprawl"
+                Language = Rust.rustLanguageAdapter
+                Fixture = "rust/coherence/active/mod.rs"
+                ExpectSprawl = true
+            }
+            {
+                Name = "Python: static __all__ marks relative imports as exports"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/facade/__init__.py"
+                ExpectSprawl = false
+            }
+            {
+                Name = "Python: implicit imports remain dependencies under strict typing"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/implicit/__init__.py"
+                ExpectSprawl = true
+            }
+            {
+                Name = "Python: same-name aliases mark explicit re-exports"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/aliases/__init__.py"
+                ExpectSprawl = false
+            }
+            {
+                Name = "Python: executable initializer work retains relative import sprawl"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/active/__init__.py"
+                ExpectSprawl = true
+            }
+            {
+                Name = "Python: absolute imports in __init__.py retain import sprawl"
+                Language = Python.pythonLanguageAdapter
+                Fixture = "python/coherence/absolute/__init__.py"
+                ExpectSprawl = true
+            }
+            {
+                Name = "TypeScript: an import-export barrel does not have import sprawl"
+                Language = TypeScript.typeScriptLanguageAdapter
+                Fixture = "typescript/coherence/barrel/index.ts"
+                ExpectSprawl = false
+            }
+            {
+                Name = "TypeScript: a module with implementation work retains import sprawl"
+                Language = TypeScript.typeScriptLanguageAdapter
+                Fixture = "typescript/coherence/active/index.ts"
+                ExpectSprawl = true
+            }
+        ]
+        |> List.map reExportTest
+
     let fSharpScopeSprawl =
         buildTest
             "F#"
@@ -905,4 +1001,5 @@ let tests =
         @ docCommentBoundaryTests
         @ boundCallableTests
         @ staticBoundCallableTests
+        @ reExportTests
     )

@@ -614,6 +614,7 @@ let fSharpLanguageAdapter: LanguageAdapter =
         // isFunctionDefinition already does for function_or_value_defn, for a construct this codebase's
         // F# usage rarely reaches for. Left unmodeled; every method-bearing F# file is still covered by
         // the free-function checks above, unaffected by this gap.
+        IsReExport = fun _ _ -> false
         IsClassDefinition = fun _ -> false
         GetClassName = fun _ -> None
         GetBaseClassNames = fun _ -> []
