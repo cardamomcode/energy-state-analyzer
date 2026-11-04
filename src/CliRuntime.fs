@@ -64,16 +64,9 @@ let analyzeFile (Path filePath) (sourceText: string) (thresholds: AnalyzeThresho
 
             return
                 parserResult
-                |> Result.map (fun parser ->
-                    withParsedTree parser sourceText (fun tree ->
-                        {
-                            Source = sourceText
-                            Tree = tree
-                            Language = adapter
-                            FileName = filePath
-                        }
-                        |> analyzeWith thresholds
-                        |> _.Violations))
+                |> Result.bind (fun parser ->
+                    Energy.Core.ParsedAnalysis.analyzeParsedSource parser adapter (Path filePath) sourceText thresholds
+                    |> Result.map _.Violations)
     }
 
 /// Read source safely so missing or unreadable files produce a typed boundary error.

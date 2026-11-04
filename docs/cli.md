@@ -21,7 +21,8 @@ npx energy-state-analyzer path/to/file.py \
   --medium-cognitive 12 --high-cognitive 20
 ```
 
-All threshold flags are optional: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`.
+All threshold flags are optional: `--medium-nesting`, `--high-nesting`, `--medium-cyclomatic`, `--high-cyclomatic`, `--medium-cognitive`, `--high-cognitive`, `--medium-parameter-count`, and `--high-parameter-count`.
+Unknown flags, invalid flag values, missing explicit paths, and unsupported explicit files exit `2`. An existing directory or supported glob that matches no files still produces a zero-file report. A malformed `.esaconfig.json` or missing explicit `--config` file also exits `2`.
 
 ## Supported file suffixes
 

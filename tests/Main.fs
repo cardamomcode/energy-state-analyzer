@@ -37,4 +37,6 @@ let main _ =
             DetectorFixtureMatrixTests.tests
             ReportTests.tests
             ExtensionPresentationTests.tests
+            GrammarTests.tests
+            ParsedAnalysisTests.tests
         ]

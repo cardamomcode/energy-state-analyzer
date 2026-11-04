@@ -4,17 +4,13 @@ open Fable.Core.JS
 
 open Energy.Core.Analyze
 open Energy.Core.Esaignore
+open Energy.Core.ParsedAnalysis
 open Energy.Core.TreeSitter
 open Energy.Extension.Configuration
+open Energy.Extension.LoadedLanguage
 open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Workspace
-
-type LoadedLanguage =
-    {
-        Adapter: Energy.Core.LanguageAdapter.LanguageAdapter
-        Parser: Parser
-    }
 
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
@@ -34,28 +30,19 @@ let isDocumentIgnored (document: obj) =
 
 /// Analyze source while keeping native syntax-tree ownership within this synchronous call.
 let analyzeSourceWith thresholds loaded fileName source =
-    // decision: presentation consumes the Core result directly. Optional Python type-information
-    // logging is not part of analysis, so it must never turn valid findings into an empty editor.
-    withParsedTree loaded.Parser source (fun root ->
-        {
-            Source = source
-            Tree = root
-            Language = loaded.Adapter
-            FileName = fileName
-        }
-        |> analyzeWith thresholds
-        |> Ok)
+    // decision: both hosts use the same parser boundary; presentation receives only detached
+    // findings, never live tree-sitter nodes whose tree has already been released.
+    analyzeParsedSource loaded.Parser loaded.Adapter (Energy.Core.Paths.Path fileName) source thresholds
 
 let analyzeSource loaded fileName source =
-    analyzeSourceWith (readAnalyzeThresholds ()) loaded fileName source
+    readAnalyzeThresholds ()
+    |> Result.bind (fun thresholds -> analyzeSourceWith thresholds loaded fileName source)
 
 /// Analyze an editor document with the configuration of its own workspace folder.
 let private analyze loaded document =
-    analyzeSourceWith
-        (readAnalyzeThresholdsFor (documentUri document))
-        loaded
-        (documentFileName document)
-        (documentText document)
+    readAnalyzeThresholdsFor (documentUri document)
+    |> Result.bind (fun thresholds ->
+        analyzeSourceWith thresholds loaded (documentFileName document) (documentText document))
 
 /// Analyze the active document, clearing decorations on a typed boundary failure.
 ///

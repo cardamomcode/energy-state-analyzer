@@ -48,14 +48,18 @@ let private reader resource =
     }
 
 /// Read project thresholds and editor toggles for the document or export folder.
-let readAnalyzeThresholdsFor resource : AnalyzeThresholds =
-    rootFor resource
-    |> Option.map loadAnalyzeOptions
-    |> Option.defaultValue defaultAnalyzeOptions
-    |> ConfigurationValues.readAnalyzeThresholds (reader resource)
+let readAnalyzeThresholdsFor resource : Result<AnalyzeThresholds, AnalysisError> =
+    let loaded =
+        rootFor resource
+        |> Option.map loadAnalyzeOptions
+        |> Option.defaultValue (Ok defaultAnalyzeOptions)
+
+    loaded
+    |> Result.mapError (configErrorMessage >> ConfigurationFailed)
+    |> Result.map (ConfigurationValues.readAnalyzeThresholds (reader resource))
 
 /// Read thresholds before a document is available, using the first workspace folder.
-let readAnalyzeThresholds () : AnalyzeThresholds = readAnalyzeThresholdsFor null
+let readAnalyzeThresholds () : Result<AnalyzeThresholds, AnalysisError> = readAnalyzeThresholdsFor null
 
 /// Read editor-only energy colors from the host settings.
 ///

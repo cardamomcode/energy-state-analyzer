@@ -38,6 +38,8 @@
     <Compile Include="DetectorFixtureMatrixTests.fs" />
     <Compile Include="ReportTests.fs" />
     <Compile Include="ExtensionPresentationTests.fs" />
+    <Compile Include="GrammarTests.fs" />
+    <Compile Include="ParsedAnalysisTests.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

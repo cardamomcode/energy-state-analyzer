@@ -44,18 +44,22 @@ type AnalysisResult = { Violations: EnergyViolation list }
 /// invariant: a failed analysis never produces a partial violation list.
 type AnalysisError =
     | UnsupportedLanguage of filePath: string
+    | ConfigurationFailed of message: string
     | SourceReadFailed of filePath: string * message: string
     | GrammarLoadFailed of languageId: string * message: string
     | ParseFailed of filePath: string * message: string
     | AnalysisFailed of filePath: string * message: string
+    | ReportWriteFailed of filePath: string * message: string
 
 let analysisErrorMessage error =
     match error with
     | UnsupportedLanguage filePath -> "Unsupported file type: " + filePath
+    | ConfigurationFailed message -> message
     | SourceReadFailed(filePath, message) -> "Could not read " + filePath + ": " + message
     | GrammarLoadFailed(languageId, message) -> "Could not load " + languageId + " grammar: " + message
     | ParseFailed(filePath, message) -> "Could not parse " + filePath + ": " + message
     | AnalysisFailed(filePath, message) -> "Could not analyze " + filePath + ": " + message
+    | ReportWriteFailed(filePath, message) -> "Could not write report " + filePath + ": " + message
 
 let private applySuppressionStage (ctx: AnalysisContext) (violations: EnergyViolation list) =
     let suppressed = applySuppressions violations ctx.Source

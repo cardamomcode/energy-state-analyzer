@@ -9,7 +9,7 @@ open Energy.Core.Analyze
 open Energy.Core.FsPath
 open Energy.Core.Paths
 open Energy.Core.TreeSitter
-open Energy.Extension.Analysis
+open Energy.Extension.LoadedLanguage
 open Energy.Languages.Registry
 
 type GrammarContext =
@@ -64,5 +64,12 @@ let getOrLoadLanguage
 
             task {
                 let! loaded = pending
+
+                // decision: only the waiter for the current task removes it; a failed load must be
+                // retryable on the next event without an older waiter removing a newer retry.
+                match context.InFlightLoads.TryGetValue languageId with
+                | true, current when current = pending -> context.InFlightLoads.Remove languageId |> ignore
+                | _ -> ()
+
                 return loaded |> Result.map Some
             }
