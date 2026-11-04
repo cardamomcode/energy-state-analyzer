@@ -93,3 +93,44 @@ let isRustTestModule (language: LanguageAdapter) (node: Node) : bool =
             |> Option.exists (fun name -> isTestFile (nodeText name + ".rs"))
 
         namedAsTest || hasCfgTestAttribute (nodePreviousNamedSibling node)
+
+/// Recognize a Rust function marked as a test or compiled only for tests.
+let private isRustTestFunction (node: Node) : bool =
+    let isTestAttribute attribute =
+        if nodeType attribute <> NodeType "attribute_item" then
+            false
+        else
+            match nodeNamedChildren attribute with
+            | [ body ] ->
+                match nodeNamedChildren body with
+                | [ name ] -> List.contains (nodeText name) [ "test"; "tokio::test"; "async_std::test" ]
+                | _ -> false
+            | _ -> false
+
+    let rec hasTestAttribute previous =
+        match previous with
+        | Some attribute when nodeType attribute = NodeType "attribute_item" ->
+            isCfgTestAttribute attribute
+            || isTestAttribute attribute
+            || hasTestAttribute (nodePreviousNamedSibling attribute)
+        | _ -> false
+
+    nodeType node = NodeType "function_item"
+    && hasTestAttribute (nodePreviousNamedSibling node)
+
+/// Exclude Rust test-only callables from the file responsibility count.
+///
+/// decision: tests exercise production responsibilities rather than adding new ones; this scope
+/// check does not remove test callables from complexity or large-function analysis.
+let isRustTestCode (language: LanguageAdapter) (fileName: string) (node: Node) : bool =
+    if language.Id <> "rust" then
+        false
+    elif isTestFile fileName then
+        true
+    else
+        let rec inTestScope current =
+            isRustTestModule language current
+            || isRustTestFunction current
+            || (nodeParent current |> Option.exists inTestScope)
+
+        inTestScope node

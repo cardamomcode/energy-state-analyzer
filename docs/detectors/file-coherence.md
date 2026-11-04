@@ -13,6 +13,8 @@ separate scopes; trait relationships and methods produced by macros are not reso
 
 **Function-count sprawl.** A file with more than 12 functions is flagged (medium; high past 15). The threshold drops to 8 if the filename itself contains `util`, `helper`, or `common`, treating the name as a proxy for "already known to be a grab-bag." These three bars (`genericFunctionCount`/`highFunctionCount`/`utilsFileFunctionCount`) are all configurable — see [Configuration](#configuration). The violation message deliberately steers away from "just split this file" — since the detector only sees one file, it can't tell whether a split would land the code in an existing cohesive module or just distribute the same coupling across new files with more imports wiring them back together.
 
+Rust test functions do not contribute to this count or its naming/type-cohesion signals. This includes functions in test files, inline test modules, and functions marked `#[test]` or `#[cfg(test)]`. They still receive individual analysis and participate in the large-function check.
+
 A file is exempted from this check regardless of count if either of two independent cohesion signals says otherwise (unless the filename already admits to being utils/helper/common, which overrides both):
 
 - *Naming cohesion*: most of its functions share a leading name word (e.g. `extractFoo`/`extractBar`/`extractBaz`, at least a 70% share by default) — one coherent domain broken into small steps, not a grab-bag.

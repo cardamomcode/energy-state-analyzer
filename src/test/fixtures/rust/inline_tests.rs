@@ -60,3 +60,15 @@ mod release_code {
 fn later_production_number(value: i32) -> bool {
     value == 47
 }
+
+#[test]
+fn direct_test() {}
+
+#[cfg(test)]
+fn gated_helper() {}
+
+#[tokio::test]
+async fn async_test() {}
+
+#[async_std::test]
+async fn async_std_test() {}
