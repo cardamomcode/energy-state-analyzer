@@ -96,9 +96,10 @@ let private normalizeImportSource (node: TreeSitter.Node) (importInfo: LanguageA
         importInfo
 
 /// Collect the class or import established by the current syntax node.
-let private collectStructure language node currentClass : Collected =
+let private collectStructure language fileName node currentClass : Collected =
     match currentClass with
     | Some cls -> { empty with Classes = [ cls ] }
+    | None when isImportNode language node && language.IsReExport fileName node -> empty
     | None when isImportNode language node ->
         { empty with
             Imports = language.ImportInfo node |> List.map (normalizeImportSource node)
@@ -110,19 +111,19 @@ let private collectStructure language node currentClass : Collected =
 ///
 /// invariant: a class replaces inherited class context for its subtree, so its methods never leak
 /// into FreeFunctions.
-let rec private traverse language node enclosingClass : Collected =
+let rec private traverse language fileName node enclosingClass : Collected =
     let currentClass = classAt language node
     let childClass = Option.orElse currentClass enclosingClass
 
     let own =
         language.GetCallableViews node
         |> List.map (collectCallable enclosingClass)
-        |> List.fold merge (collectStructure language node currentClass)
+        |> List.fold merge (collectStructure language fileName node currentClass)
 
     TreeSitter.nodeChildren node
-    |> List.map (fun child -> traverse language child childClass)
+    |> List.map (fun child -> traverse language fileName child childClass)
     |> List.fold merge own
 
 /// Collect all inputs needed by file-coherence scoring from one parsed syntax tree.
-let collect (tree: TreeSitter.Node) (language: LanguageAdapter.LanguageAdapter) : Collected =
-    traverse language tree None
+let collect (tree: TreeSitter.Node) (language: LanguageAdapter.LanguageAdapter) (fileName: string) : Collected =
+    traverse language fileName tree None

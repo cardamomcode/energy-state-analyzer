@@ -33,6 +33,7 @@
     <Compile Include="Languages/CognitiveSyntax.fs" />
     <Compile Include="Languages/PythonAdapterSyntax.fs" />
     <Compile Include="Languages/Python.fs" />
+    <Compile Include="Languages/TypeScriptReExports.fs" />
     <Compile Include="Languages/TypeScript.fs" />
     <Compile Include="Languages/FSharp.fs" />
     <Compile Include="Languages/Kotlin.fs" />

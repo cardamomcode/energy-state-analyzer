@@ -155,3 +155,42 @@ let importInfo (node: Node) : ImportInfo list =
         |> fun text -> text.Substring(importPrefix.Length).Split(',')
         |> Array.toList
         |> List.map moduleImport
+
+/// Recognize a static public-name list without treating arbitrary initializer work as facade wiring.
+let private isStaticAllDeclaration node =
+    match nodeNamedChildren node with
+    | [ assignment ] when nodeType assignment = NodeType "assignment" ->
+        match nodeField "left" assignment, nodeField "right" assignment with
+        | Some left, Some right when nodeText left = "__all__" ->
+            List.contains (nodeType right) [ NodeType "list"; NodeType "tuple" ]
+            && (nodeNamedChildren right
+                |> List.forall (fun item -> nodeType item = NodeType "string"))
+        | _ -> false
+    | [ stringNode ] -> nodeType stringNode = NodeType "string"
+    | _ -> false
+
+/// A package facade contains only imports, a docstring, and an optional static __all__ list.
+let private isFacadeItem node =
+    match nodeType node with
+    | NodeType "import_statement"
+    | NodeType "import_from_statement"
+    | NodeType "comment" -> true
+    | NodeType "expression_statement" -> isStaticAllDeclaration node
+    | _ -> false
+
+/// Count package-initializer imports as re-exports only when the file is a declarative facade.
+///
+/// decision: Python has no export keyword, so only relative from-imports in an import-only
+/// __init__.py qualify; absolute imports and initializers with executable work retain their
+/// dependency-breadth signal.
+let isReExport (fileName: string) node =
+    let baseName = fileName.Replace('\\', '/').Split('/') |> Array.last
+
+    if baseName <> "__init__.py" || nodeType node <> importFromStatementNodeType then
+        false
+    else
+        match nodeParent node, nodeField "module_name" node with
+        | Some parent, Some source when nodeType parent = NodeType "module" ->
+            nodeType source = NodeType "relative_import"
+            && (nodeNamedChildren parent |> List.forall isFacadeItem)
+        | _ -> false

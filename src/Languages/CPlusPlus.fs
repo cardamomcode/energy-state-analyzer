@@ -502,6 +502,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                         Bindings = []
                     }
                 ]
+        IsReExport = fun _ _ -> false
         IsClassDefinition = isClassDefinition
         GetClassName =
             fun node ->

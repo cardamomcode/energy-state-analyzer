@@ -330,6 +330,9 @@ type LanguageAdapter =
         // Coherence uses these separately: source count measures dependency breadth; bindings/open forms
         // measure local vocabulary and scope pollution.
         ImportInfo: Node -> ImportInfo list
+        // Whether an import only assembles a public facade rather than supplying local implementation.
+        // The filename is available for languages whose facade convention depends on the file role.
+        IsReExport: string -> Node -> bool
         // Whether a node introduces a class-like scope for the file-coherence detector's
         // class-relatedness check — methods nested inside one are grouped by their enclosing class
         // instead of counted as free-standing functions. A predicate is required because C++ uses the

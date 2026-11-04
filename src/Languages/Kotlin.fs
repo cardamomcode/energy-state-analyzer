@@ -544,6 +544,7 @@ let kotlinLanguageAdapter: LanguageAdapter =
                             Bindings = []
                         }
                     ]
+        IsReExport = fun _ _ -> false
         IsClassDefinition = fun node -> nodeType node = NodeType "class_declaration"
         GetClassName =
             fun node ->

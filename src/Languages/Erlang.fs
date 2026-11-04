@@ -334,6 +334,7 @@ let erlangLanguageAdapter: LanguageAdapter =
                     && (nodeParent parent |> Option.exists (fun call -> nodeType call = NodeType "call")))
         IsExplicitConstant = fun node -> nodeType node = NodeType "pp_define"
         ImportInfo = importInfo
+        IsReExport = fun _ _ -> false
         IsClassDefinition = fun _ -> false
         IsStaticMethod = fun _ -> false
         GetClassName = fun _ -> None

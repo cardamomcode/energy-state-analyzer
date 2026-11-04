@@ -418,6 +418,7 @@ let pythonLanguageAdapter: LanguageAdapter =
         // Preserve `from` bindings separately from module imports: the former expands the local vocabulary,
         // while the latter retains qualified use. A multi-source `import a, b` yields both dependencies.
         ImportInfo = PythonAdapterSyntax.importInfo
+        IsReExport = PythonAdapterSyntax.isReExport
         IsClassDefinition = fun node -> nodeType node = NodeType "class_definition"
         GetClassName =
             fun node ->

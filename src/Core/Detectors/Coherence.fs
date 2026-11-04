@@ -190,7 +190,7 @@ let private checkLargeFunctionSprawl
 /// collectFunctionsClassesAndImports), so the function-count sprawl check only sees free-standing
 /// functions; class methods are judged separately by checkClassRelatedness.
 let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContext =
-    let collected = CoherenceCollection.collect ctx.Tree ctx.Language
+    let collected = CoherenceCollection.collect ctx.Tree ctx.Language ctx.FileName
     let FreeFunctions = collected.FreeFunctions
 
     let countedFunctions =
