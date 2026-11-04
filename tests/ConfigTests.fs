@@ -22,12 +22,18 @@ let private osTmpDir () : string = nativeOnly
 
 // Write a temp .esaconfig.json and load it through the public parse+merge path, so every assertion
 // covers defaults overlaid by the project file — the same resolution both hosts perform.
+/// Give each configuration test its own temporary input path.
+let private tempConfigPath () =
+    Path(osTmpDir () + "/esa-config-test-" + Guid.NewGuid().ToString("N") + ".json")
+
 let private loadTempConfig (json: string) : AnalyzeOptions =
-    let path =
-        Path(osTmpDir () + "/esa-config-test-" + Guid.NewGuid().ToString("N") + ".json")
+    let path = tempConfigPath ()
 
     writeTextFile path json
-    loadAnalyzeOptionsFromConfigPath path
+
+    match loadAnalyzeOptionsFromConfigPath path with
+    | Ok options -> options
+    | Error error -> failwith (configErrorMessage error)
 
 // decision: pin each default so a later edit to Config.fs cannot silently drift one detector's number.
 let defaultsTests =
@@ -356,6 +362,33 @@ let tests =
         @ mergePrecedenceTests
         @ allowlistUnioningTests
         @ [
+            test (
+                "malformed project config is an error instead of default thresholds",
+                fun _ ->
+                    let path = tempConfigPath ()
+                    writeTextFile path "{bad"
+
+                    match loadAnalyzeOptionsFromConfigPath path with
+                    | Error(ConfigInvalid _) -> ()
+                    | _ -> failwith "Expected malformed configuration to fail"
+            )
+            test (
+                "a JSON array is not a project configuration",
+                fun _ ->
+                    let path = tempConfigPath ()
+                    writeTextFile path "[]"
+
+                    match loadAnalyzeOptionsFromConfigPath path with
+                    | Error(ConfigInvalid _) -> ()
+                    | _ -> failwith "Expected a JSON object"
+            )
+            test (
+                "missing explicit config is an error",
+                fun _ ->
+                    match loadAnalyzeOptionsFromConfigPath (tempConfigPath ()) with
+                    | Error(ConfigNotFound _) -> ()
+                    | _ -> failwith "Expected missing configuration to fail"
+            )
             testAsync (
                 "error shadowing modes override independently",
                 fun _ ->

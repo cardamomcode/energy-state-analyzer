@@ -75,6 +75,7 @@
     <Compile Include="Core/ReportHuman.fs" />
     <Compile Include="Core/DetectorPipeline.fs" />
     <Compile Include="Core/Analyze.fs" />
+    <Compile Include="Core/ParsedAnalysis.fs" />
     <Compile Include="Extension/Vscode/Host.fs" />
     <Compile Include="Extension/Vscode/Document.fs" />
     <Compile Include="Extension/Vscode/Workspace.fs" />
@@ -84,6 +85,7 @@
     <Compile Include="Extension/Vscode/Identity.fs" />
     <Compile Include="Extension/ConfigurationValues.fs" />
     <Compile Include="Extension/Configuration.fs" />
+    <Compile Include="Extension/LoadedLanguage.fs" />
     <Compile Include="Extension/Analysis.fs" />
     <Compile Include="Extension/Grammar.fs" />
     <Compile Include="Extension/SarifExport.fs" />

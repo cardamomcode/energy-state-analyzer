@@ -12,8 +12,9 @@ open Energy.Core.Paths
 [<Import("execFileSync", "node:child_process")>]
 let private unsafeExecFileSync (command: string) (arguments: string array) (options: obj) : string = nativeOnly
 
-/// Reports whether a Node value arrived as null or undefined.
-let private isNullOrUndefined (value: obj) : bool = value = null
+/// Report whether parsed JSON has the object shape expected by project configuration.
+[<Emit("$0 !== null && typeof $0 === 'object' && !Array.isArray($0)")>]
+let private isJsonObject (value: obj) : bool = nativeOnly
 
 /// Parses JSON text, erased to the native JSON.parse binding.
 ///
@@ -38,12 +39,16 @@ let readFileSyncSafe (path: Path) (encoding: Encoding) : Result<string, string> 
 let execFileSyncSafe (command: string) (arguments: string array) (options: obj) : Result<string, string> =
     attempt (fun () -> unsafeExecFileSync command arguments options)
 
-let jsonParseSafe (text: string) : obj option =
+/// Parse a JSON object, retaining a syntax or shape error for the caller.
+let jsonParseResult (text: string) : Result<obj, string> =
     // decision: JSON.parse is an [<Emit>] binding that Fable only preserves at a direct call site, so it
     // cannot ride through the generic `attempt` thunk — its single throw is wrapped here instead.
     try
         let parsed = jsonParse text
 
-        if isNullOrUndefined parsed then None else Some parsed
-    with _ ->
-        None
+        if not (isJsonObject parsed) then
+            Error "Expected a JSON object"
+        else
+            Ok parsed
+    with error ->
+        Error(string<exn> error)

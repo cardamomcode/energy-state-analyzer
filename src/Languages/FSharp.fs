@@ -419,9 +419,10 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     | Some op ->
                         let t = nodeText op
 
-                        if t = "&&" then Some And
-                        elif t = "||" then Some Or
-                        else None
+                        match t with
+                        | "&&" -> Some And
+                        | "||" -> Some Or
+                        | _ -> None
                     | None -> None
         // F#'s try_expression has no else-branch construct.
         IsTryElseClause = fun _ -> false

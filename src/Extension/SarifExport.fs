@@ -13,57 +13,77 @@ open Energy.Extension.Vscode.Host
 [<Emit("JSON.stringify($0, null, 2)")>]
 let private stringify (value: obj) : string = nativeOnly
 
-let private readSource filePath = readFileSync filePath (Encoding "utf8")
+let private readSource (Path fileName as filePath) =
+    Energy.Core.NodeInterop.readFileSyncSafe filePath (Encoding "utf8")
+    |> Result.mapError (fun message -> SourceReadFailed(fileName, message))
+
+/// Resolve, read, and analyze one workspace file for the export report.
+let private analyzeFile rootDir grammar thresholds (Path fileName as file) =
+    task {
+        match Energy.Languages.Registry.resolveLanguageForFile fileName with
+        | None -> return Error(UnsupportedLanguage fileName)
+        | Some adapter ->
+            match readSource file with
+            | Error error -> return Error error
+            | Ok source ->
+                let! loaded = getOrLoadLanguage adapter.Id grammar
+
+                return
+                    loaded
+                    |> Result.bind (function
+                        | None -> Error(UnsupportedLanguage fileName)
+                        | Some language -> analyzeSourceWith thresholds language fileName source)
+                    |> Result.map (fun result ->
+                        let fileResult: Energy.Core.Report.FileResult =
+                            {
+                                FilePath = relativePath rootDir file
+                                Violations = result.Violations
+                            }
+
+                        fileResult)
+    }
 
 let rec private analyzeFiles rootDir grammar thresholds files =
     task {
         match files with
         | [] -> return Ok []
         | file :: remaining ->
-            let (Path fileName) = file
+            let! current = analyzeFile rootDir grammar thresholds file
 
-            match Energy.Languages.Registry.resolveLanguageForFile fileName with
-            | None -> return Error(UnsupportedLanguage fileName)
-            | Some adapter ->
-                let source = readSource file
-                let! loaded = getOrLoadLanguage adapter.Id grammar
-
-                match loaded with
-                | Error error -> return Error error
-                | Ok None -> return Error(UnsupportedLanguage fileName)
-                | Ok(Some language) ->
-                    match analyzeSourceWith thresholds language fileName source with
-                    | Error error -> return Error error
-                    | Ok result ->
-                        let! rest = analyzeFiles rootDir grammar thresholds remaining
-
-                        return
-                            rest
-                            |> Result.map (fun results ->
-                                let fileResult: Energy.Core.Report.FileResult =
-                                    {
-                                        FilePath = relativePath rootDir file
-                                        Violations = result.Violations
-                                    }
-
-                                fileResult :: results)
+            match current with
+            | Error error -> return Error error
+            | Ok result ->
+                let! rest = analyzeFiles rootDir grammar thresholds remaining
+                return rest |> Result.map (fun results -> result :: results)
     }
 
 let private writeReport rootDir results =
     let reportDirectory = joinPath rootDir (Path ".energy-state")
     let reportPath = joinPath reportDirectory (Path "latest.sarif")
-    ensureDirectory reportDirectory
-    writeTextFile reportPath (stringify (Energy.Core.ReportSarif.renderSarif results))
-    reportPath
+
+    try
+        ensureDirectory reportDirectory
+        writeTextFile reportPath (stringify (Energy.Core.ReportSarif.renderSarif results))
+        Ok reportPath
+    with error ->
+        let (Path fileName) = reportPath
+        Error(ReportWriteFailed(fileName, string<exn> error))
+
+/// Resolve workspace files without letting a directory read reject the command task.
+let private resolveFiles (Path root) =
+    try
+        Energy.Core.Scan.resolveSupportedFiles [ root ] root |> Ok
+    with error ->
+        Error(SourceReadFailed(root, string<exn> error))
 
 /// Scan a workspace and write the report beneath its root, so relative SARIF locations resolve there.
 let export (rootDir: Path) grammar thresholds : Task<Result<Path, AnalysisError>> =
     task {
-        let (Path root) = rootDir
-        let files = Energy.Core.Scan.resolveSupportedFiles [ root ] root
-        let! analysis = analyzeFiles rootDir grammar thresholds files
-
-        return analysis |> Result.map (writeReport rootDir)
+        match resolveFiles rootDir with
+        | Error error -> return Error error
+        | Ok files ->
+            let! analysis = analyzeFiles rootDir grammar thresholds files
+            return analysis |> Result.bind (writeReport rootDir)
     }
 
 let private workspaceRoot () =
@@ -84,8 +104,11 @@ let createCommand getGrammar () : Task<unit> =
         | _, None -> showErrorMessage window "Energy State Analyzer is not ready to export a SARIF report."
         | Some root, Some grammar ->
             let resource = Energy.Extension.Vscode.Presentation.uriFromFilePath root
-            let thresholds = Energy.Extension.Configuration.readAnalyzeThresholdsFor resource
-            let! result = export (Path root) grammar thresholds
+
+            let! result =
+                match Energy.Extension.Configuration.readAnalyzeThresholdsFor resource with
+                | Error error -> Task.FromResult(Error error)
+                | Ok thresholds -> export (Path root) grammar thresholds
 
             match result with
             | Error analysisError ->

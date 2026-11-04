@@ -33,13 +33,22 @@ type ReportFormat =
     | Sarif
     | Json
 
-let parseReportFormat (text: string) : ReportFormat =
-    match text with
-    | "human" -> Human
-    | "md"
-    | "markdown" -> Markdown
-    | "sarif" -> Sarif
-    | _ -> Json
+/// Map external report names and aliases onto the closed internal format set.
+let private reportFormats =
+    Map.ofList
+        [
+            "human", Human
+            "md", Markdown
+            "markdown", Markdown
+            "sarif", Sarif
+            "json", Json
+        ]
+
+/// Parse a report format at the CLI edge without accepting misspelled values.
+let parseReportFormat (text: string) : Result<ReportFormat, string> =
+    match Map.tryFind text reportFormats with
+    | Some report -> Ok report
+    | None -> Error("Unsupported report format: " + text)
 
 let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"

@@ -6,7 +6,7 @@ Detector detail is configured at two levels, resolved in this order of increasin
 built-in defaults  <  .esaconfig.json
 ```
 
-The built-in defaults are the single source of truth for every threshold (see `src/Core/Config.fs`). A project's `.esaconfig.json` layers its values on top for both the editor and CLI/CI. Anything not set in the file falls back to the built-in default.
+The built-in defaults are the single source of truth for every threshold (see `src/Core/Config.fs`). A project's `.esaconfig.json` layers its values on top for both the editor and CLI/CI. Anything not set in the file falls back to the built-in default. A selected file with malformed JSON or a read error fails configuration instead of silently using defaults; an explicit `--config` path must exist.
 
 ## Choosing thresholds
 

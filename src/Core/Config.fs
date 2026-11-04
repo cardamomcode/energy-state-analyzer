@@ -12,6 +12,19 @@ open Fable.Core
 open Energy.Core.Paths
 open Energy.Core.FsPath
 
+/// A project configuration that cannot be used as the selected analysis policy.
+type ConfigError =
+    | ConfigNotFound of path: string
+    | ConfigReadFailed of path: string * message: string
+    | ConfigInvalid of path: string * message: string
+
+/// Render a selected policy-file failure for the CLI or editor.
+let configErrorMessage =
+    function
+    | ConfigNotFound path -> "Configuration file not found: " + path
+    | ConfigReadFailed(path, message) -> "Could not read configuration " + path + ": " + message
+    | ConfigInvalid(path, message) -> "Invalid configuration " + path + ": " + message
+
 /// ---------------------------------------------------------------------------
 /// a) Consolidated defaults: every threshold type + value, allowlist, ratio, and color.
 ///
@@ -388,72 +401,6 @@ type FileConfig =
         MagicString: FileMagicString
     }
 
-/// Represent a project with no threshold overrides.
-let private emptyFileConfig: FileConfig =
-    {
-        Nesting =
-            {
-                MediumThreshold = None
-                HighThreshold = None
-            }
-        Cyclomatic =
-            {
-                MediumThreshold = None
-                HighThreshold = None
-            }
-        Cognitive =
-            {
-                MediumThreshold = None
-                HighThreshold = None
-            }
-        Coherence =
-            {
-                LargeFunctionLines = None
-                MaxLargeFunctions = None
-                SingleDomainNameShare = None
-                MaxTypeDiversityRatio = None
-                MinTypedCoverage = None
-                SiblingOpenThreshold = None
-                ImportBreadthThreshold = None
-                HighImportBreadthThreshold = None
-                MemberImportFanOutThreshold = None
-                UtilsFileFunctionCount = None
-                GenericFunctionCount = None
-                HighFunctionCount = None
-                MethodCountMedium = None
-                MethodCountHigh = None
-                LargeFunctionSeverityMultiplier = None
-            }
-        MatchOpportunity = { MinBranches = None }
-        ErrorShadowing =
-            {
-                ProtectedScope =
-                    {
-                        Threshold = None
-                        HighThreshold = None
-                        MinItems = None
-                    }
-                Recovery =
-                    {
-                        Threshold = None
-                        HighThreshold = None
-                        MinItems = None
-                    }
-                RecoveryBlockMaxLines = None
-            }
-        ParameterCount =
-            {
-                MediumThreshold = None
-                HighThreshold = None
-            }
-        MagicNumber = { Allowlist = None }
-        MagicString =
-            {
-                MinDuplicates = None
-                Allowlist = None
-            }
-    }
-
 /// Read one property of a JSON object by key, exposed as a tiny [<Emit>] bracket binding.
 ///
 /// decision: property access stays as an [<Emit>] binding rather than casting through a Map, so
@@ -506,19 +453,19 @@ let findConfigFile (startDir: Path) : Path option =
 
     walkUp startDir
 
-/// Read and parse a `.esaconfig.json` file, returning None when it is absent or malformed.
+/// Read and parse a selected `.esaconfig.json` file, preserving read and syntax failures.
 ///
-/// decision: a missing file yields None (not an error) and malformed JSON is swallowed, so a project
-/// with no .esaconfig.json — or one with a typo — simply keeps the built-in defaults.
-let readConfigJson (path: Path) : obj option =
+/// decision: absence is handled only by upward discovery; once a file is selected, invalid content
+/// must not silently replace the project's policy with defaults.
+let readConfigJson (Path filePath as path) : Result<obj, ConfigError> =
     if not (existsSync path) then
-        None
+        Error(ConfigNotFound filePath)
     else
-        // decision: use the safe JSON binding so malformed config becomes "no value" rather than a
-        // thrown exception — no try/with here, so the error-shadowing detector stays quiet on this
-        // boundary and a typo'd .esaconfig.json simply keeps the built-in defaults. jsonParseSafe
-        // already maps both failure and null/undefined to None.
-        Energy.Core.NodeInterop.jsonParseSafe (readFileSync path (Encoding "utf8"))
+        Energy.Core.NodeInterop.readFileSyncSafe path (Encoding "utf8")
+        |> Result.mapError (fun message -> ConfigReadFailed(filePath, message))
+        |> Result.bind (fun source ->
+            Energy.Core.NodeInterop.jsonParseResult source
+            |> Result.mapError (fun message -> ConfigInvalid(filePath, message)))
 
 /// Read supported project threshold fields from the parsed JSON object.
 let parseFileConfig (raw: obj) : FileConfig =
@@ -764,24 +711,25 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
         Inversion = defaults.Inversion
     }
 
-/// Public entry: resolve `.esaconfig.json` from `startDir` (walking up) and overlay it on the defaults.
+/// Convert parsed JSON into options while retaining the selected file's error context.
+let private optionsFromConfig (Path filePath) (raw: obj) : Result<AnalyzeOptions, ConfigError> =
+    try
+        raw |> parseFileConfig |> mergeOptions defaultAnalyzeOptions |> Ok
+    with error ->
+        Error(ConfigInvalid(filePath, string<exn> error))
+
+/// Resolve `.esaconfig.json` upward from a directory and overlay it on the defaults.
 ///
 /// decision: precedence is `defaults < .esaconfig.json`, so a project file configures the same
 /// detector details for the editor and CI.
-let loadAnalyzeOptions (startDir: Path) : AnalyzeOptions =
-    let fileConfig =
-        findConfigFile startDir
-        |> Option.bind readConfigJson
-        |> Option.map parseFileConfig
-        |> Option.defaultValue emptyFileConfig
-
-    mergeOptions defaultAnalyzeOptions fileConfig
+let loadAnalyzeOptions (startDir: Path) : Result<AnalyzeOptions, ConfigError> =
+    match findConfigFile startDir with
+    | None -> Ok defaultAnalyzeOptions
+    | Some path -> readConfigJson path |> Result.bind (optionsFromConfig path)
 
 /// Load config from an explicit file path instead of searching upward for one.
 ///
-/// decision: load from an explicit config-file path (the CLI's --config flag) instead of searching
-/// upward; returns the defaults when the file is missing or unreadable so callers can fall back.
-let loadAnalyzeOptionsFromConfigPath (path: Path) : AnalyzeOptions =
-    match readConfigJson path with
-    | Some config -> mergeOptions defaultAnalyzeOptions (parseFileConfig config)
-    | None -> defaultAnalyzeOptions
+/// decision: an explicit file must exist and parse successfully, so a typo in --config cannot
+/// quietly switch a CI run to built-in thresholds.
+let loadAnalyzeOptionsFromConfigPath (path: Path) : Result<AnalyzeOptions, ConfigError> =
+    readConfigJson path |> Result.bind (optionsFromConfig path)
