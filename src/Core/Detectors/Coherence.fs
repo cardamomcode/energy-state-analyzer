@@ -2,6 +2,7 @@ module Energy.Core.Detectors.Coherence
 
 open Energy.Core
 open Energy.Core.Config
+open Energy.Core.Detectors.TestFile
 
 // The "Utils/Helpers Sprawl" detector.
 //
@@ -191,6 +192,11 @@ let private checkLargeFunctionSprawl
 let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContext =
     let collected = CoherenceCollection.collect ctx.Tree ctx.Language
     let FreeFunctions = collected.FreeFunctions
+
+    let countedFunctions =
+        FreeFunctions
+        |> List.filter (fun callable -> not (isRustTestCode ctx.Language ctx.FileName callable.Anchor))
+
     let Classes = collected.Classes
     let Imports = collected.Imports
     let FirstImportNode = collected.FirstImportNode
@@ -201,7 +207,7 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
 
     let findings =
         [
-            checkFunctionCountSprawl FreeFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
+            checkFunctionCountSprawl countedFunctions ctx.FileName ctx.Options.Coherence ctx.Language ctx.Positions
             checkLargeFunctionSprawl allFunctions ctx.Options.Coherence ctx.Positions
             ImportCoherence.check Imports FirstImportNode ctx.Language ctx.Positions ctx.Options.Coherence
             ClassRelatedness.checkClassRelatedness

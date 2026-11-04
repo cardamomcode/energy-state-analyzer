@@ -390,6 +390,66 @@ let private staticBoundCallableTest (case: BoundCallableCase) =
             )
     )
 
+/// Keep Rust test functions out of the file responsibility count while retaining their size signal.
+let private rustTestFunctionCount =
+    testAsync (
+        "Rust: test-only functions do not inflate file coherence",
+        fun _ ->
+            toAsync (
+                task {
+                    let! source, tree = parseFixture Rust.rustLanguageAdapter "rust/inline_tests.rs"
+                    assertThat (Energy.Core.TreeSitter.nodeHasError tree) isFalse
+
+                    let thresholds =
+                        { defaultThresholds with
+                            Coherence =
+                                { defaultThresholds.Coherence with
+                                    UtilsFileFunctionCount = 0
+                                    GenericFunctionCount = 0
+                                    MaxTypeDiversityRatio = 0.0
+                                    SingleDomainNameShare = 1.0
+                                    LargeFunctionLines = 0
+                                    MaxLargeFunctions = 0
+                                }
+                        }
+
+                    let analyze fileName =
+                        analyzeWith
+                            thresholds
+                            {
+                                Source = source
+                                Tree = tree
+                                Language = Rust.rustLanguageAdapter
+                                FileName = fileName
+                            }
+                        |> _.Violations
+
+                    let functionCountFindings (violations: EnergyViolation list) =
+                        violations
+                        |> List.filter (fun finding ->
+                            finding.Type = Coherence && finding.Message.Contains("functions in one file"))
+
+                    let productionFindings = analyze "src/lib.rs"
+                    let countFindings = functionCountFindings productionFindings
+                    assertThat countFindings.Length (isEqualTo 1)
+                    assertThat (countFindings.Head.Message.Contains("7 functions in one file")) isTrue
+
+                    assertThat
+                        (hitsWithMessage [ "16 functions exceed 0 lines" ] productionFindings
+                         |> List.length)
+                        (isEqualTo 1)
+
+                    let testFileFindings = analyze "tests/feature.rs"
+                    assertThat (functionCountFindings testFileFindings |> List.length) (isEqualTo 0)
+
+                    assertThat
+                        (hitsWithMessage [ "16 functions exceed 0 lines" ] testFileFindings
+                         |> List.length)
+                        (isEqualTo 1)
+                }
+            )
+    )
+
 let tests =
     // decision: the type-cohesive-without-naming fixture is a regression guard for a real false
     // positive — an F#-style module exposing one verb per operation over a shared domain type, no
@@ -838,6 +898,7 @@ let tests =
             kotlinMemberFanOut
             pythonWildcardImport
             typeScriptStaticGodClass
+            rustTestFunctionCount
         ]
         @ godClassBoundaryAndStaticMethods
         @ memberFanOuts
