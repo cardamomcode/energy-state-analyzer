@@ -46,9 +46,12 @@ any medium/high-severity violation is found (`0` otherwise). That exit code lets
 refinement loop; inspect the report to distinguish findings from analysis failures:
 
 ```bash
-npx energy-state-analyzer path/to/file.py --report json   # or .fs / .fsx / .ts / .kt / .cpp / .cs
+npx energy-state-analyzer path/to/file.py --report json   # or .fs / .ts / .kt / .cpp / .cs / .erl / .rs
 echo $?   # 0 = no blocking findings; 1 = blocking findings or analysis failure
 ```
+
+See [supported file suffixes](cli.md#supported-file-suffixes) for the complete list, including
+Erlang headers, F# scripts, and C++ headers.
 
 Findings live under `files[].violations` in the JSON report. Each finding includes its zero-based `line` and `column`, the violation `type`, its
 `severity`, the detector `message` (which contains a concrete suggested fix), and any `hotspots`.
@@ -235,7 +238,7 @@ repos:
         name: Energy State Analyzer
         entry: npx energy-state-analyzer
         language: system
-        files: '\.(py|fs|fsx|ts|kt|cpp|cs)$'
+        files: '\.(py|fs|fsx|fsi|ts|kt|kts|cpp|cppm|cc|ccm|cxx|cxxm|c\+\+|c\+\+m|hpp|hh|hxx|h\+\+|h|ii|ino|inl|ipp|ixx|mpp|mxx|tpp|txx|hpp\.in|h\.in|cs|csx|erl|hrl|rs)$'
         pass_filenames: true
 ```
 
@@ -258,7 +261,7 @@ Merge these entries into `package.json`, preserving existing scripts. Husky init
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{py,fs,fsx,ts,kt,cpp,cs}": ["energy-state-analyzer"]
+    "*.{py,fs,fsx,fsi,ts,kt,kts,cpp,cppm,cc,ccm,cxx,cxxm,c++,c++m,hpp,hh,hxx,h++,h,ii,ino,inl,ipp,ixx,mpp,mxx,tpp,txx,hpp.in,h.in,cs,csx,erl,hrl,rs}": ["energy-state-analyzer"]
   }
 }
 ```

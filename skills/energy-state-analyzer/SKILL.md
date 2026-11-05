@@ -1,6 +1,6 @@
 ---
 name: energy-state-analyzer
-description: Write or refactor Python, F#, TypeScript, Kotlin, C++, or C# for projects using Energy State Analyzer, then triage and verify its findings.
+description: Write or refactor Python, F#, TypeScript, Kotlin, C++, C#, Erlang, or Rust for projects using Energy State Analyzer, then triage and verify its findings.
 ---
 
 # Energy State Analyzer
