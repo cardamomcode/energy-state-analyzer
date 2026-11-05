@@ -75,7 +75,7 @@ npx energy-state-analyzer src --report sarif
 
 Each SARIF result has a stable `ESA###` rule ID (for example, `ESA006` for magic literals), a one-based source location, a severity mapped to SARIF `error`/`warning`/`note`, and the detector message with its concrete remediation guidance. The default JSON report carries the same findings in a flat `files[].violations[]` shape at roughly half SARIF's size, so there is nothing to walk; use `md` or `human` for human-readable output. SARIF is available for scan mode; `--base-ref` continues to emit its score-delta JSON or Markdown report.
 
-In VS Code, run **Energy State Analyzer: Export SARIF Report** to scan the open workspace and write `.energy-state/latest.sarif`. Open that file with the [SARIF Viewer](https://marketplace.visualstudio.com/items?itemName=MS-SarifVSCode.sarif-viewer) for its report panel, grouping, and filtering.
+In VS Code, run **Energy State Analyzer: Export SARIF Report** to scan the open workspace and write `.energy-state/latest.sarif`. Optionally install the [SARIF Viewer](https://marketplace.visualstudio.com/items?itemName=MS-SarifVSCode.sarif-viewer) and open that file for its report panel, grouping, and filtering.
 
 Only one glob shape is supported: a trailing `**/*.ext` pattern on an otherwise literal directory prefix (e.g. `src/**/*.py`). There's no brace expansion, negation, or mid-path wildcards, pass explicit directories/files for anything more complex.
 
