@@ -14,6 +14,9 @@ open Energy.Core.LanguageAdapter
 // from the root (or via the null-safe nodeParent accessor), so we read members directly and treat
 // `.children` as an always-present list (empty when there are none).
 
+/// Minimum word count for an import binding spelled `original as local`.
+let private minimumAliasedImportParts = 3
+
 /// Name TS's type-annotation node type shared across hooks.
 ///
 /// decision: shared by extractTypedParameter/extractReturnType below — both check for TS's
@@ -435,7 +438,7 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                             let imported = parts.[0]
 
                             let local =
-                                if parts.Length >= 3 && parts.[1] = "as" then
+                                if parts.Length >= minimumAliasedImportParts && parts.[1] = "as" then
                                     parts.[2]
                                 else
                                     imported

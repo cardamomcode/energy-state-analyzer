@@ -43,8 +43,15 @@ let tests =
                     let fixtureDirectory = cwd () + "/src/test/fixtures/tsx"
                     let fixturePath = fixtureDirectory + "/components.tsx"
 
-                    for input in [ fixturePath; fixtureDirectory; fixtureDirectory + "/**/*.tsx" ] do
-                        assertThat (resolveSupportedFiles [ input ] fixtureDirectory) (isEqualTo [ Path fixturePath ])
+                    let allFixtures = [ Path fixturePath; Path(fixtureDirectory + "/magicNumbers.tsx") ]
+
+                    for input, expected in
+                        [
+                            fixturePath, [ Path fixturePath ]
+                            fixtureDirectory, allFixtures
+                            fixtureDirectory + "/**/*.tsx", allFixtures
+                        ] do
+                        assertThat (resolveSupportedFiles [ input ] fixtureDirectory) (isEqualTo expected)
             )
             testAsync (
                 "parses JSX and generic arrows and analyzes expressions without counting markup nesting",
@@ -64,7 +71,9 @@ let tests =
 
                             let callback =
                                 views
-                                |> List.find (fun view -> (nodeText view.Anchor).StartsWith("item => item ?"))
+                                |> List.find (fun view ->
+                                    (nodeText view.Anchor)
+                                        .StartsWith("item => item ?", System.StringComparison.Ordinal))
 
                             assertThat (complexityOf TypeScript.tsxLanguageAdapter callback.Anchor) (isEqualTo 2)
 

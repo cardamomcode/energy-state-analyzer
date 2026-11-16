@@ -19,38 +19,41 @@ open Energy.Core.Detectors.TestFile
 let private isNodeType (expected: NodeType option) (node: Node) : bool =
     expected |> Option.exists ((=) (nodeType node))
 
-let private hasEnclosingFunction (language: LanguageAdapter) (assignmentNode: Node) : bool =
+/// Distinguish module bindings from grammar containers nested within a callable.
+let private hasEnclosingCallable (language: LanguageAdapter) (node: Node) : bool =
     let rec loop current =
         match nodeParent current with
-        | Some parent when language.IsFunctionDefinition parent -> true
+        | Some parent when language.GetCallableViews parent |> List.isEmpty |> not -> true
         | Some parent -> loop parent
         | None -> false
 
-    loop assignmentNode
+    loop node
 
+/// Exempt named constants without extending that exemption into a callable's runtime body.
 let private isInConstantContext (language: LanguageAdapter) (node: Node) : bool =
     let rec loop current =
         match nodeParent current with
         | None -> false
-        | Some parent when language.IsExplicitConstant parent -> true
-        | Some parent when isNodeType language.NodeTypes.Assignment parent ->
+        | Some parent when language.GetCallableViews parent |> List.isEmpty |> not ->
+            // decision: a module-bound arrow or function expression names the callable, not the
+            // literals computed when its body runs; every normalized callable stops this lookup.
             // decision: an F# function definition shares its assignment-shaped node with a value
             // binding, so a literal in its body is computed logic rather than a named constant.
-            if language.IsFunctionDefinition parent then
-                false
-            else
-                let grandparent =
-                    match nodeParent parent with
-                    | Some expression when isNodeType language.NodeTypes.ExpressionStatement expression ->
-                        nodeParent expression
-                    | other -> other
+            false
+        | Some parent when language.IsExplicitConstant parent -> true
+        | Some parent when isNodeType language.NodeTypes.Assignment parent ->
+            let grandparent =
+                match nodeParent parent with
+                | Some expression when isNodeType language.NodeTypes.ExpressionStatement expression ->
+                    nodeParent expression
+                | other -> other
 
-                match grandparent with
-                | Some moduleNode when isNodeType language.NodeTypes.Module moduleNode ->
-                    not (hasEnclosingFunction language parent)
-                | Some exportNode when isNodeType language.NodeTypes.ExportStatement exportNode ->
-                    nodeParent exportNode |> Option.exists (isNodeType language.NodeTypes.Module)
-                | _ -> loop parent
+            match grandparent with
+            | Some moduleNode when isNodeType language.NodeTypes.Module moduleNode ->
+                not (hasEnclosingCallable language parent)
+            | Some exportNode when isNodeType language.NodeTypes.ExportStatement exportNode ->
+                nodeParent exportNode |> Option.exists (isNodeType language.NodeTypes.Module)
+            | _ -> loop parent
         | Some parent -> loop parent
 
     loop node
