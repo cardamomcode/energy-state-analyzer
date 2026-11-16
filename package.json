@@ -38,6 +38,7 @@
     "onLanguage:python",
     "onLanguage:fsharp",
     "onLanguage:typescript",
+    "onLanguage:typescriptreact",
     "onLanguage:kotlin",
     "onLanguage:cpp",
     "onLanguage:csharp",

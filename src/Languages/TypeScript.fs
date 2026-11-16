@@ -520,3 +520,13 @@ let typeScriptLanguageAdapter: LanguageAdapter =
                                     && nodeText child = "constructor"))
                 }
     }
+
+/// Analyze TSX with the TypeScript detectors and a JSX-aware grammar.
+///
+/// decision: keep a separate parser identity so CLI and editor grammar caches cannot reuse the
+/// plain TypeScript parser for JSX, while .ts retains support for angle-bracket type assertions.
+let tsxLanguageAdapter: LanguageAdapter =
+    { typeScriptLanguageAdapter with
+        Id = "typescriptreact"
+        GrammarPath = "grammars/tree-sitter-tsx.wasm"
+    }

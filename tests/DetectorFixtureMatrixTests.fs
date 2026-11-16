@@ -35,6 +35,7 @@ let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
     [
         fixture "Python" Python.pythonLanguageAdapter python []
         fixture "TypeScript" TypeScript.typeScriptLanguageAdapter typeScript []
+        fixture "TSX" TypeScript.tsxLanguageAdapter typeScript []
         fixture "F#" FSharp.fSharpLanguageAdapter fsharp []
         fixture "Kotlin" Kotlin.kotlinLanguageAdapter kotlin []
         fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus []
@@ -110,7 +111,7 @@ let tests =
                 StaysClean(FunctionName "cleanFlipped")
             ]
         |> List.map (fun item ->
-            if item.Language.Id = "typescript" then
+            if item.Language.Id = "typescript" || item.Language.Id = "typescriptreact" then
                 { item with
                     Expectations =
                         item.Expectations
@@ -497,6 +498,7 @@ let tests =
                             FunctionName(
                                 [
                                     "suppressedKeywordArgument"
+                                    "suppressedObjectLiteralField"
                                     "suppressedObjectLiteralField"
                                     "suppressedNamedArgument"
                                     "suppressedNamedArgument"
@@ -1038,6 +1040,20 @@ let tests =
                             ]
                     ]
             yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
+            yield!
+                detectorParityTests
+                    "TSX components"
+                    Complexity
+                    [
+                        fixture
+                            "TSX"
+                            TypeScript.tsxLanguageAdapter
+                            "tsx/components.tsx"
+                            [
+                                ProducesFinding(FunctionName "FlaggedBranches", None)
+                                StaysClean(FunctionName "CleanMarkup")
+                            ]
+                    ]
             yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
             // Rust has no catch/finally construct; Result/Option propagation is a separate policy.
             yield!

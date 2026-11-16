@@ -12,6 +12,7 @@ let languages: Map<string, LanguageAdapter> =
         "python", Python.pythonLanguageAdapter
         "fsharp", FSharp.fSharpLanguageAdapter
         "typescript", TypeScript.typeScriptLanguageAdapter
+        "typescriptreact", TypeScript.tsxLanguageAdapter
         "kotlin", Kotlin.kotlinLanguageAdapter
         "cpp", CPlusPlus.cPlusPlusLanguageAdapter
         "csharp", CSharp.cSharpLanguageAdapter
@@ -33,6 +34,7 @@ let private suffixToLanguageId =
         ".fsx", "fsharp"
         ".fsi", "fsharp"
         ".ts", "typescript"
+        ".tsx", "typescriptreact"
         ".cs", "csharp"
         ".csx", "csharp"
         ".erl", "erlang"
