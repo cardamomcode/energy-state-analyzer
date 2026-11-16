@@ -53,7 +53,7 @@ interpreting code, and what the metrics reveal.
 The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent fixing findings in code it just generated and verifying the result:
 
 ```bash
-npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs / .erl / .rs
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .tsx / .kt / .cpp / .cs / .erl / .rs
 ```
 
 See [docs/cli.md](docs/cli.md) for scanning a whole repo, aggregated markdown/JSON/human reports, and diffing a PR against a base branch. See [docs/agent-integration.md](docs/agent-integration.md) for wiring the CLI into an AI coding agent's edit-and-verify loop.
@@ -75,6 +75,10 @@ for the current project, or run the command without agent flags to choose target
 ## Requirements
 
 The extension activates automatically when you open a Python, F#, TypeScript, Kotlin, C++, C#, Erlang, or Rust file; it bundles its own grammars for parsing (via `web-tree-sitter`), so no compiler or external parser is required. F# files only get a `fsharp` language ID (and so trigger analysis) if you have an F# language extension installed (e.g. [Ionide](https://ionide.io/)), VS Code otherwise treats `.fs` files as plain text. Erlang `.erl` and `.hrl` files and Rust `.rs` files are registered by this extension. The CLI recognizes the full VS Code C++ suffix set, including compound template suffixes such as `.hpp.in`; see [Command-Line Usage](docs/cli.md#supported-file-suffixes).
+
+TSX (`.tsx`) uses a dedicated JSX-aware grammar and the same detectors as TypeScript.
+The extension analyzes VS Code’s `typescriptreact` documents, including expressions and callbacks
+inside JSX. JSX markup itself does not count as control-flow nesting.
 
 ## Development
 

@@ -3,7 +3,7 @@
 The same detectors also run headlessly, without VS Code, useful for CI or for an AI coding agent that wants to fix findings in code it just generated and verify the result. Published to npm, so no clone or install step is required:
 
 ```bash
-npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .kt / .cpp / .cs / .erl / .rs
+npx energy-state-analyzer path/to/file.py   # or .fs / .fsx / .ts / .tsx / .kt / .cpp / .cs / .erl / .rs
 ```
 
 Or install it as a project/global dependency and call it directly:
@@ -30,7 +30,7 @@ Unknown flags, invalid flag values, missing explicit paths, and unsupported expl
 | --- | --- |
 | Python | `.py` |
 | F# | `.fs`, `.fsx`, `.fsi` |
-| TypeScript | `.ts` |
+| TypeScript / TSX | `.ts`, `.tsx` |
 | C# | `.cs`, `.csx` |
 | Erlang | `.erl`, `.hrl` |
 | Rust | `.rs` |

@@ -35,6 +35,7 @@ let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
     [
         fixture "Python" Python.pythonLanguageAdapter python []
         fixture "TypeScript" TypeScript.typeScriptLanguageAdapter typeScript []
+        fixture "TSX" TypeScript.tsxLanguageAdapter typeScript []
         fixture "F#" FSharp.fSharpLanguageAdapter fsharp []
         fixture "Kotlin" Kotlin.kotlinLanguageAdapter kotlin []
         fixture "C++" CPlusPlus.cPlusPlusLanguageAdapter cPlusPlus []
@@ -110,7 +111,7 @@ let tests =
                 StaysClean(FunctionName "cleanFlipped")
             ]
         |> List.map (fun item ->
-            if item.Language.Id = "typescript" then
+            if item.Language.Id = "typescript" || item.Language.Id = "typescriptreact" then
                 { item with
                     Expectations =
                         item.Expectations
@@ -486,26 +487,24 @@ let tests =
             "kotlin/OpaqueBoolean.kt"
             "cpp/opaque_boolean.cpp"
             "csharp/OpaqueBoolean.cs"
-        |> List.mapi (fun index item ->
+        |> List.map (fun item ->
+            let labeledScenario =
+                match item.Language.Id with
+                | "python" -> "suppressedKeywordArgument"
+                | "typescript"
+                | "typescriptreact" -> "suppressedObjectLiteralField"
+                | "fsharp"
+                | "kotlin" -> "suppressedNamedArgument"
+                | "cpp" -> "suppressedLabeledAggregateField"
+                | _ -> "suppressedNonCallUsage"
+
             { item with
                 Expectations =
                     [
                         ProducesFinding(FunctionName "flaggedPositionalBoolean", None)
                         ProducesFinding(FunctionName "flaggedPositionalBooleanAmongOthers", None)
                         ProducesFinding(FunctionName "flaggedAssertionBoolean", Some Low)
-                        StaysClean(
-                            FunctionName(
-                                [
-                                    "suppressedKeywordArgument"
-                                    "suppressedObjectLiteralField"
-                                    "suppressedNamedArgument"
-                                    "suppressedNamedArgument"
-                                    "suppressedLabeledAggregateField"
-                                    "suppressedNonCallUsage"
-                                ]
-                                |> List.item index
-                            )
-                        )
+                        StaysClean(FunctionName labeledScenario)
                         StaysClean(FunctionName "suppressedNonCallUsage")
                     ]
             })
@@ -1038,6 +1037,54 @@ let tests =
                             ]
                     ]
             yield! detectorParityTests "inversion feedback" Inversion inversionFeedback
+            yield!
+                detectorParityTests
+                    "TSX runtime numbers"
+                    Magic
+                    [
+                        {
+                            LanguageLabel = "TSX"
+                            Language = TypeScript.tsxLanguageAdapter
+                            Fixture = "tsx/magicNumbers.tsx"
+                            Expectations =
+                                [
+                                    StaysClean(FunctionName "CleanConstant")
+                                    ProducesFinding(FunctionName "FlaggedArrow", None)
+                                    ProducesFinding(FunctionName "FlaggedFunctionExpression", None)
+                                    ProducesFinding(FunctionName "FlaggedCallback", None)
+                                    ProducesFinding(FunctionName "FlaggedNamed", None)
+                                    StaysClean(FunctionName "CleanDefault")
+                                ]
+                        }
+                        {
+                            LanguageLabel = "TypeScript"
+                            Language = TypeScript.typeScriptLanguageAdapter
+                            Fixture = "typescript/anonymousMagicNumbers.ts"
+                            Expectations =
+                                [
+                                    StaysClean(FunctionName "cleanConstant")
+                                    ProducesFinding(FunctionName "flaggedArrow", None)
+                                    ProducesFinding(FunctionName "flaggedFunctionExpression", None)
+                                    ProducesFinding(FunctionName "flaggedCallback", None)
+                                    ProducesFinding(FunctionName "flaggedNamed", None)
+                                    StaysClean(FunctionName "cleanDefault")
+                                ]
+                        }
+                    ]
+            yield!
+                detectorParityTests
+                    "TSX components"
+                    Complexity
+                    [
+                        fixture
+                            "TSX"
+                            TypeScript.tsxLanguageAdapter
+                            "tsx/components.tsx"
+                            [
+                                ProducesFinding(FunctionName "FlaggedBranches", None)
+                                StaysClean(FunctionName "CleanMarkup")
+                            ]
+                    ]
             yield! detectorParityTests "error shadowing" ErrorShadowing errorShadowing
             // Rust has no catch/finally construct; Result/Option propagation is a separate policy.
             yield!

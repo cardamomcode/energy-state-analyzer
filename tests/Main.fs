@@ -15,6 +15,7 @@ let main _ =
             CSharpTests.tests
             ErlangTests.tests
             RustTests.tests
+            TsxTests.tests
             AnonymousCallableTests.tests
             NestingTests.tests
             NestingTests.gatingTests

@@ -51,7 +51,7 @@ let parseReportFormat (text: string) : Result<ReportFormat, string> =
     | None -> Error("Unsupported report format: " + text)
 
 let printUsage () =
-    error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts> [thresholds...]"
+    error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts|.tsx> [thresholds...]"
 
     error
         "       energy-state-cli <path...> [--report json|md|human|sarif] [thresholds...]        (scan a directory/subtree)"
