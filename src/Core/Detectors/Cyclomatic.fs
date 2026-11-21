@@ -1,3 +1,12 @@
+// # Cyclomatic
+//
+// Cyclomatic scoring builds a reduced connected control-flow multigraph for each callable and computes E
+// minus N plus 2P. Boolean and multi-way decisions add outcome edges; straight-line statements do not.
+// Nested callable bodies are analyzed separately, and the parallel hotspot walk uses the same decision
+// policy for editor heat ranges.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.Cyclomatic
 
 open Energy.Core.Violation
@@ -14,7 +23,7 @@ open Energy.Core.Context
 // edge. A violation is anchored at the function's start position and carries per-line hotspots
 // weighted by nesting depth so callers can paint a heatmap of where complexity piles up.
 
-/// Read cyclomatic thresholds from the shared config rather than re-exporting a module-level copy.
+/// Reduced graph vertices: entry and exit delimit one callable; each decision carries a local identity.
 ///
 /// decision: cyclomatic thresholds live in Core.Config as the single source of truth; this detector
 /// reads them from ctx.Options so it no longer re-exports a module-level copy.
@@ -24,12 +33,17 @@ type private FlowNode =
     | Exit
     | Decision of int
 
+/// Distinguish the root being scored from descendants where a new callable boundary must stop graph
+/// traversal.
 type private CallableScope =
     | RootCallable
     | NestedCallable
 
+/// One directed edge in the reduced control-flow multigraph; repeated endpoints represent distinct outcomes
+/// and must remain separate.
 type private FlowEdge = { From: FlowNode; To: FlowNode }
 
+/// Reduced callable graph with nodes, outcome edges, and one exit-predecessor entry per current exit edge.
 type private ControlFlowGraph =
     {
         Nodes: FlowNode list
@@ -55,8 +69,15 @@ let private initialGraph =
 /// without treating its mathematical constants as unexplained literals.
 /// invariant: every function graph is connected, so P is exactly one.
 let private connectedComponents = 1
+/// Multiplier of the connected-component count in McCabe's E minus N plus 2P formula.
 let private mccabeComponentMultiplier = 2
 
+/// Insert a decision before the current exit edges and replace them with the requested number of outcome
+/// edges. Duplicate outcome edges preserve multi-way path contributions.
+/// before and after are E - N + 2; outcomes is the new branch count. Requires the exit-edge
+/// invariant above and host arithmetic within range; connectivity and adapter semantics are separate.
+///
+/// lean: `def AddDecisionContract (outcomes : Nat) (before after : Int) : Prop := after = before + outcomes - 1`
 let private addDecision (outcomes: int) (graph: ControlFlowGraph) : ControlFlowGraph =
     let decision = Decision graph.Nodes.Length
 
@@ -84,6 +105,7 @@ let private isDecisionPoint (language: LanguageAdapter) (node: Node) : bool =
     || language.GetBooleanOperator node |> Option.isSome
     || language.IsTryElseClause node
 
+/// Use two outcomes for boolean decisions, otherwise the adapter's branch count or a binary fallback.
 let private decisionOutcomes (language: LanguageAdapter) (node: Node) : int =
     if language.GetBooleanOperator node |> Option.isSome then
         2
@@ -199,6 +221,7 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
 
 /// Report every named or anonymous callable as an independent cyclomatic graph.
 let analyzeFunctionComplexity (ctx: AnalysisContext) : AnalysisContext =
+    /// Report this node's callable views before recursively discovering callables in its children.
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
             ctx.Language.GetCallableViews node |> List.collect (analyzeCallable ctx)
@@ -211,6 +234,8 @@ let analyzeFunctionComplexity (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse ctx.Tree
     addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "cyclomatic"

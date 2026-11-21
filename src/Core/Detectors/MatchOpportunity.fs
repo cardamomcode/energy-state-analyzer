@@ -1,3 +1,12 @@
+// # MatchOpportunity
+//
+// Conditional chains become match suggestions when enough branches compare a shared variable with
+// recognized literals. MatchOpportunitySupport.fs excludes branch bodies from evidence and normalizes
+// grammar-specific chains. Consumed branch identities prevent a chain from being reported again as each
+// nested else-if is traversed; advice does not prove exhaustiveness.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.MatchOpportunity
 
 
@@ -34,7 +43,12 @@ let private matchOpportunityViolation
         Hotspots = []
     }
 
+/// Walk conditional chains, tracking consumed branch IDs to avoid duplicate chain reports. Require the
+/// configured branch count and a variable compared with recognized literals in every branch before adding a
+/// low-severity match suggestion.
 let analyzeMatchOpportunities (ctx: AnalysisContext) : AnalysisContext =
+    /// Recognize an unconsumed conditional chain, carry its branch identities into descendants, and
+    /// retain parent-before-child findings.
     let rec traverse (consumed: Set<int>) (node: Node) : EnergyViolation list =
         let own, consumed =
             if
@@ -71,6 +85,8 @@ let analyzeMatchOpportunities (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse Set.empty ctx.Tree
     addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "matchOpportunity"

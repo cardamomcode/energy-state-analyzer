@@ -1,12 +1,31 @@
+// # Kotlin
+//
+// Kotlin function and lambda bodies normalize wrapper nodes before scoring; implicit it is not counted as
+// an explicit parameter. Compiler contracts and const properties have dedicated recognition, including an
+// annotated-constant grammar workaround. Unsupported or absent syntax yields no evidence rather than
+// inferred types. This adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all
+// nodes borrow the current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.Kotlin
 
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+/// Grammar identity for try_expression nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryExpressionNodeType = NodeType "try_expression"
+/// Grammar identity for block nodes, used to recognize syntax without comparing arbitrary source text.
 let private blockNodeType = NodeType "block"
+/// Grammar identity for function_body nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private functionBodyNodeType = NodeType "function_body"
+/// Grammar identity for catch_block nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private catchBlockNodeType = NodeType "catch_block"
+/// Grammar identity for finally_block nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private finallyBlockNodeType = NodeType "finally_block"
 
 /// Name Kotlin's function-declaration node type.
@@ -46,6 +65,8 @@ let private lambdaParametersOf (node: Node) =
 /// a statement, so without this exemption a contracted validator would rely on the contract
 /// incidentally breaking the guard-and-return shape instead of being intentionally excluded.
 let private hasNarrowingContract (definition: Node) : bool =
+    /// Recognize a direct contract call as evidence that the function already declares a compiler
+    /// contract.
     let isContractCall item =
         nodeType item = NodeType "call_expression"
         && (nodeNamedChildren item
@@ -127,6 +148,8 @@ let private callableViews (node: Node) : CallableView list =
         ]
     | _ -> []
 
+/// Read the named statements inside the recognized body block, falling back to direct named children when
+/// no block is present. Function-body wrappers are unwrapped recursively.
 let rec private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -202,6 +225,8 @@ let private isUserType (node: Node) : bool = nodeType node = NodeType "user_type
 let private isParameterType (node: Node) : bool =
     nodeType node = NodeType "user_type" || nodeType node = NodeType "nullable_type"
 
+/// Recognize a const property modifier in the normal declaration shape; annotated misparses are handled
+/// separately.
 let private isConstPropertyDeclaration (node: Node) : bool =
     match nodeChildren node |> List.tryFind (fun c -> nodeType c = NodeType "modifiers") with
     | Some modifiers ->

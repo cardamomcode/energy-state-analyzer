@@ -1,3 +1,11 @@
+// # Helpers
+//
+// This auto-open helper bridges native Fable tasks to the Async values expected by Quill test callbacks.
+// Awaiting preserves task success or failure; it introduces no parsing, assertions, or separate test
+// cases. Main.fs registers the suites that use it.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 namespace Energy.Tests
 
 open System.Threading.Tasks

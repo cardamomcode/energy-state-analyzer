@@ -1,3 +1,12 @@
+// # ParameterCountTests
+//
+// This suite exercises callable parameter counts scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ParameterCountTests
 
 open Scriptorium.Quill
@@ -16,6 +25,8 @@ open Energy.Tests.TestUtils
 // decision: proves the detector reads its thresholds from ctx.Options rather than hardcoding them —
 // loosening the medium threshold past the 6-param example clears it, while the high threshold still
 // fires on the 9-param example. Without the ctx.Options read this test could not pass.
+/// Verify explicit parameter-count thresholds affect the full analyzer and severity boundaries rather than
+/// being replaced by defaults.
 let configOverrideTests =
     testList (
         "Integration: parameter count respects configured thresholds",
@@ -71,6 +82,8 @@ let configOverrideTests =
         ]
     )
 
+/// Run the named callable parameter counts scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     let cases =
         [

@@ -6,6 +6,9 @@ ESM into the CommonJS artifacts exposed by `package.json`.
 
 ## Reading path
 
+The [source guide](source-guide.md) connects the file narratives, function contracts, and ADCs
+and inventories the authored modules, tests, and build boundaries.
+
 Start with [Analyze](../src/Core/Analyze.fs) and
 [DetectorPipeline](../src/Core/DetectorPipeline.fs) for the shared transformation. Read
 [LanguageAdapter](../src/Core/LanguageAdapter.fs) with one adapter in `src/Languages/` to see how

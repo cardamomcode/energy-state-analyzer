@@ -1,3 +1,11 @@
+// # NestingTests
+//
+// This suite exercises nesting thresholds scenarios; each case describes the positive result, exemption,
+// boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing and fixture
+// assertions live in TestUtils.fs, while named case descriptions below state the protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.NestingTests
 
 open Scriptorium.Nib.Assertion
@@ -14,6 +22,8 @@ open Energy.Tests.TestUtils
 // isolation — mirrors nesting.test.ts, whose unit suite already covers the detector's internals with
 // single-line synthetic snippets.
 
+/// Run the named nesting thresholds scenarios below; each case describes the positive result, exemption,
+/// boundary, or failure contract it protects.
 let tests =
     let cases =
         [
@@ -47,6 +57,7 @@ let tests =
 
                             assertValidPositions violations source
 
+                            /// Select nesting findings inside the named function's fixture range.
                             let nestingHits name =
                                 violationsIn violations (findFunctionRange source (FunctionName name))
                                 |> List.filter (fun v -> v.Type = Nesting)
@@ -69,6 +80,8 @@ let tests =
 
 // decision: disabling a detector must skip it entirely while leaving the rest of the pipeline
 // intact — so an editor toggle turns one detector off without silently muting its neighbours.
+/// Verify disabling a detector makes its pipeline stage a no-op without suppressing independently enabled
+/// detectors.
 let gatingTests =
     let gatingCases =
         [

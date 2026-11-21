@@ -1,3 +1,12 @@
+// # DetectorPipeline
+//
+// The detector registry composes independent context transformations in a fixed order. Every stage has its
+// own enable flag, and Context.addViolations accumulates findings in reverse order. Analyze.fs restores
+// that order and performs suppression only after all enabled stages have run; adding a stage here affects
+// both hosts.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.DetectorPipeline
 
 open Energy.Core.Context
@@ -17,6 +26,8 @@ let private runWhen
     : AnalysisContext =
     if enabled then stage ctx else ctx
 
+/// Run the registered detector stages in their declared order, skipping each disabled option independently.
+/// Findings stay reversed until Analyze.runPipeline restores order and applies source suppressions.
 let detectorPipeline (ctx: AnalysisContext) : AnalysisContext =
     ctx
     |> runWhen ctx.Options.PrimitiveObsession.Enabled Detectors.PrimitiveObsession.detector.Run

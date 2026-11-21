@@ -1,3 +1,12 @@
+// # Cognitive
+//
+// Cognitive scoring estimates reading burden for each normalized callable independently. A shared
+// recursive walk accounts for structural increments, nesting, boolean-operator runs, and jumps while also
+// producing line heat weights. Adapter cognitive structures identify branch bodies; nested callable
+// scoring and report thresholds keep each finding anchored to its own callable.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.Cognitive
 
 open Energy.Core.Violation
@@ -64,12 +73,14 @@ let rec private cognitiveWalk
     (nesting: int)
     (contribute: Node -> int -> unit)
     : int =
+    /// Score all direct children, increasing nesting only where the supplied child predicate matches.
     let walkChildren nested =
         nodeChildren node
         |> List.sumBy (fun child ->
             let depth = if nested child then nesting + 1 else nesting
             cognitiveWalk language child depth contribute)
 
+    /// Record a positive contribution at this node before returning its score increment.
     let add amount =
         if amount > 0 then
             contribute node amount
@@ -163,6 +174,8 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
 
 /// Report named and anonymous callables whose cognitive score exceeds the configured threshold.
 let analyzeCognitiveComplexity (ctx: AnalysisContext) : AnalysisContext =
+    /// Score each callable view at this node independently, then visit child nodes for further
+    /// callables.
     let rec traverse (node: Node) : EnergyViolation list =
         let ownViolations =
             ctx.Language.GetCallableViews node |> List.collect (analyzeCallable ctx)

@@ -1,3 +1,12 @@
+// # DetectorFixtureMatrixTests
+//
+// This catalogue defines named positive, negative, and limitation scenarios for detectors across supported
+// languages. Rows select real fixtures and expected rule/severity outcomes; TestUtils.detectorParityTests
+// runs the complete registered pipeline and checks each named region. Grammar-specific edge cases and
+// configurable boundaries remain in their dedicated suites.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.DetectorFixtureMatrixTests
 
 open Scriptorium.Quill
@@ -7,6 +16,7 @@ open Energy.Core.Violation
 open Energy.Languages
 open Energy.Tests.TestUtils
 
+/// Build one language fixture case with its path and named expected outcomes.
 let private fixture languageLabel language fixture expectations =
     {
         LanguageLabel = languageLabel
@@ -15,10 +25,14 @@ let private fixture languageLabel language fixture expectations =
         Expectations = expectations
     }
 
+/// Uppercase a nonempty scenario name's first character to match C# fixture naming while preserving the
+/// remaining text.
 let private cSharpFunctionName (name: FunctionName) =
     let (FunctionName text) = name
     FunctionName(System.Char.ToUpperInvariant(text.[0]).ToString() + text.Substring(1))
 
+/// Adapt scenario names to C# capitalization, retaining clean/finding expectations and optional severity;
+/// other languages keep the supplied names.
 let private expectationsFor
     (language: Energy.Core.LanguageAdapter.LanguageAdapter)
     (expectations: FixtureExpectation list)
@@ -31,6 +45,8 @@ let private expectationsFor
     else
         expectations
 
+/// Build the shared Python, TypeScript, TSX, F#, Kotlin, C++, and C# rows with empty expectations; Erlang
+/// and Rust cases are supplied separately where applicable.
 let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
     [
         fixture "Python" Python.pythonLanguageAdapter python []
@@ -42,6 +58,7 @@ let private allLanguages python typeScript fsharp kotlin cPlusPlus cSharp =
         fixture "C#" CSharp.cSharpLanguageAdapter cSharp []
     ]
 
+/// Language-specific relative fixture names, with TypeScript also supplying the TSX grammar case.
 type private FixturePaths =
     {
         Python: string
@@ -52,6 +69,8 @@ type private FixturePaths =
         CSharp: string
     }
 
+/// Prefix fixture filenames with their language folders and attach the common expectations, adapting C#
+/// names.
 let private commonCases (paths: FixturePaths) expectations =
     allLanguages
         ("python/" + paths.Python)
@@ -695,6 +714,7 @@ let tests =
                         @ expectationsFor item.Language [ StaysClean(FunctionName "cleanUnbracedElse") ]
                 })
 
+    /// Build the shared error-boundary fixture rows with the supplied named expectations.
     let recoveryRules expectations =
         commonCases
             {
@@ -820,6 +840,7 @@ let tests =
                     ]
             ]
 
+    /// Build the Rust adapter fixture case with its supplied expected outcomes.
     let rust expectations =
         fixture "Rust" Rust.rustLanguageAdapter "rust/adapter.rs" expectations
 

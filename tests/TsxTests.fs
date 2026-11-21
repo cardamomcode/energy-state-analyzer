@@ -1,3 +1,11 @@
+// # TsxTests
+//
+// TSX coverage verifies that JSX-aware parsing retains TypeScript detector behavior. Fixtures exercise
+// callable and control-flow syntax around JSX, while grammar checks distinguish the TSX asset from the
+// ordinary TypeScript grammar. Shared fixture helpers run the same analysis pipeline used by both hosts.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.TsxTests
 
 open System.Collections.Generic

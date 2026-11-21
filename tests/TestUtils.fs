@@ -1,3 +1,12 @@
+// # TestUtils
+//
+// The integration harness loads real grammar WASMs and fixture source, caches pending grammar/parse tasks,
+// and runs the registered analyzer pipeline. Named scenarios are located by a textual fixture convention
+// rather than absolute line numbers. Cached fixture trees remain live for the test process; SpikeTests.fs
+// checks tree release and ParsedAnalysisTests.fs checks typed parse failure.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.TestUtils
 
 open System.Threading.Tasks
@@ -26,6 +35,7 @@ open Energy.Core.TreeSitter
 // source text it is searched in.
 // invariant: every `FunctionName` value has exactly its wrapped string as its JavaScript
 // representation.
+/// Fixture function-name text kept distinct from full source text at assertion call sites.
 [<Erase>]
 type FunctionName = FunctionName of string
 
@@ -38,6 +48,8 @@ type FixtureExpectation =
     | StaysClean of FunctionName
     | ProducesFinding of FunctionName * Severity option
 
+/// One language/grammar and fixture path with named clean or flagged scenarios exercised through the full
+/// pipeline.
 type LanguageFixtureCase =
     {
         LanguageLabel: string
@@ -98,6 +110,8 @@ let parseFixture (language: Energy.Core.LanguageAdapter.LanguageAdapter) (relati
         fixtureParses.Add(cacheKey, pending)
         pending
 
+/// Analyze an already parsed fixture with default options and return all pipeline findings, including
+/// suppression notes.
 let analyzeFixture sourceCode tree language fileName =
     {
         Source = sourceCode
@@ -124,8 +138,11 @@ let createTestContext sourceCode tree language fileName options : Energy.Core.Co
 // occupies within a fixture, so tests can assert a violation belongs to a specific example function
 // without hardcoding exact line numbers. Named type avoids an anonymous-record signature, which F#
 // parses ambiguously in this position.
+/// Inclusive zero-based fixture line interval used to associate findings with a named scenario.
 type LineRange = { Start: int; End: int }
 
+/// Locate the first line containing a fixture function name and end before the next nonindented nonempty
+/// line, or at EOF. Missing names fail the test; fixtures must follow this textual boundary convention.
 let findFunctionRange (sourceCode: string) (FunctionName functionName) : LineRange =
     let lines = sourceCode.Split('\n')
 
@@ -155,13 +172,13 @@ let findFunctionRange (sourceCode: string) (FunctionName functionName) : LineRan
 
 // Violations whose line falls within the given inclusive range — scopes a check to one function's
 // body without depending on absolute line numbers.
+/// Keep findings whose zero-based line lies inside the inclusive fixture interval, preserving their order.
 let violationsIn (violations: EnergyViolation list) (range: LineRange) : EnergyViolation list =
     violations
     |> List.filter (fun v -> v.Line >= range.Start && v.Line <= range.End)
 
-// Invariant every real violation must satisfy: its line is in range for the file, its column is
-// non-negative, and it round-trips through serialization (plain data — no circular refs). Mirrors
-// the TS `assertValidPositions` (line/column bounds + JSON.stringify not throwing).
+/// Assert in-range lines, nonnegative columns, and nonempty F# debug formatting for every finding. This
+/// does not check column upper bounds or JSON serialization.
 let assertValidPositions (violations: EnergyViolation list) (sourceCode: string) : unit =
     let lineCount = sourceCode.Split('\n').Length
 
@@ -169,9 +186,7 @@ let assertValidPositions (violations: EnergyViolation list) (sourceCode: string)
         assertThat v.Line (isGreaterOrEqual 0)
         assertThat v.Line (isLessThan lineCount)
         assertThat v.Column (isGreaterOrEqual 0)
-        // decision: mirrors the TS `JSON.stringify(violations)` round-trip — proves the record is plain,
-        // serializable data rather than carrying live tree handles. sprintf never throws on a plain
-        // record; asserting its output is non-empty confirms serialization produced the expected shape.
+        // F# debug formatting is a smoke check only; it does not establish JSON serializability.
         assertThat (sprintf "%A" v) (satisfy (fun s -> s.Length > 0))
 
 /// Produce one parity test per language from a compact positive/negative fixture matrix.

@@ -1,3 +1,12 @@
+// # CliRuntime
+//
+// The CLI runtime resolves languages, caches successful parsers by adapter ID, reads UTF-8 source, and
+// delegates tree lifetime to Core/ParsedAnalysis.fs. Multi-file analysis is sequential and preserves input
+// order. It stops on the first error without returning a partial report; failed grammar loads are not
+// cached.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.CliRuntime
 
 open System.Collections.Generic
@@ -17,6 +26,7 @@ open Energy.Languages.Registry
 
 let private parserCache = Dictionary<string, Parser>()
 
+/// Resolve an adapter's grammar asset relative to the package root above the CLI bundle directory.
 let private grammarPath relative =
     joinPath (joinPath bundleDirectory (Path "..")) (Path relative)
 
@@ -36,6 +46,8 @@ let private createParser (adapter: LanguageAdapter) : Task<Result<Parser, Analys
             return Error(GrammarLoadFailed(adapter.Id, string<exn> error))
     }
 
+/// Return the parser cached by adapter ID, or initialize and load one. Only successful loads enter the
+/// cache, so a later call can retry a failed load; callers analyze sequentially.
 let loadParser (adapter: LanguageAdapter) : Task<Result<Parser, AnalysisError>> =
     task {
         match parserCache.TryGetValue adapter.Id with
@@ -81,6 +93,8 @@ let private readSource (filePath: Path) : Result<string, AnalysisError> =
         let (Path file) = filePath
         Error(SourceReadFailed(file, message))
 
+/// Read a file as UTF-8 and analyze its contents with the supplied thresholds. Read failures become
+/// SourceReadFailed; no findings are returned on failure.
 let analyzePath (filePath: Path) (thresholds: AnalyzeThresholds) =
     task {
         match readSource filePath with

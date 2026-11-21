@@ -1,3 +1,12 @@
+// # DecorationModel
+//
+// Pure presentation calculations turn findings into source ranges, validated colors, and relative heat
+// bands. Whole-line and local highlights use different range policies; heat normalizes each finding
+// independently and keeps the strongest intensity where findings overlap. Decorations.fs supplies current
+// document text and turns these values into host objects.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.DecorationModel
 
 open System
@@ -12,6 +21,7 @@ open Energy.Core.Violation
 /// properties of that fixed format rather than tunable thresholds, so they stay as named constants
 /// at the top of the module instead of being hidden next to their use sites.
 let private hexColorLength = 6
+/// Radix used to interpret validated six-digit hexadecimal colors.
 let private hexRadix = 16
 
 /// Pure editor-decoration calculations. They intentionally know nothing about VS Code objects so
@@ -39,6 +49,7 @@ type LineCount = LineCount of int
 [<Erase>]
 type BandCount = BandCount of int
 
+/// Maximum character width for a finding that highlights a local source element rather than a whole line.
 let private elementHighlightWidth = 15
 
 /// Convert a hex color to rgba, falling back to the documented default on malformed input.
@@ -58,11 +69,13 @@ let hexToRgba (value: string) (alpha: float) (fallback: string) =
         else
             fallback.TrimStart('#')
 
+    /// Decode one two-digit channel from the validated or fallback hexadecimal color.
     let channel index =
         Convert.ToInt32(digits.Substring(index * 2, 2), hexRadix)
 
     sprintf "rgba(%d, %d, %d, %g)" (channel 0) (channel 1) (channel 2) alpha
 
+/// Return the count of leading whitespace characters for a trimmed line highlight.
 let private firstNonWhitespace (text: string) =
     text |> Seq.tryFindIndex (Char.IsWhiteSpace >> not) |> Option.defaultValue -1
 

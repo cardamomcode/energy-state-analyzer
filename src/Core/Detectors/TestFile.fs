@@ -1,3 +1,12 @@
+// # TestFile
+//
+// Shared test recognition keeps literal advice and Rust responsibility counts from treating deliberate
+// test scaffolding as production design. Filenames use directory segments and word boundaries, not
+// arbitrary substrings. Rust inline modules and function attributes provide local test scope without
+// hiding production siblings or disabling independent complexity measurements.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.TestFile
 
 open Energy.Core.TreeSitter
@@ -34,6 +43,7 @@ let isTestFile (fileName: string) : bool =
         fileName.Replace("\\", "/").Split('/')
         |> Array.filter (System.String.IsNullOrWhiteSpace >> not)
 
+    /// Recognize complete test or tests path segments without case sensitivity.
     let isTestDirectory (segment: string) =
         let normalized = segment.ToLowerInvariant()
         normalized = "test" || normalized = "tests"
@@ -52,6 +62,7 @@ let isTestFile (fileName: string) : bool =
 
         let isRustFile = baseName.EndsWith(".rs", System.StringComparison.OrdinalIgnoreCase)
 
+        /// Recognize test words, allowing plural tests for Rust filenames.
         let isTestWord word =
             word = "test" || (isRustFile && word = "tests")
 
@@ -59,6 +70,8 @@ let isTestFile (fileName: string) : bool =
         | first :: _ when isTestWord first -> true
         | words -> words |> List.tryLast |> Option.exists isTestWord
 
+/// Recognize exactly a direct cfg(test) attribute, excluding negations, features, and compound
+/// configurations.
 let private isCfgTestAttribute (node: Node) : bool =
     if nodeType node <> NodeType "attribute_item" then
         false
@@ -73,6 +86,8 @@ let private isCfgTestAttribute (node: Node) : bool =
             | _ -> false
         | _ -> false
 
+/// Search consecutive preceding attribute siblings for cfg(test), stopping at the first non-attribute or
+/// missing sibling.
 let rec private hasCfgTestAttribute (previous: Node option) : bool =
     match previous with
     | Some attribute when nodeType attribute = NodeType "attribute_item" ->
@@ -96,6 +111,7 @@ let isRustTestModule (language: LanguageAdapter) (node: Node) : bool =
 
 /// Recognize a Rust function marked as a test or compiled only for tests.
 let private isRustTestFunction (node: Node) : bool =
+    /// Recognize direct test, tokio::test, or async_std::test attribute names.
     let isTestAttribute attribute =
         if nodeType attribute <> NodeType "attribute_item" then
             false
@@ -107,6 +123,7 @@ let private isRustTestFunction (node: Node) : bool =
                 | _ -> false
             | _ -> false
 
+    /// Search consecutive preceding attributes for a supported test marker or cfg(test).
     let rec hasTestAttribute previous =
         match previous with
         | Some attribute when nodeType attribute = NodeType "attribute_item" ->
@@ -128,6 +145,7 @@ let isRustTestCode (language: LanguageAdapter) (fileName: string) (node: Node) :
     elif isTestFile fileName then
         true
     else
+        /// Check this node and its ancestors for a test-only module or function boundary.
         let rec inTestScope current =
             isRustTestModule language current
             || isRustTestFunction current

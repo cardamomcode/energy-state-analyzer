@@ -1,3 +1,12 @@
+// # AnonymousCallableTests
+//
+// Callable classification is tested independently from the syntax used to spell a function. Fixtures cover
+// named definitions, directly bound anonymous functions, inline callbacks, parameter shapes, and nested
+// scoring boundaries. CallableTestUtils.fs verifies source ranges; detector assertions protect independent
+// scores and hotspot ownership.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.AnonymousCallableTests
 
 open Scriptorium.Nib.Assertion

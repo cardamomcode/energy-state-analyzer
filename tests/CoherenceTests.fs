@@ -1,3 +1,12 @@
+// # CoherenceTests
+//
+// This suite exercises file and class coherence scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CoherenceTests
 
 open Scriptorium.Nib.Assertion
@@ -16,17 +25,22 @@ open Energy.Tests.TestUtils
 // that have a real class construct — F# has no classDefinitionNodeTypes, so it's excluded rather than
 // given empty fixtures.
 
+/// Select only whole-file coherence findings from complete pipeline output.
 let private coherenceHits (violations: EnergyViolation list) : EnergyViolation list =
     violations |> List.filter (fun v -> v.Type = Coherence)
 
+/// Select findings containing at least one supplied message fragment; this is an any-fragment check, not an
+/// all-fragments assertion.
 let private hitsWithMessage (substrings: string list) (violations: EnergyViolation list) : EnergyViolation list =
     violations
     |> List.filter (fun v -> substrings |> List.exists (fun s -> v.Message.Contains s))
 
 // "flagged" scenarios — assert at least one matching coherence violation is present.
+/// Assert that the fixture emits a message containing the large-function threshold wording.
 let private assertManyLargeFunctions (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "exceed" ] vs |> List.length > 0) isTrue
 
+/// Assert import-sprawl wording and at least one dependency-surface or sibling-module explanation.
 let private assertManyImports (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "Import sprawl" ] vs |> List.length > 0) isTrue
 
@@ -37,6 +51,7 @@ let private assertManyImports (_src: string) (vs: EnergyViolation list) =
             0)
         isTrue
 
+/// Assert at least one expected F# scope-sprawl message fragment is present.
 let private assertFSharpImportScopeSprawl (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import scope sprawl"; "Energy.Languages"; "name-resolution risk" ] vs
@@ -45,6 +60,7 @@ let private assertFSharpImportScopeSprawl (_src: string) (vs: EnergyViolation li
             0)
         isTrue
 
+/// Assert at least one expected Kotlin member-fan-out message fragment is present.
 let private assertKotlinMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import member fan-out"; "example.services"; "local vocabulary" ] vs
@@ -53,6 +69,7 @@ let private assertKotlinMemberImportFanOut (_src: string) (vs: EnergyViolation l
             0)
         isTrue
 
+/// Assert member-fan-out or local-vocabulary wording is present.
 let private assertMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import member fan-out"; "local vocabulary" ] vs
@@ -61,6 +78,7 @@ let private assertMemberImportFanOut (_src: string) (vs: EnergyViolation list) =
             0)
         isTrue
 
+/// Assert scope-pollution or wildcard-import wording is present.
 let private assertWildcardImportScopePollution (_src: string) (vs: EnergyViolation list) =
     assertThat
         (hitsWithMessage [ "Import scope pollution"; "wildcard import" ] vs
@@ -70,38 +88,48 @@ let private assertWildcardImportScopePollution (_src: string) (vs: EnergyViolati
         isTrue
 
 // "stays quiet" scenarios — assert no matching coherence violation is present.
+/// Assert the fixture has no import-sprawl message, without forbidding unrelated findings.
 let private assertNarrowImportsQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "Import sprawl" ] vs |> List.length) (isEqualTo 0)
 
+/// Assert the clean fixture has no coherence findings.
 let private assertCleanQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+/// Assert shared domain types exempt the fixture from coherence findings.
 let private assertTypeCohesiveQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+/// Assert related-class fixtures produce no coherence findings.
 let private assertRelatedClassesQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+/// Assert an exception family remains cohesive through shared inheritance.
 let private assertExceptionFamilyQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
 // "flagged" scenarios for the god-class (large-class) sub-check of coherence.
+/// Assert a class-diversity finding includes the methods-spanning wording.
 let private assertGodClassFlagged (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "methods spanning" ] vs |> List.length > 0) isTrue
 
 // "stays quiet" scenario: a stateless value type with a rich but cohesive combinator API must not be
 // flagged as a god class, even though it has more methods than the count bar. A regression guard for
 // the "module-like value type used for method chaining" case (e.g. an Option of combinators).
+/// Assert a rich but cohesive value-type API has no coherence findings.
 let private assertCohesiveValueQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (coherenceHits vs |> List.length) (isEqualTo 0)
 
+/// Assert no methods-spanning finding is produced, without excluding other coherence signals.
 let private assertGodClassQuiet (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "methods spanning" ] vs |> List.length) (isEqualTo 0)
 
 // "flagged with the stronger message" scenarios.
+/// Assert measured type diversity is explained with unrelated-types wording.
 let private assertEntropyDump (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated types" ] vs |> List.length > 0) isTrue
 
+/// Assert separated class families produce unrelated-groups wording.
 let private assertUnrelatedClassesFlagged (_src: string) (vs: EnergyViolation list) =
     assertThat (hitsWithMessage [ "unrelated groups" ] vs |> List.length > 0) isTrue
 
@@ -110,6 +138,8 @@ let private assertUnrelatedClassesFlagged (_src: string) (vs: EnergyViolation li
 // language uses its own file-name casing (snake_case for Python/C++, camelCase for TypeScript,
 // PascalCase for F#/Kotlin), so one shared stem can no longer resolve across all five.
 // Built into an async test per language below.
+/// Named whole-file scenario with per-extension fixture stems and an assertion receiving source plus
+/// complete pipeline findings.
 type Scenario =
     {
         Name: string
@@ -117,6 +147,8 @@ type Scenario =
         Assert: string -> EnergyViolation list -> unit
     }
 
+/// Build an asynchronous test that resolves a language-specific fixture, runs the full pipeline, validates
+/// finding locations, then applies the scenario assertion.
 let private buildTest (languageLabel: string) (language: LanguageAdapter) (ext: string) (scenario: Scenario) =
     let fixture = language.Id + "/coherence/" + Map.find ext scenario.Files + "." + ext
 
@@ -444,6 +476,8 @@ let private rustTestFunctionCount =
                                 }
                         }
 
+                    /// Analyze the shared Rust source under the supplied filename so production/test
+                    /// classification is the only changing input.
                     let analyze fileName =
                         analyzeWith
                             thresholds
@@ -455,6 +489,7 @@ let private rustTestFunctionCount =
                             }
                         |> _.Violations
 
+                    /// Keep only coherence findings describing the free-function responsibility count.
                     let functionCountFindings (violations: EnergyViolation list) =
                         violations
                         |> List.filter (fun finding ->
@@ -481,6 +516,8 @@ let private rustTestFunctionCount =
             )
     )
 
+/// Run the named file and class coherence scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     // decision: the type-cohesive-without-naming fixture is a regression guard for a real false
     // positive — an F#-style module exposing one verb per operation over a shared domain type, no
@@ -657,6 +694,7 @@ let tests =
 
     // Build one test per (language, scenario) pair. `block1Scenarios`/`block2Scenarios` are Scenario
     // lists; the language triplets carry the extension as a one-element list so this stays uniform.
+    /// Build each scenario for every supplied language/extension combination.
     let buildBlock (langCases: (string * LanguageAdapter * string) list) (scenarios: Scenario list) =
         langCases
         |> List.collect (fun (label, language, ext) -> scenarios |> List.map (fun s -> buildTest label language ext s))
@@ -793,6 +831,8 @@ let tests =
                                 FileName = "SiblingImports.fs"
                             }
 
+                        /// Replace sibling-open and import-breadth thresholds while preserving the
+                        /// remaining policy.
                         let withThresholds (siblingOpen: int) (importBreadth: int) =
                             { defaultThresholds with
                                 Coherence =
@@ -837,6 +877,8 @@ let tests =
                         // decision: raise the generic function-count bar above the fixture's 13 functions and
                         // the sprawl finding disappears; leave it at the default of 12 and it fires — proving
                         // the configured value flows into the detector, not just through Config's merge.
+                        /// Replace only the generic function-count threshold for this boundary
+                        /// assertion.
                         let withGeneric (genericFunctionCount: int) =
                             { defaultThresholds with
                                 Coherence =
@@ -875,6 +917,8 @@ let tests =
                         // that bar at 18. Assert on the god-class message specifically — this file also trips an
                         // unrelated "classes split into groups" coherence hit that persists regardless of the bar,
                         // so a total coherence count would not isolate what the configured value controls.
+                        /// Replace only the medium method-count boundary for this class-diversity
+                        /// assertion.
                         let withMedium (methodCountMedium: int) =
                             { defaultThresholds with
                                 Coherence =

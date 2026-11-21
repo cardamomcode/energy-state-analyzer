@@ -1,3 +1,12 @@
+// # LogicalControlFlowTests
+//
+// This suite exercises statement-level boolean control flow scenarios; each case describes the positive
+// result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared
+// parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state the
+// protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.LogicalControlFlowTests
 
 open Scriptorium.Quill
@@ -8,6 +17,8 @@ open Energy.Core.Analyze
 open Energy.Languages
 open Energy.Tests.TestUtils
 
+/// Run the named statement-level boolean control flow scenarios below; each case describes the positive
+/// result, exemption, boundary, or failure contract it protects.
 let tests =
     let cases =
         [

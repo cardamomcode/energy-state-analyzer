@@ -1,3 +1,12 @@
+// # SuppressionsTests
+//
+// This suite exercises directive coverage and stale suppression notes scenarios; each case describes the
+// positive result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs.
+// Shared parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state
+// the protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.SuppressionsTests
 
 open Scriptorium.Quill
@@ -6,6 +15,8 @@ open type Scriptorium.Quill.Test
 open Energy.Core.Violation
 open Energy.Core.Suppressions
 
+/// Construct a detached finding with the supplied scenario values so presentation or suppression behavior
+/// can be tested without parsing source.
 let private violation line violationType =
     {
         Line = line
@@ -16,6 +27,8 @@ let private violation line violationType =
         Hotspots = []
     }
 
+/// Run the named directive coverage and stale suppression notes scenarios below; each case describes the
+/// positive result, exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "Integration: esa-ignore suppressions",

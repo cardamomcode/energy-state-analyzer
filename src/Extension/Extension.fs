@@ -1,3 +1,13 @@
+// # Extension
+//
+// The extension composition root owns activation state, parser caches, presentation handles, commands, and
+// event registrations. Activation initializes the runtime and requests analysis; editor/configuration
+// events refresh the active document. After grammar awaits, identity checks discard results for a
+// different document or activation. Deactivation disposes presentation resources and clears state without
+// canceling pending loads.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.Extension
 
 open System.Collections.Generic
@@ -30,15 +40,21 @@ type private ExtensionState =
         mutable Decorations: DecorationSet
     }
 
+/// Current activation's grammar caches, diagnostics collection, and replaceable decoration handles; None
+/// means analysis has no active owner.
 let mutable private state: ExtensionState option = None
 
+/// Extension-host console used for lifecycle and analysis diagnostics.
 let console = JS.console
 
+/// Remove an editor's decorations and its document's diagnostics when analysis is ignored or unsupported.
 let private clearIgnored editor current =
     let document = editorDocument editor
     applyDecorations editor current.Decorations []
     deleteDiagnostics current.Diagnostics (documentUri document)
 
+/// Check object identity against the active editor's document after asynchronous work; no active editor
+/// returns false.
 let private isCurrentDocument document =
     match activeTextEditor window with
     | null -> false
@@ -85,8 +101,13 @@ let private analyzeActiveEditor () : Task<unit> =
                     updateProblemsPanel current.Diagnostics document violations
     }
 
+/// Start active-editor analysis without awaiting completion, as required by synchronous event handlers.
+/// Grammar loading and stale-document checks happen in analyzeActiveEditor.
 let private requestAnalysis () = analyzeActiveEditor () |> ignore
 
+/// Register editor, document, configuration, and close handlers with the extension context. Edits analyze
+/// only the active document; color changes replace decoration handles before analysis, and closing a
+/// supported document deletes its diagnostics.
 let private subscribeEvents context =
     onDidChangeActiveTextEditor window (fun _ -> requestAnalysis ())
     |> addSubscription context
@@ -114,6 +135,9 @@ let private subscribeEvents context =
             |> Option.iter (fun current -> deleteDiagnostics current.Diagnostics (documentUri document)))
     |> addSubscription context
 
+/// Initialize tree-sitter, create activation-owned caches and presentation handles, register commands and
+/// event subscriptions, then request initial analysis. Initialization failures are logged and shown to the
+/// user; the catch does not roll back partially created resources.
 let activate (context: obj) : Task<unit> =
     task {
         console.log ("🚀 Activating Energy State Analyzer...")
@@ -164,6 +188,8 @@ let activate (context: obj) : Task<unit> =
             showErrorMessage window ("Energy State Analyzer failed to activate: " + string<exn> error)
     }
 
+/// Dispose the current decoration handles and diagnostic collection, then clear activation state. Pending
+/// grammar loads are not canceled; analysis checks the active state before presenting their results.
 let deactivate () =
     state
     |> Option.iter (fun current ->

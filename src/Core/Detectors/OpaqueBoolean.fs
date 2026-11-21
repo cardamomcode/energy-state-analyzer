@@ -1,3 +1,12 @@
+// # OpaqueBoolean
+//
+// Opaque-boolean analysis reports positional boolean literals whose meaning is hidden at a call site.
+// Adapter hooks exclude named arguments and syntax that is not a caller-supplied literal. Filename and
+// Rust test-module policy skip intentional test code unless inclusion is enabled, and emitted advice
+// remains low severity.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.OpaqueBoolean
 
 open Energy.Core.TreeSitter
@@ -9,6 +18,8 @@ open Energy.Core.Detectors.TestFile
 
 /// Collect positional boolean literals from an enabled source file.
 let private analyzeEnabledOpaqueBooleans (ctx: AnalysisContext) : AnalysisContext =
+    /// Collect direct positional boolean literals while pruning excluded Rust test modules, then
+    /// recurse in source order.
     let rec walk node =
         if
             not ctx.Options.OpaqueBoolean.IncludeTestFiles

@@ -1,3 +1,12 @@
+// # CPlusPlusTests
+//
+// This suite exercises C++ adapter and suffix handling scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CPlusPlusTests
 
 open Scriptorium.Nib.Assertion
@@ -12,10 +21,14 @@ open Energy.Languages
 open Energy.Languages.Registry
 open Energy.Tests.TestUtils
 
+/// Collect matching grammar nodes in pre-order, including the supplied root, for syntax-specific
+/// assertions.
 let rec private nodesOfType (expected: NodeType) (node: Node) : Node list =
     let own = if nodeType node = expected then [ node ] else []
     own @ (nodeChildren node |> List.collect (nodesOfType expected))
 
+/// C++ filename forms that must resolve to the adapter, including header, module, template, and sketch
+/// suffixes.
 let private supportedSuffixes =
     [
         ".cpp"
@@ -44,6 +57,8 @@ let private supportedSuffixes =
         ".h.in"
     ]
 
+/// Run the named C++ adapter and suffix handling scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "C++ language adapter and registry",

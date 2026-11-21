@@ -1,3 +1,11 @@
+// # CallableTestUtils
+//
+// Callable tests share a recursive collector of adapter-normalized views and source-range assertions.
+// Anchors and bodies must reproduce their exact source slices, and bodies must not precede their anchors.
+// AnonymousCallableTests.fs and the language suites use these checks to guard grammar normalization.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CallableTestUtils
 
 open Scriptorium.Nib.Assertion
@@ -12,6 +20,7 @@ let rec collectCallableViews (language: LanguageAdapter) (node: Node) =
 
 /// Assert that callable anchors and bodies map back to their exact source slices.
 let assertCallableSourceRanges (sourceCode: string) (callables: CallableView list) =
+    /// Assert that a live node's start and exclusive end select exactly its reported source text.
     let assertRange (node: Node) =
         let startIndex = nodeStartIndex node
         let length = nodeEndIndex node - startIndex

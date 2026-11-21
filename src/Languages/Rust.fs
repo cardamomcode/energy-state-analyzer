@@ -1,10 +1,22 @@
+// # Rust
+//
+// Rust functions, methods, and closures expose explicit parameters while receivers remain outside caller-
+// argument counts. Match arms, numeric suffixes, use trees, and validation carriers have dedicated
+// normalization. RustImports.fs and RustValidation.fs own those larger syntax boundaries; no compiler type
+// resolution is performed. This adapter implements ../Core/LanguageAdapter.fs and is selected by
+// Registry.fs; all nodes borrow the current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.Rust
 
 open System.Text.RegularExpressions
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+/// Wrap a Rust grammar kind as NodeType for comparisons in adapter helpers.
 let private kind name = NodeType name
+/// Test whether a node has the supplied Rust grammar kind.
 let private is kindName node = nodeType node = kind kindName
 
 /// Read direct parameters from a Rust function or closure.

@@ -1,3 +1,11 @@
+// # Report
+//
+// Raw per-file findings become additive severity summaries for JSON, Markdown, and diffs. Scores use fixed
+// weights 1/4/9; clean files remain represented in scan counts. ReportHuman.fs owns a separate zero-to-ten
+// prioritization view, while ReportDiff.fs compares these additive scores across revisions.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Report
 
 open Energy.Core.Violation
@@ -8,16 +16,21 @@ open Energy.Core.Violation
 /// low weight is 1, so the medium and high weights become named constants at the top of the module
 /// rather than in Core.Config, keeping them visible next to the module's other declarations.
 let private mediumWeight = 4
+/// Weight of each high-severity finding in the published additive report score.
 let private highWeight = 9
 
+/// Counts of findings in each severity band, independent of detector category.
 type SeverityCounts = { Low: int; Medium: int; High: int }
 
+/// One analyzed file's report path and detached findings; an empty list records a successfully scanned
+/// clean file.
 type FileResult =
     {
         FilePath: string
         Violations: EnergyViolation list
     }
 
+/// A file's additive score, severity counts, and counts keyed by stable violation-type names.
 type FileSummary =
     {
         FilePath: string
@@ -26,6 +39,7 @@ type FileSummary =
         ByType: Map<string, int>
     }
 
+/// Ordered per-file summaries plus summed scores and severity counts for the complete scan.
 type AggregateSummary =
     {
         Files: FileSummary list
@@ -33,8 +47,10 @@ type AggregateSummary =
         TotalCounts: SeverityCounts
     }
 
+/// Zero findings in every severity band, used to seed report folds.
 let emptyCounts = { Low = 0; Medium = 0; High = 0 }
 
+/// Increment only the severity band of one finding, retaining all other counts.
 let private addViolation counts violation =
     match violation.Severity with
     | Low -> { counts with Low = counts.Low + 1 }
@@ -44,6 +60,7 @@ let private addViolation counts violation =
         }
     | High -> { counts with High = counts.High + 1 }
 
+/// Calculate the additive report metric: low plus four times medium plus nine times high counts.
 let private score counts =
     counts.Low + mediumWeight * counts.Medium + highWeight * counts.High
 
@@ -69,6 +86,8 @@ let summarizeFile result =
         ByType = byType
     }
 
+/// Summarize each file in input order and sum its counts and score; empty input yields empty files and zero
+/// totals.
 let summarize results =
     let files = results |> List.map summarizeFile
 
@@ -89,6 +108,8 @@ let summarize results =
         TotalCounts = totalCounts
     }
 
+/// Report whether any medium or high finding should make scan mode exit unsuccessfully; low findings alone
+/// do not block.
 let hasBlockingViolations counts = counts.Medium > 0 || counts.High > 0
 
 /// Render finding counts and weighted scores as a Markdown report.

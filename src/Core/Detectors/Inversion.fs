@@ -1,3 +1,12 @@
+// # Inversion
+//
+// Inversion advice recognizes terminal conditionals that can become guards and deeply nested conditionals
+// that suggest extraction. It uses executable body items and normalized branch bodies, avoiding
+// intervening work and existing alternatives. Specific guard advice takes precedence over a general depth
+// finding for the same function.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.Inversion
 
 open Energy.Core.TreeSitter
@@ -158,6 +167,8 @@ let private recommendation language functionNode body =
 
 /// Analyze block-based functions and anchor one actionable recommendation to each finding.
 let analyzeInversionOpportunities (ctx: AnalysisContext) : AnalysisContext =
+    /// Collect advice for recognized function bodies and recursively visit child syntax for further
+    /// functions.
     let rec traverse node =
         let own =
             if ctx.Language.IsFunctionDefinition node then

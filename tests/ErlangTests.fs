@@ -1,3 +1,12 @@
+// # ErlangTests
+//
+// Erlang integration checks the actual grammar and its adapter before relying on shared detector findings.
+// Named and anonymous clauses, imports, branching, recovery, and numeric syntax exercise language-specific
+// normalization. TestUtils.fs supplies parsed fixtures and complete pipeline results; cases retain
+// explicit clean examples where syntax should not imply a finding.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ErlangTests
 
 open Scriptorium.Nib.Assertion

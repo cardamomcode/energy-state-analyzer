@@ -1,3 +1,12 @@
+// # MagicString
+//
+// Decision-string analysis counts exact string content used in comparisons, membership, and indexing.
+// Standalone, formatted, short, allowlisted, and excluded test strings do not contribute. Eligible
+// occurrences are grouped across the file; a group meeting the configured count emits one low finding at
+// its first occurrence.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.MagicString
 
 
@@ -19,10 +28,14 @@ let private stripQuotes (text: string) =
     else
         text
 
+/// Treat a literal directly under an expression statement as standalone string content, excluding it from
+/// decision-string candidates.
 let private isDocstring (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> language.NodeTypes.ExpressionStatement |> Option.exists ((=) (nodeType parent)))
 
+/// Check whether a literal is either operand of an adapter-normalized equality at its parent or
+/// grandparent, accommodating wrapper nodes.
 let private isEqualityComparisonOperand (language: LanguageAdapter) (node: Node) =
     // decision: checks both parent and grandparent because F# wraps literal operands in `const`
     // before their infix expression; node ids identify one live tree node across JS wrappers.
@@ -33,6 +46,7 @@ let private isEqualityComparisonOperand (language: LanguageAdapter) (node: Node)
         |> List.exists (fun comparison ->
             nodeId comparison.Left = nodeId node || nodeId comparison.Right = nodeId node))
 
+/// Check whether the literal's text occurs in a membership comparison exposed at its grandparent.
 let private isMembershipOperand (language: LanguageAdapter) (node: Node) (content: string) =
     nodeParent node
     |> Option.bind nodeParent
@@ -40,10 +54,13 @@ let private isMembershipOperand (language: LanguageAdapter) (node: Node) (conten
         language.GetMembershipComparisons container
         |> List.exists (fun comparison -> List.contains content comparison.Values))
 
+/// Recognize a literal directly inside an adapter-declared subscript node.
 let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
+/// Select a string used in equality, membership, or indexing, excluding standalone, formatted, allowlisted,
+/// and one-character values. Return at most one node/content pair.
 let private decisionStringCandidate (ctx: AnalysisContext) (node: Node) : (Node * string) list =
     let isLiteral =
         ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
@@ -69,7 +86,12 @@ let private decisionStringCandidate (ctx: AnalysisContext) (node: Node) : (Node 
         else
             []
 
+/// Collect eligible decision strings outside excluded Rust test modules, group by exact content, and report
+/// groups meeting MinDuplicates. Each low finding anchors at the group's first occurrence and reports its
+/// count.
 let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext =
+    /// Collect this node's eligible decision string and descendant candidates, pruning excluded Rust
+    /// test modules.
     let rec traverse (node: Node) : (Node * string) list =
         if
             not ctx.Options.MagicString.IncludeTestFiles
@@ -106,6 +128,8 @@ let private analyzeEnabledMagicStrings (ctx: AnalysisContext) : AnalysisContext 
 
     addViolations findings ctx
 
+/// Apply magic-string detection only when enabled and allowed for this filename; skipped files preserve the
+/// context unchanged.
 let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
     if
         not ctx.Options.MagicString.Enabled
@@ -115,6 +139,8 @@ let analyzeMagicStrings (ctx: AnalysisContext) : AnalysisContext =
     else
         analyzeEnabledMagicStrings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "magicString"

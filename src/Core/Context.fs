@@ -1,3 +1,11 @@
+// # Context
+//
+// A document analysis shares immutable source, syntax, positions, language policy, and options across
+// detector stages. Each stage returns a new context with its findings prepended in reverse order; it does
+// not mutate the source or own the tree. Analyze.fs is responsible for final ordering and suppression.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Context
 
 open Energy.Core.Violation
@@ -29,6 +37,9 @@ type AnalysisContext =
     }
 
 /// Add findings from one detector while retaining linear accumulation across the whole pipeline.
+/// findings models this stage's output; before and after model the context's reversed finding lists.
+///
+/// lean: `def AddViolationsContract (findings before after : List α) : Prop := after.reverse = before.reverse ++ findings`
 let addViolations (findings: EnergyViolation list) (ctx: AnalysisContext) : AnalysisContext =
     { ctx with
         Violations = List.rev findings @ ctx.Violations

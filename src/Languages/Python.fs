@@ -1,3 +1,13 @@
+// # Python
+//
+// Python named functions and lambdas become callable views; type annotations remain textual evidence.
+// PythonAdapterSyntax.fs normalizes membership, imports, and declarative package facades. Formatting,
+// keyword-only parameters, and error regions supply language-specific exemptions and boundaries. This
+// adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all nodes borrow the
+// current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.Python
 
 open Energy.Core.TreeSitter
@@ -33,13 +43,26 @@ let private argumentListNodeType = NodeType "argument_list"
 /// decision: shared by IsFormattedOrInterpolatedString and GetBaseClassNames below — both check a
 /// node's type against Python's grammar node-type name for a dotted attribute access (`a.b.C`).
 let private attributeNodeType = NodeType "attribute"
+/// Grammar identity for identifier nodes, used to recognize syntax without comparing arbitrary source text.
 let private identifierNodeType = NodeType "identifier"
+/// Grammar identity for typed_default_parameter nodes, used to recognize syntax without comparing arbitrary
+/// source text.
 let private typedDefaultParameterNodeType = NodeType "typed_default_parameter"
+/// Grammar identity for comparison_operator nodes, used to recognize syntax without comparing arbitrary
+/// source text.
 let private comparisonOperatorNodeType = NodeType "comparison_operator"
+/// Grammar identity for call nodes, used to recognize syntax without comparing arbitrary source text.
 let private callNodeType = NodeType "call"
+/// Grammar identity for and nodes, used to recognize syntax without comparing arbitrary source text.
 let private andOperatorNodeType = NodeType "and"
+/// Grammar identity for try_statement nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryStatementNodeType = NodeType "try_statement"
+/// Grammar identity for except_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private exceptClauseNodeType = NodeType "except_clause"
+/// Grammar identity for finally_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private finallyClauseNodeType = NodeType "finally_clause"
 
 /// Name Python's named-function node type for callable classification.
@@ -139,6 +162,8 @@ let private isDocstring (node: Node) : bool =
         | [ s ] -> nodeType s = NodeType "string"
         | _ -> false)
 
+/// Read the named statements inside the recognized body block, falling back to direct named children when
+/// no block is present.
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -180,6 +205,7 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
                         })
             })
 
+/// Compare node identities to determine whether an expression is the parent's first child.
 let private isFirstChild (node: Node) (parent: Node) =
     parent
     |> nodeChildren
@@ -187,6 +213,8 @@ let private isFirstChild (node: Node) (parent: Node) =
     |> Option.map nodeId
     |> (=) (Some(nodeId node))
 
+/// Recognize an attribute named format whose parent is a call; this is syntactic recognition without symbol
+/// resolution.
 let private isFormatCall (parent: Node) =
     parent
     |> nodeChildren
@@ -194,6 +222,8 @@ let private isFormatCall (parent: Node) =
     |> Option.exists (fun methodName -> nodeText methodName = "format")
     && (nodeParent parent |> Option.exists (fun call -> nodeType call = callNodeType))
 
+/// Recognize a first-child string used with percent formatting or a format call, so formatted content is
+/// excluded from magic-string findings.
 let private isFormattedStringParent (node: Node) (parent: Node) =
     let firstChild = isFirstChild node parent
 

@@ -1,3 +1,12 @@
+// # NamingCohesion
+//
+// Naming is a fallback signal for whether many operations belong to one domain. Identifier words are split
+// at naming boundaries, then leading and trailing word shares are measured. Utility filenames are
+// recognized by complete words. Coherence and class-family checks use these heuristics without claiming
+// resolved domain relationships.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.NamingCohesion
 
 open System
@@ -21,6 +30,8 @@ open Energy.Core.LanguageAdapter
 let private wordBoundaryPattern =
     Regex("[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|[0-9]+")
 
+/// Split identifier text on camel-case, acronym, numeric, and separator boundaries, returning lowercase
+/// words or an empty list.
 let private splitIntoWords (text: string) : string list =
     let matches = wordBoundaryPattern.Matches text
 
@@ -37,6 +48,8 @@ let private splitIntoWords (text: string) : string list =
 let private utilsFileWords =
     Set.ofList [ "util"; "utils"; "helper"; "helpers"; "common" ]
 
+/// Check the slash-delimited basename, without its final extension, for an exact utility/helper/common word
+/// rather than a substring match.
 let isUtilsFileName (fileName: string) : bool =
     let baseName = fileName.Split('/') |> Array.tryLast |> Option.defaultValue ""
     // strip a trailing `.ext` — everything after the last dot, if any.
@@ -60,6 +73,8 @@ let private callableNameWords (callable: CallableView) : string list =
     | Some name when not (String.IsNullOrEmpty name) -> splitIntoWords name
     | _ -> []
 
+/// Return the most frequent word's fraction of the input, or zero for no words; counting uses a local
+/// dictionary.
 let private dominantShare (words: string list) : float =
     if words.Length = 0 then
         0.0
@@ -95,6 +110,8 @@ let looksLikeSingleDomainByNames (names: string list) (minShare: float) : bool =
         dominantShare (List.ofSeq leadingWords) >= minShare
         || dominantShare (List.ofSeq trailingWords) >= minShare
 
+/// Test whether named callables share a sufficiently common first or last word. Anonymous or empty names
+/// provide no words; this is a naming heuristic, not resolved domain knowledge.
 let looksLikeSingleDomain (callables: CallableView list) (minShare: float) : bool =
     let functionWordStrings =
         callables

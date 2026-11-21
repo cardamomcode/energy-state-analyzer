@@ -1,3 +1,13 @@
+// # Erlang
+//
+// Erlang named and anonymous clauses become independently analyzable callable views. Clause dispatch,
+// short-circuit operators, explicit imports, and try regions feed shared detectors; pattern matching is
+// kept distinct from equality. ErlangValidation.fs handles narrow explicit rejection/success shapes. This
+// adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all nodes borrow the
+// current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.Erlang
 
 open Energy.Core.TreeSitter

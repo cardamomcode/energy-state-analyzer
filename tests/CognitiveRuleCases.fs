@@ -1,3 +1,12 @@
+// # CognitiveRuleCases
+//
+// This data catalogue supplies named cognitive-complexity examples and expected scores to
+// CognitiveRuleTests.fs. Each named fixture function isolates a scoring rule so a failure
+// identifies the disputed reading-cost contribution. The shared harness parses these fixtures through the
+// registered adapters rather than evaluating their programs.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CognitiveRuleCases
 
 open Energy.Languages

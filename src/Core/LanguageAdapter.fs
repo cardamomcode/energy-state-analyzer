@@ -1,10 +1,20 @@
+// # LanguageAdapter
+//
+// The adapter contract translates grammar-specific trees into facts the shared detectors can consume:
+// callable bodies and roles, parameter/type text, branching, recovery regions, imports, and literal
+// exemptions. Missing or unsupported syntax produces optional or empty evidence rather than inferred
+// semantic knowledge. Nodes in these views borrow the parsed tree; only findings may outlive it.
+// Implementations live in ../Languages/Registry.fs and its registered modules.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.LanguageAdapter
 
 open Energy.Core.TreeSitter
 
 // Per-grammar knowledge for the detectors.
 //
-// decision: the current 26-hook LanguageAdapter is a class-less interface of predicate callbacks;
+// decision: LanguageAdapter is a class-less interface of predicate callbacks;
 // the idiomatic F# shape is a record of functions — data + behavior, no interface ceremony. Each
 // hook becomes one record field with a pure signature.
 //
@@ -22,13 +32,15 @@ type BooleanOperator =
     | And
     | Or
 
-/// The contribution made by a control-flow construct before its body is visited.
+/// The contribution before visiting a control-flow body: Structural adds one plus current nesting;
+/// Hybrid and Fundamental add one. The surrounding Flow separately identifies nested children.
 type CognitiveIncrement =
     | Structural
     | Hybrid
     | Fundamental
 
-/// Grammar-normalized cognitive structure; only the listed children enter nested control flow.
+/// Grammar-normalized cognitive structure. Flow lists children entering deeper nesting; Closure
+/// increases nesting for its children without its own increment, and BooleanGroup unwraps a sequence.
 type CognitiveStructure =
     | Flow of CognitiveIncrement * Node list
     | Closure
@@ -43,7 +55,9 @@ type GenericBrackets = { Open: string; Close: string }
 /// One handler or cleanup clause, with body syntax separated from its header.
 type RecoveryBody = { Anchor: Node; Items: Node list }
 
-/// One try boundary expressed in language-neutral logical work items.
+/// One try boundary with a diagnostic Anchor, syntax spans in ProtectedBody for line counts,
+/// direct ProtectedItems and combined RecoveryItems for work-share counts, and separately anchored
+/// RecoveryBodies for per-handler/cleanup line limits. All nodes borrow the live tree.
 type ErrorHandlingRegion =
     {
         Anchor: Node
@@ -75,6 +89,8 @@ type BooleanLiteralPolarity =
 type ValidationSuccess =
     | UnchangedInput of Node
     | NoValue
+    /// A literal success verdict that discards the checked value.
+    ///
     /// decision: a boolean literal is its own case, not UnchangedInput, because it can never be
     /// the checked parameter — a literal success value replaces the value with its verdict, the
     /// third leak shape beside identity returns and absent success values.
@@ -100,12 +116,12 @@ type GuardedValidation =
 /// own parameters and body — `GetFunctionHeads` splits it into one view per head.
 type FunctionHead =
     {
-        /// The node whose children carry this head's parameter patterns; `findParametersNode` runs
-        /// against it. For a single-head definition this is the definition node itself.
+        // The node whose children carry this head's parameter patterns; `findParametersNode` runs
+        // against it. For a single-head definition this is the definition node itself.
         ParametersRoot: Node
-        /// The node whose subtree is this head's body — drives per-function stringly-typed control
-        /// flow and anchors that head's violation position. For a single-head definition this is the
-        /// definition node itself.
+        // The node whose subtree is this head's body — drives per-function stringly-typed control
+        // flow and anchors that head's violation position. For a single-head definition this is the
+        // definition node itself.
         Body: Node
     }
 
@@ -137,6 +153,8 @@ type CallableView =
         Parameters: Node list
     }
 
+/// Import visibility forms: a module binding, selected members, wildcard names, an opened lexical scope, or
+/// a textual header. Import coherence distinguishes their different scope costs.
 type ImportKind =
     | Module
     | Members
@@ -144,12 +162,15 @@ type ImportKind =
     | ScopeOpen
     | Header
 
+/// One imported name and the local spelling introduced by an alias or direct binding.
 type ImportBinding =
     {
         ImportedName: string
         LocalName: string
     }
 
+/// Normalized import source, visibility kind, and explicit bindings; this records syntax rather than
+/// resolving the imported module.
 type ImportInfo =
     {
         Kind: ImportKind
@@ -198,7 +219,8 @@ type LanguageAdapter =
         // Relative to the extension/project root, e.g. 'grammars/tree-sitter-python.wasm'.
         GrammarPath: string
         NodeTypes: NodeTypes
-        // Whether this node represents "a function" for complexity/param-count/coherence purposes.
+        // Whether this node is a named function for detectors using GetFunctionHeads. Callable-wide
+        // complexity, parameter, and coherence consumers use GetCallableViews independently.
         //
         // decision: a predicate instead of a plain node-type set — some grammars can't tell "function"
         // apart from other things by type alone (e.g. F#'s function_or_value_defn also covers plain
@@ -232,6 +254,7 @@ type LanguageAdapter =
         GetCognitiveStructure: Node -> CognitiveStructure option
         // Control-flow node types that count toward nesting-depth violations.
         NestingControlTypes: NodeType list
+        // Recognize logical AND/OR only; arithmetic and unsupported operators return None.
         GetBooleanOperator: Node -> BooleanOperator option
         // Whether this node is specifically a try-statement's `else` clause, as opposed to if/for/while's
         // `else` (several grammars reuse one else-clause node type for all of them). Only a try's else is
@@ -249,6 +272,7 @@ type LanguageAdapter =
         // (inferred/untyped — same null-and-skip convention as ExtractTypedParameter). Drives the
         // file-coherence detector's type-cohesion signal alongside ExtractTypedParameter.
         ExtractReturnType: Node -> string option
+        // Delimiters used by textual base-type normalization, without resolving type aliases.
         GenericBrackets: GenericBrackets
         // Unqualified primitive type names this language's swap-risk check treats as
         // interchangeable-and-therefore-risky (Python str/int/float/bool/bytes, TS string/number/
@@ -268,6 +292,7 @@ type LanguageAdapter =
         // What to suggest in place of a naked primitive to fix a swap-risk violation, phrased in this
         // language's own idiom (Python: NewType/dataclass, TS: branded/nominal type, F#: single-case union).
         DistinctTypeAdvice: string
+        // Normalize direct equality operands; unrelated or unsupported syntax yields no pairs.
         GetEqualityComparisons: Node -> EqualityComparison list
         // Given a node, if it is a match/switch that dispatches on a simple variable and carries one
         // or more string-literal case patterns, returns the scrutinee variable node and the

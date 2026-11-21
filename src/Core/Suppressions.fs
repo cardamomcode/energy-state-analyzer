@@ -1,3 +1,12 @@
+// # Suppressions
+//
+// Source directives are applied after every detector has produced its findings. The raw-text parser
+// records line or file scope, recognized rule names, and unknown names; filtering credits only the first
+// matching directive. Unknown or unused directives create low-severity notes, keeping stale suppression
+// debt visible rather than silently hiding it.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Suppressions
 
 open System.Text.RegularExpressions
@@ -10,12 +19,17 @@ open Energy.Core.Violation
 /// below self-documenting instead of bare magic numbers. They sit at the top of the module so this
 /// choice is visible rather than hidden next to their use sites.
 let private scopeGroupIndex = 2
+/// Capture index containing the optional comma-separated rule names in a suppression directive.
 let private typeGroupIndex = 3
 
+/// Line directives cover their own line and, when standalone, the immediately following line; File
+/// directives cover the whole source.
 type SuppressionScope =
     | Line
     | File
 
+/// Parsed directive location, scope, optional allowed rule set, unknown names, and standalone status.
+/// Types=None means all rules; Some empty means no recognized rules.
 type Suppression =
     {
         Line: int
@@ -26,12 +40,15 @@ type Suppression =
         Standalone: bool
     }
 
+/// Remaining detector findings plus independent notes for invalid or unused suppression directives.
 type ApplySuppressionsResult =
     {
         Violations: EnergyViolation list
         SuppressionNotes: EnergyViolation list
     }
 
+/// Recognize end-of-line hash or double-slash directives with optional file scope and rule names in raw
+/// source text.
 let private directivePattern =
     Regex("(//|#)\\s*esa-ignore(-file)?(?::\\s*([\\w,\\s-]+))?\\s*$")
 
@@ -115,6 +132,8 @@ let parseSuppressions (sourceText: string) : Suppression list =
     |> Array.choose id
     |> Array.toList
 
+/// Check the directive's file or line coverage, extending standalone line directives to exactly the next
+/// line.
 let private coversLine suppression violationLine =
     match suppression.Scope with
     | File -> true
@@ -122,6 +141,7 @@ let private coversLine suppression violationLine =
         violationLine = suppression.Line
         || (suppression.Standalone && violationLine = suppression.Line + 1)
 
+/// Accept every rule for a bare directive, or only rules present in its explicit set.
 let private matchesType suppression violationType =
     suppression.Types |> Option.forall (Set.contains violationType)
 

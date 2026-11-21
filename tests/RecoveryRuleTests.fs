@@ -1,3 +1,12 @@
+// # RecoveryRuleTests
+//
+// Recovery tests use one parsed fixture and vary policy to separate broad protected scope, recovery
+// dominance, and oversized individual bodies. Assertions select named regions and rule identities,
+// including suppression behavior, rather than accepting any exception-related finding. The helper passes a
+// reusable full-pipeline runner to each case.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.RecoveryRuleTests
 
 open Scriptorium.Quill
@@ -18,6 +27,7 @@ let private withFixture check =
             let! source, tree = parseFixture pythonLanguageAdapter "python/recovery_rules.py"
             assertThat (nodeHasError tree) isFalse
 
+            /// Run the complete pipeline against the shared recovery fixture with the supplied options.
             let run options =
                 analyzeWith
                     options

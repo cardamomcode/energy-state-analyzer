@@ -1,3 +1,12 @@
+// # ParseDontValidate
+//
+// This advisory looks for checks whose successful result fails to preserve the checked property in a
+// useful type. Language adapters recognize conservative guard/return shapes and established contracts;
+// parameter references and explicit annotations refine the evidence. Domain construction and ordinary
+// computations remain outside these narrow patterns, and findings recommend retaining checked information.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.ParseDontValidate
 
 open Energy.Core.TreeSitter
@@ -29,13 +38,16 @@ let private parameters language head =
 let private rejectsNull language name condition =
     let conditionChildren = nodeChildren condition
 
+    /// Match a reference against the checked parameter name.
     let isParameter node =
         nodeText node = name
         && List.contains (nodeType node) language.VariableReferenceNodeTypes
 
+    /// Recognize the language's null-like source spellings in this comparison.
     let isNullLiteral node =
         List.contains (nodeText node) [ "null"; "None"; "nil"; "nullptr" ]
 
+    /// Recognize equality operators used by the supported null-rejection patterns.
     let isNullEqualityOperator node =
         List.contains (nodeText node) [ "=="; "==="; "is"; "=" ]
 
@@ -54,6 +66,7 @@ let private rejectsNull language name condition =
 let private checkedParameter (language: LanguageAdapter) head candidate =
     let references = descendants candidate.Condition
 
+    /// Check whether condition syntax mentions this parameter name.
     let referenced name =
         references
         |> List.exists (fun node ->
@@ -107,6 +120,7 @@ let private inspect ctx head =
 
 /// Walk named functions independently through the registered language adapter.
 let analyzeParseDontValidate (ctx: AnalysisContext) : AnalysisContext =
+    /// Analyze each named function head and recurse into child syntax for independent definitions.
     let rec walk node =
         let own =
             if ctx.Language.IsFunctionDefinition node then

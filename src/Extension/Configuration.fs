@@ -1,3 +1,12 @@
+// # Configuration
+//
+// Configuration is resolved for the document or export resource before editor-only settings are applied.
+// Folder ownership prevents one workspace folder from supplying another document's thresholds; unscoped
+// reads use the first folder. Core/Config.fs owns project defaults and errors, and ConfigurationValues.fs
+// owns the pure overlay.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.Configuration
 
 open Energy.Core.Analyze
@@ -21,6 +30,7 @@ let private globalSetting resource key fallback =
     getConfigurationFor workspace "energyStateAnalyzer" resource
     |> fun configuration -> getConfigurationValue configuration key fallback
 
+/// Return the first workspace folder's filesystem path, or None when no folders are open.
 let private workspaceRoot () =
     workspaceFolders workspace
     |> Option.ofObj
@@ -67,6 +77,8 @@ let readAnalyzeThresholds () : Result<AnalyzeThresholds, AnalysisError> = readAn
 let getEnergyColors () =
     ConfigurationValues.readEnergyColors (reader null)
 
+/// Default editor policy honors ignore patterns unless the includeFixtures setting explicitly overrides
+/// them.
 let private defaultIncludeFixtures = false
 
 /// Report whether magic-detector fixtures should be included, named for clarity at the call site.

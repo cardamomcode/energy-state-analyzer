@@ -1,3 +1,12 @@
+// # CSharpTests
+//
+// This suite exercises C# syntax normalization scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CSharpTests
 
 open Scriptorium.Nib.Assertion
@@ -9,10 +18,14 @@ open Energy.Languages
 open Energy.Languages.Registry
 open Energy.Tests.TestUtils
 
+/// Collect matching grammar nodes in pre-order, including the supplied root, for syntax-specific
+/// assertions.
 let rec private nodesOfType (expected: NodeType) (node: Node) : Node list =
     let own = if nodeType node = expected then [ node ] else []
     own @ (nodeChildren node |> List.collect (nodesOfType expected))
 
+/// Run the named C# syntax normalization scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "C# language adapter and registry",

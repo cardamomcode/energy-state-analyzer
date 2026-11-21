@@ -1,3 +1,12 @@
+// # ReportTests
+//
+// This suite exercises report scoring and rendering scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ReportTests
 
 open System.Threading.Tasks
@@ -12,6 +21,8 @@ open Energy.Core.ReportDiff
 open Energy.Core.ReportHuman
 open Energy.Core.Violation
 
+/// Construct a detached finding with the supplied scenario values so presentation or suppression behavior
+/// can be tested without parsing source.
 let private violation severity violationType message =
     {
         Line = 0
@@ -22,12 +33,16 @@ let private violation severity violationType message =
         Hotspots = []
     }
 
+/// Construct a complexity finding whose established message includes the supplied numeric score for human-
+/// report extraction tests.
 let private cyclomatic value severity =
     violation
         severity
         Complexity
         (sprintf "High cyclomatic complexity: %d. Consider breaking down this function." value)
 
+/// Run the named report scoring and rendering scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "Integration: report (summarize/diff/render)",
@@ -301,6 +316,8 @@ let tests =
             test (
                 "diff identifies every status and renders deltas",
                 fun _ ->
+                    /// Create a file summary with the supplied path and score and zeroed counts,
+                    /// isolating diff classification.
                     let file path score =
                         {
                             FilePath = path

@@ -1,3 +1,12 @@
+// # Registry
+//
+// Hosts share this registry of supported language adapters. Editor IDs select adapters directly; CLI
+// filenames use longest-first, case-insensitive suffix matching, including compound C++ suffixes.
+// Unsupported input returns None so hosts can choose skip or error behavior. Each adapter implements
+// ../Core/LanguageAdapter.fs.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.Registry
 
 open System
@@ -69,8 +78,11 @@ let private suffixToLanguageId =
     ]
     |> List.sortByDescending (fun (suffix, _) -> suffix.Length)
 
+/// Look up an adapter by exact editor language ID, returning None for unsupported IDs.
 let tryFind languageId = Map.tryFind languageId languages
 
+/// Resolve the longest recognized filename suffix using ordinal case-insensitive comparison, then return
+/// its adapter; unsupported names return None.
 let resolveLanguageForFile (fileName: string) =
     suffixToLanguageId
     |> List.tryFind (fun (suffix, _) -> fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))

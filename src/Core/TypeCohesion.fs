@@ -1,3 +1,12 @@
+// # TypeCohesion
+//
+// Type cohesion measures reuse of textual domain-type names across callable signatures. Normalization
+// excludes generic slots and non-domain shapes, then coverage decides whether diversity is measurable.
+// With insufficient evidence callers can use naming; measured results report distinct types and a ratio
+// verdict. Wrapper generics and unresolved aliases remain limitations of this syntax-only approach.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.TypeCohesion
 
 open System
@@ -26,7 +35,9 @@ open Energy.Core.LanguageAdapter
 let private nonDomainBaseTypes =
     Set.ofList [ "Callable"; "Function"; "Any"; "None"; "Unit"; "void" ]
 
+/// Recognize conventional single-letter generic slots that should not count as domain types.
 let private singleUpperPattern = Regex("^[A-Z]$")
+/// Recognize T-prefixed generic parameter names, including underscored and numbered forms.
 let private genericTypeParameterPattern = Regex("^_?T([A-Z]\\w*|\\d*)$")
 
 /// PEP-484/TS/Kotlin generic type-parameter naming conventions (bare `T`/`U`/`K`/`V`, or Python's
@@ -100,6 +111,8 @@ let collectTypeSignals (callable: CallableView) (language: LanguageAdapter) : Ha
 /// is the number of distinct base types observed, used by callers to report "spans N unrelated types".
 type MeasuredTypeCohesion = { Result: bool; DistinctTypes: int }
 
+/// Either insufficient annotated coverage for a verdict, or a measured diversity verdict with its distinct-
+/// type count.
 type TypeCohesionResult =
     // 'insufficient-data' when too few functions carry any type annotation to trust this signal at all
     // — callers should fall back to a naming-based heuristic instead of treating a handful of
@@ -109,6 +122,8 @@ type TypeCohesionResult =
     // number of distinct base types observed, used by callers to report "spans N unrelated types".
     | Measured of MeasuredTypeCohesion
 
+/// Maximum distinct-types-per-typed-function ratio and minimum fraction of callables with usable type
+/// signals.
 type TypeCohesionThresholds =
     {
         MaxDiversityRatio: float

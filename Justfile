@@ -35,6 +35,13 @@ format-check:
 md-lint:
     npm run md-lint
 
+# Extract and check the two source-embedded contracts with the ADC tool and pinned Lean version.
+# Pass the path to another checkout's tools/leanify.py when ADC is not a sibling repository.
+lean-check leanify="../adc/tools/leanify.py":
+    mkdir -p .lean-out
+    python3 "{{leanify}}" src/Core/Context.fs .lean-out/Context.lean --check
+    python3 "{{leanify}}" src/Core/Detectors/Cyclomatic.fs .lean-out/Cyclomatic.lean --check
+
 # Run the F# analyzer against src/ (or supplied paths). Rebuilds the webpack bundles only when dist/
 # is missing; otherwise it reuses the existing bundle so per-file checks stay near-instant. With no
 # arguments it scans src; otherwise the remaining args are forwarded unchanged to the CLI.

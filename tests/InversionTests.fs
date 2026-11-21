@@ -1,3 +1,12 @@
+// # InversionTests
+//
+// Inversion fixtures contrast actionable terminal guards and deep conditionals with shapes that should
+// remain quiet. Tests check both finding presence and feedback locations/messages so a suggestion points
+// to the relevant construct. Shared fixture parsing and named function ranges keep these checks
+// independent of absolute line numbers.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.InversionTests
 
 open Scriptorium.Nib.Assertion

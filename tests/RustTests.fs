@@ -1,3 +1,12 @@
+// # RustTests
+//
+// Rust integration tests grammar normalization and shared detector behavior over real source fixtures.
+// Callable roles, parameter types, imports, literal forms, and local test scopes supply evidence for
+// positive and clean cases. Tests verify that excluding test responsibilities does not hide production
+// siblings or unrelated callable metrics.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.RustTests
 
 open Scriptorium.Nib.Assertion
@@ -144,6 +153,7 @@ let tests =
                             let defaultFindings = (analyze input).Violations
                             let functions = nodesOfType (NodeType "function_item") tree
 
+                            /// Count findings of the requested rule inside the named Rust scenario.
                             let count kind name findings =
                                 let functionNode =
                                     functions

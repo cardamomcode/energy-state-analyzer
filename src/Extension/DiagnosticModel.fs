@@ -1,3 +1,12 @@
+// # DiagnosticModel
+//
+// Problems-panel specifications group findings by line, order each group by severity and column, and join
+// their messages and stable rule codes. The leading finding supplies severity and range; tags are
+// combined. These detached specifications need no VS Code runtime and are converted to host objects by
+// Diagnostics.fs.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.DiagnosticModel
 
 open Energy.Core.Violation
@@ -11,10 +20,13 @@ type ProblemSeverity =
     | Warning
     | Information
 
+/// Presentation hints mapped to VS Code's unnecessary and deprecated tags; they do not change analyzer
+/// severity.
 type ProblemTag =
     | Unnecessary
     | Deprecated
 
+/// Zero-based single-line diagnostic range, with an exclusive end column.
 type ProblemRange =
     {
         Line: int
@@ -22,6 +34,8 @@ type ProblemRange =
         EndColumn: int
     }
 
+/// Host-independent grouped diagnostic with range, joined messages, leading severity, stable rule codes,
+/// and presentation tags.
 type DiagnosticSpec =
     {
         Range: ProblemRange
@@ -31,20 +45,25 @@ type DiagnosticSpec =
         Tags: ProblemTag list
     }
 
+/// Fixed character width of the leading finding's diagnostic range; this model has no document text with
+/// which to clamp it.
 let private diagnosticRangeWidth = 10
 
+/// Map high, medium, and low findings to error, warning, and information presentation levels.
 let severityFor =
     function
     | High -> ProblemSeverity.Error
     | Medium -> ProblemSeverity.Warning
     | Low -> ProblemSeverity.Information
 
+/// Order findings by error, warning, then information so each line's strongest finding leads.
 let private severityRank severity =
     match severityFor severity with
     | ProblemSeverity.Error -> 0
     | ProblemSeverity.Warning -> 1
     | ProblemSeverity.Information -> 2
 
+/// Assign unnecessary to nesting and deprecated to complexity findings; other categories receive no tags.
 let tagsFor =
     function
     | Nesting -> [ Unnecessary ]

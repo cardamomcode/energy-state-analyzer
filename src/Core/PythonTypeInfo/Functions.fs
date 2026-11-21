@@ -1,3 +1,12 @@
+// # Functions
+//
+// Python signature extraction reads explicit parameter and return annotations and annotated assignments
+// without type inference. Unsupported parameter shapes are omitted and absent names use an unknown
+// placeholder. Extraction.fs uses these detached records; the current detector adapter has its own richer
+// callable normalization.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.PythonTypeInfo.Functions
 
 open Energy.Core.Position
@@ -9,8 +18,11 @@ open Energy.Core.TreeSitter
 /// decision: name the two `hasDefault` values so the call sites read self-descriptively instead of
 /// passing bare true/false whose meaning only survives by reading `parameterInfo`'s signature.
 let private parameterHasDefault = true
+/// Mark a recognized parameter as having no default value.
 let private parameterNoDefault = false
 
+/// Build a parameter description from direct name and type children and the supplied default flag; missing
+/// names become unknown.
 let private parameterInfo hasDefault node =
     {
         Name =
@@ -21,6 +33,8 @@ let private parameterInfo hasDefault node =
         HasDefault = hasDefault
     }
 
+/// Collect typed, default, and bare identifier parameters in source order. Unrecognized shapes, including
+/// typed-default nodes here, are omitted.
 let private extractParameters node =
     nodeChildren node
     |> List.choose (fun child ->
@@ -36,6 +50,8 @@ let private extractParameters node =
                 }
         | _ -> None)
 
+/// Find an arrow followed by a type annotation among direct children, returning None if that syntax is
+/// absent.
 let private returnType node =
     nodeChildren node
     |> List.pairwise
@@ -44,6 +60,8 @@ let private returnType node =
             Some(extractTypeString annotation)
         | _ -> None)
 
+/// Extract a function's zero-based line and recognized signature pieces; missing parameters become an empty
+/// list and a missing name becomes unknown.
 let extractFunctionTypeInfo (positions: PositionLookup) node =
     let position = positions.toPosition (nodeStartIndex node)
 
@@ -60,6 +78,8 @@ let extractFunctionTypeInfo (positions: PositionLookup) node =
         ReturnType = returnType node
     }
 
+/// Extract an assignment only when both a direct identifier and explicit type annotation exist; otherwise
+/// return None.
 let extractVariableTypeInfo (positions: PositionLookup) node =
     match childOfType "identifier" node, childOfType "type" node with
     | Some identifier, Some annotation ->

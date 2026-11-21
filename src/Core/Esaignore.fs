@@ -1,3 +1,12 @@
+// # Esaignore
+//
+// Root-local ignore patterns control which files hosts include. Blank and hash-comment lines are
+// discarded; literal paths and basename star patterns use the small matcher below rather than full
+// gitignore semantics. Scan.fs and the editor Analysis.fs consume the same rules, with an explicit editor
+// fixture override at its boundary.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Esaignore
 
 open Fable.Core
@@ -13,6 +22,7 @@ open Energy.Core.Paths
 [<Erase>]
 type IgnorePattern = IgnorePattern of string
 
+/// Root-local filename containing scan and editor exclusion patterns.
 let esaignoreFileName = ".esaignore"
 
 /// Read `.esaignore` patterns from the project root into a list.
@@ -31,6 +41,8 @@ let loadIgnorePatterns (rootDir: string) : string list =
         |> Array.map (fun line -> line.TrimEnd('/'))
         |> Array.toList
 
+/// Match a slash-containing pattern against a relative path or its descendants; a single segment matches
+/// any complete path segment.
 let private matchesLiteralPattern (relative: string) (IgnorePattern pattern) =
     if pattern.Contains "/" then
         relative = pattern
@@ -38,9 +50,13 @@ let private matchesLiteralPattern (relative: string) (IgnorePattern pattern) =
     else
         relative.Split('/') |> Array.contains pattern
 
+/// Match star-separated literal pieces against a basename using ordered, case-sensitive searches. This
+/// small matcher is not a gitignore engine; it anchors the first piece and requires the final consumed
+/// position to reach the name's end.
 let private matchesBasenameGlob (IgnorePattern pattern) (name: string) =
     let pieces = pattern.Split('*')
 
+    /// Consume star-separated pieces in order and require the final position to reach the basename end.
     let rec loop (remaining: string list) (position: int) =
         match remaining with
         | [] -> position = name.Length

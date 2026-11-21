@@ -1,3 +1,12 @@
+// # ValidationSyntax
+//
+// Shared validation syntax recognizes complete rejecting branches followed by unchanged, absent, or
+// boolean success results. It unwraps grammar containers without searching arbitrary nested control flow,
+// because a nested throw alone does not prove rejection. Language adapters supply the syntax vocabulary
+// consumed by the parse-dont-validate detector.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.ValidationSyntax
 
 open Energy.Core.TreeSitter
@@ -54,6 +63,7 @@ let rec private callee syntax node =
 /// the bool-rejecting guard — while a truthy return stays a non-rejection, so flipped branches
 /// (`if ok: return True`) never extract.
 let private rejects syntax node =
+    /// Recognize a direct false-return rejection without searching arbitrary nested control flow.
     let falsyReturn statement =
         match syntax.Return with
         | Some kind when nodeType statement = kind ->

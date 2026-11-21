@@ -1,3 +1,12 @@
+// # MagicNumber
+//
+// Numeric-literal analysis identifies unnamed values outside recognized structural and constant contexts.
+// Adapter normalization, exact allowlists, default parameters, subscripts, and test policy determine
+// exemptions before low-severity findings are emitted. A literal is evaluated once without descending into
+// token fragments; unparseable numeric text is ignored.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.MagicNumber
 
 open System
@@ -21,6 +30,7 @@ let private isNodeType (expected: NodeType option) (node: Node) : bool =
 
 /// Distinguish module bindings from grammar containers nested within a callable.
 let private hasEnclosingCallable (language: LanguageAdapter) (node: Node) : bool =
+    /// Walk parents until a callable boundary is found or the root proves no enclosing callable exists.
     let rec loop current =
         match nodeParent current with
         | Some parent when language.GetCallableViews parent |> List.isEmpty |> not -> true
@@ -31,6 +41,8 @@ let private hasEnclosingCallable (language: LanguageAdapter) (node: Node) : bool
 
 /// Exempt named constants without extending that exemption into a callable's runtime body.
 let private isInConstantContext (language: LanguageAdapter) (node: Node) : bool =
+    /// Walk ancestors for constant context, stopping before treating a callable body as a module
+    /// binding.
     let rec loop current =
         match nodeParent current with
         | None -> false
@@ -58,6 +70,8 @@ let private isInConstantContext (language: LanguageAdapter) (node: Node) : bool 
 
     loop node
 
+/// Apply a unary minus when the literal's parent has exactly the sign and value children; otherwise
+/// preserve the parsed numeric value.
 let private signedValue (node: Node) (rawValue: float) : float =
     match nodeParent node with
     | Some parent ->
@@ -66,11 +80,17 @@ let private signedValue (node: Node) (rawValue: float) : float =
         | _ -> rawValue
     | None -> rawValue
 
+/// Traverse numeric literals once, skipping excluded Rust test modules. Parse normalized text as a float,
+/// then exempt allowlisted, structural, named-constant, subscript, and default-parameter values;
+/// unparseable literals are ignored. Remaining literals produce low findings.
 let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
+    /// Recognize either configured integer or floating literal syntax.
     let isLiteral node =
         isNodeType ctx.Language.NodeTypes.IntegerLiteral node
         || isNodeType ctx.Language.NodeTypes.FloatLiteral node
 
+    /// Skip excluded test subtrees; evaluate a numeric literal once, otherwise recurse into its
+    /// children.
     let rec traverse (node: Node) : EnergyViolation list =
         if
             not ctx.Options.MagicNumber.IncludeTestFiles
@@ -117,6 +137,8 @@ let private analyzeEnabledMagicNumbers (ctx: AnalysisContext) : AnalysisContext 
     let findings = traverse ctx.Tree
     addViolations findings ctx
 
+/// Analyze magic numbers only when enabled and permitted by the test-file policy; otherwise return the
+/// original context.
 let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
     if
         not ctx.Options.MagicNumber.Enabled
@@ -126,6 +148,8 @@ let analyzeMagicNumbers (ctx: AnalysisContext) : AnalysisContext =
     else
         analyzeEnabledMagicNumbers ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "magicNumber"

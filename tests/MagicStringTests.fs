@@ -1,3 +1,12 @@
+// # MagicStringTests
+//
+// This suite exercises decision-string counting and exemptions scenarios; each case describes the positive
+// result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared
+// parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state the
+// protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.MagicStringTests
 
 open Scriptorium.Quill
@@ -13,6 +22,8 @@ open Energy.Tests.TestUtils
 
 // decision: exercises the registered pipeline over shared fixtures, proving the adapter hooks
 // recognize decision-point strings consistently in every supported grammar.
+/// Run the named decision-string counting and exemptions scenarios below; each case describes the positive
+/// result, exemption, boundary, or failure contract it protects.
 let tests =
     let cases =
         [
@@ -62,6 +73,8 @@ let tests =
                             let! (sourceCode, tree) = parseFixture Rust.rustLanguageAdapter "rust/adapter.rs"
                             let flagged = findFunctionRange sourceCode (FunctionName "flagged_string")
 
+                            /// Analyze the fixture with the supplied filename and string options, then
+                            /// count magic findings.
                             let count fileName options =
                                 {
                                     Source = sourceCode

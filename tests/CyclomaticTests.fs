@@ -1,3 +1,12 @@
+// # CyclomaticTests
+//
+// This suite exercises cyclomatic complexity scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CyclomaticTests
 
 open Scriptorium.Nib.Assertion
@@ -16,12 +25,16 @@ open Energy.Tests.TestUtils
 // never flagged), an 11-way branch (medium), and a 16-way branch (high). TypeScript/F#/Kotlin are
 // exercised here as their language adapters were ported alongside the detector.
 
+/// Collect adapter-recognized named function nodes recursively so fixtures can assert their independently
+/// calculated complexity.
 let rec private functionNodes (language: LanguageAdapter) (node: Node) : Node list =
     if language.IsFunctionDefinition node then
         [ node ]
     else
         nodeChildren node |> List.collect (functionNodes language)
 
+/// Run the named cyclomatic complexity scenarios below; each case describes the positive result, exemption,
+/// boundary, or failure contract it protects.
 let tests =
     let cases =
         [

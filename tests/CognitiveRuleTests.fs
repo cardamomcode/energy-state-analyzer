@@ -1,3 +1,12 @@
+// # CognitiveRuleTests
+//
+// This helper builds one test per named function and expected score in CognitiveRuleCases.fs. It caches
+// fixture parsing and findings by threshold, then checks scores, severity boundaries, and hotspot
+// contributions against the same syntax. DetectorFixtureMatrixTests.fs includes the resulting fixtureTests
+// in the registered suite.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CognitiveRuleTests
 
 open Scriptorium.Nib.Assertion
@@ -63,6 +72,8 @@ let private prepareFixture language fixture =
             let! source, tree = parseFixture language fixture
             let mutable results = Map.empty
 
+            /// Return cached findings for this threshold or compute and memoize them for the same
+            /// immutable fixture.
             let findingsAtThreshold threshold =
                 match Map.tryFind threshold results with
                 | Some cached -> cached

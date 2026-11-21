@@ -1,3 +1,13 @@
+// # TreeSitter
+//
+// This is the sole web-tree-sitter interop boundary. Shared asynchronous runtime initialization precedes
+// grammar loading and parser construction; parsing and node traversal are synchronous once a grammar is
+// installed. Accessors borrow nodes from a live tree. Production analysis uses withParsedTree to release
+// native tree memory in a finally block; parseWith is a convenience returning a live root and does not
+// perform that cleanup.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.TreeSitter
 
 open System.Threading.Tasks
@@ -52,13 +62,12 @@ type NodeType = NodeType of string
 /// from Core.Position ({ Line; Column }), the offset lookup result both share when opened together.
 type SourcePosition = { Row: int; Column: int }
 
-/// ---------------------------------------------------------------------------
-/// Module-level named imports (Parser and Language classes)
-/// ---------------------------------------------------------------------------
+/// Imported Parser constructor used for runtime initialization and configured parser instances.
 
 [<Import("Parser", "web-tree-sitter")>]
 let parserCtor: obj = nativeOnly
 
+/// Imported grammar loader used after the shared tree-sitter runtime initializes.
 [<Import("Language", "web-tree-sitter")>]
 let languageCtor: obj = nativeOnly
 
@@ -120,13 +129,12 @@ let withParsedTree parser source consume =
     finally
         deleteTree tree
 
-/// ---------------------------------------------------------------------------
-/// Typed node accessors (live JS object members, surfaced as typed F# values)
-/// ---------------------------------------------------------------------------
+/// Read the grammar kind of a live node as the erased NodeType wrapper.
 
 [<Emit("$0.type")>]
 let nodeType (node: Node) : NodeType = nativeOnly
 
+/// Read the exact source text covered by a node while its tree is alive.
 [<Emit("$0.text")>]
 let nodeText (node: Node) : string = nativeOnly
 
@@ -134,6 +142,7 @@ let nodeText (node: Node) : string = nativeOnly
 [<Emit("$0.value")>]
 let nodeValue (node: Node) : string = nativeOnly
 
+/// Report whether a node is named by the grammar rather than an anonymous punctuation token.
 [<Emit("$0.isNamed")>]
 let nodeIsNamed (node: Node) : bool = nativeOnly
 
@@ -141,13 +150,15 @@ let nodeIsNamed (node: Node) : bool = nativeOnly
 [<Emit("$0.hasError")>]
 let nodeHasError (node: Node) : bool = nativeOnly
 
-/// Stable node id (used by the position lookup to map nodes back to source ranges).
+/// Read the identity of a node within its live tree for matching wrappers, operands, and branches.
 [<Emit("$0.id")>]
 let nodeId (node: Node) : int = nativeOnly
 
+/// Read the node's starting source offset for the document position lookup.
 [<Emit("$0.startIndex")>]
 let nodeStartIndex (node: Node) : int = nativeOnly
 
+/// Read the exclusive ending source offset of a live node.
 [<Emit("$0.endIndex")>]
 let nodeEndIndex (node: Node) : int = nativeOnly
 
@@ -156,21 +167,26 @@ let nodeEndIndex (node: Node) : int = nativeOnly
 [<Emit("$0.startPosition.row")>]
 let nodeStartRow (node: Node) : int = nativeOnly
 
+/// Read the zero-based column where a live node starts.
 [<Emit("$0.startPosition.column")>]
 let nodeStartColumn (node: Node) : int = nativeOnly
 
+/// Read the zero-based row of the node's exclusive end position.
 [<Emit("$0.endPosition.row")>]
 let nodeEndRow (node: Node) : int = nativeOnly
 
+/// Read the zero-based column of the node's exclusive end position.
 [<Emit("$0.endPosition.column")>]
 let nodeEndColumn (node: Node) : int = nativeOnly
 
+/// Combine the live node's start row and column into a detached source position.
 let nodeStartPosition (node: Node) : SourcePosition =
     {
         Row = nodeStartRow node
         Column = nodeStartColumn node
     }
 
+/// Combine the live node's exclusive end row and column into a detached source position.
 let nodeEndPosition (node: Node) : SourcePosition =
     {
         Row = nodeEndRow node
@@ -183,14 +199,21 @@ let nodeEndPosition (node: Node) : SourcePosition =
 [<Emit("$0.children")>]
 let nodeChildrenRaw (node: Node) : Node[] = nativeOnly
 
+/// Return all direct children in grammar order as an F# list, including punctuation; nodes remain borrowed
+/// from the live tree.
 let nodeChildren (node: Node) : Node list = nodeChildrenRaw node |> Array.toList
 
+/// Read the native array of direct named children, excluding anonymous grammar tokens.
 [<Emit("$0.namedChildren")>]
 let nodeNamedChildrenRaw (node: Node) : Node[] = nativeOnly
 
+/// Return direct named children in source order as an F# list; child nodes retain the tree's lifetime
+/// requirement.
 let nodeNamedChildren (node: Node) : Node list =
     nodeNamedChildrenRaw node |> Array.toList
 
+/// Read the child at a zero-based index; callers must supply a valid index because the raw binding can
+/// return null.
 [<Emit("$0.child($1)")>]
 let nodeChild (node: Node) (index: int) : Node = nativeOnly
 
@@ -209,6 +232,7 @@ let nodeField (field: string) (node: Node) : Node option =
 [<Emit("$0.parent")>]
 let nodeParentRaw (node: Node) : obj = nativeOnly
 
+/// Return the parent of a live node, or None for a root node.
 let nodeParent (node: Node) : Node option =
     match nodeParentRaw node with
     | null -> None
@@ -218,6 +242,7 @@ let nodeParent (node: Node) : Node option =
 [<Emit("$0.previousNamedSibling")>]
 let private nodePreviousNamedSiblingRaw (node: Node) : obj = nativeOnly
 
+/// Return the preceding named sibling, or None when no such sibling exists.
 let nodePreviousNamedSibling (node: Node) : Node option =
     match nodePreviousNamedSiblingRaw node with
     | null -> None

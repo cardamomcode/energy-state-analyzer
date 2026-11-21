@@ -1,3 +1,12 @@
+// # GrammarTests
+//
+// This suite exercises grammar caching and initialization scenarios; each case describes the positive
+// result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared
+// parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state the
+// protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.GrammarTests
 
 open System.Collections.Generic
@@ -7,6 +16,8 @@ open type Scriptorium.Quill.Test
 
 open Energy.Extension.Grammar
 
+/// Run the named grammar caching and initialization scenarios below; each case describes the positive
+/// result, exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "Extension grammar loading",

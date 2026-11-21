@@ -1,3 +1,12 @@
+// # ParameterCount
+//
+// Parameter analysis counts explicit adapter-normalized parameters for every named or anonymous callable.
+// Grammar adapters decide which syntax is an argument and which is a receiver, capture, or implicit value.
+// A count strictly above configured boundaries produces a callable-anchored finding; the pipeline owns
+// stage enablement.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.ParameterCount
 
 
@@ -63,6 +72,8 @@ let private analyzeCallable (ctx: AnalysisContext) (callable: CallableView) =
 /// escalating to high past the high threshold (8 by default); a violation is anchored at the function
 /// declaration rather than an arbitrary parameter. Both thresholds are configurable — see Core.Config.
 let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
+    /// Score each callable's explicit parameters before discovering nested callable views in its
+    /// children.
     let rec traverse (node: Node) : EnergyViolation list =
         // decision: analyzes the adapter's callable views so anonymous callables use their
         // grammar-specific parameter syntax and F# `and`-bindings remain split into logical heads.
@@ -74,6 +85,8 @@ let analyzeParameterCount (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse ctx.Tree
     addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "parameterCount"

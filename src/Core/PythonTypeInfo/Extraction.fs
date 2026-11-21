@@ -1,3 +1,11 @@
+// # Extraction
+//
+// Python type-information extraction walks a live parsed tree in pre-order, collecting signatures,
+// annotated assignments, class descriptions, and imports. Sibling helpers decode each shape and positions
+// become detached zero-based lines. This scaffolding does not contribute findings to Analyze.fs.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.PythonTypeInfo.Extraction
 
 open Energy.Core.Position
@@ -12,6 +20,7 @@ open Energy.Core.TreeSitter
 /// decision: preserves the prior pre-order AST walk so the logged scaffolding remains stable for
 /// future consumers even though it currently has no effect on violations.
 let extractTypeInformation (tree: Tree) (positions: PositionLookup) : TypeInfo =
+    /// Append the current declaration's extracted records, then fold through children in source order.
     let rec collect node info =
         let updated =
             match nodeType node with

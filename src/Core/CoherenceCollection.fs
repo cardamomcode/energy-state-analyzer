@@ -1,3 +1,12 @@
+// # CoherenceCollection
+//
+// The coherence walk collects normalized callables, imports, and classes with their enclosing ownership.
+// Free-function responsibility counts remain distinct from class methods, nested closures, and test-only
+// Rust code. Coherence.fs consumes this inventory for file-level checks, while ClassRelatedness.fs uses
+// class membership and signature evidence.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.CoherenceCollection
 
 open Energy.Core.Detectors

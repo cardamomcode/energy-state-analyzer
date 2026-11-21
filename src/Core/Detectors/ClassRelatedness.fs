@@ -1,3 +1,12 @@
+// # ClassRelatedness
+//
+// Class coherence groups declarations using direct inheritance, shared bases, and signature cross-
+// references, then considers a naming fallback before reporting disconnected families. A separate god-
+// class check reports the worst sufficiently large, typed, diverse class with instance methods. Local
+// union-find mutation belongs to one analysis; findings detach locations and messages from syntax.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.ClassRelatedness
 
 open System.Collections.Generic
@@ -16,9 +25,9 @@ open Energy.Core.TypeCohesion
 // in the same file". It groups a file's classes into families using three independent signals, then
 // flags the file when those families can't be unified by a naming affix.
 
-/// A class defined in the file, along with the methods nested directly (or transitively, through
-/// non-class nesting like a method's own closures) inside it. `Methods` is mutable to mirror the TS
-/// array that methods are pushed into during collection; read as a sequence elsewhere.
+/// A class declaration and its collected callable responsibilities. Named definitions within the
+/// class and directly bound class-member callables enter Methods; inline anonymous closures do not.
+/// Collection mutates Methods locally, then relatedness and diversity checks read the completed list.
 type ClassInfo =
     {
         Name: string option
@@ -27,11 +36,8 @@ type ClassInfo =
         Methods: ResizeArray<CallableView>
     }
 
-/// Zero-based index of a class within the file, branded so two can't be transposed.
-///
-/// decision: a branded alias, not a bare `number` — two adjacent bare-`number` parameters would
-/// themselves trip this project's own primitive-obsession swap-risk check (see primitiveObsession.ts),
-/// and a union-find over array positions is exactly that shape.
+/// Zero-based index into the current file's class list. This is an int alias for readability;
+/// it does not prevent mixing indices or enforce bounds. Union-find callers supply valid indices.
 type ClassIndex = int
 
 /// A minimal union-find grouping the file's classes into families.
@@ -45,9 +51,13 @@ type private UnionFind =
         Union: ClassIndex -> ClassIndex -> unit
     }
 
+/// Create mutable parent links for valid class indices. Find compresses paths by halving; Union joins
+/// representatives so later queries observe merged families.
 let private unionFind (size: int) : UnionFind =
     let parent = Array.init size (fun i -> i)
 
+    /// Find a valid class index's representative, mutating parent links by path halving to shorten
+    /// later searches.
     let rec find (i: ClassIndex) : ClassIndex =
         if parent.[i] <> i then
             // path halving: point this node at its grandparent, then keep climbing.
@@ -145,6 +155,8 @@ let private groupClassesIntoFamilies (classes: ClassInfo list) (language: Langua
     |> List.groupBy (fun (index, _) -> uf.Find index)
     |> List.map (fun (_, members) -> members |> List.map fst)
 
+/// Require every class to have a name before applying the shared leading-or-trailing-word heuristic to the
+/// whole file.
 let private namesHaveSharedDomain (classes: ClassInfo list) (singleDomainNameShare: float) =
     let names = classes |> List.map (fun c -> c.Name)
     let definiteNames = names |> List.choose id
@@ -152,6 +164,8 @@ let private namesHaveSharedDomain (classes: ClassInfo list) (singleDomainNameSha
     definiteNames.Length = names.Length
     && looksLikeSingleDomainByNames definiteNames singleDomainNameShare
 
+/// Render class families largest first, using anonymous placeholders for missing names and braces to
+/// distinguish groups.
 let private groupDescription (groups: int list list) (names: string option list) =
     groups
     |> List.map (List.map (fun index -> Option.defaultValue "(anonymous)" names.[index]))
@@ -266,8 +280,11 @@ type private GodClassCandidate =
         Signals: MethodSignals
         Severity: Severity
     }
-    // decision: rendering lives on the record as a static Create so the violation shape stays close to the
-    // data it describes; positions is supplied by the caller, never stored in the candidate.
+
+    /// Create a detached coherence finding at the candidate class's source position.
+    ///
+    /// decision: rendering lives on the record as a static Create so the violation shape stays close to the
+    /// data it describes; positions is supplied by the caller, never stored in the candidate.
     static member Create(positions: PositionLookup) : GodClassCandidate -> EnergyViolation =
         fun candidate ->
             let pos = positions.toPosition (nodeStartIndex candidate.Class.Node)

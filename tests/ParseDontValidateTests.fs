@@ -1,3 +1,12 @@
+// # ParseDontValidateTests
+//
+// Validation fixtures contrast discarded checks with contracts that retain useful evidence or construct a
+// domain value. Language-specific success and rejection shapes are exercised through the full pipeline,
+// with clean cases protecting conservative recognition. The fixture matrix supplies broader parity while
+// this suite guards focused rule behavior.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ParseDontValidateTests
 
 open Scriptorium.Nib.Assertion
