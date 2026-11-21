@@ -20,7 +20,7 @@ let count (source: string) (positions: PositionLookup) (items: Node list) : int 
     /// as executable work.
     let rec commentRanges node =
         if List.contains (nodeType node) [ NodeType "comment"; NodeType "line_comment"; NodeType "block_comment" ] then
-            [ nodeStartIndex node, nodeEndIndex node ]
+            [ (nodeStartIndex node, nodeEndIndex node) ]
         else
             nodeNamedChildren node |> List.collect commentRanges
 
