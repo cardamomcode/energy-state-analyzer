@@ -1,11 +1,28 @@
+// # CSharp
+//
+// C# methods, constructors, local functions, lambdas, and anonymous methods expose callable bodies and
+// explicit parameters. Error regions preserve catch/finally work, and recognized nullability attributes
+// can retain validation evidence. Ordinary and interpolated strings remain distinct syntax categories.
+// This adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all nodes borrow the
+// current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.CSharp
 
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+/// Grammar identity for block nodes, used to recognize syntax without comparing arbitrary source text.
 let private blockNodeType = NodeType "block"
+/// Grammar identity for try_statement nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryStatementNodeType = NodeType "try_statement"
+/// Grammar identity for catch_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private catchClauseNodeType = NodeType "catch_clause"
+/// Grammar identity for finally_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private finallyClauseNodeType = NodeType "finally_clause"
 
 /// Name C#'s lambda-expression node type.
@@ -93,6 +110,8 @@ let private callableViews (node: Node) : CallableView list =
     else
         []
 
+/// Read the named statements inside the recognized body block, falling back to direct named children when
+/// no block is present.
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -130,6 +149,8 @@ let private errorHandlingRegion (node: Node) : ErrorHandlingRegion option =
                         })
             })
 
+/// Count switch sections and add an implicit unmatched outcome when no section begins with default; non-
+/// switch nodes return None.
 let private switchBranchCount (node: Node) : int option =
     if nodeType node <> NodeType "switch_statement" then
         None
@@ -145,6 +166,8 @@ let private switchBranchCount (node: Node) : int option =
 
         Some(sections.Length + if hasFallback then 0 else 1)
 
+/// Extract the two operands of a binary == expression; other operators and unrecognized shapes yield no
+/// comparison.
 let private equalityComparisons (node: Node) : EqualityComparison list =
     if nodeType node <> NodeType "binary_expression" then
         []
@@ -159,6 +182,8 @@ let private equalityComparisons (node: Node) : EqualityComparison list =
             | _ -> []
         | None -> []
 
+/// Read the leading type and name children of a parameter node, returning None for other or incomplete
+/// shapes.
 let private extractTypedParameter (node: Node) : TypedParameter option =
     if nodeType node <> NodeType "parameter" then
         None
@@ -172,6 +197,8 @@ let private extractTypedParameter (node: Node) : TypedParameter option =
                 }
         | _ -> None
 
+/// Read the first non-modifier, non-attribute child of a method declaration as its return type; other node
+/// kinds return None.
 let private extractReturnType (node: Node) : string option =
     if nodeType node <> NodeType "method_declaration" then
         None
@@ -198,6 +225,7 @@ let private isNotNullWhenAttribute (node: Node) =
 
 /// Check that the extracted guard references this specific annotated parameter.
 let private conditionReferencesNotNullWhenParameter condition parameter =
+    /// Search condition syntax for a reference to the annotated parameter name.
     let rec references name node =
         (nodeType node = NodeType "identifier" && nodeText node = name)
         || (nodeChildren node |> List.exists (references name))
@@ -211,6 +239,7 @@ let private conditionReferencesNotNullWhenParameter condition parameter =
         && references (nodeText nameNode) condition
     | None -> false
 
+/// Read textual base types from the declaration's base-list syntax; absent base lists yield no names.
 let private baseClassNames (node: Node) : string list =
     nodeChildren node
     |> List.tryFind (fun child -> nodeType child = NodeType "base_list")
@@ -255,6 +284,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
         GetCallableViews = callableViews
         IsStaticMethod =
             fun node ->
+                /// Walk declaration owners for static syntax when classifying a class callable.
                 let rec hasStaticOwner candidate =
                     if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
                         true

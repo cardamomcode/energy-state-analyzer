@@ -1,3 +1,13 @@
+// # CPlusPlus
+//
+// Recursive declarators carry C++ names, explicit parameters, and trailing return types; pointer/reference
+// punctuation remains part of parameter type identity. Lambdas exclude captures from parameter counts.
+// Classes require bodies, switch alternatives include an unmatched path without default, and constants are
+// recognized syntactically. This adapter implements ../Core/LanguageAdapter.fs and is selected by
+// Registry.fs; all nodes borrow the current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.CPlusPlus
 
 open System
@@ -6,8 +16,14 @@ open System.Text.RegularExpressions
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+/// Grammar identity for try_statement nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryStatementNodeType = NodeType "try_statement"
+/// Grammar identity for compound_statement nodes, used to recognize syntax without comparing arbitrary
+/// source text.
 let private compoundStatementNodeType = NodeType "compound_statement"
+/// Grammar identity for catch_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private catchClauseNodeType = NodeType "catch_clause"
 
 /// Name C++'s named-function definition node type.
@@ -27,6 +43,8 @@ let private parameterChildTypes =
         NodeType "variadic_parameter_declaration"
     ]
 
+/// Read the named statements inside the recognized body block, falling back to direct named children when
+/// no block is present.
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -83,6 +101,8 @@ let private typeNodeTypes =
             NodeType "dependent_type"
         ]
 
+/// Declarator forms searched for parameter names and return-type syntax, including pointer, reference,
+/// array, and function wrappers.
 let private declaratorNodeTypes =
     Set.ofList
         [
@@ -95,15 +115,19 @@ let private declaratorNodeTypes =
             NodeType "parenthesized_declarator"
         ]
 
+/// Find the first node satisfying the predicate in pre-order, including the supplied root; return None when
+/// none matches.
 let rec private tryFindDescendant (predicate: Node -> bool) (node: Node) : Node option =
     if predicate node then
         Some node
     else
         nodeChildren node |> List.tryPick (tryFindDescendant predicate)
 
+/// Recognize grammar forms accepted as explicit type syntax by this adapter.
 let private isTypeNode (node: Node) =
     Set.contains (nodeType node) typeNodeTypes
 
+/// Recognize grammar forms that can carry a parameter name or nested declarator shape.
 let private isDeclaratorNode (node: Node) =
     Set.contains (nodeType node) declaratorNodeTypes
 
@@ -188,6 +212,8 @@ let private callableViews (node: Node) : CallableView list =
         ]
     | _ -> []
 
+/// Extract an explicit type and declarator name, retaining pointer/reference/array punctuation in the type
+/// identity. Missing type or name yields None.
 let private extractTypedParameter (node: Node) : TypedParameter option =
     let typeNode = nodeChildren node |> List.tryFind isTypeNode
     let declarator = nodeChildren node |> List.tryFind isDeclaratorNode
@@ -219,6 +245,8 @@ let private extractTypedParameter (node: Node) : TypedParameter option =
         | None -> None
     | _ -> None
 
+/// Prefer a trailing return type inside the declarator, otherwise read a direct type node; unavailable
+/// syntax yields None.
 let private extractReturnType (node: Node) : string option =
     let trailing =
         nodeChildren node
@@ -229,6 +257,8 @@ let private extractReturnType (node: Node) : string option =
     | Some trailingType -> tryFindDescendant isTypeNode trailingType |> Option.map nodeText
     | None -> nodeChildren node |> List.tryFind isTypeNode |> Option.map nodeText
 
+/// Count direct switch cases and add the implicit unmatched outcome when no default exists; non-switch
+/// nodes return None.
 let private switchBranchCount (node: Node) : int option =
     if nodeType node <> NodeType "switch_statement" then
         None
@@ -246,6 +276,8 @@ let private switchBranchCount (node: Node) : int option =
 
         Some(cases.Length + if hasDefault then 0 else 1)
 
+/// Extract the two operands of a binary == expression; other operators and unrecognized shapes yield no
+/// comparison.
 let private equalityComparisons (node: Node) : EqualityComparison list =
     if nodeType node <> NodeType "binary_expression" then
         []
@@ -260,6 +292,8 @@ let private equalityComparisons (node: Node) : EqualityComparison list =
             | _ -> []
         | None -> []
 
+/// Walk ancestors to an optional parameter and check that the value starts after its equals token, stopping
+/// at a function boundary.
 let rec private isDefaultParameterValue (node: Node) : bool =
     match nodeParent node with
     | Some parent when nodeType parent = NodeType "optional_parameter_declaration" ->
@@ -269,6 +303,8 @@ let rec private isDefaultParameterValue (node: Node) : bool =
     | Some parent when nodeType parent <> NodeType "function_definition" -> isDefaultParameterValue parent
     | _ -> false
 
+/// Recognize enum members and declarations or fields with const or constexpr qualifiers for magic-number
+/// exemptions.
 let private isExplicitConstant (node: Node) : bool =
     if nodeType node = NodeType "enumerator" then
         true
@@ -283,6 +319,7 @@ let private isExplicitConstant (node: Node) : bool =
     else
         false
 
+/// Read textual base types from the declaration's base-list syntax; absent base lists yield no names.
 let private baseClassNames (node: Node) : string list =
     match
         nodeChildren node
@@ -311,6 +348,7 @@ let private isMatchCaseLiteral (node: Node) : bool =
         else
             not (text.Contains('.') || text.Contains('e'))
 
+/// Recognize class or struct specifiers with a body, excluding forward declarations.
 let private isClassDefinition (node: Node) : bool =
     (nodeType node = NodeType "class_specifier"
      || nodeType node = NodeType "struct_specifier")
@@ -350,6 +388,8 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
         GetCallableViews = callableViews
         IsStaticMethod =
             fun node ->
+                /// Walk the declaration owner chain for static syntax when classifying a callable as an
+                /// instance or static method.
                 let rec hasStaticOwner candidate =
                     if nodeChildren candidate |> List.exists (fun child -> nodeText child = "static") then
                         true

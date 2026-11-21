@@ -1,3 +1,12 @@
+// # CognitiveSyntax
+//
+// Shared cognitive syntax turns grammar control forms into score increments and nested branch bodies. It
+// distinguishes else-if placement, ordinary match arms from exception rules, and unconditional or labeled
+// jumps. Language adapters supply their decision kinds; ../Core/Detectors/Cognitive.fs consumes the
+// normalized structure.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.CognitiveSyntax
 
 open Energy.Core.TreeSitter

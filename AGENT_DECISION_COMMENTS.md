@@ -2,7 +2,7 @@
 
 > Preserve the why in agent-written, human-reviewed code.
 
-- Specification version: **0.4.1**
+- Specification version: **0.5.0**
 - Full specification: <https://github.com/dbrattli/adc>
 
 Agent Decision Comments (ADCs) are concise, structured annotations that keep
@@ -10,13 +10,14 @@ durable engineering decisions beside the code they govern. They use ordinary
 comments, documentation comments, or docstrings, and they require no runtime
 dependency.
 
-## The four labels
+## Labels
 
 ```text
 decision:    A deliberate choice and the reason for it.
 invariant:   A falsifiable property that the code must preserve.
 assumption:  An external belief that this code does not guarantee.
 tradeoff:    A cost accepted in exchange for a benefit.
+lean:        A formal specification or supporting declaration written in Lean.
 ```
 
 Directives are optional. Add only those that capture non-obvious rationale.
@@ -39,6 +40,23 @@ not an assumption.
 - Update or remove a directive whenever its code or rationale changes.
 
 The em dash is a readability convention, not a parser delimiter.
+
+## Optional formal intent
+
+Use `lean:` when a precise model helps explain a contract. Explain the correspondence
+between model parameters and source values, and the model's limits, beside it.
+An adjacent definition needs no extra reference; `model:` and `ref:` are not directives.
+
+Write one Lean command per directive line, raw or inside one pair of Markdown
+backticks. Multiline commands use fenced `lean` blocks inside host comments,
+preserving relative indentation. Imports, namespaces, and declarations form one
+extracted compilation unit in source order, subject to the adopted extractor's
+language and comment support.
+
+Lean checks well-formedness, not satisfiability, correct requirements, or conformance
+of the F# implementation. Optional proofs establish model properties under their
+assumptions. This repository has no adopted Lean extraction check; prose directives
+remain sufficient, and source annotation does not constitute program proof.
 
 ```python
 def process_events(queue, handle):
@@ -86,6 +104,8 @@ changing the code.
 Before modifying code, read the ADCs already governing it.
 
 - Preserve an `invariant:` or justify the change explicitly.
+- Preserve `lean:` contracts and their parameter correspondence; review semantic
+  changes explicitly and rerun any adopted Lean checks.
 - Do not silently reverse a `decision:`.
 - Validate an `assumption:` when the change depends on it.
 - Reconsider a `tradeoff:` when its cost or benefit changes.

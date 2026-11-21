@@ -1,3 +1,12 @@
+// # ImportCoherence
+//
+// Import coherence distinguishes many dependency sources from the local vocabulary introduced by members,
+// wildcards, or F# sibling opens. It chooses one strongest import signal per file and reports at the
+// supplied position. Adapter-normalized imports preserve visibility kind and aliases; Kotlin uses its
+// documented higher member fan-out threshold.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.ImportCoherence
 
 open Energy.Core
@@ -27,6 +36,8 @@ let private mostOpenedFSharpSiblingNamespace
     |> List.sortByDescending snd
     |> List.tryHead
 
+/// Count member bindings per import source and return the largest source meeting the inclusive fan-out
+/// threshold, or None.
 let private widestMemberImportFanOut
     (imports: LanguageAdapter.ImportInfo list)
     (memberImportFanOutThreshold: int)
@@ -50,6 +61,8 @@ let private memberImportFanOutThreshold (languageId: string) (coherence: Coheren
     else
         coherence.MemberImportFanOutThreshold
 
+/// Describe the selected import signal, prioritizing member fan-out, then wildcard
+/// pollution, F# sibling opens, and overall source breadth.
 let private importMessage
     (languageId: string)
     (hasWildcard: bool)

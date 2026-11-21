@@ -1,3 +1,12 @@
+// # SarifExport
+//
+// The explicit export command scans the first workspace folder with its resolved policy and the
+// activation's grammar cache. It reads files from disk, analyzes sequentially, and writes .energy-
+// state/latest.sarif only after all analyses succeed. Errors are surfaced to the user; a write failure is
+// typed but is not an atomic rollback. Successful writes are opened in the editor.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.SarifExport
 
 open System.Threading.Tasks
@@ -10,9 +19,11 @@ open Energy.Extension.Analysis
 open Energy.Extension.Grammar
 open Energy.Extension.Vscode.Host
 
+/// Serialize the SARIF object as two-space-indented JSON before writing the report.
 [<Emit("JSON.stringify($0, null, 2)")>]
 let private stringify (value: obj) : string = nativeOnly
 
+/// Read a workspace file as UTF-8, mapping filesystem failure to SourceReadFailed with the file identity.
 let private readSource (Path fileName as filePath) =
     Energy.Core.NodeInterop.readFileSyncSafe filePath (Encoding "utf8")
     |> Result.mapError (fun message -> SourceReadFailed(fileName, message))
@@ -43,6 +54,8 @@ let private analyzeFile rootDir grammar thresholds (Path fileName as file) =
                         fileResult)
     }
 
+/// Analyze export files sequentially in input order. Stop on the first error and return no partial report;
+/// an empty list succeeds with no rows.
 let rec private analyzeFiles rootDir grammar thresholds files =
     task {
         match files with
@@ -57,6 +70,9 @@ let rec private analyzeFiles rootDir grammar thresholds files =
                 return rest |> Result.map (fun results -> result :: results)
     }
 
+/// Create .energy-state if needed and overwrite latest.sarif with the rendered report. Return its path only
+/// after the synchronous write succeeds; failures become ReportWriteFailed and may leave a directory or
+/// partial file.
 let private writeReport rootDir results =
     let reportDirectory = joinPath rootDir (Path ".energy-state")
     let reportPath = joinPath reportDirectory (Path "latest.sarif")
@@ -86,6 +102,7 @@ let export (rootDir: Path) grammar thresholds : Task<Result<Path, AnalysisError>
             return analysis |> Result.bind (writeReport rootDir)
     }
 
+/// Select the first workspace folder for explicit SARIF export, or None if no folder is open.
 let private workspaceRoot () =
     Energy.Extension.Vscode.Workspace.workspaceFolders workspace
     |> Option.ofObj

@@ -1,3 +1,12 @@
+// # Coherence
+//
+// Coherence evaluates file responsibility using a collected inventory of functions, classes, and imports.
+// Large-function counts, unrelated function signatures/names, class families, god-class diversity, and
+// import breadth contribute distinct findings. CoherenceCollection.fs owns membership; Config.fs owns
+// thresholds, and measured type evidence takes precedence over a naming fallback.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.Coherence
 
 open Energy.Core
@@ -229,6 +238,8 @@ let analyzeFileCoherence (ctx: Context.AnalysisContext) : Context.AnalysisContex
 
     Context.addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Context.Detector =
     {
         Name = "coherence"

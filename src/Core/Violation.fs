@@ -1,3 +1,11 @@
+// # Violation
+//
+// Findings are the durable output of analysis: source locations, severity, rule category, remediation
+// text, and optional heat weights. They contain no live parser nodes. This module owns stable report
+// names, SARIF rule IDs, and help links so CLI and editor presentation share the same identities.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Violation
 
 /// Shared violation model for the detector pipeline.
@@ -12,6 +20,8 @@ type Severity =
     | Medium
     | High
 
+/// Rule categories shared by detection, suppression, and presentation. Magic combines numeric and string
+/// literals; exception-boundary rules retain independent identities.
 type ViolationType =
     | Nesting
     | Complexity
@@ -39,6 +49,8 @@ type ViolationType =
 /// across the function body instead of a single flat highlight, so the worst lines stand out.
 type Hotspot = { Line: int; Weight: int }
 
+/// Detached finding at a zero-based line and column, carrying category, severity, message, and optional
+/// per-line heat weights. It owns no syntax nodes and survives tree deletion.
 type EnergyViolation =
     {
         Line: int
@@ -103,6 +115,7 @@ let violationDisplayName kind =
     | _ -> violationTypeName kind
 
 /// Stable, user-facing identifiers for analyzer rules.
+///
 /// decision: rule IDs are opaque, sequential public identifiers rather than derived display names,
 /// so renaming a detector never breaks SARIF baselines, VS Code links, or documentation references.
 let violationRuleId =
@@ -126,6 +139,7 @@ let violationRuleId =
     | OversizedRecoveryBlock -> "ESA017"
 
 /// Canonical documentation for each user-facing analyzer rule.
+///
 /// decision: keeps SARIF help links beside stable rule identifiers so a detector rename or report
 /// renderer change cannot silently send users to the generic detector index.
 let violationHelpUri =
@@ -160,6 +174,7 @@ let violationHelpUri =
         "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/parse-dont-validate.md"
     | Suppression -> "https://github.com/cardamomcode/energy-state-analyzer/tree/main/docs/detectors/suppression.md"
 
+/// Render a severity as the stable lowercase name used in JSON reports.
 let severityName =
     function
     | Low -> "low"

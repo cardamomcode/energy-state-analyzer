@@ -1,3 +1,11 @@
+// # CognitiveTests
+//
+// This suite exercises cognitive complexity scenarios; each case describes the positive result, exemption,
+// boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing and fixture
+// assertions live in TestUtils.fs, while named case descriptions below state the protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.CognitiveTests
 
 open Scriptorium.Nib.Assertion
@@ -13,6 +21,8 @@ open Energy.Tests.TestUtils
 // never flagged), medium and high nesting examples (F# includes explicit else increments). TypeScript/F#/Kotlin are
 // exercised here as their language adapters were ported alongside the detector.
 
+/// Run the named cognitive complexity scenarios below; each case describes the positive result, exemption,
+/// boundary, or failure contract it protects.
 let tests =
     let cases =
         [

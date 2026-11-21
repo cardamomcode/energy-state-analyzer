@@ -1,3 +1,12 @@
+// # ConfigTests
+//
+// This suite exercises configuration defaults and merging scenarios; each case describes the positive
+// result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared
+// parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state the
+// protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ConfigTests
 
 open System
@@ -17,6 +26,7 @@ open Energy.Core.Paths
 // the same filesystem boundary as product code. Import (not Emit) is used because the test bundle is
 // ESM, where `require` is absent.
 
+/// Read Node's temporary directory for isolated configuration-file inputs.
 [<Import("tmpdir", "node:os")>]
 let private osTmpDir () : string = nativeOnly
 
@@ -26,6 +36,8 @@ let private osTmpDir () : string = nativeOnly
 let private tempConfigPath () =
     Path(osTmpDir () + "/esa-config-test-" + Guid.NewGuid().ToString("N") + ".json")
 
+/// Write JSON to a unique temporary path and load it through the public configuration boundary. Fail the
+/// test on a typed config error; this helper leaves the temporary file on disk.
 let private loadTempConfig (json: string) : AnalyzeOptions =
     let path = tempConfigPath ()
 
@@ -36,6 +48,7 @@ let private loadTempConfig (json: string) : AnalyzeOptions =
     | Error error -> failwith (configErrorMessage error)
 
 // decision: pin each default so a later edit to Config.fs cannot silently drift one detector's number.
+/// Pin consolidated detector defaults so policy changes require an explicit expectation update.
 let defaultsTests =
     [
         testAsync (
@@ -156,6 +169,7 @@ let defaultsTests =
     ]
 
 // decision: the default amber is declared once here, so the editor and CI can never disagree on it.
+/// Pin editor color and opacity defaults independently from project threshold configuration.
 let colorsTests =
     [
         testAsync (
@@ -174,6 +188,7 @@ let colorsTests =
 
 // decision: a project file overrides the matching field but leaves every other field at its default,
 // so one .esaconfig.json can retune nesting while keeping the built-in cyclomatic/cognitive numbers.
+/// Exercise supplied versus absent project settings to protect per-field precedence over defaults.
 let mergePrecedenceTests =
     [
         testAsync (
@@ -319,6 +334,7 @@ let mergePrecedenceTests =
 
 // decision: a provided allowlist is UNIONED with the structural/sentinel literals, never replacing
 // them — so 0/1/-1/2 and "" / "utf-8" / "__main__" stay exempt no matter what a project sets.
+/// Verify project literal exemptions extend structural defaults rather than silently replacing them.
 let allowlistUnioningTests =
     [
         testAsync (
@@ -354,6 +370,8 @@ let allowlistUnioningTests =
         )
     ]
 
+/// Run the named configuration defaults and merging scenarios below; each case describes the positive
+/// result, exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "Config: single source of truth",

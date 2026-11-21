@@ -1,3 +1,12 @@
+// # ReportHuman
+//
+// The human report explains findings and prioritizes the worst affected files. Recognized complexity
+// messages map through a bounded score curve; files without such values use a severity fallback.
+// Repository risk is the maximum file score, while finding counts describe breadth. This view does not
+// replace Report.fs additive scores or prove testing effort.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.ReportHuman
 
 open System.Text.RegularExpressions
@@ -11,13 +20,21 @@ open Energy.Core.Violation
 /// the module (not in Core.Config) instead of being hidden next to their use sites. The upper
 /// complexity bound stays an int to match extractComplexityValue's return type.
 let private maxComplexityScore = 100
+/// Maximum score on the human report's zero-to-ten prioritization scale.
 let private scoreCeiling = 10.0
+/// Exclusive upper boundary of the Low risk band.
 let private lowThreshold = 4.0
+/// Exclusive upper boundary of the Medium risk band.
 let private mediumThreshold = 7.0
+/// Exclusive upper boundary of the High risk band; scores at or above it are Critical.
 let private highThreshold = 9.0
+/// Fallback file score when no complexity value is available and at least one finding is high severity.
 let private highFileScore = 7.5
+/// Fallback file score when no complexity value is available and the worst finding is medium severity.
 let private mediumFileScore = 5.0
 
+/// Human-report risk bands, including NoRisk for zero and Critical for extreme complexity; these are
+/// distinct from detector severities.
 type RiskLevel =
     | NoRisk
     | LowRisk
@@ -25,8 +42,11 @@ type RiskLevel =
     | HighRisk
     | Critical
 
+/// Piecewise-linear anchors mapping raw complexity counts to the human report's score scale.
 let private complexityCurve = [ 0, 0.0; 10, 3.9; 20, 6.9; 50, 8.9; 100, 10.0 ]
 
+/// Map a complexity count onto the piecewise-linear score curve, rounding to one decimal and clamping
+/// nonpositive counts to zero and counts of at least 100 to ten.
 let complexityToScore value =
     if value <= 0 then
         0.0
@@ -40,6 +60,7 @@ let complexityToScore value =
             let ratio = float (value - previousValue) / float (nextValue - previousValue)
             System.Math.Round(previousScore + ratio * (nextScore - previousScore), 1)
 
+/// Classify a score using the fixed risk-band boundaries; nonpositive scores have no risk.
 let classifyScore score =
     if score <= 0.0 then NoRisk
     elif score < lowThreshold then LowRisk
@@ -47,9 +68,11 @@ let classifyScore score =
     elif score < highThreshold then HighRisk
     else Critical
 
+/// Convert a raw complexity count to the report score and classify that rounded score.
 let classifyComplexityScore value =
     complexityToScore value |> classifyScore
 
+/// Render the risk-band name used in file headings and report totals.
 let private riskLabel =
     function
     | NoRisk -> "None"
@@ -70,6 +93,7 @@ let private riskDescription =
     | HighRisk -> "complex and difficult to verify; separate responsibilities and test decisions independently"
     | Critical -> "extremely complex; restructure into smaller, independently understandable and testable units"
 
+/// Render a human category label, including the independent protected-scope and recovery rules.
 let private categoryLabel =
     function
     | Nesting -> "Nesting depth"
@@ -135,6 +159,8 @@ let private extractComplexityValue violation =
             None
     | _ -> None
 
+/// Describe recognized complexity values in descending order and use the worst for risk guidance. Return
+/// None when no detector message yields a value.
 let private describeComplexityFindings label violations =
     let values = violations |> List.choose extractComplexityValue |> List.sortDescending
 
@@ -164,6 +190,8 @@ let private describeComplexityFindings label violations =
                 (riskDescription level)
         )
 
+/// Describe complexity using its numeric scores, or summarize another category by severity counts and its
+/// reading burden.
 let private describeCategoryFindings violationType violations =
     match violationType with
     | Complexity
@@ -219,6 +247,8 @@ let private fileScore violations =
     | [] when not violations.IsEmpty -> 2.0
     | [] -> 0.0
 
+/// Render a file heading with its risk score and one description per finding category, retaining category
+/// encounter order.
 let private renderFileSection result =
     let score = fileScore result.Violations
 

@@ -1,3 +1,11 @@
+// # Context
+//
+// A document analysis shares immutable source, syntax, positions, language policy, and options across
+// detector stages. Each stage returns a new context with its findings prepended in reverse order; it does
+// not mutate the source or own the tree. Analyze.fs is responsible for final ordering and suppression.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Context
 
 open Energy.Core.Violation

@@ -1,3 +1,12 @@
+// # RustValidation
+//
+// Rust validation recognition requires narrow, explicit error/success carrier shapes: an early-return
+// guard or a two-arm match with an unchanged success payload. It does not treat arbitrary fallible calls
+// or nested returns as complete rejection. These conservative syntax facts feed the shared information-
+// preservation advisory.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.RustValidation
 
 open Energy.Core.TreeSitter
@@ -101,6 +110,7 @@ let private matched rejection successVariant items =
             let rejectPattern = nodeField "pattern" invalid
             let fallbackPattern = nodeField "pattern" valid
 
+            /// Distinguish a selective rejecting pattern from an unconditional fallback pattern.
             let selective pattern =
                 // decision: tree-sitter puts an arm guard inside match_pattern; a second named
                 // child makes the rejection conditional and cannot establish the checked fact.

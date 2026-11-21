@@ -1,3 +1,12 @@
+// # NodeInterop
+//
+// Host callers that need typed failures use this boundary around throwing Node operations. File reads and
+// child-process calls return output or an error message; JSON loading additionally requires an object-
+// shaped root. Failure conversion is not rollback and does not make child processes or file writes
+// transactional.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.NodeInterop
 
 open Fable.Core
@@ -33,9 +42,13 @@ let private attempt<'T> (fn: unit -> 'T) : Result<'T, string> =
     with exn ->
         Error(string<exn> exn)
 
+/// Read a file synchronously with the requested encoding, converting filesystem exceptions into an Error
+/// message.
 let readFileSyncSafe (path: Path) (encoding: Encoding) : Result<string, string> =
     attempt (fun () -> readFileSync path encoding)
 
+/// Execute a command synchronously and return its output or an Error message. Failure conversion does not
+/// undo side effects performed by the child process.
 let execFileSyncSafe (command: string) (arguments: string array) (options: obj) : Result<string, string> =
     attempt (fun () -> unsafeExecFileSync command arguments options)
 

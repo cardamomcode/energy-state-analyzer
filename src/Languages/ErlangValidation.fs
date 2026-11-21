@@ -1,3 +1,11 @@
+// # ErlangValidation
+//
+// Erlang validation recognition pairs an explicit rejection clause with a direct identity or boolean
+// success expression. Only known terminating BIF syntax and narrow case/if shapes count; arbitrary calls
+// are not assumed to reject. Erlang.fs delegates these facts to the shared parse-dont-validate detector.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.ErlangValidation
 
 open Energy.Core.TreeSitter

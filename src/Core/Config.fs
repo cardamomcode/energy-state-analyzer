@@ -1,3 +1,13 @@
+// # Config
+//
+// Configuration gives the CLI and editor one set of detector defaults. Optional project-file values
+// overlay those defaults after explicit-path or nearest-parent discovery; missing automatic configuration
+// uses defaults, while selected-file read or parse failures remain typed errors. Hosts apply their own
+// permitted overrides after this boundary. See ../Cli.fs and ../Extension/ConfigurationValues.fs for
+// precedence.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Config
 
 // Define every analyzer default and load a project's `.esaconfig.json` over those defaults.
@@ -25,13 +35,8 @@ let configErrorMessage =
     | ConfigReadFailed(path, message) -> "Could not read configuration " + path + ": " + message
     | ConfigInvalid(path, message) -> "Invalid configuration " + path + ": " + message
 
-/// ---------------------------------------------------------------------------
-/// a) Consolidated defaults: every threshold type + value, allowlist, ratio, and color.
-///
-/// These are all primitive records (int/float/bool/string/lists), so this block is data — `let`
-/// bindings, not functions — and leaves the rest of Core free to import from here instead of defining
-/// its own config values. The named aliases below let hosts keep importing one small value at a time.
-/// ---------------------------------------------------------------------------
+/// Enable nesting detection and set strict medium/high boundaries for the number of enclosing
+/// control nodes. Consolidated default values below keep host policies aligned.
 
 type NestingThresholds =
     {
@@ -40,6 +45,8 @@ type NestingThresholds =
         HighThreshold: int
     }
 
+/// Enable cyclomatic scoring and set its medium and high count boundaries; findings require strictly
+/// exceeding a boundary.
 type CyclomaticThresholds =
     {
         Enabled: bool
@@ -47,6 +54,8 @@ type CyclomaticThresholds =
         HighThreshold: int
     }
 
+/// Enable cognitive scoring and set its medium and high count boundaries; findings require strictly
+/// exceeding a boundary.
 type CognitiveThresholds =
     {
         Enabled: bool
@@ -54,6 +63,8 @@ type CognitiveThresholds =
         HighThreshold: int
     }
 
+/// Configure file and class responsibility heuristics: function/method/import counts, large-function lines,
+/// typed coverage and diversity ratios, naming share, and severity escalation.
 type CoherenceThresholds =
     {
         Enabled: bool
@@ -74,6 +85,8 @@ type CoherenceThresholds =
         LargeFunctionSeverityMultiplier: float
     }
 
+/// Enable conditional-chain suggestions and require at least MinBranches branches before checking a common
+/// discriminant.
 type MatchOpportunityThresholds = { Enabled: bool; MinBranches: int }
 
 /// A 0..1 ratio threshold with a high-water mark and minimum item count for error-handling regions.
@@ -103,6 +116,8 @@ type ErrorShadowingThresholds =
         RecoveryBlock: RecoveryBlockThresholds
     }
 
+/// Enable parameterCount scoring and set its medium and high count boundaries; findings require strictly
+/// exceeding a boundary.
 type ParameterCountThresholds =
     {
         Enabled: bool
@@ -125,9 +140,12 @@ type OpaqueBooleanThresholds =
 
 /// Enable the advisory for checks whose result loses the checked property.
 type ParseDontValidateThresholds = { Enabled: bool }
+/// Enable the advisory for boolean operators used as statement-level control flow.
 type LogicalControlFlowThresholds = { Enabled: bool }
+/// Enable guard-clause and conditional-inversion suggestions.
 type InversionThresholds = { Enabled: bool }
 
+/// Enable literal-number checks, exempt exact numeric allowlist values, and optionally include test code.
 type MagicNumberOptions =
     {
         Enabled: bool
@@ -135,6 +153,8 @@ type MagicNumberOptions =
         IncludeTestFiles: bool
     }
 
+/// Enable repeated decision-string checks, set the minimum occurrence count, exempt exact allowlist text,
+/// and optionally include test code.
 type MagicStringOptions =
     {
         Enabled: bool
@@ -263,30 +283,56 @@ let defaultAnalyzeOptions =
             }
     }
 
+/// Shared default NestingThresholds values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultNestingThresholds = defaultAnalyzeOptions.Nesting
 
+/// Shared default CyclomaticThresholds values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultCyclomaticThresholds = defaultAnalyzeOptions.Cyclomatic
 
+/// Shared default CognitiveThresholds values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultCognitiveThresholds = defaultAnalyzeOptions.Cognitive
 
+/// Shared default CoherenceThresholds values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultCoherenceThresholds = defaultAnalyzeOptions.Coherence
 
+/// Shared default MatchOpportunityThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultMatchOpportunityThresholds = defaultAnalyzeOptions.MatchOpportunity
 
+/// Shared default ParameterCountThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultParameterCountThresholds = defaultAnalyzeOptions.ParameterCount
 
+/// Shared default PrimitiveObsessionThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultPrimitiveObsessionThresholds = defaultAnalyzeOptions.PrimitiveObsession
 
+/// Shared default OpaqueBooleanThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultOpaqueBooleanThresholds = defaultAnalyzeOptions.OpaqueBoolean
 
+/// Shared default LogicalControlFlowThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultLogicalControlFlowThresholds = defaultAnalyzeOptions.LogicalControlFlow
 
+/// Shared default InversionThresholds values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultInversionThresholds = defaultAnalyzeOptions.Inversion
 
+/// Shared default ErrorShadowingThresholds values projected from defaultAnalyzeOptions, so individual
+/// consumers use the same policy as whole-document analysis.
 let defaultErrorShadowingThresholds = defaultAnalyzeOptions.ErrorShadowing
 
+/// Shared default MagicNumberOptions values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultMagicNumberOptions = defaultAnalyzeOptions.MagicNumber
 
+/// Shared default MagicStringOptions values projected from defaultAnalyzeOptions, so individual consumers
+/// use the same policy as whole-document analysis.
 let defaultMagicStringOptions = defaultAnalyzeOptions.MagicString
 
 /// Default editor energy-level colors and background opacity.
@@ -302,6 +348,7 @@ type EnergyColors =
         BackgroundOpacity: float
     }
 
+/// Default severity colors and background opacity used when editor settings provide no override.
 let defaultEnergyColors =
     {
         HighEnergy = "#fb8500"
@@ -326,18 +373,23 @@ type FileNesting =
         HighThreshold: int option
     }
 
+/// Optional project-file overrides for cyclomatic medium and high thresholds; absent values retain
+/// defaults.
 type FileCyclomatic =
     {
         MediumThreshold: int option
         HighThreshold: int option
     }
 
+/// Optional project-file overrides for cognitive medium and high thresholds; absent values retain defaults.
 type FileCognitive =
     {
         MediumThreshold: int option
         HighThreshold: int option
     }
 
+/// Optional project-file overrides for coherence counts and ratios; each absent field preserves its
+/// consolidated default.
 type FileCoherence =
     {
         LargeFunctionLines: int option
@@ -357,8 +409,10 @@ type FileCoherence =
         LargeFunctionSeverityMultiplier: float option
     }
 
+/// Optional project minimum branch count for conditional-chain suggestions.
 type FileMatchOpportunity = { MinBranches: int option }
 
+/// Optional project ratio boundaries and minimum item count for one protected or recovery-region mode.
 type FileErrorShadowingMode =
     {
         Threshold: float option
@@ -374,20 +428,26 @@ type FileErrorShadowing =
         RecoveryBlockMaxLines: int option
     }
 
+/// Optional project-file overrides for parameterCount medium and high thresholds; absent values retain
+/// defaults.
 type FileParameterCount =
     {
         MediumThreshold: int option
         HighThreshold: int option
     }
 
+/// Optional numeric exemptions from the project file, merged with structural defaults.
 type FileMagicNumber = { Allowlist: float list option }
 
+/// Optional decision-string occurrence threshold and exemptions from the project file.
 type FileMagicString =
     {
         MinDuplicates: int option
         Allowlist: string list option
     }
 
+/// Parsed project policy sections whose optional fields distinguish omitted settings from supplied values
+/// before merging with defaults.
 type FileConfig =
     {
         Nesting: FileNesting
@@ -409,6 +469,7 @@ type FileConfig =
 //esa-ignore: coherence
 let private getProp (value: obj) (key: string) : obj = nativeOnly
 
+/// Recognize null or missing JavaScript properties at the JSON configuration boundary.
 [<Emit("$0 == null")>]
 let private isNullOrUndefined (value: obj) : bool = nativeOnly
 
@@ -427,6 +488,8 @@ let private readNumber (section: obj option) (key: string) : float option =
     |> Option.bind (fun section -> field section key)
     |> Option.map unbox<float>
 
+/// Read an optional array-valued configuration field and expose it as an F# list; this cast does not
+/// validate individual element types.
 let private readList (section: obj option) (key: string) : obj list option =
     section
     |> Option.bind (fun section -> field section key)
@@ -437,6 +500,8 @@ let private readList (section: obj option) (key: string) : obj list option =
 /// decision: walk up parent directories from the start dir until .esaconfig.json is found or root is
 /// reached — the same ".gitignore" discovery a linter expects, so one file configures every subtree.
 let findConfigFile (startDir: Path) : Path option =
+    /// Search this directory then its parents, stopping at the first config file or the filesystem
+    /// root.
     let rec walkUp (dir: Path) : Path option =
         let candidate = joinPath dir (Path configFileName)
 
@@ -567,6 +632,7 @@ let parseFileConfig (raw: obj) : FileConfig =
 let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions =
     let structuralMagicNumberAllowlist = defaults.MagicNumber.Allowlist
 
+    /// Union supplied numeric exemptions with structural defaults and remove duplicates.
     let unionWithStructuralMagicNumber provided =
         structuralMagicNumberAllowlist
         @ (provided
@@ -574,6 +640,7 @@ let mergeOptions (defaults: AnalyzeOptions) (file: FileConfig) : AnalyzeOptions 
 
     let structuralMagicStringAllowlist = defaults.MagicString.Allowlist
 
+    /// Union supplied string exemptions with structural defaults and remove duplicates.
     let unionWithStructuralMagicString provided =
         structuralMagicStringAllowlist
         @ (provided

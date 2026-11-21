@@ -1,3 +1,12 @@
+// # ReportSarif
+//
+// SARIF rendering translates detached findings into rule metadata and result locations for external code-
+// scanning consumers. Stable identifiers and help links come from Violation.fs; source coordinates are
+// converted at this output boundary. The renderer builds data only: CLI and SarifExport.fs choose
+// serialization and persistence.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.ReportSarif
 
 open Fable.Core.JsInterop
@@ -12,6 +21,7 @@ open Energy.Core.Violation
 /// reliable relative path back to package.json across their differing Fable output layouts.
 let private toolVersion = "0.24.0"
 
+/// Map high, medium, and low detector severity to SARIF error, warning, and note levels.
 let private sarifLevel =
     function
     | High -> "error"

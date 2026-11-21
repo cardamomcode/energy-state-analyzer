@@ -1,3 +1,12 @@
+// # PythonAdapterSyntax
+//
+// Python membership and import helpers normalize literal collections, aliases, wildcard visibility, and
+// declarative package facades. Membership requires every collection element to be a recognized string. Re-
+// export exemptions require static facade wiring, so arbitrary initializer work still counts as
+// responsibility. Python.fs uses these hooks.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.PythonAdapterSyntax
 
 open Energy.Core.TreeSitter
@@ -28,6 +37,8 @@ let private aliasedImportPartCount = 3
 /// decision: carries failure in tuple state rather than an option accumulator because Fable cannot
 /// lower the latter inside the nested List.fold used here.
 let private collectStringValues (collection: Node) =
+    /// Accumulate recognized literal strings and remember any unsupported element so a mixed collection
+    /// is rejected as a whole.
     let step (failed: bool, values: string list) (child: Node) =
         if failed then
             true, values

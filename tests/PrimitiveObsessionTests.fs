@@ -1,3 +1,12 @@
+// # PrimitiveObsessionTests
+//
+// This suite exercises primitive parameter and string-dispatch signals scenarios; each case describes the
+// positive result, exemption, boundary, or failure contract it protects. Tests are registered by Main.fs.
+// Shared parsing and fixture assertions live in TestUtils.fs, while named case descriptions below state
+// the protected outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.PrimitiveObsessionTests
 
 open Scriptorium.Quill
@@ -8,6 +17,8 @@ open Energy.Core.Analyze
 open Energy.Languages
 open Energy.Tests.TestUtils
 
+/// Run the named primitive parameter and string-dispatch signals scenarios below; each case describes the
+/// positive result, exemption, boundary, or failure contract it protects.
 let tests =
     let cases =
         [
@@ -42,6 +53,8 @@ let tests =
                                     let nonAdjacentBooleanBlindness =
                                         findFunctionRange source (FunctionName "flaggedNonAdjacentBooleanBlindness")
 
+                                    /// Select primitive-obsession findings within the supplied scenario
+                                    /// range.
                                     let primitiveHits range =
                                         violationsIn violations range
                                         |> List.filter (fun violation -> violation.Type = PrimitiveObsession)
@@ -107,6 +120,7 @@ let tests =
                             let violations =
                                 analyzeFixture source tree Python.pythonLanguageAdapter "python/primitive_obsession.py"
 
+                            /// Count primitive-obsession findings for the named fixture function.
                             let hits name =
                                 violationsIn violations (findFunctionRange source (FunctionName name))
                                 |> List.filter (fun violation -> violation.Type = PrimitiveObsession)
@@ -141,6 +155,8 @@ let tests =
 
                             assertValidPositions violations source
 
+                            /// Count the named function's primitive-obsession findings matching the
+                            /// supplied message fragment.
                             let hits (name: string) (message: string) =
                                 violationsIn violations (findFunctionRange source (FunctionName name))
                                 |> List.filter (fun v -> v.Type = PrimitiveObsession && v.Message.Contains(message))

@@ -1,3 +1,12 @@
+// # Nesting
+//
+// Nesting analysis tracks the number of enclosing adapter-declared control nodes. It reports a control
+// node only when its incoming depth strictly exceeds the medium threshold, escalating past the high
+// threshold. Traversal preserves parent-before-child and sibling source order; the shared pipeline owns
+// enable gating.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.Nesting
 
 open Energy.Core.Violation
@@ -12,7 +21,8 @@ open Energy.Core.Context
 // than the medium threshold; severity escalates to high past the high threshold. Each violation is
 // anchored at the control node's start position.
 
-/// Read nesting thresholds from the shared config rather than re-exporting a module-level copy.
+/// Analyze nesting in source order, reporting control nodes whose incoming depth strictly exceeds
+/// the medium threshold and escalating past the high threshold. The pipeline owns enable gating.
 ///
 /// decision: default nesting thresholds live in Core.Config as the single source of truth; this
 /// detector reads them from ctx.Options so it no longer re-exports a module-level copy.
@@ -22,6 +32,8 @@ let analyzeNesting (ctx: AnalysisContext) : AnalysisContext =
     // node emits its own violation before descending into its children, and siblings are visited
     // left to right. `myViol @ childResults` places this node's violation ahead of its subtree while
     // preserving sibling order — no accumulator threading (which would reverse sibling order) needed.
+    /// Increase descendant depth only at control nodes; compare this node's incoming depth against
+    /// strict reporting boundaries.
     let rec traverse (node: Node) (depth: int) : EnergyViolation list =
         let isControl = ctx.Language.NestingControlTypes |> List.contains (nodeType node)
         let nextDepth = if isControl then depth + 1 else depth
@@ -58,6 +70,8 @@ let analyzeNesting (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse ctx.Tree 0
     addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "nesting"

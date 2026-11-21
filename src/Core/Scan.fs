@@ -1,3 +1,12 @@
+// # Scan
+//
+// Scanning expands supplied paths into a deterministic set of supported source files. It prunes built-in
+// generated/dependency directories and root-local ignore patterns, handles a deliberately limited wildcard
+// form, then normalizes, deduplicates, and sorts paths. Registry.fs owns suffix recognition; unreadable
+// directories propagate errors for the host to report.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Scan
 
 open Fable.Core
@@ -14,21 +23,27 @@ open Energy.Languages.Registry
 [<Emit("$0($1, { withFileTypes: true })")>]
 let private readDirectory (reader: obj) (directory: Path) : obj[] = nativeOnly
 
+/// Test whether a directory entry is a directory before recursively scanning it.
 [<Emit("$0.isDirectory()")>]
 let private isDirectory (entry: obj) : bool = nativeOnly
 
+/// Test whether a directory entry is a regular file before checking its supported suffix.
 [<Emit("$0.isFile()")>]
 let private isFile (entry: obj) : bool = nativeOnly
 
+/// Read a directory entry's basename for ignore checks and path construction.
 [<Emit("$0.name")>]
 let private entryName (entry: obj) : string = nativeOnly
 
+/// Test whether an explicitly supplied input's stat result describes a directory.
 [<Emit("$0.isDirectory()")>]
 let private statIsDirectory (stat: obj) : bool = nativeOnly
 
+/// Test whether an explicitly supplied input's stat result describes a regular file.
 [<Emit("$0.isFile()")>]
 let private statIsFile (stat: obj) : bool = nativeOnly
 
+/// Generated-output, dependency, cache, and environment names pruned during recursive directory walks.
 let private ignoredDirectoryNames =
     Set.ofList
         [
@@ -66,9 +81,12 @@ let private ignoredDirectoryNames =
 type private IgnoreContext =
     { RootDir: Path; Patterns: string list }
 
+/// Apply the scan root's ignore patterns to one candidate path.
 let private isPathIgnored (path: Path) (ignore: IgnoreContext) =
     isIgnored path ignore.RootDir ignore.Patterns
 
+/// Walk directory entries recursively, pruning ignored names and paths and collecting supported regular
+/// files. Symlink entries are not followed by this dirent walk; filesystem failures propagate.
 let rec private walkDirectory (directory: Path) ignore results =
     readDirectory readdirSync directory
     |> Array.fold
@@ -126,6 +144,9 @@ let private expandGlobLike (pattern: string) ignore =
             |> List.filter (fun (Path file) -> file.EndsWith(ext, System.StringComparison.OrdinalIgnoreCase)))
         |> Option.defaultValue files
 
+/// Expand files, directories, and limited wildcard inputs using the root's ignore patterns, then return
+/// distinct sorted absolute paths. Missing and unsupported inputs contribute nothing; directory-read
+/// failures propagate.
 let resolveSupportedFiles (inputs: string list) (rootDir: string) : Path list =
     let ignore =
         {

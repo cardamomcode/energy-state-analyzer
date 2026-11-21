@@ -1,3 +1,13 @@
+// # FSharp
+//
+// F# definitions can contain multiple mutually recursive heads, so each head becomes its own callable
+// view. Function expressions, declaration wrappers, match rules, and try/with or finally bodies are
+// normalized before shared scoring. Explicit argument/type syntax is used without resolving inferred F#
+// types. This adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all nodes
+// borrow the current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.FSharp
 
 open Energy.Core.TreeSitter
@@ -235,6 +245,7 @@ let private matchStringCases (node: Node) : (Node * Node list) option =
 /// wrappers, and it sits on the argument side (not the callee). Record literals are unaffected: `{ Name
 /// = "one" }` parses as field_initializer, not infix_expression, so it never reaches this hook.
 let private isNamedArgumentPosition (node: Node) : bool =
+    /// Walk parenthesis and tuple wrappers upward, then distinguish an application argument from its callee.
     let rec walk (n: Node) : bool =
         match nodeParent n with
         | Some p when
@@ -251,9 +262,15 @@ let private isNamedArgumentPosition (node: Node) : bool =
 
     walk node
 
+/// Grammar identity for try_expression nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryExpressionNodeType = NodeType "try_expression"
+/// Grammar identity for declaration_expression nodes, used to recognize syntax without comparing arbitrary
+/// source text.
 let private declarationExpressionNodeType = NodeType "declaration_expression"
+/// Grammar identity for rules nodes, used to recognize syntax without comparing arbitrary source text.
 let private rulesNodeType = NodeType "rules"
+/// Grammar identity for rule nodes, used to recognize syntax without comparing arbitrary source text.
 let private ruleNodeType = NodeType "rule"
 
 /// Expand F# binding and statement sequence scaffolding into direct logical items.

@@ -1,3 +1,12 @@
+// # MagicNumberTests
+//
+// This suite exercises numeric literal exemptions scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.MagicNumberTests
 
 open Scriptorium.Quill
@@ -13,6 +22,8 @@ open Energy.Tests.TestUtils
 
 // decision: runs the pipeline over the established real-code fixtures so the detector's grammar
 // hooks, position mapping, and registration are exercised together for every supported language.
+/// Run the named numeric literal exemptions scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     let cases =
         [
@@ -72,6 +83,8 @@ let tests =
                             let! (sourceCode, tree) = parseFixture Rust.rustLanguageAdapter "rust/adapter.rs"
                             let flagged = findFunctionRange sourceCode (FunctionName "flagged_magic")
 
+                            /// Analyze the fixture with the supplied filename and literal options, then
+                            /// count magic findings.
                             let count fileName options =
                                 {
                                     Source = sourceCode

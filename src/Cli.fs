@@ -1,3 +1,12 @@
+// # Cli
+//
+// The command entry workflow separates token parsing, path validation, and configuration resolution before
+// dispatch. Threshold flags override the resolved project policy; invalid requests exit 2, execution
+// failures exit 1. CliModes.fs owns scan/diff reports and their finding-based exit policy, while
+// CliRuntime.fs owns file and grammar boundaries.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Cli
 
 open System
@@ -9,6 +18,8 @@ open Energy.Core.Config
 open Energy.Core.FsPath
 open Energy.Core.Paths
 
+/// Parsed CLI request: paths retain input order, optional settings preserve absence, and threshold pairs
+/// hold medium then high overrides.
 type private ParsedArguments =
     {
         Paths: string list
@@ -22,6 +33,7 @@ type private ParsedArguments =
         IncludeTestFiles: bool
     }
 
+/// Options that consume the next token; unknown long options are rejected instead of becoming paths.
 let private valueFlags =
     Set.ofList
         [
@@ -61,6 +73,8 @@ let private classifyArgument (argument: string) =
 /// decision: recognized flags consume exactly one following value, leaving all other positional
 /// arguments untouched so the CLI retains its intentionally small dependency-free parser.
 let private parseValues (arguments: string array) : Result<string list * Map<string, string>, string> =
+    /// Consume tokens left to right, preserving path order and replacing repeated flags with their last
+    /// value; stop at the first invalid or incomplete option.
     let rec loop (index: int) (paths: string list) (flags: Map<string, string>) =
         if index >= arguments.Length then
             Ok(List.rev paths, flags)
@@ -77,6 +91,8 @@ let private parseValues (arguments: string array) : Result<string list * Map<str
 
     loop 0 [] Map.empty
 
+/// Read an optional integer flag; absence or invalid text yields None, with invalid supplied values
+/// rejected by parseArguments.
 let private asNumber (flags: Map<string, string>) name =
     flags
     |> Map.tryFind name
@@ -85,6 +101,8 @@ let private asNumber (flags: Map<string, string>) name =
         | true, number -> Some number
         | false, _ -> None)
 
+/// Parse tokens into a request, rejecting unknown options, missing values, malformed integers, and
+/// unsupported report formats. Repeated flags use their last value.
 let private parseArguments arguments : Result<ParsedArguments, string> =
     parseValues arguments
     |> Result.bind (fun (paths, flags) ->
@@ -191,6 +209,9 @@ let private validatePaths (paths: string list) =
         | Some message -> Error message
         | None -> Ok()
 
+/// Run argument validation, configuration loading, and scan or diff dispatch. Usage and configuration
+/// errors exit 2; unexpected failures exit 1. Scan defaults to JSON, diff to Markdown, and a missing scan
+/// path prints usage.
 let runCli () : Task<unit> =
     task {
         try

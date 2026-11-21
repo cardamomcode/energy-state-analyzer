@@ -1,3 +1,13 @@
+// # TypeScript
+//
+// Declarations, methods, arrows, and function expressions share callable scoring while named-function-only
+// detectors keep their narrower boundary. TSX reuses this policy with its JSX-aware grammar.
+// TypeScriptReExports.fs distinguishes declarative barrels from locally implemented responsibilities. This
+// adapter implements ../Core/LanguageAdapter.fs and is selected by Registry.fs; all nodes borrow the
+// current parsed tree.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.TypeScript
 
 open Energy.Core.TreeSitter
@@ -31,9 +41,17 @@ let private typeAnnotationNodeType = NodeType "type_annotation"
 /// which lower-cased bindings use); a literal repeated across both would trip the magic-string
 /// detector's own duplicate-string check.
 let private typeIdentifierNodeType = NodeType "type_identifier"
+/// Grammar identity for try_statement nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private tryStatementNodeType = NodeType "try_statement"
+/// Grammar identity for statement_block nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private statementBlockNodeType = NodeType "statement_block"
+/// Grammar identity for catch_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private catchClauseNodeType = NodeType "catch_clause"
+/// Grammar identity for finally_clause nodes, used to recognize syntax without comparing arbitrary source
+/// text.
 let private finallyClauseNodeType = NodeType "finally_clause"
 
 /// Name TypeScript's function-declaration node type.
@@ -126,6 +144,8 @@ let private callableViews (node: Node) : CallableView list =
         ]
     | _ -> []
 
+/// Read the named statements inside the recognized body block, falling back to direct named children when
+/// no block is present.
 let private bodyItems (node: Node) : Node list =
     let children = nodeNamedChildren node
 
@@ -183,6 +203,8 @@ let private extendsTargetNames (heritage: Node) : string list =
     | Some t -> [ nodeText t ]
     | None -> []
 
+/// Read direct type identifiers from an implements clause for class-relatedness signals; absent or
+/// unrecognized targets contribute no names.
 let private implementsTargetNames (heritage: Node) : string list =
     let implementsClause =
         nodeChildren heritage

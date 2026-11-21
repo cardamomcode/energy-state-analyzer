@@ -1,3 +1,11 @@
+// # Paths
+//
+// Erased path and encoding wrappers make filesystem call sites distinguish location from text and
+// encoding. They preserve the underlying JavaScript string representation and do not validate existence,
+// normalize paths, or read files. FsPath.fs owns those operations.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Paths
 
 open Fable.Core

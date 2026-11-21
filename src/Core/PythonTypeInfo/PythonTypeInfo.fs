@@ -1,9 +1,18 @@
+// # PythonTypeInfo
+//
+// These records describe Python syntax-derived signatures, annotations, class bases, and imports for the
+// extraction helpers. They are scaffolding rather than a compiler symbol table and are not consumed by the
+// registered detector pipeline. Extraction.fs owns the pre-order collection; Functions.fs, Classes.fs, and
+// Imports.fs decode individual declarations.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.PythonTypeInfo
 
 open Energy.Core.TreeSitter
 
-/// Python-only type-information scaffolding. It is intentionally independent of VS Code and is
-/// logged by the extension without affecting detector output.
+/// Python parameter information extracted from recognized signature syntax. Type is absent when
+/// no explicit annotation is found; HasDefault records the recognized default-value form.
 
 type ParameterTypeInfo =
     {
@@ -12,6 +21,8 @@ type ParameterTypeInfo =
         HasDefault: bool
     }
 
+/// Syntactic function signature with zero-based declaration line, recognized parameters, and optional
+/// return annotation; missing annotations are not inferred.
 type FunctionTypeInfo =
     {
         Name: string
@@ -20,6 +31,7 @@ type FunctionTypeInfo =
         ReturnType: string option
     }
 
+/// An explicitly annotated assignment's name, textual type, and zero-based source line.
 type VariableTypeInfo =
     {
         Name: string
@@ -27,6 +39,8 @@ type VariableTypeInfo =
         Line: int
     }
 
+/// Class name, line, and simple base names; Fields contains annotated assignments only when a literal
+/// TypedDict base is recognized.
 type ClassTypeInfo =
     {
         Name: string
@@ -36,6 +50,8 @@ type ClassTypeInfo =
         Fields: VariableTypeInfo list
     }
 
+/// Syntactic module and imported names with a zero-based source line; this scaffolding does not resolve
+/// symbols.
 type ImportInfo =
     {
         Module: string
@@ -43,6 +59,8 @@ type ImportInfo =
         Line: int
     }
 
+/// Collected Python signatures, annotated variables, classes, and imports in traversal order; it is not a
+/// type-checked symbol table.
 type TypeInfo =
     {
         Functions: FunctionTypeInfo list
@@ -51,9 +69,12 @@ type TypeInfo =
         Imports: ImportInfo list
     }
 
+/// Find the first direct child with the requested grammar kind; descendants are not searched.
 let childOfType name node =
     nodeChildren node |> List.tryFind (fun child -> nodeType child = NodeType name)
 
+/// Unwrap single-child type nodes and reconstruct recognized generics from their arguments. Other shapes
+/// retain literal source text rather than attempting type inference.
 let rec extractTypeString node =
     match nodeType node, nodeChildren node with
     | NodeType "type", [ child ] -> extractTypeString child

@@ -1,3 +1,12 @@
+// # Analysis
+//
+// Editor analysis reads document text and resource-scoped configuration, applies workspace ignore policy,
+// and delegates parsing to the shared Core boundary. Standalone documents have no workspace ignore file.
+// Typed failures are logged and become empty findings so the composition root clears stale presentation;
+// lower-level source APIs retain Result errors.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.Analysis
 
 open Fable.Core.JS
@@ -12,6 +21,7 @@ open Energy.Extension.Vscode.Document
 open Energy.Extension.Vscode.Host
 open Energy.Extension.Vscode.Workspace
 
+/// Log a contextual message and the formatted typed analysis failure to the extension console.
 let private logError (message: string) (analysisError: AnalysisError) : unit =
     console.error (message, analysisErrorMessage analysisError)
 
@@ -34,6 +44,8 @@ let analyzeSourceWith thresholds loaded fileName source =
     // findings, never live tree-sitter nodes whose tree has already been released.
     analyzeParsedSource loaded.Parser loaded.Adapter (Energy.Core.Paths.Path fileName) source thresholds
 
+/// Read default workspace thresholds and analyze supplied source with a loaded parser. Configuration or
+/// analysis failures remain Result errors for the caller.
 let analyzeSource loaded fileName source =
     readAnalyzeThresholds ()
     |> Result.bind (fun thresholds -> analyzeSourceWith thresholds loaded fileName source)

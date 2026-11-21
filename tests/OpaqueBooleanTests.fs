@@ -1,3 +1,12 @@
+// # OpaqueBooleanTests
+//
+// Opaque-boolean cases distinguish positional literals from named arguments and other boolean expressions.
+// Test-file inclusion is varied explicitly, and language cases protect each adapter's call-site
+// recognition. TestUtils.fs runs the registered pipeline; named ranges isolate the intended examples from
+// other fixture findings.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.OpaqueBooleanTests
 
 open Scriptorium.Quill
@@ -29,6 +38,8 @@ let private testFilePolicyTests =
                         let range = findFunctionRange source (FunctionName assertion)
                         let extension = fixture.Substring(fixture.LastIndexOf('.'))
 
+                        /// Analyze this source with the supplied options and filename, retaining
+                        /// opaque-boolean findings.
                         let hits options fileName =
                             {
                                 Source = source
@@ -112,6 +123,7 @@ let tests =
                                let named = findFunctionRange source (FunctionName labeled)
                                let nonCall = findFunctionRange source (FunctionName "suppressedNonCallUsage")
 
+                               /// Count opaque-boolean findings within the supplied fixture range.
                                let hits range =
                                    violationsIn violations range
                                    |> List.filter (fun v -> v.Type = OpaqueBoolean)

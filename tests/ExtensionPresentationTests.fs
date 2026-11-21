@@ -1,3 +1,12 @@
+// # ExtensionPresentationTests
+//
+// This suite exercises pure editor presentation scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.ExtensionPresentationTests
 
 open Scriptorium.Nib.Assertion
@@ -9,6 +18,8 @@ open Energy.Extension.ConfigurationValues
 open Energy.Extension.DecorationModel
 open Energy.Extension.DiagnosticModel
 
+/// Construct a detached finding with the supplied scenario values so presentation or suppression behavior
+/// can be tested without parsing source.
 let private violation line column severity violationType message hotspots =
     {
         Line = line
@@ -19,6 +30,7 @@ let private violation line column severity violationType message hotspots =
         Hotspots = hotspots
     }
 
+/// Setting reader that returns every supplied fallback, modeling an editor with no setting overrides.
 let private defaults =
     {
         Bool = fun _ _ fallback -> fallback
@@ -27,6 +39,8 @@ let private defaults =
         GlobalBool = fun _ fallback -> fallback
     }
 
+/// Run the named pure editor presentation scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "Extension presentation and configuration",

@@ -1,3 +1,12 @@
+// # Grammar
+//
+// Each activation owns completed language/parser pairs and in-flight grammar tasks. Concurrent requests
+// share pending work; success populates the completed cache and failure remains retryable once its pending
+// task is removed. Unknown language IDs return a successful absence. Runtime initialization is shared
+// through Core/TreeSitter.fs.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.Grammar
 
 open System.Collections.Generic
@@ -12,6 +21,8 @@ open Energy.Core.TreeSitter
 open Energy.Extension.LoadedLanguage
 open Energy.Languages.Registry
 
+/// Activation-owned grammar state: package path, completed parsers, and shared pending load tasks keyed by
+/// language ID. Failed loads leave no completed entry and can be retried.
 type GrammarContext =
     {
         ExtensionPath: string
@@ -19,8 +30,10 @@ type GrammarContext =
         InFlightLoads: Dictionary<string, Task<Result<LoadedLanguage, AnalysisError>>>
     }
 
+/// Log the packaged grammar path being loaded to aid diagnosis of missing WASM assets.
 let private logPath (message: string) (path: Path) : unit = console.log (message, path)
 
+/// Log successful grammar initialization after the completed parser has entered the cache.
 let private logSuccess (message: string) : unit = console.log (message)
 
 /// Await the shared parser runtime before activating editor analysis.

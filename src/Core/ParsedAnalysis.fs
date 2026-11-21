@@ -1,3 +1,12 @@
+// # ParsedAnalysis
+//
+// This boundary joins parser ownership to the synchronous analyzer. It parses source with an already
+// configured parser, calls Analyze.analyzeWith, and releases the tree before returning detached results.
+// Parse and detector exceptions become distinct AnalysisError cases, and no partial finding list escapes a
+// failed analysis.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.ParsedAnalysis
 
 open Fable.Core

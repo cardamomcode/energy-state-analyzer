@@ -1,3 +1,11 @@
+/**
+ * Package Fable's extension and CLI entries for Node consumers.
+ *
+ * Each entry uses its own generated module tree so concurrent watchers cannot mix runtime copies.
+ * The extension keeps vscode external and copies the parser runtime WASM; the CLI receives the
+ * executable shebang required by npm bin entry points. Each configuration bails on build errors.
+ * See docs/source-guide.md and docs/architecture.md for the authored-source reading path.
+ */
 'use strict';
 
 const path = require('path');
@@ -11,7 +19,8 @@ const CopyPlugin = require('copy-webpack-plugin');
 // decision: the extension and CLI have separate Fable output roots because their watchers copy
 // runtime modules non-atomically; webpack must never resolve an entry from a partial shared tree.
 
-/** @type WebpackConfig */
+/** Bundle the extension entry and parser assets for the VS Code Node host.
+ * @type WebpackConfig */
 const extensionConfig = {
   target: 'node',
   mode: 'none',
@@ -58,7 +67,8 @@ const extensionConfig = {
   ]
 };
 
-/** @type WebpackConfig */
+/** Bundle the CLI entry as the executable CommonJS npm command.
+ * @type WebpackConfig */
 const cliConfig = {
   target: 'node',
   mode: 'none',
@@ -76,8 +86,7 @@ const cliConfig = {
   },
   bail: true,
   plugins: [
-    // ADC: webpack strips the source shebang, and dist/cli.js is the npm "bin" entry run
-    // directly by a shell, so it must start with one or `npx`/global installs fail.
+    // decision: restore the CLI shebang because webpack strips it and npm bin entries execute directly.
     new webpack.BannerPlugin({ banner: '#!/usr/bin/env node', raw: true, entryOnly: true })
   ],
   devtool: 'nosources-source-map'

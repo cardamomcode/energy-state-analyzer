@@ -1,3 +1,13 @@
+// # PrimitiveObsession
+//
+// Primitive-obsession analysis combines typed-signature swap risks, multiple positional boolean
+// parameters, and repeated string choices in named function bodies. Keyword-only boundaries can eliminate
+// positional risk, while language adapters preserve type text and split multi-head declarations. String
+// comparisons are grouped by variable spelling within each analyzed head; this is syntax analysis without
+// symbol resolution.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.PrimitiveObsession
 
 open Energy.Core.TreeSitter
@@ -13,6 +23,7 @@ open Energy.Core.Detectors.ParameterCount
 /// user-tunable metric values, so they stay as named constants at the top of the module rather
 /// than in Core.Config, keeping the rationale visible next to the module's other declarations.
 let private minDistinctValues = 3
+/// Maximum number of distinct string values included in a stringly-control-flow diagnostic.
 let private sampleSize = 4
 
 /// Spellings of the boolean type across the languages this detector runs on: "bool" (Python, F#, C#,
@@ -23,6 +34,8 @@ let private sampleSize = 4
 /// distinct type per value.
 let private booleanTypeNames = Set.ofList [ "bool"; "boolean"; "Boolean" ]
 
+/// Recognized typed parameter with its syntax anchor and whether a preceding keyword-only boundary prevents
+/// positional calls.
 type private TypedParameterNode =
     {
         Name: string
@@ -90,6 +103,9 @@ let private findBooleanBlindness (typed: TypedParameterNode list) (positions: Po
             }
     | _ -> None
 
+/// Collect recognized typed parameters while tracking keyword-only boundaries, then report adjacent
+/// primitive swap risks and multiple positional booleans. Parameters without recognized annotations supply
+/// no typed entry.
 let private findParameterCollisions (paramsNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
     let _, typed =
         nodeChildren paramsNode
@@ -116,13 +132,17 @@ let private findParameterCollisions (paramsNode: Node) (positions: PositionLooku
     findSwapRiskViolations typed positions language
     @ Option.toList (findBooleanBlindness typed positions)
 
+/// Remove a literal's enclosing first and last characters; callers supply quoted string text of at least
+/// two characters.
 let private stripQuotes (text: string) = text.Substring(1, text.Length - 2)
 
 /// Normalize either orientation of a variable-to-string equality into one aggregation entry.
 let private stringEquality (language: LanguageAdapter) (comparison: EqualityComparison) =
+    /// Recognize adapter-declared variable-reference syntax.
     let isVariable node =
         List.contains (nodeType node) language.VariableReferenceNodeTypes
 
+    /// Recognize the adapter's ordinary string literal kind.
     let isString node =
         language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
 
@@ -144,9 +164,10 @@ let private recordStringValues (variable: Node) (values: string list) state =
 
 /// Detects one function-local variable being compared to three or more distinct string literals.
 ///
-/// assumption: a variable name belongs only to its containing function for this analysis; names reused
-/// in unrelated functions must not accumulate into one finding.
+/// tradeoff: grouping by source spelling keeps this syntax-only; nested scopes and shadowed names are not resolved.
 let private findStringlyTypedControlFlow (functionNode: Node) (positions: PositionLookup) (language: LanguageAdapter) =
+    /// Accumulate equality, membership, and string-match choices by variable text throughout this
+    /// supplied function-head subtree.
     let rec traverse (node: Node) state =
         let withEqualities =
             language.GetEqualityComparisons node
@@ -209,6 +230,8 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
 /// The "Primitive Obsession" detector identifies primitives being used as unvalidated domain types.
 /// Its language-specific parsing knowledge stays in LanguageAdapter so this traversal is shared.
 let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
+    /// Analyze each named function head's parameters and string choices, then discover nested
+    /// definitions.
     let rec traverse (node: Node) : EnergyViolation list =
         // decision: analyzes each logical head of a definition (F#'s `and`-binding splits into one head
         // per mutually recursive let) rather than the merged node. This fixes two false results at once:
@@ -235,6 +258,8 @@ let analyzePrimitiveObsession (ctx: AnalysisContext) : AnalysisContext =
     let findings = traverse ctx.Tree
     addViolations findings ctx
 
+/// Register this detector's stable internal name and context transformation for the shared pipeline;
+/// Analyze controls stage ordering.
 let detector: Detector =
     {
         Name = "primitiveObsession"

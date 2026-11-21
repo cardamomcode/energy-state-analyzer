@@ -1,3 +1,13 @@
+// # ErrorShadowing
+//
+// Error-boundary analysis measures three independent costs: broad protected work, recovery share within a
+// function, and the size of each recovery body. Adapter regions separate protected, combined recovery, and
+// individual handler/cleanup bodies. Traversal stops at nested functions; logical-item counts and
+// executable-line counts feed their respective configured rules without collapsing them into one
+// diagnosis.
+//
+// Reading path: [Source guide](../../../docs/source-guide.md).
+
 module Energy.Core.Detectors.ErrorShadowing
 
 open Energy.Core.Context
@@ -17,6 +27,7 @@ let private descendIntoBody = false
 
 /// Discover every function, including nested definitions, once.
 let private allFunctions (language: LanguageAdapter) (root: Node) : Node list =
+    /// Collect every named-function boundary in pre-order, including nested definitions.
     let rec walk (node: Node) : Node list =
         (if language.IsFunctionDefinition node then [ node ] else [])
         @ (nodeChildren node |> List.collect walk)
@@ -25,6 +36,7 @@ let private allFunctions (language: LanguageAdapter) (root: Node) : Node list =
 
 /// Collect boundaries belonging to this function without visiting nested functions.
 let private regionsInFunction (language: LanguageAdapter) (fnNode: Node) : ErrorHandlingRegion list =
+    /// Collect recovery regions for this owning function while stopping at nested function definitions.
     let rec walk (isFunctionRoot: bool) (node: Node) : ErrorHandlingRegion list =
         if not isFunctionRoot && language.IsFunctionDefinition node then
             []

@@ -1,3 +1,12 @@
+// # CliModes
+//
+// CLI modes turn ordered file analyses into reports and process status. Scan mode resolves inputs and
+// blocks on medium/high findings; diff mode reads base source through git and blocks only score
+// regressions. A missing base source is reported as a new file. Analysis errors stop report production;
+// output goes to stdout and diagnostics to stderr.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.CliModes
 
 open System.Threading.Tasks
@@ -50,6 +59,7 @@ let parseReportFormat (text: string) : Result<ReportFormat, string> =
     | Some report -> Ok report
     | None -> Error("Unsupported report format: " + text)
 
+/// Print accepted command forms, threshold flags, and the test-file switch to stderr without exiting.
 let printUsage () =
     error "Usage: energy-state-cli <file.py|.fs|.fsx|.ts|.tsx> [thresholds...]"
 
@@ -64,6 +74,8 @@ let printUsage () =
 
     error "Flags: --include-test-files (also flag magic numbers, magic strings, and opaque booleans in test files)"
 
+/// Serialize a finding with zero-based location, stable type and severity names, remediation text, and
+/// hotspot line weights.
 let private violationJson violation =
     let hotspots =
         violation.Hotspots
@@ -131,6 +143,7 @@ let summaryJson results =
                     ]
         ]
 
+/// Serialize ordered diff entries, retaining an absent base score for new files and lowercase status names.
 let private diffJson entries =
     entries
     |> List.map (fun entry ->
@@ -152,6 +165,9 @@ let private diffJson entries =
     |> List.toArray
     |> box
 
+/// Resolve supported inputs and analyze them sequentially, then print the selected report. Analysis failure
+/// prints an error and exits 1 without a partial report; medium or high findings also exit 1 after
+/// reporting, otherwise exit 0.
 let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: ReportFormat) : Task<unit> =
     task {
         let! analysis = analyzeFiles (resolveSupportedFiles paths (cwd ())) thresholds
@@ -174,6 +190,8 @@ let runScan (paths: string list) (thresholds: AnalyzeThresholds) (reportFormat: 
             exit (if hasBlockingViolations summary.TotalCounts then 1 else 0)
     }
 
+/// Read non-deleted paths changed between the merge base and HEAD using git diff. Blank rows are removed;
+/// git failures propagate to the CLI boundary.
 let private changedFilesFromGit baseRef =
     execFileSync
         "git"

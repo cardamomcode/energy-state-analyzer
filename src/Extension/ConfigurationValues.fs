@@ -1,8 +1,19 @@
+// # ConfigurationValues
+//
+// An injected setting reader separates editor configuration effects from policy mapping. Resolved project
+// thresholds and allowlists remain authoritative; this overlay changes enabled flags and test-file
+// inclusion only. Colors are read independently from editor settings with Core defaults, allowing direct
+// tests without a VS Code host.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Extension.ConfigurationValues
 
 open Energy.Core.Analyze
 open Energy.Core.Config
 
+/// Injected setting accessors with caller-provided fallbacks: section/key readers for booleans, numbers,
+/// and text, plus a root-level boolean reader for cross-detector toggles.
 type SettingReader =
     {
         Bool: string -> string -> bool -> bool

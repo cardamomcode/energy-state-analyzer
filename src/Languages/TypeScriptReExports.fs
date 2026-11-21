@@ -1,9 +1,19 @@
+// # TypeScriptReExports
+//
+// TypeScript barrel recognition exempts imports used only to republish declarations. It reads local
+// import/export names and requires a declarative file without local implementation. Direct export-from
+// syntax needs no imported-binding exemption; mixed implementation files remain visible to coherence
+// analysis.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.TypeScriptReExports
 
 open Energy.Core.TreeSitter
 
 /// Read the local names introduced by a TypeScript import clause.
 let private importedNames node =
+    /// Extract local binding names from one recognized import child, including aliases.
     let namesFromImport item =
         match nodeType item with
         | NodeType "identifier" -> [ nodeText item ]

@@ -1,3 +1,12 @@
+// # Analyze
+//
+// Analysis is the host-independent document boundary. A host supplies source, a live parsed root, a
+// language adapter, and options; this module builds positions, runs DetectorPipeline, and applies
+// Suppressions to the complete ordered findings. AnalysisResult contains detached data that presentation
+// can retain after the tree is released. See ParsedAnalysis.fs for ownership and boundary failures.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Core.Analyze
 
 open Energy.Core.Violation
@@ -15,8 +24,10 @@ open Energy.Core.DetectorPipeline
 //esa-ignore: coherence
 open Energy.Core.Suppressions
 
+/// Threshold options accepted by both hosts; this alias retains the analyzer-facing API name.
 type AnalyzeThresholds = AnalyzeOptions
 
+/// Default thresholds shared with Core.Config when a caller supplies no overrides.
 let defaultThresholds = defaultAnalyzeOptions
 
 /// Everything the synchronous analyzer needs after a host has parsed a document.
@@ -51,6 +62,7 @@ type AnalysisError =
     | AnalysisFailed of filePath: string * message: string
     | ReportWriteFailed of filePath: string * message: string
 
+/// Render an analysis error with its file or language identity for host logs and command failures.
 let analysisErrorMessage error =
     match error with
     | UnsupportedLanguage filePath -> "Unsupported file type: " + filePath
@@ -61,14 +73,20 @@ let analysisErrorMessage error =
     | AnalysisFailed(filePath, message) -> "Could not analyze " + filePath + ": " + message
     | ReportWriteFailed(filePath, message) -> "Could not write report " + filePath + ": " + message
 
+/// Apply source directives after detection, retaining unsuppressed findings and appending invalid or stale
+/// directive notes.
 let private applySuppressionStage (ctx: AnalysisContext) (violations: EnergyViolation list) =
     let suppressed = applySuppressions violations ctx.Source
     suppressed.Violations @ suppressed.SuppressionNotes
 
+/// Run enabled detectors, restore forward finding order, and apply suppressions once to the complete
+/// result.
 let runPipeline (ctx: AnalysisContext) : EnergyViolation list =
     let completed = ctx |> detectorPipeline
     completed.Violations |> List.rev |> applySuppressionStage completed
 
+/// Create a fresh document context with an offset lookup and no findings; the caller retains ownership of
+/// the live tree.
 let private createContext (options: AnalyzeOptions) (input: AnalysisInput) : AnalysisContext =
     {
         Source = input.Source
@@ -80,6 +98,7 @@ let private createContext (options: AnalyzeOptions) (input: AnalysisInput) : Ana
         Violations = []
     }
 
+/// Wrap the final detached findings as the host-facing analysis result.
 let private toResult violations : AnalysisResult = { Violations = violations }
 
 /// Analyze a parsed document with the default detector thresholds.

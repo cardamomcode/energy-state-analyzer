@@ -1,3 +1,11 @@
+// # RustImports
+//
+// Rust use trees normalize into dependency sources and local bindings while retaining aliases, nested
+// groups, and wildcard scope. Visibility-marked imports can be re-exports only in a declarative module.
+// Rust.fs supplies these records to shared import-coherence analysis without resolving modules.
+//
+// Reading path: [Source guide](../../docs/source-guide.md).
+
 module Energy.Languages.RustImports
 
 open Energy.Core.TreeSitter
@@ -137,6 +145,7 @@ let importInfo node =
 /// decision: classify syntax instead of exempting mod.rs by name, so private uses in mod.rs and
 /// public uses alongside implementation work still contribute to coherence.
 let isReExport (_fileName: string) node =
+    /// Accept declarations that only wire a module facade, excluding locally implemented work.
     let isFacadeItem item =
         match nodeType item with
         | NodeType "mod_item" -> nodeField "body" item |> Option.isNone

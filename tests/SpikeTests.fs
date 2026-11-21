@@ -1,3 +1,12 @@
+// # SpikeTests
+//
+// This suite exercises Fable/tree-sitter integration scenarios; each case describes the positive result,
+// exemption, boundary, or failure contract it protects. Tests are registered by Main.fs. Shared parsing
+// and fixture assertions live in TestUtils.fs, while named case descriptions below state the protected
+// outcomes.
+//
+// Reading path: [Source guide](../docs/source-guide.md).
+
 module Energy.Tests.SpikeTests
 
 open System.Threading.Tasks
@@ -14,6 +23,8 @@ open Energy.Core.TreeSitter
 
 // Phase 0 spike — proves the web-tree-sitter Fable binding end to end, and that the typed
 // facade (Position records, Node lists, Parent option) surfaces the tree as pure F# values.
+/// Run the named Fable/tree-sitter integration scenarios below; each case describes the positive result,
+/// exemption, boundary, or failure contract it protects.
 let tests =
     testList (
         "TreeSitter binding",
