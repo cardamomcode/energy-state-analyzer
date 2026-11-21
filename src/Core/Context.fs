@@ -37,6 +37,9 @@ type AnalysisContext =
     }
 
 /// Add findings from one detector while retaining linear accumulation across the whole pipeline.
+/// findings models this stage's output; before and after model the context's reversed finding lists.
+///
+/// lean: `def AddViolationsContract (findings before after : List α) : Prop := after.reverse = before.reverse ++ findings`
 let addViolations (findings: EnergyViolation list) (ctx: AnalysisContext) : AnalysisContext =
     { ctx with
         Violations = List.rev findings @ ctx.Violations

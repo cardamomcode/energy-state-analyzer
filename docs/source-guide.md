@@ -9,8 +9,8 @@ Read the file introductions, definition documentation, and decision comments tog
 Narrative describes current behavior; ADCs preserve deliberate choices, invariants,
 external assumptions, and accepted costs. The [architecture](architecture.md) describes
 build boundaries, and [ADC guidance](../AGENT_DECISION_COMMENTS.md) defines the annotation
-syntax. Source comments use Markdown within native F# comments; no documentation
-extraction or Lean proof pipeline is implied.
+syntax. Source comments use Markdown within native F# comments. The two optional
+Lean contracts below have an explicit extraction and checking command.
 
 ## Follow a document
 
@@ -69,6 +69,19 @@ adding comments can change line ranges and deliberately measured source shapes.
 The retained `src/test/extension.test.js` is a generated legacy test artifact, not the
 current Scriptorium source. PythonTypeInfo is retained extraction scaffolding and does
 not participate in the registered detector pipeline.
+
+## Checking the Lean contracts
+
+Compact `lean:` predicates beside `Context.addViolations` and `Cyclomatic.addDecision`
+specify finding order and the change in `E - N + 2`. Nearby prose maps parameters to
+F# values and states the preconditions. They are contracts, not implementation proofs.
+
+Run `just lean-check` with Python 3.10+, Lean via elan, and the
+[ADC extractor](https://github.com/dbrattli/adc/tree/cf571c36bceeeb816203b0074f67f0c221d9177d/tools)
+at `../adc/tools/leanify.py`, or pass its path: `just lean-check /path/to/leanify.py`.
+[lean-toolchain](../lean-toolchain) pins Lean 4.24.0. The command checks formation with
+warnings as errors and writes ignored views under `.lean-out/`; edit the F# comments.
+Run it when contracts change. Normal builds and CI do not require the external ADC checkout.
 
 ## Source inventory
 

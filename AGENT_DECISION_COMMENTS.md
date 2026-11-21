@@ -46,6 +46,10 @@ The em dash is a readability convention, not a parser delimiter.
 Use `lean:` when a precise model helps explain a contract. Explain the correspondence
 between model parameters and source values, and the model's limits, beside it.
 An adjacent definition needs no extra reference; `model:` and `ref:` are not directives.
+Prefer compact `lean:` predicates for allowed inputs, outputs, or state transitions.
+Keep parameter correspondence brief; do not add proofs or duplicate implementation
+algorithms unless requested. Fenced blocks are for explicitly requested multiline
+specifications.
 
 Write one Lean command per directive line, raw or inside one pair of Markdown
 backticks. Multiline commands use fenced `lean` blocks inside host comments,
@@ -55,8 +59,10 @@ language and comment support.
 
 Lean checks well-formedness, not satisfiability, correct requirements, or conformance
 of the F# implementation. Optional proofs establish model properties under their
-assumptions. This repository has no adopted Lean extraction check; prose directives
-remain sufficient, and source annotation does not constitute program proof.
+assumptions. `just lean-check` extracts and checks the two adopted contracts in
+`Context.fs` and `Cyclomatic.fs` with the pinned Lean toolchain. See the
+[source guide](docs/source-guide.md#checking-the-lean-contracts) for the ADC extractor
+prerequisite, scope, and limits. Other prose directives need no Lean model.
 
 ```python
 def process_events(queue, handle):

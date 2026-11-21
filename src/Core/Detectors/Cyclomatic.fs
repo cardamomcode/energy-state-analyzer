@@ -74,6 +74,10 @@ let private mccabeComponentMultiplier = 2
 
 /// Insert a decision before the current exit edges and replace them with the requested number of outcome
 /// edges. Duplicate outcome edges preserve multi-way path contributions.
+/// before and after are E - N + 2; outcomes is the new branch count. Requires the exit-edge
+/// invariant above and host arithmetic within range; connectivity and adapter semantics are separate.
+///
+/// lean: `def AddDecisionContract (outcomes : Nat) (before after : Int) : Prop := after = before + outcomes - 1`
 let private addDecision (outcomes: int) (graph: ControlFlowGraph) : ControlFlowGraph =
     let decision = Decision graph.Nodes.Length
 

@@ -14,3 +14,6 @@ fable-tests/
 .vscode-test/
 *.log
 .DS_Store
+
+# Extracted views of source-embedded Lean contracts.
+.lean-out/
