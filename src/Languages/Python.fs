@@ -395,6 +395,24 @@ let pythonLanguageAdapter: LanguageAdapter =
         // the equality/membership hooks for the if/elif form this detector models — the match form is a
         // documented gap shared with TS/Kotlin/C++ (only F#'s `match` gets the dedicated hook).
         GetMatchStringCases = fun _ -> None
+        CasePatterns =
+            {
+                Wrappers =
+                    [
+                        NodeType "case_pattern"
+                        NodeType "union_pattern"
+                        NodeType "tuple_pattern"
+                        NodeType "list_pattern"
+                        NodeType "dict_pattern"
+                        NodeType "class_pattern"
+                        NodeType "keyword_pattern"
+                        NodeType "as_pattern"
+                    ]
+                IsPatternSlot =
+                    fun parent child ->
+                        nodeType parent = NodeType "case_clause"
+                        && nodeType child = NodeType "case_pattern"
+            }
         // decision: only Python gets this — TS's equivalent is a `.includes()` call expression (not a
         // comparison node) and F# has no direct construct; both still accumulate distinct literals across
         // separate equality comparisons via GetEqualityComparisons.

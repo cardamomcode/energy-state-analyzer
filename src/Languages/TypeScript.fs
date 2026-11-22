@@ -386,6 +386,11 @@ let typeScriptLanguageAdapter: LanguageAdapter =
         // TS's switch-on-string is a documented gap shared with Python/Kotlin/C++ — only F#'s `match` gets
         // the dedicated string-case hook.
         GetMatchStringCases = fun _ -> None
+        CasePatterns =
+            {
+                Wrappers = []
+                IsPatternSlot = fieldPatternSlot (NodeType "switch_case") "value"
+            }
         // TS's set-membership idiom is `[...].includes(x)`, a call_expression rather than a comparison
         // node — not modeled here; repeated equality checks still accumulate via getEqualityComparisons.
         GetMembershipComparisons = fun _ -> []

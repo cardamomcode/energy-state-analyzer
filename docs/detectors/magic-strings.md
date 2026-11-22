@@ -9,6 +9,14 @@ A string literal is a candidate only when it sits at a decision point:
 - Compared with `==`/`===`.
 - Checked for membership (Python's `x in (...)`).
 - Used as a dict/object key or subscript index.
+- Used as a match/switch case pattern: Rust `match` arms and `if let`/`while let` patterns, TypeScript and
+  C# `switch` cases (including C# switch expressions and `is` patterns), Python `match`/`case`, Kotlin
+  `when` entries, F# `match`/`function` rules, and Erlang `case` clauses. Literals nested in or-, tuple-,
+  and constructor patterns such as `Some("a" | "b")` count; guards and arm results don't.
+
+In Rust, a literal wrapped in a single-argument variant constructor is still a comparison operand, so
+`kind == Some("analysis")` counts like `kind == "analysis"`. Lowercase calls such as `label("x")` stay
+opaque because their argument isn't the compared value.
 
 A message being logged, thrown, or returned isn't a decision point, so it's left alone entirely, as is a docstring. Any f-string, template literal, `.format()`, or `%`-formatted string is exempt too, since a placeholder is itself evidence the string isn't standing in for an enum value. A single-character string is also exempt (too short to plausibly carry hidden meaning).
 
@@ -35,6 +43,10 @@ def route(status):
 
 ## Known limitations
 
-The decision-point scan (equality/membership/dict-key) and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
+Rust `matches!(kind, Some("a"))` isn't a decision point yet, because tree-sitter leaves macro arguments
+as an unparsed token tree. Inequality (`!=`, `<>`, `/=`) isn't modeled in any language. C++ has no case
+pattern support because its `switch` labels can't be strings.
 
-It also doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point, only equality, membership, and dict/index-key positions count.
+The equality/membership/dict-key scan and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
+
+It also doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point, only equality, membership, dict/index-key, and case-pattern positions count.

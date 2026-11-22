@@ -20,3 +20,13 @@ int flaggedMagicString(std::string status) {
 int flaggedDictKey(Config config, Config other) {
     return config["retries"] + other["retries"];
 }
+
+// clean — not flagged by magic string; C++ switch labels cannot be strings, so only results appear here
+std::string cleanCaseResult(int code) {
+    switch (code) {
+        case 1:
+            return "result";
+        default:
+            return "result";
+    }
+}

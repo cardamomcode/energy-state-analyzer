@@ -227,6 +227,15 @@ let nodeField (field: string) (node: Node) : Node option =
     | null -> None
     | child -> Some child
 
+/// Read the native array of every child occupying a repeatable grammar field.
+[<Emit("$0.childrenForFieldName($1)")>]
+let private nodeFieldChildrenRaw (node: Node) (field: string) : Node[] = nativeOnly
+
+/// Return every child occupying a named grammar field in source order; a field may repeat (Kotlin's
+/// `when` entry carries one `condition` per comma-separated alternative).
+let nodeFieldChildren (field: string) (node: Node) : Node list =
+    nodeFieldChildrenRaw node field |> Array.toList
+
 /// Parent as an Option: the root node's parent is null, which becomes None. Reads the member
 /// once and maps null -> None at the boundary.
 [<Emit("$0.parent")>]

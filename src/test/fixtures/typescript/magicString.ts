@@ -20,3 +20,26 @@ function flaggedMagicString(status: string): number {
 function flaggedDictKey(config: Record<string, number>, other: Record<string, number>): number {
     return config["retries"] + other["retries"];
 }
+
+// flagged — magic string
+function flaggedCasePattern(event: string, other: string): number {
+    switch (event) {
+        case "started":
+            return 1;
+    }
+    switch (other) {
+        case "started":
+            return 2;
+    }
+    return 0;
+}
+
+// clean — not flagged by magic string
+function cleanCaseResult(event: string): string {
+    switch (event) {
+        case "opened":
+            return "result";
+        default:
+            return "result";
+    }
+}

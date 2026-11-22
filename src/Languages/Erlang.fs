@@ -336,6 +336,11 @@ let erlangLanguageAdapter: LanguageAdapter =
         DistinctTypeAdvice = "a tagged tuple or record"
         GetEqualityComparisons = equalityComparisons
         GetMatchStringCases = fun _ -> None
+        CasePatterns =
+            {
+                Wrappers = [ NodeType "tuple"; NodeType "list" ]
+                IsPatternSlot = fieldPatternSlot (NodeType "cr_clause") "pat"
+            }
         GetMembershipComparisons = fun _ -> []
         IsMatchCaseLiteral = fun node -> nodeType node = NodeType "atom" || nodeType node = NodeType "integer"
         GetElseIfBranches = fun _ -> []

@@ -31,3 +31,22 @@ def flaggedMembership(status):
 # flagged — magic string
 def flaggedDictKey(config, other):
     return config["retries"] + other["retries"]
+
+
+# flagged — magic string
+def flaggedCasePattern(event):
+    match event:
+        case "started":
+            return 1
+        case ("started", _):
+            return 2
+    return 0
+
+
+# clean — not flagged by magic string
+def cleanCaseResult(event):
+    match event:
+        case "opened":
+            return "result"
+        case _:
+            return "result"
