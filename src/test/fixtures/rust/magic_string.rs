@@ -61,3 +61,7 @@ fn clean_other_macro(kind: &str, other: &str) {
 fn label(text: &str) -> &str {
     text
 }
+
+fn flagged_inequality(kind: Option<&str>, other: &str) -> bool {
+    kind != Some("archived") && other != "archived"
+}

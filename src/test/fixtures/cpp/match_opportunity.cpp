@@ -45,3 +45,15 @@ int cleanFloatingChain(double value) {
     }
     return 0;
 }
+
+// clean — not flagged by match opportunity: inequality excludes values instead of dispatching
+int cleanInequalityChain(int status) {
+    if (status != 0xFE) {
+        return 1;
+    } else if (status != 42ULL) {
+        return 2;
+    } else if (status != 1'000) {
+        return 3;
+    }
+    return 0;
+}

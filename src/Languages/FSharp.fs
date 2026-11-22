@@ -526,9 +526,11 @@ let fSharpLanguageAdapter: LanguageAdapter =
                     match
                         nodeChildren node
                         |> List.tryFind (fun c -> nodeType c = NodeType "infix_op")
-                        |> Option.filter (fun op -> nodeText op = "=")
+                        |> Option.bind (fun op ->
+                            comparisonPolarity { Equal = [ "=" ]; NotEqual = [ "<>" ] } (nodeText op)
+                            |> Option.map (fun polarity -> op, polarity))
                     with
-                    | Some opToken ->
+                    | Some(opToken, polarity) ->
                         let operands =
                             nodeChildren node |> List.filter (fun c -> nodeId c <> nodeId opToken)
 
@@ -542,7 +544,13 @@ let fSharpLanguageAdapter: LanguageAdapter =
                                 else
                                     rawRight
 
-                            [ { Left = l; Right = right } ]
+                            [
+                                {
+                                    Left = l
+                                    Right = right
+                                    Polarity = polarity
+                                }
+                            ]
                         | _ -> []
                     | None -> []
         GetMatchStringCases = matchStringCases

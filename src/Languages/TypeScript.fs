@@ -366,23 +366,12 @@ let typeScriptLanguageAdapter: LanguageAdapter =
         KeywordOnlyBoundaryTypes = []
         DistinctTypeAdvice = "a branded type (a nominal/opaque type with zero runtime overhead)"
         GetEqualityComparisons =
-            fun node ->
-                if nodeType node <> NodeType "binary_expression" then
-                    []
-                else
-                    match
-                        nodeChildren node
-                        |> List.tryFind (fun c -> nodeType c = NodeType "===" || nodeType c = NodeType "==")
-                    with
-                    | Some opToken ->
-                        // decision: compare operand identity by `.id`, not structural equality.
-                        let operands =
-                            nodeChildren node |> List.filter (fun c -> nodeId c <> nodeId opToken)
-
-                        match operands with
-                        | [ l; r ] -> [ { Left = l; Right = r } ]
-                        | _ -> []
-                    | None -> []
+            binaryComparisons
+                {
+                    Equal = [ "==="; "==" ]
+                    NotEqual = [ "!=="; "!=" ]
+                }
+                (NodeType "binary_expression")
         // TS's switch-on-string is a documented gap shared with Python/Kotlin/C++ — only F#'s `match` gets
         // the dedicated string-case hook.
         GetMatchStringCases = fun _ -> None

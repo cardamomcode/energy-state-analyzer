@@ -49,3 +49,10 @@ def flaggedBooleanBlindness(compress: bool, notify: bool):
 # flagged — boolean blindness (non-adjacent)
 def flaggedNonAdjacentBooleanBlindness(compress: bool, name: str, notify: bool):
     return name if compress and notify else ""
+
+
+# clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+def cleanInequalityChecks(status: str):
+    if status != "draft" and status != "review" and status != "final":
+        return 1
+    return 0

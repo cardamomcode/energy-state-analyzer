@@ -34,3 +34,8 @@ bool flaggedBooleanBlindness(bool compress, bool notify) {
 bool flaggedNonAdjacentBooleanBlindness(bool compress, std::string name, bool notify) {
     return compress && notify && !name.empty();
 }
+
+// clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+int cleanInequalityChecks(std::string status) {
+    return status != "draft" && status != "review" && status != "final" ? 1 : 0;
+}

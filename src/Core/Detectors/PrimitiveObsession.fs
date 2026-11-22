@@ -170,7 +170,10 @@ let private findStringlyTypedControlFlow (functionNode: Node) (positions: Positi
     /// supplied function-head subtree.
     let rec traverse (node: Node) state =
         let withEqualities =
+            // decision: counts equality only; an inequality excludes one value rather than choosing among
+            // the variable's string states.
             language.GetEqualityComparisons node
+            |> List.filter (fun comparison -> comparison.Polarity = Equal)
             |> List.choose (stringEquality language)
             |> List.fold (fun acc (variable, value) -> recordStringValues variable [ value ] acc) state
 

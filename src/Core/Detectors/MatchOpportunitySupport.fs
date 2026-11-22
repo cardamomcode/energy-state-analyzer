@@ -75,7 +75,10 @@ let collectDiscriminants (language: LanguageAdapter) (otherBranchIds: Set<int>) 
             []
         else
             let equalities =
+                // decision: only equality chains are dispatch; `x != "a"` excludes one value instead of
+                // selecting a branch.
                 language.GetEqualityComparisons node
+                |> List.filter (fun comparison -> comparison.Polarity = Equal)
                 |> List.collect (fun comparison ->
                     match
                         isVariable comparison.Left,

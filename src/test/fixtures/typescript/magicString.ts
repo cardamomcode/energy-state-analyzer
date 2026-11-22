@@ -43,3 +43,8 @@ function cleanCaseResult(event: string): string {
             return "result";
     }
 }
+
+// flagged — magic string
+function flaggedInequality(status: string, other: string): boolean {
+    return status !== "archived" && other != "archived";
+}

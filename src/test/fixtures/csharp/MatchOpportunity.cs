@@ -22,3 +22,15 @@ class ThreeWayChain
         return 0;
     }
 }
+
+class InequalityChain
+{
+    // clean — not flagged by match opportunity: inequality excludes values instead of dispatching
+    static int CleanInequalityChain(int status)
+    {
+        if (status != 254) return 1;
+        else if (status != 42) return 2;
+        else if (status != 1000) return 3;
+        return 0;
+    }
+}

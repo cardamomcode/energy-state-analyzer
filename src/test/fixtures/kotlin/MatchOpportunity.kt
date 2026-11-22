@@ -21,3 +21,15 @@ fun flaggedThreeWayChain(status: String): Int {
     }
     return 0
 }
+
+// clean — not flagged by match opportunity: inequality excludes values instead of dispatching
+fun cleanInequalityChain(status: String): Int {
+    if (status != "open") {
+        return 1
+    } else if (status != "closed") {
+        return 2
+    } else if (status != "pending") {
+        return 3
+    }
+    return 0
+}

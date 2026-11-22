@@ -9,3 +9,8 @@ flagged_dispatch(Mode) ->
     Mode =:= "pending".
 
 validation_query(Value) -> is_integer(Value).
+
+clean_inequality(Mode) ->
+    Mode =/= "draft" andalso
+    Mode =/= "review" andalso
+    Mode =/= "final".

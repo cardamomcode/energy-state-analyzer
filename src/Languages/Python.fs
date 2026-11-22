@@ -383,12 +383,19 @@ let pythonLanguageAdapter: LanguageAdapter =
                     children
                     |> List.mapi (fun i c -> i, c)
                     |> List.filter (fun (i, _) -> i >= 1 && i + 1 < List.length children)
-                    |> List.filter (fun (_, c) -> nodeType c = NodeType "==")
-                    |> List.map (fun (i, _) ->
-                        {
-                            Left = children.[i - 1]
-                            Right = children.[i + 1]
-                        })
+                    |> List.choose (fun (i, c) ->
+                        comparisonPolarity
+                            {
+                                Equal = [ "==" ]
+                                NotEqual = [ "!=" ]
+                            }
+                            (nodeText c)
+                        |> Option.map (fun polarity ->
+                            {
+                                Left = children.[i - 1]
+                                Right = children.[i + 1]
+                                Polarity = polarity
+                            }))
                 else
                     []
         // Python's match is a `match ... case` statement; its string-case dispatch is already captured by

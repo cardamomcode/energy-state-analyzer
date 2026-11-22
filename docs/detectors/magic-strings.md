@@ -6,7 +6,7 @@ Flags a string literal only where an unnamed one actually risks a silent typo, d
 
 A string literal is a candidate only when it sits at a decision point:
 
-- Compared with `==`/`===`.
+- Compared with equality or inequality (`==`, `===`, F#'s `=`, `!=`, `!==`, `<>`, Erlang's `/=` and `=/=`).
 - Checked for membership (Python's `x in (...)`).
 - Used as a dict/object key or subscript index.
 - Used as a match/switch case pattern: Rust `match` arms, `if let`/`while let`, and `matches!` patterns,
@@ -45,9 +45,9 @@ def route(status):
 
 Rust macro arguments are unparsed token trees. `matches!` is read token by token (its pattern follows the
 first top-level comma and ends at an `if` guard), but a guard's own comparison and other macros such as
-`assert_eq!` aren't interpreted. Inequality (`!=`, `<>`, `/=`) isn't modeled in any language. C++ has no case
-pattern support because its `switch` labels can't be strings.
+`assert_eq!` aren't interpreted. C++ has no case pattern support because its `switch` labels can't be
+strings.
 
-The equality/membership/dict-key scan and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
+The comparison/membership/dict-key scan and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.
 
-It also doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point, only equality, membership, dict/index-key, and case-pattern positions count.
+It also doesn't (yet) special-case enum-like keyword/default arguments (e.g. `mode="fast"`) as a lower-confidence decision point, only equality/inequality, membership, dict/index-key, and case-pattern positions count.

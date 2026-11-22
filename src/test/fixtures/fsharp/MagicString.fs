@@ -21,3 +21,7 @@ let cleanCaseResult (event: string) =
     match event with
     | "opened" -> "result"
     | _ -> "result"
+
+// flagged — magic string
+let flaggedInequality (status: string) (other: string) =
+    status <> "archived" && other <> "archived"

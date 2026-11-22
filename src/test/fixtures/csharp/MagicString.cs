@@ -30,4 +30,7 @@ class FlaggedStrings
         }
         return other is "started" or "stopped" ? 1 : 0;
     }
+
+    // flagged — magic string
+    static bool FlaggedInequality(string status, string other) => status != "archived" && other != "archived";
 }

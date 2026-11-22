@@ -164,17 +164,30 @@ let private booleanOperator node =
             | "orelse" -> Some Or
             | _ -> None)
 
-/// Extract equality comparisons without treating pattern matching as equality.
+/// Extract equality and inequality comparisons without treating pattern matching (`=`) as equality.
 let private equalityComparisons node =
     if nodeType node <> NodeType "binary_op_expr" then
         []
     else
-        let operator =
+        let polarity =
             nodeChildren node
-            |> List.exists (fun child -> List.contains (nodeText child) [ "=="; "=:=" ])
+            |> List.tryPick (fun child ->
+                comparisonPolarity
+                    {
+                        Equal = [ "=="; "=:=" ]
+                        NotEqual = [ "/="; "=/=" ]
+                    }
+                    (nodeText child))
 
-        match nodeField "lhs" node, nodeField "rhs" node with
-        | Some left, Some right when operator -> [ { Left = left; Right = right } ]
+        match nodeField "lhs" node, nodeField "rhs" node, polarity with
+        | Some left, Some right, Some polarity ->
+            [
+                {
+                    Left = left
+                    Right = right
+                    Polarity = polarity
+                }
+            ]
         | _ -> []
 
 /// Extract imports declared by Erlang's explicit `-import` attribute.

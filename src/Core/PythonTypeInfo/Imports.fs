@@ -29,12 +29,15 @@ let private plainImport children =
         Line = 0
     }
 
+/// Name the keyword that separates a from-import's module from its imported names.
+let private importKeyword = "import"
+
 /// Extract a from-import's module and direct imported identifiers; callers supply well-formed syntax
 /// containing both keywords. Aliased or nested forms are not resolved.
 let private fromImport children =
     let beforeImport =
         children
-        |> List.takeWhile (fun child -> nodeText child <> "import")
+        |> List.takeWhile (fun child -> nodeText child <> importKeyword)
         |> List.skipWhile (fun child -> nodeText child <> "from")
         |> List.skip 1
 
@@ -48,7 +51,7 @@ let private fromImport children =
 
     let items =
         children
-        |> List.skipWhile (fun child -> nodeText child <> "import")
+        |> List.skipWhile (fun child -> nodeText child <> importKeyword)
         |> List.skip 1
         |> List.filter (fun child -> nodeType child = NodeType "identifier")
         |> List.map nodeText
