@@ -9,9 +9,9 @@ A string literal is a candidate only when it sits at a decision point:
 - Compared with `==`/`===`.
 - Checked for membership (Python's `x in (...)`).
 - Used as a dict/object key or subscript index.
-- Used as a match/switch case pattern: Rust `match` arms and `if let`/`while let` patterns, TypeScript and
-  C# `switch` cases (including C# switch expressions and `is` patterns), Python `match`/`case`, Kotlin
-  `when` entries, F# `match`/`function` rules, and Erlang `case` clauses. Literals nested in or-, tuple-,
+- Used as a match/switch case pattern: Rust `match` arms, `if let`/`while let`, and `matches!` patterns,
+  TypeScript and C# `switch` cases (including C# switch expressions and `is` patterns), Python
+  `match`/`case`, Kotlin `when` entries, F# `match`/`function` rules, and Erlang `case` clauses. Literals nested in or-, tuple-,
   and constructor patterns such as `Some("a" | "b")` count; guards and arm results don't.
 
 In Rust, a literal wrapped in a single-argument variant constructor is still a comparison operand, so
@@ -43,8 +43,9 @@ def route(status):
 
 ## Known limitations
 
-Rust `matches!(kind, Some("a"))` isn't a decision point yet, because tree-sitter leaves macro arguments
-as an unparsed token tree. Inequality (`!=`, `<>`, `/=`) isn't modeled in any language. C++ has no case
+Rust macro arguments are unparsed token trees. `matches!` is read token by token (its pattern follows the
+first top-level comma and ends at an `if` guard), but a guard's own comparison and other macros such as
+`assert_eq!` aren't interpreted. Inequality (`!=`, `<>`, `/=`) isn't modeled in any language. C++ has no case
 pattern support because its `switch` labels can't be strings.
 
 The equality/membership/dict-key scan and the formatted-string exemption are fully implemented for Python, and partially for TypeScript (no `.includes()` membership support yet), F# (no dict/subscript node, no interpolated-string exemption), and C++ (equality and subscripts, but no semantic container-membership idiom). C++ raw string literals use a separate grammar node and encoded/prefixed literals are conservatively excluded. See the `LanguageAdapter` fields in `src/Core/LanguageAdapter.fs` for exactly what's modeled per language.

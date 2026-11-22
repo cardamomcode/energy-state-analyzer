@@ -337,9 +337,12 @@ let tests =
                     ProducesFinding(FunctionName "flagged_if_let", Some Low)
                     ProducesFinding(FunctionName "flagged_wrapped_equality", Some Low)
                     StaysClean(FunctionName "clean_call_argument")
-                    // limitation: tree-sitter leaves macro arguments unparsed, so `matches!` patterns
-                    // are not decision points yet.
-                    StaysClean(FunctionName "clean_macro_pattern")
+                    ProducesFinding(FunctionName "flagged_macro_pattern", Some Low)
+                    ProducesFinding(FunctionName "flagged_nested_macro_pattern", Some Low)
+                    // A `matches!` guard is an unparsed token tree, so its comparison is not a decision
+                    // point; other macros' arguments are never interpreted.
+                    StaysClean(FunctionName "clean_macro_guard")
+                    StaysClean(FunctionName "clean_other_macro")
                 ]
         ]
 

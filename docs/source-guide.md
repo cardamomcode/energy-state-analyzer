@@ -194,6 +194,7 @@ outcome, with helper contracts beside their definitions.
 - [Registry.fs](../src/Languages/Registry.fs)
 - [Rust.fs](../src/Languages/Rust.fs)
 - [RustImports.fs](../src/Languages/RustImports.fs)
+- [RustPatterns.fs](../src/Languages/RustPatterns.fs)
 - [RustValidation.fs](../src/Languages/RustValidation.fs)
 - [TypeScript.fs](../src/Languages/TypeScript.fs)
 - [TypeScriptReExports.fs](../src/Languages/TypeScriptReExports.fs)

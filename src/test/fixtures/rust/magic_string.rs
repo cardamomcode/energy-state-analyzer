@@ -40,8 +40,22 @@ fn clean_call_argument(kind: &str, other: &str) -> bool {
     kind == label("closing") || other == label("closing")
 }
 
-fn clean_macro_pattern(kind: Option<&str>, other: Option<&str>) -> bool {
-    matches!(kind, Some("draining")) || matches!(other, Some("draining"))
+fn flagged_macro_pattern(kind: Option<&str>, other: Option<&str>) -> bool {
+    matches!(kind, Some("draining")) || std::matches!(other, Some("idle" | "draining"))
+}
+
+fn flagged_nested_macro_pattern(kind: Option<&str>, other: Option<&str>) {
+    assert!(matches!(kind, Some("sealed")), "kind must be sealed");
+    debug_assert!(matches!(other, Some("sealed") if other.is_some()));
+}
+
+fn clean_macro_guard(kind: Option<&str>, other: Option<&str>) -> bool {
+    matches!(kind, Some(value) if value == "pending") || matches!(other, Some(value) if value == "pending")
+}
+
+fn clean_other_macro(kind: &str, other: &str) {
+    assert_eq!(kind, "settled");
+    assert_eq!(other, "settled");
 }
 
 fn label(text: &str) -> &str {
