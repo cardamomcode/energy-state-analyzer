@@ -2,9 +2,9 @@
 //
 // Rust functions, methods, and closures expose explicit parameters while receivers remain outside caller-
 // argument counts. Match arms, numeric suffixes, use trees, and validation carriers have dedicated
-// normalization. RustImports.fs and RustValidation.fs own those larger syntax boundaries; no compiler type
-// resolution is performed. This adapter implements ../Core/LanguageAdapter.fs and is selected by
-// Registry.fs; all nodes borrow the current parsed tree.
+// normalization. RustImports.fs, RustPatterns.fs, and RustValidation.fs own those larger syntax
+// boundaries; no compiler type resolution is performed. This adapter implements ../Core/LanguageAdapter.fs
+// and is selected by Registry.fs; all nodes borrow the current parsed tree.
 //
 // Reading path: [Source guide](../../docs/source-guide.md).
 
@@ -158,32 +158,6 @@ let private constructorLiteral node =
         argument
     | _ -> node
 
-/// Place string literals inside match-arm and `if let`/`while let` patterns, including or-patterns and
-/// constructor patterns such as `Some("a" | "b")`.
-///
-/// decision: `matches!` stays out of scope because tree-sitter leaves macro arguments as an unparsed
-/// token tree.
-let private casePatterns =
-    {
-        Wrappers =
-            [
-                kind "or_pattern"
-                kind "tuple_struct_pattern"
-                kind "tuple_pattern"
-                kind "slice_pattern"
-                kind "struct_pattern"
-                kind "field_pattern"
-                kind "reference_pattern"
-                kind "captured_pattern"
-            ]
-        IsPatternSlot =
-            fun parent child ->
-                (is "match_pattern" parent
-                 && nodeField "condition" parent
-                    |> Option.forall (fun guard -> nodeId guard <> nodeId child))
-                || fieldPatternSlot (kind "let_condition") "pattern" parent child
-    }
-
 /// Adapt the official tree-sitter-rust v0.24.2 grammar to the shared pipeline.
 let rustLanguageAdapter: LanguageAdapter =
     {
@@ -296,7 +270,7 @@ let rustLanguageAdapter: LanguageAdapter =
                 else
                     []
         GetMatchStringCases = fun _ -> None
-        CasePatterns = casePatterns
+        CasePatterns = RustPatterns.casePatterns
         GetMembershipComparisons = fun _ -> []
         IsMatchCaseLiteral =
             fun node ->
