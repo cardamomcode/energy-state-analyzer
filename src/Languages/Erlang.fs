@@ -13,6 +13,21 @@ module Energy.Languages.Erlang
 open Energy.Core.TreeSitter
 open Energy.Core.LanguageAdapter
 
+/// Name the grammar kind for an Erlang `case` expression.
+///
+/// decision: dispatch-form kinds are literals so one name serves as a NodeType value and as a match
+/// pattern, keeping the kind spelled once.
+[<Literal>]
+let private CaseExpr = "case_expr"
+
+/// Name the grammar kind for an Erlang `if` expression.
+[<Literal>]
+let private IfExpr = "if_expr"
+
+/// Name the grammar kind for an Erlang `receive` expression.
+[<Literal>]
+let private ReceiveExpr = "receive_expr"
+
 /// Name the grammar node for a named function clause.
 let private functionClause = NodeType "function_clause"
 
@@ -97,7 +112,7 @@ let private branchCount node =
         |> List.filter (fun child -> List.contains (nodeType child) [ NodeType "cr_clause"; NodeType "if_clause" ])
 
     match nodeType node with
-    | NodeType "case_expr" ->
+    | NodeType CaseExpr ->
         let exhaustive =
             clauses
             |> List.exists (fun clause ->
@@ -106,7 +121,7 @@ let private branchCount node =
                     |> Option.exists (fun pattern -> nodeType pattern = NodeType "var")))
 
         Some(clauses.Length + if exhaustive then 0 else 1)
-    | NodeType "if_expr" ->
+    | NodeType IfExpr ->
         let exhaustive =
             clauses
             |> List.exists (fun clause ->
@@ -115,7 +130,7 @@ let private branchCount node =
                     nodeNamedChildren guard |> List.exists (fun item -> nodeText item = "true")))
 
         Some(clauses.Length + if exhaustive then 0 else 1)
-    | NodeType "receive_expr" ->
+    | NodeType ReceiveExpr ->
         let after = nodeField "after" node |> Option.isSome
         Some(clauses.Length + if after then 1 else 0)
     | _ -> None
@@ -123,9 +138,9 @@ let private branchCount node =
 /// Model Erlang clauses as one branching construct with nested arm bodies.
 let private cognitiveStructure node =
     match nodeType node with
-    | NodeType "case_expr"
-    | NodeType "if_expr"
-    | NodeType "receive_expr" ->
+    | NodeType CaseExpr
+    | NodeType IfExpr
+    | NodeType ReceiveExpr ->
         let bodies =
             nodeNamedChildren node
             |> List.filter (fun child ->
@@ -296,18 +311,18 @@ let erlangLanguageAdapter: LanguageAdapter =
             ]
         DecisionNodeTypes =
             [
-                NodeType "case_expr"
-                NodeType "if_expr"
-                NodeType "receive_expr"
+                NodeType CaseExpr
+                NodeType IfExpr
+                NodeType ReceiveExpr
                 NodeType "catch_clause"
             ]
         CyclomaticBranchCount = branchCount
         GetCognitiveStructure = cognitiveStructure
         NestingControlTypes =
             [
-                NodeType "case_expr"
-                NodeType "if_expr"
-                NodeType "receive_expr"
+                NodeType CaseExpr
+                NodeType IfExpr
+                NodeType ReceiveExpr
                 NodeType "try_expr"
             ]
         GetBooleanOperator = booleanOperator
