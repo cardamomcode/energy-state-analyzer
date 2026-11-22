@@ -12,6 +12,10 @@ module Energy.Core.Detectors.ImportCoherence
 open Energy.Core
 open Energy.Core.Config
 
+/// Name the F# adapter id as a literal so it works in both comparisons and match patterns.
+[<Literal>]
+let private FSharpLanguageId = "fsharp"
+
 /// Kotlin's explicit import style needs a higher member fan-out bar for large external APIs.
 let private kotlinMemberImportFanOutThreshold = 30
 
@@ -78,7 +82,7 @@ let private importMessage
             source
     | _, _, _ when hasWildcard ->
         "Import scope pollution: a wildcard import makes an entire external scope available without qualification. Prefer explicit imports so symbol origins and collisions remain visible."
-    | "fsharp", _, Some(namespaceName, siblingCount) ->
+    | FSharpLanguageId, _, Some(namespaceName, siblingCount) ->
         sprintf
             "Import scope sprawl: %d modules are opened, including %d siblings beneath %s. This is a name-resolution risk: opened values can shadow one another and their origin is unclear. Prefer explicit qualified access or a small named module alias; do not split a cohesive file merely to reduce the count."
             importSourceCount
@@ -108,7 +112,7 @@ let check
         |> List.exists (fun importInfo -> importInfo.Kind = LanguageAdapter.Wildcard)
 
     let fSharpSiblingNamespace =
-        if language.Id = "fsharp" then
+        if language.Id = FSharpLanguageId then
             mostOpenedFSharpSiblingNamespace importSources coherence.SiblingOpenThreshold
         else
             None

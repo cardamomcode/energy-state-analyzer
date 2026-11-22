@@ -502,6 +502,7 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
         // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
         // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
         GetMatchStringCases = fun _ -> None
+        CasePatterns = noCasePatterns
         GetMembershipComparisons = fun _ -> []
         IsMatchCaseLiteral = isMatchCaseLiteral
         GetElseIfBranches = fun _ -> []

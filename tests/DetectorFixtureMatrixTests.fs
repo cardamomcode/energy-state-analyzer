@@ -287,6 +287,7 @@ let tests =
             }
             [
                 StaysClean(FunctionName "cleanValues")
+                StaysClean(FunctionName "cleanCaseResult")
                 ProducesFinding(FunctionName "flaggedMagicString", None)
             ]
         @ [
@@ -297,6 +298,48 @@ let tests =
                 [
                     StaysClean(FunctionName "clean_strings")
                     ProducesFinding(FunctionName "flagged_strings", Some Low)
+                ]
+        ]
+
+    // Case-pattern decision points: a string repeated as a match/switch case pattern is flagged, while arm
+    // results stay clean. C++ is the limitation row: its switch labels cannot be strings, so the common
+    // cleanCaseResult scenario above is its only case coverage.
+    let magicStringCasePatterns =
+        let flagged = [ ProducesFinding(FunctionName "flaggedCasePattern", Some Low) ]
+
+        [
+            fixture "Python" Python.pythonLanguageAdapter "python/magic_string.py" flagged
+            fixture "TypeScript" TypeScript.typeScriptLanguageAdapter "typescript/magicString.ts" flagged
+            fixture "TSX" TypeScript.tsxLanguageAdapter "typescript/magicString.ts" flagged
+            fixture "F#" FSharp.fSharpLanguageAdapter "fsharp/MagicString.fs" flagged
+            fixture "Kotlin" Kotlin.kotlinLanguageAdapter "kotlin/MagicString.kt" flagged
+            fixture
+                "C#"
+                CSharp.cSharpLanguageAdapter
+                "csharp/MagicString.cs"
+                (expectationsFor CSharp.cSharpLanguageAdapter flagged)
+            fixture
+                "Erlang"
+                Erlang.erlangLanguageAdapter
+                "erlang/MagicString.erl"
+                [
+                    ProducesFinding(FunctionName "flagged_case_pattern", Some Low)
+                    StaysClean(FunctionName "clean_case_result")
+                ]
+            fixture
+                "Rust"
+                Rust.rustLanguageAdapter
+                "rust/magic_string.rs"
+                [
+                    ProducesFinding(FunctionName "flagged_case_pattern", Some Low)
+                    StaysClean(FunctionName "clean_case_result")
+                    StaysClean(FunctionName "clean_guard_body")
+                    ProducesFinding(FunctionName "flagged_if_let", Some Low)
+                    ProducesFinding(FunctionName "flagged_wrapped_equality", Some Low)
+                    StaysClean(FunctionName "clean_call_argument")
+                    // limitation: tree-sitter leaves macro arguments unparsed, so `matches!` patterns
+                    // are not decision points yet.
+                    StaysClean(FunctionName "clean_macro_pattern")
                 ]
         ]
 
@@ -877,6 +920,7 @@ let tests =
                             ]
                     ]
             yield! detectorParityTests "magic strings" Magic magicStrings
+            yield! detectorParityTests "magic string case patterns" Magic magicStringCasePatterns
             yield! detectorParityTests "nesting" Nesting nesting
             yield!
                 detectorParityTests

@@ -1,6 +1,7 @@
 // # MagicString
 //
-// Decision-string analysis counts exact string content used in comparisons, membership, and indexing.
+// Decision-string analysis counts exact string content used in comparisons, membership, indexing, and
+// match/switch case patterns.
 // Standalone, formatted, short, allowlisted, and excluded test strings do not contribute. Eligible
 // occurrences are grouped across the file; a group meeting the configured count emits one low finding at
 // its first occurrence.
@@ -34,12 +35,16 @@ let private isDocstring (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> language.NodeTypes.ExpressionStatement |> Option.exists ((=) (nodeType parent)))
 
-/// Check whether a literal is either operand of an adapter-normalized equality at its parent or
-/// grandparent, accommodating wrapper nodes.
+/// Check whether a literal is either operand of an adapter-normalized equality at one of its three nearest
+/// ancestors, accommodating wrapper nodes.
 let private isEqualityComparisonOperand (language: LanguageAdapter) (node: Node) =
-    // decision: checks both parent and grandparent because F# wraps literal operands in `const`
-    // before their infix expression; node ids identify one live tree node across JS wrappers.
-    [ nodeParent node; nodeParent node |> Option.bind nodeParent ]
+    // decision: checks up to the great-grandparent because adapters unwrap literal operands: F# wraps
+    // them in `const`, and Rust's `Some("x")` nests them in a call's arguments. Node ids identify one
+    // live tree node across JS wrappers, so a wider search cannot match an unrelated comparison.
+    let parent = nodeParent node
+    let grandparent = parent |> Option.bind nodeParent
+
+    [ parent; grandparent; grandparent |> Option.bind nodeParent ]
     |> List.choose id
     |> List.exists (fun candidate ->
         language.GetEqualityComparisons candidate
@@ -54,13 +59,24 @@ let private isMembershipOperand (language: LanguageAdapter) (node: Node) (conten
         language.GetMembershipComparisons container
         |> List.exists (fun comparison -> List.contains content comparison.Values))
 
+/// Recognize a literal inside a match/switch case pattern by climbing the adapter's pattern wrappers to the
+/// arm, case, or clause that owns the pattern.
+let private isCasePattern (syntax: CasePatternSyntax) (node: Node) =
+    let rec climb child =
+        match nodeParent child with
+        | Some parent when List.contains (nodeType parent) syntax.Wrappers -> climb parent
+        | Some parent -> syntax.IsPatternSlot parent child
+        | None -> false
+
+    climb node
+
 /// Recognize a literal directly inside an adapter-declared subscript node.
 let private isKeyOrIndexPosition (language: LanguageAdapter) (node: Node) =
     nodeParent node
     |> Option.exists (fun parent -> List.contains (nodeType parent) language.SubscriptNodeTypes)
 
-/// Select a string used in equality, membership, or indexing, excluding standalone, formatted, allowlisted,
-/// and one-character values. Return at most one node/content pair.
+/// Select a string used in equality, membership, indexing, or a case pattern, excluding standalone,
+/// formatted, allowlisted, and one-character values. Return at most one node/content pair.
 let private decisionStringCandidate (ctx: AnalysisContext) (node: Node) : (Node * string) list =
     let isLiteral =
         ctx.Language.NodeTypes.StringLiteral |> Option.exists ((=) (nodeType node))
@@ -74,6 +90,7 @@ let private decisionStringCandidate (ctx: AnalysisContext) (node: Node) : (Node 
             isEqualityComparisonOperand ctx.Language node
             || isMembershipOperand ctx.Language node content
             || isKeyOrIndexPosition ctx.Language node
+            || isCasePattern ctx.Language.CasePatterns node
 
         let isExempt =
             isDocstring ctx.Language node

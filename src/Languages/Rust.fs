@@ -124,6 +124,66 @@ let private numericLiteralText node =
     |> fun text -> Regex.Replace(text, "_?(?:u(?:8|16|32|64|128|size)|i(?:8|16|32|64|128|size)|f(?:32|64))$", "")
     |> fun text -> text.Replace("_", "")
 
+/// Unwrap a single-literal variant constructor such as `Some("x")` or `Ok(3)` to its literal; any other
+/// operand is returned unchanged.
+///
+/// decision: a capitalized callee marks a tuple-struct or enum-variant constructor by Rust naming
+/// convention; lowercase calls stay opaque because their argument is an input, not the compared value.
+let private constructorLiteral node =
+    let isLiteral argument =
+        List.contains
+            (nodeType argument)
+            [
+                kind "string_literal"
+                kind "integer_literal"
+                kind "float_literal"
+                kind "char_literal"
+                kind "boolean_literal"
+            ]
+
+    let isConstructor callee =
+        let name =
+            if is "scoped_identifier" callee then
+                nodeField "name" callee
+            elif is "identifier" callee then
+                Some callee
+            else
+                None
+
+        name
+        |> Option.exists (fun identifier -> System.Char.IsUpper((nodeText identifier).[0]))
+
+    match nodeField "function" node, nodeField "arguments" node |> Option.map nodeNamedChildren with
+    | Some callee, Some [ argument ] when is "call_expression" node && isConstructor callee && isLiteral argument ->
+        argument
+    | _ -> node
+
+/// Place string literals inside match-arm and `if let`/`while let` patterns, including or-patterns and
+/// constructor patterns such as `Some("a" | "b")`.
+///
+/// decision: `matches!` stays out of scope because tree-sitter leaves macro arguments as an unparsed
+/// token tree.
+let private casePatterns =
+    {
+        Wrappers =
+            [
+                kind "or_pattern"
+                kind "tuple_struct_pattern"
+                kind "tuple_pattern"
+                kind "slice_pattern"
+                kind "struct_pattern"
+                kind "field_pattern"
+                kind "reference_pattern"
+                kind "captured_pattern"
+            ]
+        IsPatternSlot =
+            fun parent child ->
+                (is "match_pattern" parent
+                 && nodeField "condition" parent
+                    |> Option.forall (fun guard -> nodeId guard <> nodeId child))
+                || fieldPatternSlot (kind "let_condition") "pattern" parent child
+    }
+
 /// Adapt the official tree-sitter-rust v0.24.2 grammar to the shared pipeline.
 let rustLanguageAdapter: LanguageAdapter =
     {
@@ -217,6 +277,7 @@ let rustLanguageAdapter: LanguageAdapter =
                 ]
         KeywordOnlyBoundaryTypes = []
         DistinctTypeAdvice = "a newtype struct or enum"
+        // Single-literal constructors such as `Some("x")` unwrap so the literal is the compared operand.
         GetEqualityComparisons =
             fun node ->
                 if
@@ -224,11 +285,18 @@ let rustLanguageAdapter: LanguageAdapter =
                     && (nodeField "operator" node |> Option.exists (fun op -> nodeText op = "=="))
                 then
                     match nodeField "left" node, nodeField "right" node with
-                    | Some left, Some right -> [ { Left = left; Right = right } ]
+                    | Some left, Some right ->
+                        [
+                            {
+                                Left = constructorLiteral left
+                                Right = constructorLiteral right
+                            }
+                        ]
                     | _ -> []
                 else
                     []
         GetMatchStringCases = fun _ -> None
+        CasePatterns = casePatterns
         GetMembershipComparisons = fun _ -> []
         IsMatchCaseLiteral =
             fun node ->

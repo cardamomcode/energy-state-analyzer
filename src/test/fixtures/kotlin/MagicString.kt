@@ -25,3 +25,21 @@ fun flaggedMagicString(status: String): Int {
 fun flaggedDictKey(config: Map<String, Int>, other: Map<String, Int>): Int {
     return (config["retries"] ?: 0) + (other["retries"] ?: 0)
 }
+
+// flagged — magic string
+fun flaggedCasePattern(event: String, other: String): Int {
+    val first = when (event) {
+        "started" -> 1
+        else -> 0
+    }
+    return first + when (other) {
+        "stopped", "started" -> 1
+        else -> 0
+    }
+}
+
+// clean — not flagged by magic string
+fun cleanCaseResult(event: String): String = when (event) {
+    "opened" -> "result"
+    else -> "result"
+}

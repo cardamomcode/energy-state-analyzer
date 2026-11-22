@@ -77,6 +77,35 @@ type EqualityComparison = { Left: Node; Right: Node }
 /// `.includes()` is a call expression; F# has none).
 type MembershipComparison = { Left: Node; Values: string list }
 
+/// Where a grammar places literals inside match/switch case patterns. A literal is a case pattern when
+/// its ancestors, climbing only through Wrappers, reach a node whose IsPatternSlot accepts the last
+/// climbed child as that arm's pattern.
+///
+/// invariant: IsPatternSlot rejects guards and arm bodies, so a result string such as
+/// `"a" => "result"` never counts as a case pattern.
+type CasePatternSyntax =
+    {
+        // Pattern node types a literal may sit inside: or-patterns, tuple and constructor patterns, and
+        // literal wrappers such as F#'s `const` or C#'s `constant_pattern`.
+        Wrappers: NodeType list
+        // Whether the child (second argument) occupies the pattern position of the parent (first
+        // argument), such as a match arm, switch case, or case clause.
+        IsPatternSlot: Node -> Node -> bool
+    }
+
+/// Case-pattern syntax for grammars without a string-dispatching match or switch.
+let noCasePatterns =
+    {
+        Wrappers = []
+        IsPatternSlot = fun _ _ -> false
+    }
+
+/// Accept a child of the given parent type that occupies the named, possibly repeated, grammar field.
+let fieldPatternSlot (parentType: NodeType) (field: string) (parent: Node) (child: Node) =
+    nodeType parent = parentType
+    && (nodeFieldChildren field parent
+        |> List.exists (fun slot -> nodeId slot = nodeId child))
+
 /// The polarity of a boolean literal node, when an adapter can read one.
 ///
 /// decision: a DU rather than `bool option` so the polarity is self-documenting at call sites
@@ -302,6 +331,11 @@ type LanguageAdapter =
         //`). Always None for languages whose match/switch is already captured by GetEqualityComparisons
         // or that have no string-dispatch construct.
         GetMatchStringCases: Node -> (Node * Node list) option
+        // Where string literals sit inside match/switch case patterns (Rust match arms, TS/C# switch cases,
+        // Python case clauses, Kotlin when entries, F# rules, Erlang case clauses). Drives the
+        // magic-string detector's case-pattern decision point. noCasePatterns for grammars without
+        // string dispatch (C++, whose switch requires integral or enum values).
+        CasePatterns: CasePatternSyntax
         // Given a node, returns every 'variable in (literal, ...)' membership check it directly represents
         // as { left; values } pairs. Empty for languages with no direct equivalent (TS's `.includes()` is
         // a call expression; F# has none) — those still accumulate distinct literals via GetEqualityComparisons.

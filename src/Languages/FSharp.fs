@@ -546,6 +546,23 @@ let fSharpLanguageAdapter: LanguageAdapter =
                         | _ -> []
                     | None -> []
         GetMatchStringCases = matchStringCases
+        CasePatterns =
+            {
+                Wrappers =
+                    [
+                        NodeType "const"
+                        NodeType "disjunct_pattern"
+                        NodeType "conjunct_pattern"
+                        NodeType "identifier_pattern"
+                        NodeType "paren_pattern"
+                        NodeType "repeat_pattern"
+                        NodeType "list_pattern"
+                        NodeType "array_pattern"
+                        NodeType "cons_pattern"
+                        NodeType "as_pattern"
+                    ]
+                IsPatternSlot = fieldPatternSlot (NodeType "rule") "pattern"
+            }
         // F# has no `x in (a, b, c)`-style membership construct; repeated equality checks (e.g. an elif
         // chain) still accumulate via getEqualityComparisons.
         GetMembershipComparisons = fun _ -> []

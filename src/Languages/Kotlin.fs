@@ -450,6 +450,13 @@ let kotlinLanguageAdapter: LanguageAdapter =
         // Kotlin's when-on-string is a documented gap shared with Python/TS/C++ — only F#'s `match` gets
         // the dedicated string-case hook.
         GetMatchStringCases = fun _ -> None
+        // A subject `when` puts each comma-separated alternative in its own `condition` field; `in`
+        // range tests stay unmodeled, matching the membership gap above.
+        CasePatterns =
+            {
+                Wrappers = []
+                IsPatternSlot = fieldPatternSlot (NodeType "when_entry") "condition"
+            }
         // Kotlin's set-membership idiom (`x in listOf(...)`) is an in_expression whose right side is
         // normally a call_expression, not a literal collection — not modeled here, same precedent as
         // typescript.ts. Repeated equality checks still accumulate via getEqualityComparisons.

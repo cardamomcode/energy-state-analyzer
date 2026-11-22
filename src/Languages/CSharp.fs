@@ -166,6 +166,40 @@ let private switchBranchCount (node: Node) : int option =
 
         Some(sections.Length + if hasFallback then 0 else 1)
 
+/// Pattern node types that wrap a C# constant pattern inside switch cases and `is` expressions.
+let private patternWrappers =
+    [
+        NodeType "constant_pattern"
+        NodeType "or_pattern"
+        NodeType "and_pattern"
+        NodeType "negated_pattern"
+        NodeType "parenthesized_pattern"
+        NodeType "recursive_pattern"
+        NodeType "positional_pattern_clause"
+        NodeType "property_pattern_clause"
+        NodeType "subpattern"
+        NodeType "list_pattern"
+    ]
+
+/// Place string literals inside switch-statement sections, switch-expression arms, and `is` patterns.
+///
+/// decision: require the slot child to be a pattern node, because a switch-expression arm's result
+/// literal is a direct child of the arm while its pattern literal is always wrapped in constant_pattern.
+let private casePatterns =
+    {
+        Wrappers = patternWrappers
+        IsPatternSlot =
+            fun parent child ->
+                List.contains
+                    (nodeType parent)
+                    [
+                        NodeType "switch_section"
+                        NodeType "switch_expression_arm"
+                        NodeType "is_pattern_expression"
+                    ]
+                && List.contains (nodeType child) patternWrappers
+    }
+
 /// Extract the two operands of a binary == expression; other operators and unrecognized shapes yield no
 /// comparison.
 let private equalityComparisons (node: Node) : EqualityComparison list =
@@ -366,6 +400,7 @@ let cSharpLanguageAdapter: LanguageAdapter =
         DistinctTypeAdvice = "a readonly record struct or enum"
         GetEqualityComparisons = equalityComparisons
         GetMatchStringCases = fun _ -> None
+        CasePatterns = casePatterns
         GetMembershipComparisons = fun _ -> []
         IsMatchCaseLiteral =
             fun node ->
