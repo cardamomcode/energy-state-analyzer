@@ -19,7 +19,7 @@ open Energy.Core.Violation
 /// decision: kept in sync with package.json by a ShipIt regex updater (see CHANGELOG.md
 /// frontmatter) rather than read at runtime, since the CLI and extension bundles don't share a
 /// reliable relative path back to package.json across their differing Fable output layouts.
-let private toolVersion = "0.24.0"
+let private toolVersion = "0.25.0"
 
 /// Map high, medium, and low detector severity to SARIF error, warning, and note levels.
 let private sarifLevel =
