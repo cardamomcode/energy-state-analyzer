@@ -254,21 +254,26 @@ let rustLanguageAdapter: LanguageAdapter =
         // Single-literal constructors such as `Some("x")` unwrap so the literal is the compared operand.
         GetEqualityComparisons =
             fun node ->
-                if
-                    is "binary_expression" node
-                    && (nodeField "operator" node |> Option.exists (fun op -> nodeText op = "=="))
-                then
-                    match nodeField "left" node, nodeField "right" node with
-                    | Some left, Some right ->
-                        [
+                let polarity =
+                    nodeField "operator" node
+                    |> Option.bind (fun op ->
+                        comparisonPolarity
                             {
-                                Left = constructorLiteral left
-                                Right = constructorLiteral right
+                                Equal = [ "==" ]
+                                NotEqual = [ "!=" ]
                             }
-                        ]
-                    | _ -> []
-                else
-                    []
+                            (nodeText op))
+
+                match is "binary_expression" node, nodeField "left" node, nodeField "right" node, polarity with
+                | true, Some left, Some right, Some polarity ->
+                    [
+                        {
+                            Left = constructorLiteral left
+                            Right = constructorLiteral right
+                            Polarity = polarity
+                        }
+                    ]
+                | _ -> []
         GetMatchStringCases = fun _ -> None
         CasePatterns = RustPatterns.casePatterns
         GetMembershipComparisons = fun _ -> []

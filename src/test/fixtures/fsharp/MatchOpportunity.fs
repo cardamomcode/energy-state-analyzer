@@ -13,3 +13,10 @@ let flaggedThreeWayChain status =
     elif status = "closed" then 2
     elif status = "pending" then 3
     else 0
+
+// clean — not flagged by match opportunity: inequality excludes values instead of dispatching
+let cleanInequalityChain status =
+    if status <> "open" then 1
+    elif status <> "closed" then 2
+    elif status <> "pending" then 3
+    else 0

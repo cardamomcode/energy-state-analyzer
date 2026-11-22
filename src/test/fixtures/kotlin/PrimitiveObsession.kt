@@ -29,3 +29,7 @@ fun flaggedBooleanBlindness(compress: Boolean, notify: Boolean): Boolean {
 fun flaggedNonAdjacentBooleanBlindness(compress: Boolean, name: String, notify: Boolean): Boolean {
     return compress && notify && name.isNotEmpty()
 }
+
+// clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+fun cleanInequalityChecks(status: String): Int =
+    if (status != "draft" && status != "review" && status != "final") 1 else 0

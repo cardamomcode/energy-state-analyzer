@@ -71,3 +71,10 @@ let flaggedMatchStringDispatch (status: string) =
     | "active" -> 2
     | "closed" -> 3
     | _ -> 0
+
+// clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+let cleanInequalityChecks (status: string) =
+    if status <> "draft" && status <> "review" && status <> "final" then
+        1
+    else
+        0

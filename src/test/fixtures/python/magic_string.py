@@ -50,3 +50,8 @@ def cleanCaseResult(event):
             return "result"
         case _:
             return "result"
+
+
+# flagged — magic string
+def flaggedInequality(status, other):
+    return status != "archived" and other != "archived"

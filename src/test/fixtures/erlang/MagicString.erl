@@ -12,3 +12,6 @@ clean_case_result(Event) ->
         "opened" -> "result";
         _ -> "result"
     end.
+
+flagged_inequality(Event, Other) ->
+    Event =/= "archived" andalso Other /= "archived".

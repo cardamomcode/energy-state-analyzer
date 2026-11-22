@@ -200,22 +200,6 @@ let private casePatterns =
                 && List.contains (nodeType child) patternWrappers
     }
 
-/// Extract the two operands of a binary == expression; other operators and unrecognized shapes yield no
-/// comparison.
-let private equalityComparisons (node: Node) : EqualityComparison list =
-    if nodeType node <> NodeType "binary_expression" then
-        []
-    else
-        match nodeChildren node |> List.tryFind (fun child -> nodeType child = NodeType "==") with
-        | Some operatorNode ->
-            match
-                nodeChildren node
-                |> List.filter (fun child -> nodeId child <> nodeId operatorNode)
-            with
-            | [ left; right ] -> [ { Left = left; Right = right } ]
-            | _ -> []
-        | None -> []
-
 /// Read the leading type and name children of a parameter node, returning None for other or incomplete
 /// shapes.
 let private extractTypedParameter (node: Node) : TypedParameter option =
@@ -398,7 +382,13 @@ let cSharpLanguageAdapter: LanguageAdapter =
                 ]
         KeywordOnlyBoundaryTypes = []
         DistinctTypeAdvice = "a readonly record struct or enum"
-        GetEqualityComparisons = equalityComparisons
+        GetEqualityComparisons =
+            binaryComparisons
+                {
+                    Equal = [ "==" ]
+                    NotEqual = [ "!=" ]
+                }
+                (NodeType "binary_expression")
         GetMatchStringCases = fun _ -> None
         CasePatterns = casePatterns
         GetMembershipComparisons = fun _ -> []

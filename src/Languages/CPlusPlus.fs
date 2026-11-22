@@ -276,22 +276,6 @@ let private switchBranchCount (node: Node) : int option =
 
         Some(cases.Length + if hasDefault then 0 else 1)
 
-/// Extract the two operands of a binary == expression; other operators and unrecognized shapes yield no
-/// comparison.
-let private equalityComparisons (node: Node) : EqualityComparison list =
-    if nodeType node <> NodeType "binary_expression" then
-        []
-    else
-        match nodeChildren node |> List.tryFind (fun child -> nodeType child = NodeType "==") with
-        | Some operatorNode ->
-            match
-                nodeChildren node
-                |> List.filter (fun child -> nodeId child <> nodeId operatorNode)
-            with
-            | [ left; right ] -> [ { Left = left; Right = right } ]
-            | _ -> []
-        | None -> []
-
 /// Walk ancestors to an optional parameter and check that the value starts after its equals token, stopping
 /// at a function boundary.
 let rec private isDefaultParameterValue (node: Node) : bool =
@@ -498,7 +482,13 @@ let cPlusPlusLanguageAdapter: LanguageAdapter =
                 ]
         KeywordOnlyBoundaryTypes = []
         DistinctTypeAdvice = "a small value type (for example, a struct or enum class)"
-        GetEqualityComparisons = equalityComparisons
+        GetEqualityComparisons =
+            binaryComparisons
+                {
+                    Equal = [ "==" ]
+                    NotEqual = [ "!=" ]
+                }
+                (NodeType "binary_expression")
         // C++'s switch-on-string is rare (switch requires integer/enum) and a documented gap shared with
         // Python/TS/Kotlin — only F#'s `match` gets the dedicated string-case hook.
         GetMatchStringCases = fun _ -> None

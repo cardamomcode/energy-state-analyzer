@@ -43,3 +43,6 @@ fun cleanCaseResult(event: String): String = when (event) {
     "opened" -> "result"
     else -> "result"
 }
+
+// flagged — magic string
+fun flaggedInequality(status: String, other: String): Boolean = status != "archived" && other !== "archived"

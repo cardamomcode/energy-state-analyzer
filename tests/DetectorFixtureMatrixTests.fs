@@ -289,6 +289,7 @@ let tests =
                 StaysClean(FunctionName "cleanValues")
                 StaysClean(FunctionName "cleanCaseResult")
                 ProducesFinding(FunctionName "flaggedMagicString", None)
+                ProducesFinding(FunctionName "flaggedInequality", Some Low)
             ]
         @ [
             fixture
@@ -301,10 +302,11 @@ let tests =
                 ]
         ]
 
-    // Case-pattern decision points: a string repeated as a match/switch case pattern is flagged, while arm
-    // results stay clean. C++ is the limitation row: its switch labels cannot be strings, so the common
-    // cleanCaseResult scenario above is its only case coverage.
-    let magicStringCasePatterns =
+    // Case-pattern and inequality decision points: a string repeated as a match/switch case pattern or
+    // inequality operand is flagged, while arm results stay clean. C++ is the case-pattern limitation row:
+    // its switch labels cannot be strings, so the common cleanCaseResult scenario above is its only case
+    // coverage. Erlang and Rust inequality rows live here because their fixtures are dedicated files.
+    let magicStringDecisionPoints =
         let flagged = [ ProducesFinding(FunctionName "flaggedCasePattern", Some Low) ]
 
         [
@@ -325,6 +327,7 @@ let tests =
                 [
                     ProducesFinding(FunctionName "flagged_case_pattern", Some Low)
                     StaysClean(FunctionName "clean_case_result")
+                    ProducesFinding(FunctionName "flagged_inequality", Some Low)
                 ]
             fixture
                 "Rust"
@@ -343,6 +346,7 @@ let tests =
                     // point; other macros' arguments are never interpreted.
                     StaysClean(FunctionName "clean_macro_guard")
                     StaysClean(FunctionName "clean_other_macro")
+                    ProducesFinding(FunctionName "flagged_inequality", Some Low)
                 ]
         ]
 
@@ -530,6 +534,7 @@ let tests =
             }
             [
                 StaysClean(FunctionName "cleanDistinctTypes")
+                StaysClean(FunctionName "cleanInequalityChecks")
                 ProducesFinding(FunctionName "flaggedSwapRisk", None)
                 ProducesFinding(FunctionName "flaggedStringlyTyped", None)
             ]
@@ -540,6 +545,7 @@ let tests =
                 "erlang/Primitive.erl"
                 [
                     StaysClean(FunctionName "clean_dispatch")
+                    StaysClean(FunctionName "clean_inequality")
                     ProducesFinding(FunctionName "flagged_dispatch", Some Low)
                 ]
         ]
@@ -647,6 +653,7 @@ let tests =
             }
             [
                 StaysClean(FunctionName "cleanMixedConditions")
+                StaysClean(FunctionName "cleanInequalityChain")
                 ProducesFinding(FunctionName "flaggedThreeWayChain", None)
             ]
         // Erlang dispatches through `case` or guarded `if` clauses, not an if/elif chain.
@@ -923,7 +930,7 @@ let tests =
                             ]
                     ]
             yield! detectorParityTests "magic strings" Magic magicStrings
-            yield! detectorParityTests "magic string case patterns" Magic magicStringCasePatterns
+            yield! detectorParityTests "magic string decision points" Magic magicStringDecisionPoints
             yield! detectorParityTests "nesting" Nesting nesting
             yield!
                 detectorParityTests

@@ -29,3 +29,8 @@ function flaggedBooleanBlindness(compress: boolean, notify: boolean): boolean {
 function flaggedNonAdjacentBooleanBlindness(compress: boolean, name: string, notify: boolean): boolean {
     return compress && notify && name.length > 0;
 }
+
+// clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+function cleanInequalityChecks(status: string): number {
+    return status !== "draft" && status !== "review" && status !== "final" ? 1 : 0;
+}

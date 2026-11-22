@@ -21,3 +21,10 @@ class StringlyTypedExamples
         return 0;
     }
 }
+
+class InequalityChecks
+{
+    // clean — not flagged by primitive obsession: inequality excludes values instead of choosing a state
+    static int CleanInequalityChecks(string status) =>
+        status != "draft" && status != "review" && status != "final" ? 1 : 0;
+}

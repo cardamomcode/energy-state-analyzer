@@ -18,3 +18,14 @@ def flaggedThreeWayChain(status):
     elif status == "pending":
         return 3
     return 0
+
+
+# clean — not flagged by match opportunity: inequality excludes values instead of dispatching
+def cleanInequalityChain(status):
+    if status != "open":
+        return 1
+    elif status != "closed":
+        return 2
+    elif status != "pending":
+        return 3
+    return 0

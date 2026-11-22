@@ -67,10 +67,70 @@ type ErrorHandlingRegion =
         RecoveryBodies: RecoveryBody list
     }
 
-/// One direct equality comparison (== / === / F#'s single =) a node represents. A list rather than
-/// a single pair because Python's chained `a == b == c` parses as one comparison_operator holding
-/// two comparisons. Operand literals are already unwrapped to the real literal node by the caller.
-type EqualityComparison = { Left: Node; Right: Node }
+/// Whether a comparison tests for equality (`==`, `===`, F#'s `=`) or inequality (`!=`, `!==`, `<>`, `/=`).
+type ComparisonPolarity =
+    | Equal
+    | NotEqual
+
+/// One direct equality or inequality comparison a node represents. A list rather than a single pair
+/// because Python's chained `a == b != c` parses as one comparison_operator holding two comparisons.
+/// Operand literals are already unwrapped to the real literal node by the caller.
+///
+/// decision: inequality shares this record, tagged by Polarity, so each adapter reads comparison
+/// operators in one place; dispatch-oriented consumers (match opportunities, stringly-typed control
+/// flow) keep only Equal, while magic strings treat both as decision points.
+type EqualityComparison =
+    {
+        Left: Node
+        Right: Node
+        Polarity: ComparisonPolarity
+    }
+
+/// A grammar's spellings for its equality and inequality operator tokens.
+type ComparisonOperators =
+    {
+        Equal: string list
+        NotEqual: string list
+    }
+
+/// Classify an operator token's text, or None when it is neither an equality nor an inequality operator.
+let comparisonPolarity (operators: ComparisonOperators) (operatorText: string) =
+    if List.contains operatorText operators.Equal then
+        Some Equal
+    elif List.contains operatorText operators.NotEqual then
+        Some NotEqual
+    else
+        None
+
+/// Normalize a binary node of the given type whose children are an operand, an anonymous comparison
+/// operator token, and an operand; other node types, operators, and child shapes yield no comparison.
+let binaryComparisons (operators: ComparisonOperators) (binaryType: NodeType) (node: Node) =
+    let operator =
+        if nodeType node = binaryType then
+            nodeChildren node
+            |> List.tryPick (fun child ->
+                if nodeIsNamed child then
+                    None
+                else
+                    comparisonPolarity operators (nodeText child)
+                    |> Option.map (fun polarity -> child, polarity))
+        else
+            None
+
+    match operator with
+    | Some(token, polarity) ->
+        // decision: compare operand identity by node id, not structural equality.
+        match nodeChildren node |> List.filter (fun child -> nodeId child <> nodeId token) with
+        | [ left; right ] ->
+            [
+                {
+                    Left = left
+                    Right = right
+                    Polarity = polarity
+                }
+            ]
+        | _ -> []
+    | None -> []
 
 /// One 'variable in (literal, literal, ...)' membership check ({ left; values }) — Python's `in`
 /// over a tuple/list/set literal of strings. Empty for languages with no direct equivalent (TS's

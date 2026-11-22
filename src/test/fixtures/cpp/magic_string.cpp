@@ -30,3 +30,8 @@ std::string cleanCaseResult(int code) {
             return "result";
     }
 }
+
+// flagged — magic string
+bool flaggedInequality(std::string status, std::string other) {
+    return status != "archived" && other != "archived";
+}
